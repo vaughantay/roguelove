@@ -125,14 +125,14 @@ function menu:draw()
   printY = printY + spacing
 	love.graphics.printf("Monsterpedia",14,printY,width-28,"center")
   printY = printY + spacing
-  love.graphics.printf("Settings",14,printY,width-28,"center")
+  love.graphics.printf("Settings & Controls",14,printY,width-28,"center")
   printY = printY + spacing
   love.graphics.printf("Credits",14,printY,width-28,"center")
   printY = printY + spacing
   love.graphics.printf("Quit",14,printY,width-28,"center")
 	setColor(255,255,255)
 	love.graphics.setFont(fonts.textFont)
-  love.graphics.printf("Version 1.0.3",16,height-42,width-14,"center")
+  love.graphics.printf("Version " .. gamesettings.version,16,height-42,width-14,"center")
   love.graphics.printf("Copyright 2019 Weirdfellows LLC, http://weirdfellows.com",16,height-28,width-14,"center")
   local weirdwidth = fonts.textFont:getWidth("Copyright 2019 Weirdfellows LLC, http://weirdfellows.com")
   local weirdtextwidth = fonts.textFont:getWidth("Copyright 2019 Weirdfellows LLC, ")

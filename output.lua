@@ -180,12 +180,12 @@ function output:setCursor(x,y,force,allow_current_creature)
   self.targetTiles = {}
   
   local creat = (Gamestate.current() == game and currMap:get_tile_creature(x,y) or nil)
-  if Gamestate.current() == game and (actionResult == nil) and (player:can_move_to(x,y) or creat) and currMap.seenMap[x][y] == true then --if you're moving, draw the path you'll take
+  if Gamestate.current() == game and (actionResult == nil) and (player:can_move_to(x,y) or creat) and currMap:in_map(x,y) and currMap.seenMap[x][y] == true then --if you're moving, draw the path you'll take
     local tempLine = currMap:findPath(player.x,player.y,x,y,player.pathType) or {}
     for _, v in ipairs(tempLine) do
       self.targetLine[#self.targetLine+1] = {x=v.x,y=v.y}
     end --end for
-  elseif Gamestate.current() == game and (actionResult and actionResult.projectile == true) and currMap.seenMap[x][y] == true then --if you're targeting a projectile, draw a line to the target
+  elseif Gamestate.current() == game and (actionResult and actionResult.projectile == true) and currMap:in_map(x,y) and currMap.seenMap[x][y] == true then --if you're targeting a projectile, draw a line to the target
     local tempLine,_ = currMap:get_line(player.x,player.y,x,y,false,'flyer',false,true,true)
     for _, v in ipairs(tempLine) do
       self.targetLine[#self.targetLine+1] = {x=v[1],y=v[2]}

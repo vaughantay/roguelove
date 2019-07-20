@@ -790,7 +790,6 @@ function Creature:die(killer)
         local corpse = Feature('corpse',self,self.x,self.y)
         currMap:add_feature(corpse,self.x,self.y)
         corpse:refresh_image_name()
-        if self.possession_chance <= 0 then corpse.possessable = false end
       elseif not self:is_type("ghost") and self.isPlayer ~= true and self.corpse then
         local corpse = Feature(self.corpse,self,self.x,self.y)
         currMap:add_feature(corpse,self.x,self.y)
