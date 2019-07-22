@@ -191,7 +191,7 @@ function Creature:damage(amt,attacker,damage_type,is_melee,noSound)
         if (attacker.source and attacker.source.baseType == "creature") then attacker = attacker.source
         elseif (attacker.caster and attacker.caster.baseType == "creature") then attacker = attacker.caster end
         local hostile = false
-        if attacker.baseType == "creature" and not (self.shitlist[attacker] or self.ignoring[attacker] or self == attacker) then 
+        if attacker.baseType == "creature" and not (self.shitlist[attacker] or (self.ignoring and self.ignoring[attacker]) or self == attacker) then 
           hostile = self:become_hostile(attacker)
         end
         if hostile and (self.target == nil or self.target.baseType ~= "creature") then self.target = attacker end
