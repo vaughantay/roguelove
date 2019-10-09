@@ -182,7 +182,7 @@ function menu:keypressed(key)
 	elseif (key == "down") then
 		output.cursorY = output.cursorY+1
     if output.cursorY > 8 then output.cursorY = 1 end
-	elseif (key == "return") then
+	elseif (key == "return") or key == "kpenter" then
 		if (output.cursorY == 1) then
       initialize_player()
       Gamestate.switch(newgame)

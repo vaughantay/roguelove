@@ -20,14 +20,18 @@ function game:draw()
   love.graphics.translate(output.camera.xMod,output.camera.yMod)
   love.graphics.setFont(fonts.mapFont)
 	self:display_map(currMap)
+  if Gamestate.current() ~= settings and Gamestate.current() ~= monsterpedia and action ~="dying" then
+    self:print_cursor_game()
+  end
   love.graphics.pop()
+  love.graphics.push()
+  love.graphics.scale((prefs['uiScale'] or 1),(prefs['uiScale'] or 1))
+  self:display_minimap(currMap)
 	love.graphics.setFont(fonts.textFont)
   self:print_messages()
   self:print_sidebar()
   self:print_target_sidebar()
-  if Gamestate.current() ~= settings and Gamestate.current() ~= monsterpedia and action ~="dying" then
-    self:print_cursor_game()
-  end
+  love.graphics.pop()
   if self.contextualMenu then self.contextualMenu:draw() end
   love.graphics.setFont(fonts.textFont)
   setColor(0,0,0,100)
@@ -92,7 +96,12 @@ function game:print_cursor_game()
         setColor(255,255,255,255)
       else
         setColor(255,0,0,125)
-        love.graphics.draw(images.uicrosshair,printX+16,printY+16,0,1,1,16,16)
+        if action == "moving" and player:can_move_to(output.cursorX,output.cursorY) then
+          setColor(0,255,0,125)
+          love.graphics.draw(images.uimovearrow,printX+16*(currGame.zoom or 1),printY+16*(currGame.zoom or 1),0,(currGame.zoom or 1),(currGame.zoom or 1),16,16)
+        else
+          love.graphics.draw(images.uicrosshair,printX+16*(currGame.zoom or 1),printY+16*(currGame.zoom or 1),0,(currGame.zoom or 1),(currGame.zoom or 1),16,16)
+        end
       end
       
     else --if you can't reach the target
@@ -106,7 +115,7 @@ function game:print_cursor_game()
             love.graphics.rectangle("line",pX-2,pY+2,tileSize,tileSize)
           else
             setColor(255,0,0,125)
-            love.graphics.draw(images.uicrosshair,pX+16,pY+16,0,1,1,16,16)
+            love.graphics.draw(images.uicrosshair,pX+16*(currGame.zoom or 1),pY+16*(currGame.zoom or 1),0,(currGame.zoom or 1),(currGame.zoom or 1),16,16)
           end
         end --end targetline if
       end
@@ -118,7 +127,7 @@ function game:print_cursor_game()
         setColor(255,255,255,255)
       else
         setColor(255,255,255,100)
-        love.graphics.draw(images.uicrosshair,printX+16,printY+16,0,1,1,16,16)
+        love.graphics.draw(images.uicrosshair,printX+16*(currGame.zoom or 1),printY+16*(currGame.zoom or 1),0,(currGame.zoom or 1),(currGame.zoom or 1),16,16)
       end
     end
           setColor(255,255,255,255)
@@ -171,9 +180,10 @@ function game:print_messages()
   end
   output.buffer = {}
   
-	local cursor = love.graphics.getHeight()-16
+  local uiScale = (prefs['uiScale'] or 1)
+	local cursor = math.ceil((love.graphics.getHeight()-16)/uiScale)
   local length = 0
-  local width = love.graphics.getWidth()-365-(prefs['noImages'] and 0 or 32)
+  local width = math.ceil(love.graphics.getWidth()/uiScale-365-(prefs['noImages'] and 0 or 32))
 	for id,disp in ipairs(output.toDisp) do
     for i=#disp,1,-1 do
       if (output.text[disp[i]] ~= nil and length<=10) then
@@ -204,12 +214,14 @@ function game:print_messages()
 end
 
 function game:print_sidebar()
-  local width, height = love.graphics:getWidth(),love.graphics:getHeight()
+  local uiScale = (prefs['uiScale'] or 1)
+  local width, height = math.ceil(love.graphics:getWidth()/uiScale),math.ceil(love.graphics:getHeight()/uiScale)
   local mouseX,mouseY = love.mouse.getPosition()
+  mouseX,mouseY = math.ceil(mouseX/uiScale),math.ceil(mouseY/uiScale)
   local printX = width-365
   local sidebarW = 319
   local maxX = printX+sidebarW
-  local printY = 48
+  local printY = 48/uiScale
   local maxY = printY+85
   maxY = maxY + (player.magicName and 15 or 0)
   maxY = maxY + (player.ranged_attack and 40 or 0)
@@ -220,20 +232,22 @@ function game:print_sidebar()
   love.graphics.rectangle("fill",printX,printY,maxX-printX+14,height-32-printY)
   setColor(255,255,255,255)
   if prefs['noImages'] ~= true then
+    local bottomBorderY = math.ceil(height-48)
+    local bottomLR = math.ceil(height-80)
     for x=printX,maxX-16,32 do
       love.graphics.draw(images.borders.borderImg,images.borders.u,x,printY-18)
-      love.graphics.draw(images.borders.borderImg,images.borders.d,x,height-48)
+      love.graphics.draw(images.borders.borderImg,images.borders.d,x,bottomBorderY)
     end
-    for y=printY,height-80,32 do
+    for y=printY,bottomBorderY,32 do
       love.graphics.draw(images.borders.borderImg,images.borders.l,printX-18,y)
       love.graphics.draw(images.borders.borderImg,images.borders.r,maxX,y)
     end
-    love.graphics.draw(images.borders.borderImg,images.borders.l,printX-18,height-80)
-    love.graphics.draw(images.borders.borderImg,images.borders.r,maxX,height-80)
+    love.graphics.draw(images.borders.borderImg,images.borders.l,printX-18,bottomLR)
+    love.graphics.draw(images.borders.borderImg,images.borders.r,maxX,bottomLR)
     love.graphics.draw(images.borders.borderImg,images.borders.ul,printX-18,printY-18)
     love.graphics.draw(images.borders.borderImg,images.borders.ur,maxX,printY-18)
-    love.graphics.draw(images.borders.borderImg,images.borders.ll,printX-18,height-48)
-    love.graphics.draw(images.borders.borderImg,images.borders.lr,maxX,height-48)
+    love.graphics.draw(images.borders.borderImg,images.borders.ll,printX-18,bottomBorderY)
+    love.graphics.draw(images.borders.borderImg,images.borders.lr,maxX,bottomBorderY)
   else
     setColor(20,20,20,200)
     love.graphics.rectangle("fill",printX-7,printY-7,maxX-printX+32,height-48) --sidebar background
@@ -251,7 +265,7 @@ function game:print_sidebar()
 	love.graphics.printf(player.properName,printX,printY-4+yBonus,335,"center")
   local buttonWidth = fonts.buttonFont:getWidth(keybindings.charScreen .. ") Level " .. player.level .. " " .. player.name)
   local middleX = round(printX+335/2)
-  self.characterButton = output:button(round(middleX-buttonWidth/2)-8,printY+15,buttonWidth+16,true)
+  self.characterButton = output:button(round(middleX-buttonWidth/2)-8,printY+15,buttonWidth+16,true,nil,nil,true)
 	love.graphics.printf(keybindings.charScreen .. ") Level " .. player.level .. " " .. player.name,printX,printY+12+yBonus,335,"center")
   if output.shakeTimer > 0 then
     love.graphics.push()
@@ -289,7 +303,7 @@ function game:print_sidebar()
     local minX,minY=printX+xPad-2,printY+yPad
     local maxX,maxY=minX+rangedWidth+4,minY+16
     local buttonType = (player.ranged_recharge_countdown and "disabled" or (actionResult and actionResult == attack and "hover" or nil))
-    self.spellButtons["ranged"] = output:button(minX,minY+2,(maxX-minX),true,buttonType)
+    self.spellButtons["ranged"] = output:button(minX,minY+2,(maxX-minX),true,buttonType,nil,true)
     if player.ranged_recharge_countdown then
       ranged_text = ranged_text .. " \n(" .. player.ranged_recharge_countdown .. " turns to recharge)"
     end
@@ -313,7 +327,7 @@ function game:print_sidebar()
       yPad = yPad+20
       local textWidth = fonts.buttonFont:getWidth(keybindings.recharge .. ") Recharge/Reload")
       maxX = minX+textWidth+4
-      self.spellButtons["recharge"] = output:button(minX,minY+22,(maxX-minX),true)
+      self.spellButtons["recharge"] = output:button(minX,minY+22,(maxX-minX),true,nil,nil,true)
       love.graphics.print(keybindings.recharge .. ") Recharge/Reload",printX+xPad,printY+yPad-2+yBonus)
     end
     yPad = yPad+40
@@ -326,14 +340,14 @@ function game:print_sidebar()
       if spellcount == 1 then
         local buttonWidth = fonts.buttonFont:getWidth(keybindings.spell .. ") Abilities:")
         local middleX = round(printX+335/2)
-        self.allSpellsButton = output:button(round(middleX-buttonWidth/2)-8,printY+yPad,buttonWidth+16,true)
+        self.allSpellsButton = output:button(round(middleX-buttonWidth/2)-8,printY+yPad,buttonWidth+16,true,nil,nil,true)
         love.graphics.printf(keybindings.spell .. ") Abilities:",printX,printY+yPad-4+yBonus,335,"center")
       end
       local spellwidth = fonts.buttonFont:getWidth((prefs['spellShortcuts'] and spellcount .. ") " or "") .. spell.name)
       local minX,minY=printX+xPad-2,printY+yPad+(20*spellcount)
       local maxX,maxY=minX+spellwidth+4,minY+16
       local buttonType = ((player.cooldowns[spell.name] or spell:requires(player) == false) and "disabled" or (actionResult and actionResult.name == spell.name and "hover" or nil))
-      self.spellButtons[spellID] = output:button(minX,minY+2,(maxX-minX),true,buttonType)
+      self.spellButtons[spellID] = output:button(minX,minY+2,(maxX-minX),true,buttonType,nil,true)
       if self.spellButtons[spellID].hover == true then
         descBox = {desc=spell.name .. "\n" .. spell:get_description(),x=minX,y=minY}
       end
@@ -356,14 +370,14 @@ function game:print_sidebar()
     if spellcount == 1 then
       local buttonWidth = fonts.buttonFont:getWidth(keybindings.spell .. ") Abilities:")
       local middleX = round(printX+335/2)
-      self.allSpellsButton = output:button(round(middleX-buttonWidth/2)-8,printY+yPad,buttonWidth+16,true)
+      self.allSpellsButton = output:button(round(middleX-buttonWidth/2)-8,printY+yPad,buttonWidth+16,true,nil,nil,true)
       love.graphics.printf(keybindings.spell .. ") Abilities:",printX,printY+yPad-4,335,"center")
     end
     local spellwidth = fonts.buttonFont:getWidth(keybindings.heal .. ") Repair Body")
     local minX,minY=printX+xPad-2,printY+yPad+(20*spellcount)
     local maxX,maxY=minX+spellwidth+4,minY+16
     local buttonType = ((player.cooldowns["Repair Body"] or possibleSpells.repairBody:requires(player) == false) and "disabled" or nil)
-    self.spellButtons["repairBody"] = output:button(minX,minY+2,(maxX-minX),true,buttonType)
+    self.spellButtons["repairBody"] = output:button(minX,minY+2,(maxX-minX),true,buttonType,nil,true)
     if self.spellButtons["repairBody"].hover == true then
       descBox = {desc="Repair Body\n" .. possibleSpells["repairBody"]:get_description(),x=minX,y=minY}
     end
@@ -381,7 +395,7 @@ function game:print_sidebar()
     local minX,minY=printX+xPad-2,printY+yPad+(20*spellcount)
     local maxX,maxY=minX+spellwidth+4,minY+16
     local buttonType = (player.cooldowns["Possession"] and "disabled" or (actionResult and actionResult.name == "Possession" and "hover" or nil))
-    self.spellButtons["possession"] = output:button(minX,minY+2,(maxX-minX),true,buttonType)
+    self.spellButtons["possession"] = output:button(minX,minY+2,(maxX-minX),true,buttonType,nil,true)
     if self.spellButtons['possession'].hover == true then
       descBox = {desc="Possession\n" .. possibleSpells['possession']:get_description(),x=minX,y=minY}
     end
@@ -405,7 +419,7 @@ function game:print_sidebar()
     local spellwidth = fonts.buttonFont:getWidth(keybindings.stairsUp .. ") Exit Level")
     local minX,minY=printX+xPad-2,printY+yPad+(20*spellcount)
     local maxX,maxY=minX+spellwidth+4,minY+16
-    self.spellButtons["goUp"] = output:button(minX,minY+2,(maxX-minX),true)
+    self.spellButtons["goUp"] = output:button(minX,minY+2,(maxX-minX),true,nil,nil,true)
     if self.spellButtons['goUp'].hover == true then
       descBox = {desc="Try to go to the next level.",x=minX,y=minY}
     end
@@ -440,8 +454,8 @@ function game:print_sidebar()
     for id, thing in ipairs(player.sees) do
       if (printY+yPad < (player.target and height-240 or height-64) and thing ~= player and in_table(thing,alreadyPrinted) == false and player:does_notice(thing)) then
         local minY,maxY,minX,maxX = printY+yPad-4,printY+yPad+32,printX+5,printX+5+sidebarW
-        self.sidebarCreats[thing] = {minX=minX,maxX=maxX,minY=minY,maxY=maxY}
-        local trueHover = (mouseX > minX and mouseX < maxX and mouseY > minY and mouseY < maxY)
+        self.sidebarCreats[thing] = {minX=minX*uiScale,maxX=maxX*uiScale,minY=minY*uiScale,maxY=maxY*uiScale}
+        local trueHover = Gamestate.current() == game and (mouseX > minX and mouseX < maxX and mouseY > minY and mouseY < maxY)
         if (thing == self.hoveringCreat or trueHover) and not self.contextualMenu then
           if target == thing then
             setColor(255,255,255,125)
@@ -497,11 +511,12 @@ function game:print_sidebar()
 end
 
 function game:print_target_sidebar()
+  local uiScale = (prefs['uiScale'] or 1)
   if (target ~= nil) then
     local width, height = love.graphics:getWidth(),love.graphics:getHeight()
-    local printX = width-365
+    local printX = math.ceil(width/uiScale)-365
     local maxX = printX+319
-    local printY = height-225
+    local printY = math.ceil(height/uiScale)-225
     local maxY = ((next(target.conditions) == nil and printY+65 or printY+95))
     local xPad = 5
     local yBonus = 2
@@ -522,7 +537,6 @@ function game:print_target_sidebar()
     love.graphics.draw(images.borders.borderImg,images.borders.ur,maxX,printY-18)
     love.graphics.draw(images.borders.borderImg,images.borders.ll,printX-18,maxY)
     love.graphics.draw(images.borders.borderImg,images.borders.lr,maxX,maxY)
-    setColor(20,20,20,150)
     love.graphics.rectangle("fill",printX,printY,maxX-printX+14,maxY-printY+14)
     setColor(255,255,255,255)
     else
@@ -583,7 +597,7 @@ end
 function game:display_map(map)
   local mapWidth,mapHeight = output:get_map_dimensions()
   local width,height = love.graphics:getWidth(),love.graphics:getHeight()
-  local tileSize = output.get_tile_size()
+  local tileSize = output.get_tile_size()*(currGame.zoom or 1)
   local creaturesToDisplay = {}
   local featuresToDisplay = {}
   local projectilesToDisplay = {}
@@ -639,8 +653,16 @@ function game:display_map(map)
             end
             if not noFloor then
               if (type(map[x][y]) == "string") then --if there are no creatures or features, just print the tile
-                if seen == false then
+                if seen == false and map[x][y] ~= "<" then
                   setColor(50,50,50,255)
+                elseif map[x][y] == "<" then
+                  setColor(255,255,0,255)
+                elseif map.tileset and map[x][y] == "." and tilesets[map.tileset].groundColor then
+                  local tc = tilesets[map.tileset].groundColor
+                  setColor(tc.r,tc.g,tc.b,tc.a)
+                elseif map.tileset and map[x][y] == "#" and tilesets[map.tileset].wallColor then
+                  local tc = tilesets[map.tileset].wallColor
+                  setColor(tc.r,tc.g,tc.b,tc.a)
                 elseif map.tileset and tilesets[map.tileset].textColor then
                   local tc = tilesets[map.tileset].textColor
                   setColor(tc.r,tc.g,tc.b,tc.a)
@@ -672,12 +694,12 @@ function game:display_map(map)
                   if not self.batches[img] then
                     self.batches[img] = love.graphics.newSpriteBatch(img,map.width*map.height)
                   end
-                  self.batches[img]:add(quads[map.images[x][y].direction],printX+16,printY+16,0,1,1,16,16)
+                  self.batches[img]:add(quads[map.images[x][y].direction],printX+16*(currGame.zoom or 1),printY+16*(currGame.zoom or 1),0,(currGame.zoom or 1),(currGame.zoom or 1),16,16)
                 else
                   if not self.batchesDark[img] then
                     self.batchesDark[img] = love.graphics.newSpriteBatch(img,map.width*map.height)
                   end
-                  self.batchesDark[img]:add(quads[map.images[x][y].direction],printX+16,printY+16,0,1,1,16,16)
+                  self.batchesDark[img]:add(quads[map.images[x][y].direction],printX+16*(currGame.zoom or 1),printY+16*(currGame.zoom or 1),0,(currGame.zoom or 1),(currGame.zoom or 1),16,16)
                 end
                 --love.graphics.draw(img,quads[map.images[x][y].direction],printX+16,printY+16,0,1,1,16,16)
               else --uses individual images? draw the image
@@ -685,12 +707,12 @@ function game:display_map(map)
                   if not self.batches[img] then
                     self.batches[img] = love.graphics.newSpriteBatch(img,map.width*map.height)
                   end
-                  self.batches[img]:add(printX+16,printY+16,0,1,1,16,16)
+                  self.batches[img]:add(printX+16*(currGame.zoom or 1),printY+16*(currGame.zoom or 1),0,(currGame.zoom or 1),(currGame.zoom or 1),16,16)
                 else
                   if not self.batchesDark[img] then
                     self.batchesDark[img] = love.graphics.newSpriteBatch(img,map.width*map.height)
                   end
-                  self.batchesDark[img]:add(printX+16,printY+16,0,1,1,16,16)
+                  self.batchesDark[img]:add(printX+16*(currGame.zoom or 1),printY+16*(currGame.zoom or 1),0,(currGame.zoom or 1),(currGame.zoom or 1),16,16)
                 end
                 --love.graphics.draw(img,printX+16,printY+16,0,1,1,16,16)
               end
@@ -799,28 +821,28 @@ function game:display_map(map)
   --print('draw calls after batches: ' .. tostring(stats.drawcalls))
   --pClock:clearTime()
   for _,feat in ipairs(featuresToDisplay) do
-    output.display_entity(feat.feature,feat.x,feat.y,feat.seen)
+    output.display_entity(feat.feature,feat.x,feat.y,feat.seen,nil,(currGame.zoom or 1))
   end
   for f,args in pairs(alwaysDisplay) do
-    output.display_entity(f,args[1],args[2],args[3])
+    output.display_entity(f,args[1],args[2],args[3],nil,(currGame.zoom or 1))
   end
   --stats = love.graphics.getStats()
   --print('draw calls after features: ' .. tostring(stats.drawcalls))
   --pClock:flag('feature display')
   for creat,args in pairs(creaturesToDisplay) do
-    output.display_entity(creat,args[1],args[2],args[3])
+    output.display_entity(creat,args[1],args[2],args[3],nil,(currGame.zoom or 1))
   end
   --stats = love.graphics.getStats()
   --print('draw calls after creatures: ' .. tostring(stats.drawcalls))
   --pClock:flag('creature display')
   for feat,args in pairs(projectilesToDisplay) do
-    output.display_entity(feat,args[1],args[2],args[3])
+    output.display_entity(feat,args[1],args[2],args[3],nil,(currGame.zoom or 1))
   end
   --stats = love.graphics.getStats()
   --print('draw calls after projectiles: ' .. tostring(stats.drawcalls))
   --pClock:flag('projectile display')
   for eff,args in pairs(effectsToDisplay) do
-    output.display_entity(eff,args[1],args[2],args[3])
+    output.display_entity(eff,args[1],args[2],args[3],nil,(currGame.zoom or 1))
   end
   --stats = love.graphics.getStats()
   --print('draw calls after effects: ' .. tostring(stats.drawcalls))
@@ -829,7 +851,15 @@ function game:display_map(map)
     local printX,printY = output:tile_to_coordinates(args.x,args.y)
     local color = args.color
     setColor(color.r,color.g,color.b,(color.a or 25))
+    local tileSize = output:get_tile_size()
     love.graphics.rectangle('fill',printX,printY,tileSize,tileSize)
+  end
+  
+  --The arrow on the upstairs:
+  if map[map.stairsUp.x][map.stairsUp.y] == "<" and map.seenMap[map.stairsUp.x][map.stairsUp.y] then
+    local printX,printY=output:tile_to_coordinates(map.stairsUp.x,map.stairsUp.y)
+    setColor(255,255,255,255)
+    love.graphics.draw(images.uistairsuparrow,printX+16*(currGame.zoom or 1),printY+16*(currGame.zoom or 1),0,(currGame.zoom or 1),(currGame.zoom or 1),16,16)
   end
   --stats = love.graphics.getStats()
   --print('draw calls after lights: ' .. tostring(stats.drawcalls))
@@ -838,18 +868,20 @@ function game:display_map(map)
   --if countclock == 100 then pClock:stop() countclock = 0 end
   
   if action ~= "dying" then
-    for _,tile in ipairs(output.targetLine) do
+    local tileSize = output:get_tile_size() --tileSize is 14 without images, 32 with
+    for tileCount,tile in ipairs(output.targetLine) do
       if (tile.x ~= player.x or tile.y ~= player.y) then
         local printX,printY = output:tile_to_coordinates(tile.x,tile.y)
-        local tileSize = output:get_tile_size() --tileSize is 14 without images, 32 with
-        if prefs['noImages'] == true then
-          setColor(255,255,0,150)
-          love.graphics.rectangle("fill",printX-2,printY+2,tileSize,tileSize)
-          setColor(255,255,255,255)
-        else
-          setColor(255,255,0,150)
-          love.graphics.draw(images.uidot,printX+16,printY+16,0,1,1,16,16)
-          setColor(255,255,255,255)
+        if tileCount ~= #output.targetLine then
+          if prefs['noImages'] == true then
+            setColor(255,255,0,150)
+            love.graphics.rectangle("fill",printX-2,printY+2,tileSize,tileSize)
+            setColor(255,255,255,255)
+          else
+            setColor(255,255,0,150)
+            love.graphics.draw(images.uidot,printX+16*(currGame.zoom or 1),printY+16*(currGame.zoom or 1),0,(currGame.zoom or 1),(currGame.zoom or 1),16,16)
+            setColor(255,255,255,255)
+          end
         end
       end -- end checking the end of the line
     end --end for
@@ -862,7 +894,7 @@ function game:display_map(map)
         setColor(255,255,255,255)
       else
         setColor(100,50,100,125)
-        love.graphics.draw(images.uicrosshair,printX+16,printY+16,0,1,1,16,16)
+        love.graphics.draw(images.uicrosshair,printX+16*(currGame.zoom or 1),printY+16*(currGame.zoom or 1),0,(currGame.zoom or 1),(currGame.zoom or 1),16,16)
       end
     end --end for
     for _,tile in pairs(output.potentialTargets) do
@@ -876,12 +908,147 @@ function game:display_map(map)
           setColor(255,255,255,255)
         else
           setColor(255,255,0,75)
-          love.graphics.draw(images.uicrosshair,printX+16,printY+16,0,1,1,16,16)
+          love.graphics.draw(images.uicrosshair,printX+16*(currGame.zoom or 1),printY+16*(currGame.zoom or 1),0,(currGame.zoom or 1),(currGame.zoom or 1),16,16)
         end
       end --end notice if
     end --end for
   end --end not dying display
 end --end display map function
+
+function game:display_minimap(map)
+  if not prefs['minimap'] then return false end
+  local uiScale = (prefs['uiScale'] or 1)
+  local baseX,baseY=math.ceil(16/uiScale),math.ceil(32/uiScale)
+  local tileSize = (prefs['noImages'] and 6 or 4)
+  local width,height = tileSize*map.width,tileSize*map.height
+  local seeTiles = player.seeTiles
+  local mouseX,mouseY = love.mouse.getPosition()
+  local mouseOver = false
+  if Gamestate.current() == game and mouseX > baseX*uiScale and mouseX < (baseX+width)*uiScale and mouseY > baseY*uiScale and mouseY < (baseY+height)*uiScale then 
+    mouseOver = true
+  end
+  
+  --Calculate the boundaries of what the player has seen
+  local nearestX,nearestY,farthestX,farthestY=map.width,map.height,1,1
+  for x=1,map.width,1 do
+    for y=1,map.height,1 do
+      if currMap.seenMap[x][y] == true then
+        if x < nearestX then nearestX = x end
+        if x > farthestX then farthestX = x end
+        if y < nearestY then nearestY = y end
+        if y > farthestY then farthestY = y end
+      end
+    end --end fory
+  end --end forx
+  
+  local xMid, yMid = farthestX-math.floor((farthestX-nearestX)/2), farthestY-math.floor((farthestY-nearestY)/2)
+  local xMod,yMod = (math.floor(map.width/2)-xMid)*tileSize, (math.floor(map.height/2)-yMid)*tileSize
+
+  --[[local xMod,yMod = 0,0
+  local xModNear = (math.floor(map.width/2)-nearestX)*4
+  local yModNear = (math.floor(map.height/2)-nearestY)*4
+  local xModFar = (math.floor(map.width/2)-farthestX)*4
+  local yModFar = (math.floor(map.height/2)-farthestY)*4
+  
+  if math.abs(xModNear) > math.abs(xModFar) then xMod = xModNear else xMod = xModFar end
+  if math.abs(yModNear) > math.abs(yModFar) then yMod = yModNear else yMod = yModFar end]]
+  
+  --Draw the border:
+  setColor(25,25,25,math.ceil((prefs['noImages'] and 225 or 150)*(mouseOver and 0.25 or 1)))
+  love.graphics.rectangle('fill',baseX-tileSize,baseY-tileSize,width+tileSize,height+tileSize)
+  if map.tileset and tilesets[map.tileset].textColor then
+    local tc = tilesets[map.tileset].textColor
+    setColor(tc.r,tc.g,tc.b,math.ceil(tc.a*(mouseOver and 0.25 or 1)))
+  end
+  setColor(150,150,150,math.ceil(255*(mouseOver and 0.25 or 1)))
+  love.graphics.rectangle('line',baseX-tileSize,baseY-tileSize,width+tileSize,height+tileSize)
+  
+  baseX,baseY = baseX+xMod-(prefs['noImages'] and 3 or 16),baseY+yMod-(prefs['noImages'] and 3 or 16)
+  love.graphics.setFont(fonts.miniMapFont)
+  for x=1,map.width,1 do
+    for y=1,map.width,1 do
+      local seen = seeTiles[x][y]
+      if map.seenMap[x][y] == true then
+        if prefs['noImages'] == true then
+          local printX,printY=baseX+x*6,baseY+y*6
+          
+          if player.x == x and player.y == y then
+            setColor(255,255,255,math.ceil(255*(mouseOver and 0.25 or 1)))
+            love.graphics.print("@",printX,printY)
+          elseif map[x][y] == "#" then
+            if seen then setColor(100,100,100,math.ceil(255*(mouseOver and 0.25 or 1))) else setColor(50,50,50,math.ceil(255*(mouseOver and 0.25 or 1))) end
+            love.graphics.print("#",printX,printY)
+          elseif map[x][y] == "<" then
+            setColor(255,255,0,math.ceil(255*(mouseOver and 0.25 or 1)))
+            love.graphics.print("<",printX,printY)
+          elseif currMap:get_tile_creature(x,y) and seen then
+            setColor(255,0,0,math.ceil(255*(mouseOver and 0.25 or 1)))
+            love.graphics.print("x",printX,printY)
+          elseif type(map[x][y]) == "table" then
+            local tc= map[x][y].color
+            setColor((seen and tc.r or math.ceil(tc.r*.5)),(seen and tc.g or math.ceil(tc.g*.5)),(seen and tc.b or math.ceil(tc.b*.5)),math.ceil(255*(mouseOver and 0.25 or 1)))
+            love.graphics.print("·",printX,printY)
+          elseif map:get_blocking_feature(x,y) then
+            local bf = map:get_blocking_feature(x,y)
+            local tc= bf.color
+            setColor((seen and tc.r or math.ceil(tc.r*.5)),(seen and tc.g or math.ceil(tc.g*.5)),(seen and tc.b or math.ceil(tc.b*.5)),math.ceil(255*(mouseOver and 0.25 or 1)))
+            love.graphics.print("o",printX,printY)
+          elseif map[x][y] == "." then
+            if map.tileset and tilesets[map.tileset].textColor then
+              local tc = tilesets[map.tileset].textColor
+              setColor((seen and tc.r or math.ceil(tc.r*.5)),(seen and tc.g or math.ceil(tc.g*.5)),(seen and tc.b or math.ceil(tc.b*.5)),math.ceil(255*(mouseOver and 0.25 or 1)))
+            else
+              if seen then setColor(150,150,150,math.ceil(255*(mouseOver and 0.25 or 1))) else setColor(75,75,75,math.ceil(255*(mouseOver and 0.25 or 1))) end
+            end
+            love.graphics.print("·",printX,printY)
+          end --end tile type if
+          --[[if player.x == x and player.y == y then
+            setColor(255,255,255,255)
+            love.graphics.print('@',printX,printY)
+          elseif type(map[x][y]) == "string" then
+            if map[x][y] ~= "<" and map.tileset and tilesets[map.tileset].textColor then
+              local tc = tilesets[map.tileset].textColor
+              setColor((seen and tc.r or math.ceil(tc.r*.5)),(seen and tc.g or math.ceil(tc.g*.5)),(seen and tc.b or math.ceil(tc.b*.5)),255)
+            elseif map[x][y] == "<" then
+              setColor(255,255,0,255)
+            end
+            love.graphics.print(map[x][y],printX,printY)
+          else
+            output.display_entity(map[x][y],printX,printY,seen)
+          end]]
+        else --minimap for image mode
+          local printX,printY=baseX+x*4,baseY+y*4
+          if player.x == x and player.y == y then
+            setColor(255,255,255,math.ceil(200*(mouseOver and 0.25 or 1)))
+          elseif map[x][y] == "#" then
+            if seen then setColor(125,125,125,math.ceil(200*(mouseOver and 0.25 or 1))) else setColor(50,50,50,math.ceil(200*(mouseOver and 0.25 or 1))) end
+          elseif map[x][y] == "<" then
+            setColor(255,255,0,math.ceil(200*(mouseOver and 0.25 or 1)))
+          elseif currMap:get_tile_creature(x,y) and seen then
+            setColor(255,0,0,math.ceil(200*(mouseOver and 0.25 or 1)))
+          elseif type(map[x][y]) == "table" then
+            local tc= map[x][y].color
+            setColor((seen and tc.r or math.ceil(tc.r*.5)),(seen and tc.g or math.ceil(tc.g*.5)),(seen and tc.b or math.ceil(tc.b*.5)),math.ceil(200*(mouseOver and 0.25 or 1)))
+          elseif map:get_blocking_feature(x,y) then
+            local bf = map:get_blocking_feature(x,y)
+            local tc= bf.color
+            setColor((seen and tc.r or math.ceil(tc.r*.5)),(seen and tc.g or math.ceil(tc.g*.5)),(seen and tc.b or math.ceil(tc.b*.5)),math.ceil(200*(mouseOver and 0.25 or 1)))
+          elseif map[x][y] == "." then
+            if map.tileset and tilesets[map.tileset].textColor then
+              local tc = tilesets[map.tileset].textColor
+              setColor((seen and tc.r or math.ceil(tc.r*.5)),(seen and tc.g or math.ceil(tc.g*.5)),(seen and tc.b or math.ceil(tc.b*.5)),math.ceil(200*(mouseOver and 0.25 or 1)))
+            else
+              if seen then setColor(200,200,200,math.ceil(200*(mouseOver and 0.25 or 1))) else setColor(75,75,75,math.ceil(200*(mouseOver and 0.25 or 1))) end
+            end
+          end --end tile type if
+          love.graphics.draw(images['effectparticlemed'],printX,printY)
+        end
+      end --end if seenMap
+    end --end fory
+  end --end forx
+  setColor(255,255,255,255)
+  love.graphics.setFont(fonts.mapFont)
+end
 
 function game:update(dt)
   if game.newGhost then player = game.newGhost game.newGhost = nil end
@@ -1001,7 +1168,9 @@ function game:update(dt)
     if self.contextualMenu and x >= self.contextualMenu.x and x <= self.contextualMenu.maxX and y >= self.contextualMenu.y and y <= self.contextualMenu.maxY then
       self.contextualMenu:mouseSelect(x,y)
 		elseif self.warning == nil then
-      if (x < mapWidth-365 and y < mapHeight and x > 17 and y > 17) then
+      local uiScale = (prefs['uiScale'] or 1)
+      local sideBarX = (math.ceil(love.graphics:getWidth()/uiScale)-365)*uiScale
+      if Gamestate.current() == game and (x < sideBarX and y < mapHeight and x > 17 and y > 17) then
         local tileX,tileY = output:coordinates_to_tile(x,y)
         if (currMap[tileX] ~= nil and currMap[tileX][tileY] ~= nil) then
           local retarget = true
@@ -1096,73 +1265,77 @@ function game:mousepressed(x,y,button)
       return
     end
     
-    local asb = self.allSpellsButton
-    if asb and x >= asb.minX and x <= asb.maxX and y >= asb.minY and y <= asb.maxY then
-      Gamestate.switch(spellscreen)
-    end
-    local cb = self.characterButton
-    if cb and x >= cb.minX and x <= cb.maxX and y >= cb.minY and y <= cb.maxY then
-      Gamestate.switch(characterscreen)
-    end
-    
-    for spell,coords in pairs(self.spellButtons) do
-      if x >= coords.minX and x <= coords.maxX and y >= coords.minY and y <= coords.maxY then
-        if spell == "ranged" then
-          action="targeting"
-          actionResult=rangedAttacks[player.ranged_attack]
-          if (output.cursorX == 0 or output.cursorY == 0) and target then
-            output:setCursor(target.x,target.y,true,true)
-          else
-            output:setCursor(player.x,player.y,true,true)
-          end
-        elseif spell == "recharge" then
-          if rangedAttacks[player.ranged_attack]:recharge(player) then
-            advance_turn()
-          end
-        elseif spell == "goUp" then
-          goUp()
-        else
-         possibleSpells[spell]:target(target,player)
-        end
-        return
+    --Sidebar:
+    local uiScale = (prefs['uiScale'] or 1)
+    local sideBarX = (math.ceil(love.graphics:getWidth()/uiScale)-365)*uiScale
+    if x >= sideBarX then
+      local asb = self.allSpellsButton
+      if asb and x >= asb.minX and x <= asb.maxX and y >= asb.minY and y <= asb.maxY then
+        Gamestate.switch(spellscreen)
       end
-    end
-    
-    for creat,coords in pairs(self.sidebarCreats) do
-      if x >= coords.minX and x <= coords.maxX and y >= coords.minY and y <= coords.maxY then
-        setTarget(creat.x,creat.y)
+      local cb = self.characterButton
+      if cb and x >= cb.minX and x <= cb.maxX and y >= cb.minY and y <= cb.maxY then
+        Gamestate.switch(characterscreen)
       end
-    end
-    
-    --If clicked on a tile:
-		local tileX,tileY = output:coordinates_to_tile(x,y)
-    local creat = currMap:get_tile_creature(tileX,tileY)
-		if (tileX and tileY and x < love.graphics.getWidth()-365) then --a tile and not on sidebar
-      output:setCursor(tileX,tileY,false,true)
-      if action == "targeting" then
-        setTarget(tileX,tileY)
-      else
-        if tileX == player.x and tileY == player.y then --if you click yourself, skip a turn
-          output:sound('wait',0)
-          advance_turn()
-          local enter = currMap:enter(player.x,player.y,player,player.x,player.y) --run the "enter" code for a feature, f'rex, lava burning you even if you don't move
-        elseif player:touching({x=tileX,y=tileY}) and (not creat or (creat and (creat == target or not player:does_notice(creat) or not player:can_see_tile(tileX,tileY))))  then --if you're next to the tile move there (attacking if necessary)
-          move_player(tileX,tileY)
-          return
-        end --end click self or next-to-tile if
-        --This only happens if the player is not touching the tile:
-        if action == "targeting" or (creat ~= false and player:does_notice(creat)) then --if targeting, or if there's a creature there
-          if creat ~= false and player:does_notice(creat) and action ~= "targeting" then
-            if creat == target then --if they're already you're target, move towards them
-              pathTo(tileX,tileY,true)
+      
+      for spell,coords in pairs(self.spellButtons) do
+        if x >= coords.minX and x <= coords.maxX and y >= coords.minY and y <= coords.maxY then
+          if spell == "ranged" then
+            action="targeting"
+            actionResult=rangedAttacks[player.ranged_attack]
+            if (output.cursorX == 0 or output.cursorY == 0) and target then
+              output:setCursor(target.x,target.y,true,true)
+            else
+              output:setCursor(player.x,player.y,true,true)
             end
+          elseif spell == "recharge" then
+            if rangedAttacks[player.ranged_attack]:recharge(player) then
+              advance_turn()
+            end
+          elseif spell == "goUp" then
+            goUp()
+          else
+           possibleSpells[spell]:target(target,player)
           end
+          return
+        end
+      end
+      
+      for creat,coords in pairs(self.sidebarCreats) do
+        if x >= coords.minX and x <= coords.maxX and y >= coords.minY and y <= coords.maxY then
+          setTarget(creat.x,creat.y)
+        end
+      end
+    else --If clicked on a tile:
+      local tileX,tileY = output:coordinates_to_tile(x,y)
+      local creat = currMap:get_tile_creature(tileX,tileY)
+      if (tileX and tileY and x < love.graphics.getWidth()-365) then --a tile and not on sidebar
+        output:setCursor(tileX,tileY,false,true)
+        if action == "targeting" then
           setTarget(tileX,tileY)
-        elseif currMap:isClear(tileX,tileY,player.pathType) or (creat and not player:does_notice(creat)) then --not targeting, and chose empty space
-          pathTo(tileX,tileY,true)
-        end --end isclear/targeting if
-			end --end targeting or not if
-		end
+        else
+          if tileX == player.x and tileY == player.y then --if you click yourself, skip a turn
+            output:sound('wait',0)
+            advance_turn()
+            local enter = currMap:enter(player.x,player.y,player,player.x,player.y) --run the "enter" code for a feature, f'rex, lava burning you even if you don't move
+          elseif player:touching({x=tileX,y=tileY}) and (not creat or (creat and (creat == target or not player:does_notice(creat) or not player:can_see_tile(tileX,tileY))))  then --if you're next to the tile move there (attacking if necessary)
+            move_player(tileX,tileY)
+            return
+          end --end click self or next-to-tile if
+          --This only happens if the player is not touching the tile:
+          if action == "targeting" or (creat ~= false and player:does_notice(creat)) then --if targeting, or if there's a creature there
+            if creat ~= false and player:does_notice(creat) and action ~= "targeting" then
+              if creat == target then --if they're already you're target, move towards them
+                pathTo(tileX,tileY,true)
+              end
+            end
+            setTarget(tileX,tileY)
+          elseif currMap:isClear(tileX,tileY,player.pathType) or (creat and not player:does_notice(creat)) then --not targeting, and chose empty space
+            pathTo(tileX,tileY,true)
+          end --end isclear/targeting if
+        end --end targeting or not if
+      end
+    end
   elseif button == 2 then
     for creat,coords in pairs(self.sidebarCreats) do
       if not self.contextualMenu and x >= coords.minX and x <= coords.maxX and y >= coords.minY and y <= coords.maxY then
@@ -1170,7 +1343,9 @@ function game:mousepressed(x,y,button)
       end
     end
     local tileX,tileY = output:coordinates_to_tile(x,y)
-    if tileX and tileY and x < love.graphics.getWidth()-365 then --not on sidebar, and actually a real tile
+    local uiScale = (prefs['uiScale'] or 1)
+    local sideBarX = (math.ceil(love.graphics:getWidth()/uiScale)-365)*uiScale
+    if tileX and tileY and x < sideBarX then --not on sidebar, and actually a real tile
       self.contextualMenu = ContextualMenu(tileX,tileY)
       output:setCursor(tileX,tileY)
     end
@@ -1184,13 +1359,21 @@ function game:wheelmoved(x,y)
     elseif y < 0 then
       self.contextualMenu:scrollDown()
     end
+  else
+    if y > 0 then
+      currGame.zoom = math.min((currGame.zoom or 1)+0.1,2)
+      output:refresh_coordinate_map()
+    elseif y < 0 then
+      currGame.zoom = math.max((currGame.zoom or 1)-0.1,0.5)
+      output:refresh_coordinate_map()
+    end
   end
 end
 
 function game:keypressed(key,scancode,isRepeat)
   --Pie:keypressed(key)
   if self.popup then
-    if (not self.popup.enterOnly or key == "return") then
+    if not self.popup.enterOnly or (key == "return" or key == "kpenter") then
       if self.popup.afterFunc then self.popup.afterFunc() end
       self.popup = nil
       if self.blackAmt and action ~= "winning" and not self.blackOutTween then
@@ -1312,7 +1495,7 @@ function game:keypressed(key,scancode,isRepeat)
 		end
 	elseif (key == keybindings.messages) then
 		Gamestate.switch(messages)
-	elseif (key == "return") then
+	elseif (key == "return") or key == "kpenter" then
     if self.contextualMenu and self.contextualMenu.selectedItem then
       self.contextualMenu:click()
     elseif (action == "targeting") then
@@ -1358,6 +1541,12 @@ function game:keypressed(key,scancode,isRepeat)
     if player.id ~= "ghost" then
       possibleSpells['repairBody']:use(player,player)
     end
+  elseif key == keybindings.zoomIn then
+    currGame.zoom = math.min((currGame.zoom or 1)+0.1,2)
+    output:refresh_coordinate_map()
+  elseif key == keybindings.zoomOut then
+    currGame.zoom = math.max((currGame.zoom or 1)-0.1,0.5)
+    output:refresh_coordinate_map()
   elseif tonumber(key) and prefs.spellShortcuts then
     local spellcount = 1
     for _,spellID in pairs(player.spells) do

@@ -178,7 +178,7 @@ function modloader:keypressed(key, isRepeat)
     self.cursorX = math.max(self.cursorX - 1,1)
   elseif key == "right" then
     self.cursorX = math.min (self.cursorX + 1,3)
-  elseif key == "return" then
+  elseif key == "return" or key == "kpenter" then
     if self.cursorY == 0 then
       if self.cursorX == 1 then --select all
         local which = true

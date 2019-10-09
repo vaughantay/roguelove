@@ -3,10 +3,11 @@ spellscreen = {}
 function spellscreen:enter()
   self.cursorY = 0
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
+  local uiScale = (prefs['uiScale'] or 1)
   local boxW,boxH = 450,300
   local padX,padY = 0,0
   local descY = 0
-  local x,y=math.floor(width/2-boxW/2),math.floor(height/2-boxH/2)
+  local x,y=math.floor(width/2/uiScale-boxW/2),math.floor(height/2/uiScale-boxH/2)
   self.x,self.y,self.boxW,self.boxH=x,y,boxW,boxH
   if prefs['noImages'] == true then
     padX,padY=5,5
@@ -22,9 +23,11 @@ function spellscreen:enter()
 end
 
 function spellscreen:draw()
+  local uiScale = (prefs['uiScale'] or 1)
   game:draw()
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
   love.graphics.push()
+  love.graphics.scale(uiScale,uiScale)
   love.graphics.translate(0,height*(self.yModPerc/100))
 	local line = 3
   local boxW,boxH = self.boxW,self.boxH
@@ -107,14 +110,14 @@ function spellscreen:draw()
     love.graphics.print(targetText,x+padX,descY+8)
     love.graphics.printf(spell:get_description(),x+padX,descY+32,boxW-16,"left")
   end
-  self.closebutton = output:closebutton(self.x+(prefs['noImages'] and 8 or 20),self.y+(prefs['noImages'] and 8 or 20))
+  self.closebutton = output:closebutton(self.x+(prefs['noImages'] and 8 or 20),self.y+(prefs['noImages'] and 8 or 20),nil,true)
   love.graphics.pop()
 end
 
 function spellscreen:keypressed(key)
 	if (key == "escape") then
 		self:switchBack()
-	elseif (key == "return") then
+	elseif (key == "return") or key == "kpenter" then
 		if (possibleSpells[player.spells[self.cursorY]] and possibleSpells[player.spells[self.cursorY]]:target(target,player) ~= false) then
 			advance_turn()
 		end
@@ -139,8 +142,9 @@ function spellscreen:keypressed(key)
 end
 
 function spellscreen:mousepressed(x,y,button)
-	if (x > self.x and x < self.x+self.boxW and y > self.y and y < self.descY) then
-    if button == 2 or (x > self.closebutton.minX and x < self.closebutton.maxX and y > self.closebutton.minY and y < self.closebutton.maxY) then self:switchBack() end
+  local uiScale = (prefs['uiScale'] or 1)
+	if (x/uiScale > self.x and x/uiScale < self.x+self.boxW and y/uiScale > self.y and y/uiScale < self.descY) then
+    if button == 2 or (x/uiScale > self.closebutton.minX and x/uiScale < self.closebutton.maxX and y/uiScale > self.closebutton.minY and y/uiScale < self.closebutton.maxY) then self:switchBack() end
 		if (player.spells[self.cursorY] ~= nil) then
 			if(possibleSpells[player.spells[self.cursorY]]:target(target,player) ~= false) then
 				advance_turn()
@@ -154,10 +158,11 @@ end
 
 function spellscreen:wheelmoved(x,y)
   if y > 0 then
-		if (player.spells[self.cursorY-1] ~= nil) then
+		if (self.cursorY and player.spells[self.cursorY-1] ~= nil) then
 			self.cursorY = self.cursorY - 1
 		end
 	elseif y < 0 then
+    self.cursorY = self.cursorY or 0
 		if (player.spells[self.cursorY+1] ~= nil) then
 			self.cursorY = self.cursorY + 1
 		end
@@ -172,6 +177,8 @@ function spellscreen:update(dt)
     return
   end
 	local x,y = love.mouse.getPosition()
+  local uiScale = (prefs['uiScale'] or 1)
+  x,y = x/uiScale, y/uiScale
 	if (x ~= output.mouseX or y ~= output.mouseY) then -- only do this if the mouse has moved
     output.mouseX,output.mouseY = x,y
 		if (x > self.x and x < self.x+self.boxW and y > self.y and y < self.descY) then --if inside spell box

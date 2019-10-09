@@ -92,7 +92,7 @@ function cheats:keypressed(key)
     if self.cursorY > 0 then self.cursorY = self.cursorY-1 end
   elseif (key == "down") then
     if self.cursorY < 7 then self.cursorY = self.cursorY+ 1 end
-  elseif key == "return" then
+  elseif key == "return" or key == "kpenter" then
     local setting = nil
     if self.labels[self.cursorY] then
       setting = self.labels[self.cursorY]

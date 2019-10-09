@@ -9,16 +9,18 @@ end
 function characterscreen:draw()
   game:draw()
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
+  local uiScale = (prefs['uiScale'] or 1)
   love.graphics.push()
+  love.graphics.scale(uiScale,uiScale)
   love.graphics.translate(0,height*(self.yModPerc/100))
   local padding = (prefs['noImages'] and 16 or 32)
   local fontSize = prefs['fontSize']
-  output:draw_window(1,1,width-padding,height-padding)
+  output:draw_window(1,1,math.floor(width/uiScale-padding),math.floor(height/uiScale-padding))
   love.graphics.setFont(fonts.textFont)
   local printY = padding
-	love.graphics.printf(player.properName,padding,padding,width-44,"center")
+	love.graphics.printf(player.properName,padding,padding,math.floor(width/uiScale)-44,"center")
   printY = printY + fontSize
-	love.graphics.printf("Level " .. player.level .. " " .. player.name,padding,printY,width-44,"center")
+	love.graphics.printf("Level " .. player.level .. " " .. player.name,padding,printY,math.floor(width/uiScale)-44,"center")
   printY = printY + 50
 	love.graphics.print("Damage: " .. player.strength,padding,printY)
   printY = printY + fontSize
@@ -57,11 +59,11 @@ function characterscreen:draw()
     local attack = rangedAttacks[player.ranged_attack]
     love.graphics.print("Ranged Attack: " .. attack:get_name(), padding,printY)
     printY = printY + fontSize
-    love.graphics.printf(attack:get_description(),padding,printY,width-padding)
+    love.graphics.printf(attack:get_description(),padding,printY,math.floor(width/uiScale)-padding)
   end
 	
   printY = printY + 50
-	love.graphics.printf("Special Abilities:",padding,printY,width-padding,"center")
+	love.graphics.printf("Special Abilities:",padding,printY,math.floor(width/uiScale)-padding,"center")
   printY=printY+fontSize*2
 	local abilities = ""
 	local i = 1
@@ -70,13 +72,14 @@ function characterscreen:draw()
 		abilities = abilities .. possibleSpells[ability].name .. (possibleSpells[ability].target_type == "passive" and " (Passive)" or "") .. " - " .. possibleSpells[ability].description
 		i = i + 1
 	end
-	love.graphics.printf(abilities,padding,printY,width-padding,"left")
-  printY=printY+i*fontSize
+	love.graphics.printf(abilities,padding,printY,math.floor(width/uiScale)-padding,"left")
+  local _, wrappedtext = fonts.textFont:getWrap(abilities, math.floor(width/uiScale))
+  printY=printY+#wrappedtext*fontSize
   
   if player.hit_conditions then
     printY = printY + 50
-    love.graphics.printf("Hit Conditions:",padding,printY,width-padding,"center")
-    printY = printY+fontSize
+    love.graphics.printf("Hit Conditions:",padding,printY,math.floor(width/uiScale)-padding,"center")
+    printY = printY+fontSize*2
     local context = ""
     local i = 1
     for _, condition in pairs(player.hit_conditions) do
@@ -84,7 +87,7 @@ function characterscreen:draw()
       context = context .. conditions[condition.condition].name .. ": " .. condition.chance .. "% Chance"
       i = i + 1
     end
-    love.graphics.printf(context,padding,printY,width-padding,"left")
+    love.graphics.printf(context,padding,printY,math.floor(width/uiScale)-padding,"left")
   end
 	
   printY = printY + 50

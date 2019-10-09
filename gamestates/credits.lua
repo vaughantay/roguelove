@@ -73,6 +73,7 @@ function credits:draw()
   end --end if images
   
   love.graphics.setFont(fonts.graveFontBig)
+  setColor(255,255,255,255)
   love.graphics.printf("Possession",14,100,width-28,"center")
   if self.slide == 1 then
     love.graphics.setFont(fonts.graveFontSmall)
@@ -167,6 +168,30 @@ Ripple by Andrew Minnich, MIT license.
   end
   self:drawrain()
   setColor(255,255,255,255)
+end
+
+function credits:preDrawDirt()
+  local width, height = love.graphics:getWidth(),love.graphics:getHeight()
+  self.dirtSkyCanvas = love.graphics.newCanvas(width,height)
+  love.graphics.setCanvas(self.dirtSkyCanvas)
+  local dirt = ""
+  for i=1,width,14 do
+    dirt = dirt .. "# "
+  end
+  --Draw the dirt and sky:
+  local actualDirt = ""
+  for y=1,height,14 do
+    if y >= 540 then
+      setColor(153,103,73,255-(255*((y-540)/(height-540))))
+      love.graphics.print(dirt,1,y)
+    else
+      if 255-(255*(y/540)) > 0 then
+        setColor(0,181,255,255-(255*(y/540)))
+        love.graphics.print(dirt,1,y)
+      end
+    end
+  end
+  love.graphics.setCanvas()
 end
 
 function credits:drawrain()

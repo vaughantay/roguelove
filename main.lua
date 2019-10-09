@@ -13,8 +13,7 @@ end
 --pClock = require("profileclock")
 
 Steam = nil
-if pcall(function() Steam = require 'luasteam' end) and Steam then
-  Steam.init()
+if pcall(function() Steam = require 'luasteam' end) and Steam and Steam.init() then
   --do nothing, it's already loaded
 else
   Steam = nil
@@ -22,6 +21,7 @@ else
 end
 
 function love.load(arg)
+  love.graphics.setDefaultFilter('nearest','nearest')
   love.keyboard.setKeyRepeat(true)
   local pTime = os.clock()
   load_libraries()
@@ -40,11 +40,14 @@ function love.load(arg)
     graveFontBig = love.graphics.newFont("VeniceClassic.ttf",36),
     graveFontSmall = love.graphics.newFont("VeniceClassic.ttf",24),
     buttonFont = love.graphics.newFont("VeniceClassic.ttf",18),
+    miniMapFont = love.graphics.newFont("VeraMono.ttf",8),
     mapFont = love.graphics.newFont("VeraMono.ttf",prefs['asciiSize']),
+    mapFontDys = love.graphics.newFont("OpenDyslexic-Regular.otf",prefs['asciiSize']),
     mapFontWithImages = love.graphics.newFont("VeraMono.ttf",24),
     textFont = love.graphics.newFont(14),
     descFont = love.graphics.newFont(prefs['descFontSize']),
-    menuFont = love.graphics.newFont(24)
+    menuFont = love.graphics.newFont(24),
+    dysFont = love.graphics.newFont("OpenDyslexic-Regular.otf",14)
   }
   --[[if prefs['noImages'] ~= true then
     --output:load_all_images()
@@ -112,7 +115,7 @@ function love.wheelmoved(x,y)
 end
 
 function love.quit()
-  --if (player ~= nil) then save_game() end
+  if (player ~= nil) then save_game() end
   --save_scores()
   save_prefs()
   save_stats()
@@ -120,7 +123,6 @@ function love.quit()
 end
 
 function love.resize()
-  print('window resized by user')
   if Gamestate.current() == settings then
     settings:make_controls()
   end

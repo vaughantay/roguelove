@@ -13,14 +13,16 @@ end
 
 function pausemenu:draw()
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
+  local uiScale = (prefs['uiScale'] or 1)
   game:draw()
   setColor(0,0,0,self.blackScreenAlpha)
   love.graphics.rectangle('fill',0,0,width,height)
   setColor(255,255,255,255)
   love.graphics.push()
+  love.graphics.scale(uiScale,uiScale)
   love.graphics.translate(0,height*(self.yModPerc/100))
-  local startX=math.floor(width/2-100)
-  local startY=math.floor(height/2-140)
+  local startX=math.floor((width/2)/uiScale-100)
+  local startY=math.floor((height/2)/uiScale-140)
   --[[if prefs['noImages'] ~= true then
     for x=startX+16,startX+166,32 do
       love.graphics.draw(images.borders.borderImg,images.borders.u,x,startY-16)
@@ -72,7 +74,7 @@ function pausemenu:keypressed(key,isRepeat)
     self.cursorY = (self.cursorY == 1 and 5 or self.cursorY-1)
   elseif key == "down" then
     self.cursorY = (self.cursorY == 5 and 1 or self.cursorY+1)
-  elseif key == "return" then
+  elseif key == "return" or key == "kpenter" then
     self:mousepressed(1,1,1)
   end --end key if
 end
@@ -85,12 +87,13 @@ function pausemenu:update(dt)
     return
   end
   local x,y = love.mouse.getPosition()
+  local uiScale = (prefs['uiScale'] or 1)
 	if (x ~= output.mouseX or y ~= output.mouseY) then -- only do this if the mouse has moved
 		output.mouseX,output.mouseY = x,y
     self.cursorY = 0
     if self.buttons then
       for bid,button in pairs(self.buttons) do
-        if x > button.minX and x < button.maxX and y > button.minY and y < button.maxY then
+        if x/uiScale > button.minX and x/uiScale < button.maxX and y/uiScale > button.minY and y/uiScale < button.maxY then
           self.cursorY = bid
         end
       end --end button for

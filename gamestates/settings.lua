@@ -63,7 +63,9 @@ function settings:make_controls()
   self.labels.controls[12][2] = Setting('keybindings:possess','Possession',keyStartX+255,435,nil,nil,250)
   self.labels.controls[13][2] = Setting('keybindings:heal','Heal Body',keyStartX+255,450,nil,nil,250)
   self.labels.controls[14] = Setting('keybindings:nextTarget','Switch Target',keyStartX+255,465,nil,nil,250)
-  self.labels.controls[15] = Setting('defaultkeys',"Restore Default Keys",startX,500,nil,true,startX,nil,fonts.menuFont,true)
+  self.labels.controls[15] = Setting('keybindings:zoomIn','Zoom In',keyStartX+255,480,nil,nil,250)
+  self.labels.controls[16] = Setting('keybindings:zoomOut','Zoom Out',keyStartX+255,495,nil,nil,250)
+  self.labels.controls[17] = Setting('defaultkeys',"Restore Default Keys",startX,530,nil,true,startX,nil,fonts.menuFont,true)
   self.labels.graphics[1] = {}
   self.labels.graphics[1][1] = Setting('screen:controls','Controls',math.floor(width/4)+32,50,nil,false,nil,nil,fonts.menuFont,true)
   local gwidth = fonts.menuFont:getWidth('Graphics/Sound')
@@ -75,18 +77,22 @@ function settings:make_controls()
   self.labels.graphics[3] = {}
   self.labels.graphics[3][1] = Setting('musicDown',"-",width/2-100,125)
   self.labels.graphics[3][2] = Setting('musicUp',"+",width/2+100,125)
-  self.labels.graphics[4] = Setting('noImages',"ASCII Mode",startX,150,prefs['noImages'],true,startX)
+  self.labels.graphics[4] = {}
+  self.labels.graphics[4][1] = Setting('uiScaleDown',"-",width/2-100,150)
+  self.labels.graphics[4][2] = Setting('uiScaleUp',"+",width/2+100,150)
+  self.labels.graphics[5] = Setting('noImages',"ASCII Mode",startX,175,prefs['noImages'],true,startX)
+  self.labels.graphics[6] = Setting('minimap',"Mini-map",startX,200,prefs['minimap'],true,startX)
   if prefs['noImages'] then
-    self.labels.graphics[5] = {}
-    self.labels.graphics[5][1] = Setting('asciiSizeDown',"-",width/2-100,175)
-    self.labels.graphics[5][2] = Setting('asciiSizeUp',"+",width/2+100,175)
+    self.labels.graphics[7] = {}
+    self.labels.graphics[7][1] = Setting('asciiSizeDown',"-",width/2-100,225)
+    self.labels.graphics[7][2] = Setting('asciiSizeUp',"+",width/2+100,225)
   else
-    self.labels.graphics[5] = Setting('creatureShadows',"Creature Shadows",startX,175,prefs['creatureShadows'],true,startX)
-    self.labels.graphics[6] = Setting('creatureAnimations',"Creature Animations",startX,200,prefs['creatureAnimations'],true,startX)
+    self.labels.graphics[7] = Setting('creatureShadows',"Creature Shadows",startX,225,prefs['creatureShadows'],true,startX)
+    self.labels.graphics[8] = Setting('creatureAnimations',"Creature Animations",startX,250,prefs['creatureAnimations'],true,startX)
   end
-  local nextSetting = 7
-  local prefY = 225
-  if prefs['noImages'] then nextSetting=6 prefY = 200 end
+  local nextSetting = 9
+  local prefY = 275
+  if prefs['noImages'] then nextSetting=8 prefY = 250 end
   self.labels.graphics[nextSetting] = Setting('noSmoothCamera',"No Smooth Camera",startX,prefY,prefs['noSmoothCamera'],true,startX)
   self.labels.graphics[nextSetting+1] = Setting('noSmoothMovement',"No Smooth Movement",startX,prefY+25,prefs['noSmoothMovement'],true,startX)
   self.labels.graphics[nextSetting+2] = Setting('statsOnSidebar',"Show Creature Attributes on Sidebar",startX,prefY+50,prefs['statsOnSidebar'],true,startX)
@@ -191,12 +197,12 @@ function settings:draw()
     
     --Draw the grid for keybindings, starting with the general outline rectangles and the vertical separators
     love.graphics.line(startX+75,330,startX+75,465)
-    love.graphics.line(startX+365,330,startX+365,480)
+    love.graphics.line(startX+365,330,startX+365,510)
     love.graphics.rectangle('line',startX,330,size,135)
-    love.graphics.rectangle('line',startX+255,330,size,150)
+    love.graphics.rectangle('line',startX+255,330,size,180)
     --Draw the lines for each key:
-    for y = 345,450,15 do
-      love.graphics.line(startX,y,startX+size,y)
+    for y = 345,510,15 do
+      if y <= 450 then love.graphics.line(startX,y,startX+size,y) end
       love.graphics.line(startX+255,y,startX+255+size,y)
     end
     --Draw an extra line on the right since there's an extra setting:
@@ -224,10 +230,13 @@ function settings:draw()
     love.graphics.printf(keybindings['possess'],startX+365,435,size-115,"center")
     love.graphics.printf(keybindings['heal'],startX+365,450,size-115,"center")
     love.graphics.printf(keybindings['nextTarget'],startX+365,465,size-115,"center")
+    love.graphics.printf(keybindings['zoomIn'],startX+365,480,size-115,"center")
+    love.graphics.printf(keybindings['zoomOut'],startX+365,495,size-115,"center")
   elseif self.screen == "graphics" then
     love.graphics.printf("Sound Volume: " .. prefs['soundVolume'] .. "%",math.floor(width/4),100,math.floor(width/4*2),"center")
     love.graphics.printf("Music Volume: " .. prefs['musicVolume'] .. "%",math.floor(width/4),125,math.floor(width/4*2),"center")
-    if prefs['noImages'] then love.graphics.printf("ASCII Font Size: " .. prefs['asciiSize'],math.floor(width/4),175,math.floor(width/4*2),"center") end
+    love.graphics.printf("UI Scaling: " .. prefs['uiScale']*100 .. "%",math.floor(width/4),150,math.floor(width/4*2),"center")
+    if prefs['noImages'] then love.graphics.printf("ASCII Font Size: " .. prefs['asciiSize'],math.floor(width/4),200,math.floor(width/4*2),"center") end
     --add special code here
   end
   self.closebutton = output:closebutton(width/4+(prefs['noImages'] and 8 or 24),24)
@@ -238,7 +247,7 @@ function settings:keypressed(key)
   if (action == "setKeys") then
     if key ~= "escape" then
       for k, val in pairs(keybindings) do
-        if val == key or key == "return" or ((key == "up" or key == "down" or key == "left" or key == "right" or key == "space") and prefs['arrowKeys']) or (prefs['spellShortcuts'] and tonumber(key) ~= nil) then
+        if val == key or (key == "return" or key == "kpenter") or ((key == "up" or key == "down" or key == "left" or key == "right" or key == "space") and prefs['arrowKeys']) or (prefs['spellShortcuts'] and tonumber(key) ~= nil) then
           self.keyError = "Key " .. key .. " already in use!"
           return
         end
@@ -267,7 +276,7 @@ function settings:keypressed(key)
       if output.cursorX > 1 then output:moveCursor(-1,0) end
     elseif (key == "right") then
       output:moveCursor(1,0)
-    elseif (key == "return") then -- this is the big one
+    elseif (key == "return") or key == "kpenter" then -- this is the big one
       local setting = nil
       if self.labels[self.screen][output.cursorY][output.cursorX] then
         setting = self.labels[self.screen][output.cursorY][output.cursorX]
@@ -311,7 +320,7 @@ function settings:keypressed(key)
           if prefs['fullscreen'] then
             love.window.setMode(prefs['width'],prefs['height'],{fullscreen=prefs['fullscreen'],resizable=true,minwidth=1024,minheight=768})
           else
-            love.window.setMode(prefs['oldwidth'],prefs['oldheight'],{fullscreen=prefs['fullscreen'],resizable=true,minwidth=1024,minheight=768})
+            love.window.setMode((prefs['oldwidth'] or prefs['width']),(prefs['oldheight'] or prefs['height']),{fullscreen=prefs['fullscreen'],resizable=true,minwidth=1024,minheight=768})
           end
           self:make_controls() -- remake controls so it shows/hides the resolutions, as necessary
         elseif setting.id == "vsync" then
@@ -343,6 +352,10 @@ function settings:keypressed(key)
           prefs['musicVolume'] = prefs['musicVolume'] + 10
           if prefs['musicVolume'] > 100 then prefs['musicVolume'] = 100 end
           soundTags.music.volume = prefs['musicVolume']/100
+        elseif setting.id == "uiScaleUp" then
+          prefs['uiScale'] = prefs['uiScale'] + .1
+        elseif setting.id == "uiScaleDown" then
+          prefs['uiScale'] = prefs['uiScale'] - .1
         elseif setting.id == "asciiSizeUp" then
           prefs['asciiSize'] = prefs['asciiSize'] + 1
           fonts.mapFont = love.graphics.newFont("VeraMono.ttf",prefs['asciiSize'])

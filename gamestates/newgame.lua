@@ -40,7 +40,7 @@ end
 
 function newgame:draw()
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
-  if output.cursorY < 0 then output.cursorY = 0 elseif (output.cursorY > 9) then output.cursorY = 9 end
+  if output.cursorY < 0 then output.cursorY = 0 elseif (output.cursorY > 10) then output.cursorY = 10 end
   if output.cursorX < 1 then output.cursorX = 1 elseif output.cursorX > 2 then output.cursorX = 2 end
   love.graphics.setFont(fonts.mapFont)
   love.graphics.push()
@@ -114,19 +114,19 @@ function newgame:draw()
   setColor(100,100,100,255)
   if (output.cursorY == 1) then
     love.graphics.rectangle('fill',nameBoxX,144,nameBoxWidth,24)
-  elseif (output.cursorY >= 2 and output.cursorY <= 4) then
-    love.graphics.rectangle('fill',nameBoxX,175,nameBoxWidth,96)
-  elseif output.cursorY == 5 then
-    love.graphics.rectangle('fill',nameBoxX,354,nameBoxWidth,24)
+  elseif (output.cursorY >= 2 and output.cursorY <= 5) then
+    love.graphics.rectangle('fill',nameBoxX,175,nameBoxWidth,128)
   elseif output.cursorY == 6 then
-    --love.graphics.rectangle('fill',width/2-74,401,149,39)
+    love.graphics.rectangle('fill',nameBoxX,384,nameBoxWidth,24)
   elseif output.cursorY == 7 then
-    love.graphics.rectangle('fill',math.ceil(width/2-seedWidth/2),572,seedWidth,16)
+    --love.graphics.rectangle('fill',width/2-74,401,149,39)
   elseif output.cursorY == 8 then
+    love.graphics.rectangle('fill',math.ceil(width/2-seedWidth/2),572,seedWidth,16)
+  elseif output.cursorY == 9 then
     -- do nothing, it's handled by buttons later on
   end
   
-  if output.cursorY ~= 7 then
+  if output.cursorY ~= 8 then
     setColor(50,50,50,255)
     love.graphics.rectangle('fill',math.ceil(width/2-seedWidth/2),572,seedWidth,16)
   end
@@ -136,7 +136,7 @@ function newgame:draw()
   local w = fonts.graveFontBig:getWidth("Here Lies")
   love.graphics.printf("Here Lies",math.floor(width/3),100,math.floor(width/3),"center")
   --love.graphics.draw((output.cursorY == 1 and output.cursorX == 2 and images.uidicebuttonhover or images.uidicebutton),math.floor(width/2+w/2)+16,108)
-  love.graphics.printf("??/??/???? - " .. os.date("%x"),math.floor(width/3),275,math.floor(width/3),"center")
+  love.graphics.printf("??/??/???? - " .. os.date("%x"),math.floor(width/3),305,math.floor(width/3),"center")
   love.graphics.setFont(fonts.graveFontSmall)
   if output.cursorY == 1 then
     setColor(255,255,255,255)
@@ -152,54 +152,66 @@ function newgame:draw()
   end
   love.graphics.setFont(fonts.graveFontSmall)
   --output:button(math.floor(width/2-75),450,150,false,(output.cursorY == 6 and "hover" or nil))
-  local buttonWidth = fonts.graveFontSmall:getWidth("A Good Woman")+64
+  local buttonWidth = fonts.graveFontSmall:getWidth("They Will be Missed")+64
   local buttonX = math.floor(width/2-buttonWidth/2)
-  if output.cursorY >= 2 and output.cursorY <= 4 then --only show other options of gender is highlighted
+  if output.cursorY >= 2 and output.cursorY <= 5 then --only show other options of gender is highlighted
     output:button(buttonX,200,buttonWidth,false,(output.cursorY == 3 and "hover" or nil))
     output:button(buttonX,235,buttonWidth,false,(output.cursorY == 4 and "hover" or nil))
+    output:button(buttonX,270,buttonWidth,false,(output.cursorY == 5 and "hover" or nil))
   end
   if (player.gender == "male") then
-    love.graphics.printf("A Great Man",math.floor(width/3),175,math.floor(width/3),"center")
-    if output.cursorY >= 2 and output.cursorY <= 4 then --only show other options of gender is highlighted
+    love.graphics.printf("He Will be Missed",math.floor(width/3),175,math.floor(width/3),"center")
+    if output.cursorY >= 2 and output.cursorY <= 5 then --only show other options of gender is highlighted
       setColor(225,225,225,255)
-      love.graphics.printf("A Great Woman",buttonX,200,buttonWidth,"center")
-      love.graphics.printf("A Great Person",buttonX,235,buttonWidth,"center")
+      love.graphics.printf("She Will be Missed",buttonX,200,buttonWidth,"center")
+      love.graphics.printf("They Will be Missed",buttonX,235,buttonWidth,"center")
+      love.graphics.printf("It Will be Missed",buttonX,270,buttonWidth,"center")
     end
   elseif (player.gender == "female") then
-    love.graphics.printf("A Great Woman",math.floor(width/3),175,math.floor(width/3),"center")
-    if output.cursorY >= 2 and output.cursorY <= 4 then --only show other options of gender is highlighted
+    love.graphics.printf("She Will be Missed",math.floor(width/3),175,math.floor(width/3),"center")
+    if output.cursorY >= 2 and output.cursorY <= 5 then --only show other options of gender is highlighted
       setColor(225,225,225,255)
-      love.graphics.printf("A Great Man",buttonX,200,buttonWidth,"center")
-      love.graphics.printf("A Great Person",buttonX,235,buttonWidth,"center")
+      love.graphics.printf("He Will be Missed",buttonX,200,buttonWidth,"center")
+      love.graphics.printf("They Will be Missed",buttonX,235,buttonWidth,"center")
+      love.graphics.printf("It Will be Missed",buttonX,270,buttonWidth,"center")
     end
-  else
-    love.graphics.printf("A Great Person",math.floor(width/3),175,math.floor(width/3),"center")
-    if output.cursorY >= 2 and output.cursorY <= 4 then --only show other options of gender is highlighted
+  elseif player.gender== "unspecified" then 
+    love.graphics.printf("They Will be Missed",math.floor(width/3),175,math.floor(width/3),"center")
+    if output.cursorY >= 2 and output.cursorY <= 5 then --only show other options of gender is highlighted
       setColor(225,225,225,255)
-      love.graphics.printf("A Great Man",buttonX,200,buttonWidth,"center")
-      love.graphics.printf("A Great Woman",buttonX,235,buttonWidth,"center")
+      love.graphics.printf("He Will be Missed",buttonX,200,buttonWidth,"center")
+      love.graphics.printf("She Will be Missed",buttonX,235,buttonWidth,"center")
+      love.graphics.printf("It Will be Missed",buttonX,270,buttonWidth,"center")
+    end
+  elseif player.gender== "neuter" then 
+    love.graphics.printf("It Will be Missed",math.floor(width/3),175,math.floor(width/3),"center")
+    if output.cursorY >= 2 and output.cursorY <= 5 then --only show other options of gender is highlighted
+      setColor(225,225,225,255)
+      love.graphics.printf("He Will be Missed",buttonX,200,buttonWidth,"center")
+      love.graphics.printf("She Will be Missed",buttonX,235,buttonWidth,"center")
+      love.graphics.printf("They Will be Missed",buttonX,270,buttonWidth,"center")
     end
   end
   setColor(255,255,255,255)
   love.graphics.setFont(fonts.graveFontBig)
-  love.graphics.printf("Gone, but not forgotten...",width/4,305,width/2,"center")
+  love.graphics.printf("Gone, but not forgotten...",width/4,335,width/2,"center")
   
   --Tutorial Checkbox:
   local padding = (prefs['noImages'] and 16 or 32)
   love.graphics.setFont(fonts.graveFontSmall)
   local textWidth = fonts.graveFontSmall:getWidth("Tutorial Messages?")
   if prefs['noImages'] then
-    love.graphics.print((self.tutorial and "(Y)" or "(N)"),math.floor(width/2-textWidth/2-padding*2),350)
+    love.graphics.print((self.tutorial and "(Y)" or "(N)"),math.floor(width/2-textWidth/2-padding*2),380)
   else
-    love.graphics.draw((self.tutorial and images.uicheckboxchecked or images.uicheckbox),math.floor(width/2-textWidth/2-padding/2),math.floor(350+padding/4))
+    love.graphics.draw((self.tutorial and images.uicheckboxchecked or images.uicheckbox),math.floor(width/2-textWidth/2-padding/2),math.floor(380+padding/4))
   end
-  love.graphics.print("Tutorial Messages?",math.floor(width/2-textWidth/2+padding/2),350)
+  love.graphics.print("Tutorial Messages?",math.floor(width/2-textWidth/2+padding/2),380)
   --love.graphics.setFont(fonts.graveFontSmall)
   
   --setColor(50,50,50,255)
   --love.graphics.rectangle('line',width/2-75,400,150,41)
   setColor(255,255,255,255)
-  output:button(math.floor(width/2-75),450,150,false,(output.cursorY == 6 and "hover" or nil))
+  output:button(math.floor(width/2-75),450,150,false,(output.cursorY == 7 and "hover" or nil))
   love.graphics.printf("BEGIN",math.floor(width/4),450,width/2,"center")
   love.graphics.setFont(fonts.textFont)
   love.graphics.printf("Seed: " .. (self.seed or ""),math.floor(width/4),572,width/2,"center")
@@ -210,18 +222,18 @@ function newgame:draw()
   --love.graphics.rectangle('fill',width/2-69,601,48,24)
  -- love.graphics.rectangle('fill',width/2+26,601,48,24)
   --Copy/paste buttons:
-  output:button(math.floor(width/2-74),600,64,false,((output.cursorY == 8 and output.cursorX == 1) and "hover"))
-  output:button(math.ceil(width/2+seedWidth/2)-64,600,64,false,((output.cursorY == 8 and output.cursorX == 2) and "hover"))
+  output:button(math.floor(width/2-74),600,64,false,((output.cursorY == 9 and output.cursorX == 1) and "hover"))
+  output:button(math.ceil(width/2+seedWidth/2)-64,600,64,false,((output.cursorY == 9 and output.cursorX == 2) and "hover"))
   love.graphics.print("Copy",math.floor(width/2-60),605)
   love.graphics.print("Paste",math.floor(width/2+24),605)
-  if output.cursorY == 7 then
+  if output.cursorY == 8 then
     local w = fonts.textFont:getWidth("Seed: " .. (self.seed or ""))
     if self.lineOn then
       love.graphics.line(width/2+w/2,574,width/2+w/2,586)
     end
   end
   --Cheats button:
-  output:button(math.ceil(width/2)-32,641,68,false,(output.cursorY == 9 and "hover"))
+  output:button(math.ceil(width/2)-32,641,68,false,(output.cursorY == 10 and "hover"))
   love.graphics.print("Cheats",math.floor(width/2)-24,646)
   
   --close button:
@@ -263,26 +275,28 @@ end
 
 function newgame:keypressed(key)
   if self.blackAmt then return false end
-  if (key == "return") then
+  if (key == "return") or key == "kpenter" then
     if output.cursorY == 0 then -- not selecting anyting
       output.cursorY = 6 --select button
     elseif (output.cursorY == 1) then -- name entry
       output.cursorY = 2
     elseif (output.cursorY == 2) then --first gender line
-      output.cursorY = 6
+      output.cursorY = 7
     elseif (output.cursorY == 3) then --second gender line
       if player.gender == "male" then player.gender = "female"
-      elseif player.gender == "female" then player.gender = "male"
       else player.gender = "male" end
-      output.cursorY = 6
+      output.cursorY = 7
     elseif (output.cursorY == 4) then --third gender line
-      if player.gender == "male" then player.gender = "unspecified"
-      elseif player.gender == "female" then player.gender = "unspecified"
+      if player.gender == "female" or player.gender == "male" then player.gender = "unspecified"
       else player.gender = "female" end
-      output.cursorY = 6
-    elseif output.cursorY == 5 then
+      output.cursorY = 7
+    elseif (output.cursorY == 5) then --fourth gender line
+      if player.gender == "neuter" then player.gender = "unspecified"
+      else player.gender = "neuter" end
+      output.cursorY = 7
+    elseif output.cursorY == 6 then
       self.tutorial = not self.tutorial
-    elseif output.cursorY == 6 then --"begin" line
+    elseif output.cursorY == 7 then --"begin" line
       new_game((tonumber(self.seed) > 0 and tonumber(self.seed) or 1),self.tutorial)
       output:sound('possession')
       self.cursorY=0
@@ -302,15 +316,15 @@ function newgame:keypressed(key)
       end
       if currGame.cheats.fullMap == true then currMap:reveal() end
       --game:show_level_description()
-    elseif output.cursorY == 7 then --seed line
+    elseif output.cursorY == 8 then --seed line
       output.cursorY = 6
-    elseif output.cursorY == 8 then --copy/paste buttons
+    elseif output.cursorY == 9 then --copy/paste buttons
       if output.cursorX == 1 then --copy
         love.system.setClipboardText((self.seed or ""))
       elseif output.cursorX == 2 then -- paste
         self.seed = tonumber(love.system.getClipboardText())
       end
-    elseif output.cursorY == 9 then --cheats button
+    elseif output.cursorY == 10 then --cheats button
       Gamestate.switch(cheats)
     end -- end cursor check
   elseif (key == "tab") then
@@ -378,18 +392,19 @@ function newgame:update(dt)
 	if x > math.floor(width/3) and x < math.floor(width/3)*2 and (y ~= output.mouseY or x ~= output.mouseX) then -- only do this if the mouse has moved, and if it's in range
 		output.mouseX,output.mouseY = x,y
 		if (y < 170) then output.cursorY = 1
-    elseif (y > 175 and y < 275) then
+    elseif (y > 175 and y < 295) then
       output.cursorY = 2
       if x > width/5*2 and x < width/5*3 then
         if (y >= 200 and y < 225) then output.cursorY = 3
-        elseif (y >= 235 and y < 260) then output.cursorY = 4 end
+        elseif (y >= 235 and y < 260) then output.cursorY = 4
+        elseif (y >= 270 and y < 295) then output.cursorY = 5 end
       end
-    elseif (y >= 345 and y < 375) then output.cursorY = 5
-    elseif (y >= 450 and y < 490) then output.cursorY = 6
-    elseif (y >=572 and y < 586) then output.cursorY = 7
-    elseif (y >=600 and y < 632) and (x >= width/2-70 and x <= width/2-20) then output.cursorY,output.cursorX = 8,1
-    elseif (y >=600 and y < 632) and (x >= width/2+25 and x <= width/2+75) then output.cursorY,output.cursorX = 8,2
-    elseif (y >=641 and y < 673) then output.cursorY = 9
+    elseif (y >= 375 and y < 415) then output.cursorY = 6
+    elseif (y >= 450 and y < 490) then output.cursorY = 7
+    elseif (y >=572 and y < 586) then output.cursorY = 8
+    elseif (y >=600 and y < 632) and (x >= width/2-70 and x <= width/2-20) then output.cursorY,output.cursorX = 9,1
+    elseif (y >=600 and y < 632) and (x >= width/2+25 and x <= width/2+75) then output.cursorY,output.cursorX = 9,2
+    elseif (y >=641 and y < 673) then output.cursorY = 10
     else output.cursorY = 0
     end
 	end

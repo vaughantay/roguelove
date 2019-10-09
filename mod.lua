@@ -137,6 +137,15 @@ function load_mod(mod,mediaOnly)
           end
         end --end content for
       end
+      if loadedmod['levelCreatures'] then
+        for id, levelCreats in pairs(loadedmod['levelCreatures']) do
+          if specialLevels[id] then
+            for _,creat in pairs(levelCreats) do
+              table.insert(specialLevels[id].creatures,creat)
+            end
+          end
+        end
+      end --end levelcreatures for
       if loadedmod['levelModifiers'] then
         for id,level in pairs(loadedmod['levelModifiers']) do
           levelModifiers[id] = level --level modifier changes will replace by default! (because they're functions, not tables, and so can't have an replace flag

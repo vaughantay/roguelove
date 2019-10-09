@@ -189,7 +189,7 @@ function loadsaves:keypressed(key, isRepeat)
       self.cursorX = math.max(self.cursorX - 1,1)
     elseif key == "right" then
       self.cursorX = math.min (self.cursorX + 1,3)
-    elseif key == "return" then
+    elseif key == "return" or key == "kpenter" then
       if self.cursorX == 1 then
         self.cursorX = 2
       elseif self.cursorX == 2 and self.cursorY ~= 0 and self.saves[self.cursorY] then
@@ -219,7 +219,7 @@ function loadsaves:keypressed(key, isRepeat)
       self.deletewarning = false
       self.yesbutton,self.nobutton = nil,nil
       self.cursorX = 3
-    elseif key == "return" then
+    elseif key == "return" or key == "kpenter" then
       if self.cursorX == 1 then
         delete_save(self.saves[self.cursorY].fileName)
         local y,scroll = self.cursorY,self.scroll

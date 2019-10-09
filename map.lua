@@ -184,6 +184,20 @@ function Map:tile_has_feature(x,y,id)
   return false
 end --end function
 
+--Gets the first feature that blocks movement
+--@param self Map. The map
+--@param x Number. The x-coordinate
+--@param y Number. The y-coordinate
+--@return True/False. Whether or not the tile has this feature
+function Map:get_blocking_feature(x,y)
+  if x<2 or y<2 or x>self.width-1 or y>self.height-1 then return false end
+  if type(self[x][y]) == "table" and self[x][y].id == id and self[x][y].blocksMovement then return self[x][y] end
+  for _,entity in pairs(self:get_tile_features(x,y)) do
+    if entity.blocksMovement then return entity end
+  end
+  return false
+end --end function
+
 --Determines if you can draw a straight line between two tiles.
 --@param self Map. The map
 --@param startX Number. The x-coordinate of the first tile

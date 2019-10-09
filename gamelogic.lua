@@ -518,7 +518,7 @@ function player_dies()
 		newGhost.isPlayer = true
 		newGhost.gender = oldBody.gender
     newGhost.playerAlly=true
-    output:out("You are ejected from the body of " .. oldBody:get_name(false,true) .. "!")
+    output:out("You are ejected from the body of " .. (oldBody.properNamed ~= true and "the " or "") .. oldBody.name .. "!")
 		newGhost:give_condition('invincibility',2)
     oldBody:remove()
     currMap:add_creature(newGhost,oldBody.x,oldBody.y)

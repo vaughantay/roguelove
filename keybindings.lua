@@ -17,5 +17,7 @@ keybindings = {
   recharge = "r",
   possess = "p",
   heal = "h",
-  nextTarget = "tab"
+  nextTarget = "tab",
+  zoomIn="=",
+  zoomOut="-"
 }

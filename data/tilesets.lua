@@ -1,5 +1,6 @@
 tilesets = {
   graveyard = {
+    groundColor = {r=98,g=73,b=22,a=255},
     floor_tiles = 5,
     wall_tiles = 2,
     tilemap = true,
