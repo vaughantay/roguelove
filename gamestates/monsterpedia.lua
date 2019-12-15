@@ -194,9 +194,9 @@ function monsterpedia:draw()
 		love.graphics.printf("Special Abilities:",450,350,(width-460),"center")
 		local abilities = ""
     local sideBarY = 350
-		if (creat.spells) then
+		if (creat:get_spells()) then
       local i = 1
-      for id, ability in pairs(creat.spells) do
+      for id, ability in pairs(creat:get_spells()) do
         if (i > 1) then abilities = abilities .. "\n" end
         abilities = abilities .. possibleSpells[ability].name .. (possibleSpells[ability].target_type == "passive" and " (Passive)" or "") .. " - " .. possibleSpells[ability].description
         i = i + 1

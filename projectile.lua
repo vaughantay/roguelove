@@ -1,6 +1,6 @@
 Projectile = Class{baseType = "projectile"}
 
---Initiates a projectile. Don't call this explicitly, it's called when you create a new effect.
+--Initiates a projectile. Don't call this explicitly, it's called when you create a new projectile.
 --@param self The new projectile being created.
 --@param projectile_type Text. The ID of the projectile you'd like to create
 --@param source Entity. A table that contains the X and Y coordinates the projectile is starting at. Might be a creature.
@@ -150,6 +150,12 @@ function Projectile:hits(target,force_generic)
 					target:give_condition(condition.condition,tweak(condition.turns),self)
 				end -- end condition chance
 			end	-- end condition forloop
+    end
+  elseif self.miss_item and (not self.miss_item_chance or random(1,100) <= self.miss_item_chance) and currMap:isClear(target.x,target.y,nil,true,true) then
+    if type(self.miss_item) == "string" then
+      currMap:add_item(Item(self.miss_item),target.x,target.y,true)
+    else
+      currMap:add_item(self.miss_item,target.x,target.y,true)
     end
   end -- end target if
   

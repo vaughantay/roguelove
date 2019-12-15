@@ -25,6 +25,26 @@ function Creature:init(creatureType,level)
 	self.cooldowns = {}
   self.thralls = {}
   self.checked = {}
+  self.inventory = {}
+  self.equipment = {}
+  self.hands = self.hands or (self.noEquip and 0 or 2)
+  if self.equipslots then
+    local slotcount = 1
+    for slot,count in pairs(self.equipslots) do
+      self.equpment[slot] = {slots=count}
+    end
+    self.equipslots=nil
+  elseif not self.noEquip then
+    self.equipment.weapon = {slots=self.hands}
+    self.equipment.offhand = {slots=self.hands}
+    self.equipment.head = {slots=1}
+    self.equipment.torso = {slots=1}
+    self.equipment.hands = {slots=1}
+    self.equipment.legs = {slots=1}
+    self.equipment.feet = {slots=1}
+    self.equipment.accessory = {slots=3}
+    self.equipment.ammo = {slots=self.hands}
+  end
 	self.path = nil
 	self.baseType = "creature"
   self.types = self.types or {}
@@ -50,19 +70,17 @@ function Creature:init(creatureType,level)
       self.ranged_charges = ranged.max_charges
     end
   end --end ranged attack if
-	if (self.isPlayer ~= true) then --used by NPCs only:
-    self.fear = 0
-		self.alert = 0 -- used by NPCs only, alertness countdown
-		self.target=nil
-    self.notices = {}
-    self.shitlist = {}
-    self.ignoring = {}
-    self.lastSawPlayer = {x=nil,y=nil}
-		self.aggression = self.aggression or 100 -- used by NPCs only, chance they'll be hostile when seeing player
-    self.memory = self.memory or 10 --turns they remember seeing an enemy
-    if possibleMonsters[self.id].nameGen then self.properName = possibleMonsters[self.id].nameGen(self)
-    elseif self.nameType then self.properName = namegen:generate_name(self.nameType,self) end
-	end
+  self.fear = 0
+  self.alert = 0 -- used by NPCs only, alertness countdown
+  self.target=nil
+  self.notices = {}
+  self.shitlist = {}
+  self.ignoring = {}
+  self.lastSawPlayer = {x=nil,y=nil}
+  self.aggression = self.aggression or 100 -- used by NPCs only, chance they'll be hostile when seeing player
+  self.memory = self.memory or 10 --turns they remember seeing an enemy
+  if possibleMonsters[self.id].nameGen then self.properName = possibleMonsters[self.id].nameGen(self)
+  elseif self.nameType then self.properName = namegen:generate_name(self.nameType,self) end
   
 	return self
 end
@@ -146,22 +164,27 @@ end
 --@param amt Number. The damage to do.
 --@param attacker Entity. The source of the damage.
 --@param damage_type String. The damage type of the attack. (optional)
---@param is_melee True/False. If set to true, this counts as a melee attack and can damage a ghost. (optional)
+--@param ignoreAmor True/False, or number. If set to true, it ignores all armor. If set to a number, ignores that much armor. (optional)
 --@param noSound True/False. If set to true, no damage type sound will be played. (optional)
 --@return Number. The final damage done.
-function Creature:damage(amt,attacker,damage_type,is_melee,noSound)
+function Creature:damage(amt,attacker,damage_type,armor_piercing,noSound)
   amt = math.ceil(amt) --just in case! to prevent fractional damage
   require "data.damage_types"
   damage_type = damage_type or "physical"
-  --Don't damage ghosts if you're, f'rex, a spell or something
-  if self:is_type('ghost') and is_melee ~= true then return 0 end
   
-	if (self.armor ~= nil) then
-		amt = amt - self.armor
-	end
-	amt = amt - self:get_bonus('armor')
+  --Apply damage weaknesses, resistances, and armor
   amt = amt + self:get_weakness(amt,damage_type)
   amt = amt - self:get_resistance(amt,damage_type)
+  if armor_piercing ~= true then
+    local totalArmor = (self.armor or 0)
+    totalArmor = totalArmor + self:get_bonus('armor')
+    totalArmor = totalArmor + self:get_bonus(damage_type .. '_armor')
+    if type(armor_piercing) == "number" then
+      totalArmor = totalArmor - armor_piercing
+    end
+    amt = amt - totalArmor
+  end
+
   if (amt < 1) then amt = 1 end
   local bool,ret = self:callbacks('damaged',attacker,amt,damage_type,is_melee)
 	if (bool ~= false) then
@@ -180,6 +203,7 @@ function Creature:damage(amt,attacker,damage_type,is_melee,noSound)
     end --if you're far away from the player
 		self:updateHP(-amt)
     self.fear = self.fear + math.ceil(100*(amt/self:get_mhp())) --increase fear by % of MHP you just got damaged by
+    self.alert = self.memory
     if attacker then
       if attacker.baseType == "creature" and self:does_notice(attacker) == false then 
         if attacker == player then achievements:disqualify('hostile_only') end
@@ -247,7 +271,7 @@ function Creature:advance_conditions()
       end --end if condition <= 0
     end --end if advance
 	end --end condition for
-  for _,spell in pairs(self.spells) do
+  for _,spell in pairs(self:get_spells()) do
     if possibleSpells[spell].advance then
       possibleSpells[spell]:advance(self)
     end --end advance if
@@ -303,12 +327,21 @@ function Creature:callbacks(callback_type,...)
       if r ~= nil and type(r) ~= "boolean" then table.insert(ret,r) end
 		end
 	end
-	for id, spell in pairs(self.spells) do
+	for id, spell in pairs(self:get_spells()) do
 		if type(possibleSpells[spell][callback_type]) == "function" then
 			local r = possibleSpells[spell][callback_type](possibleSpells[spell],self,unpack({...}))
 			if (r == false) then return false end
       if r ~= nil and type(r) ~= "boolean" then table.insert(ret,r) end
 		end
+	end
+  for _, equipslot in pairs(self.equipment) do
+    for _, equip in ipairs(equipslot) do
+      if type(possibleItems[equip.id][callback_type]) == "function" then
+      local r = possibleItems[equip.id][callback_type](equip,self,unpack({...}))
+      if (r == false) then return false end
+      if r ~= nil and type(r) ~= "boolean" then table.insert(ret,r) end
+      end
+    end
 	end
 	return true,ret
 end
@@ -327,32 +360,18 @@ function Creature:get_description()
     elseif (self.notices[player] and self.shitlist[player]) then desc = desc .. "\n" .. ucfirst(self:get_pronoun('n')) .. " is hostile towards you."
     else desc = desc .. "\n" .. ucfirst(self:get_pronoun('n')) .. " has not noticed you." end
     if self:get_fear() > self:get_bravery() then desc = desc .. "\n" .. ucfirst(self:get_pronoun('n')) .. " is afraid, and will try to run from enemies if possible." end
-    if (self.isPlayer ~= true) then desc = desc .. "\nPossession Chance: " .. self:get_possession_chance() .. "%" end
-    --[[if action == "targeting" and actionResult then
-      local dist = calc_distance(player.x,player.y,self.x,self.y)
-      if actionResult.range and dist > actionResult.range then
-        desc = desc .. "\nIt is too far away to be targeted."
-      elseif actionResult.minRange and dist < actionResult.minRange then
-        desc = desc .. "\nIt is too close to be targeted."
-      elseif actionResult.projectile and not player:can_shoot_tile(self.x,self.y) then
-        desc = desc .. "\nYou can't hit it from here."
-      elseif actionResult.calc_hit_chance then
-        desc = desc .. "\nRanged hit chance: " .. actionResult:calc_hit_chance(player,self) .. "%"
-      end]]
-    if player.ranged_attack then
-      local attack = rangedAttacks[player.ranged_attack]
-      local dist = calc_distance(player.x,player.y,self.x,self.y)
-      if attack.range and dist > attack.range then
-        desc = desc .. "\nIt is too far away to be targeted."
-      elseif attack.min_range and dist < attack.min_range then
-        desc = desc .. "\nIt is too close to be targeted."
-      elseif attack.projectile and not player:can_shoot_tile(self.x,self.y) then
-        desc = desc .. "\nYou can't hit it from here."
-      else
-        desc = desc .. "\nRanged hit chance: " .. attack:calc_hit_chance(player,self) .. "%"
-      end
+  if action == "targeting" and actionResult then
+    local dist = calc_distance(player.x,player.y,self.x,self.y)
+    if actionResult.range and dist > actionResult.range then
+      desc = desc .. "\nIt is too far away to be targeted."
+    elseif actionResult.minRange and dist < actionResult.minRange then
+      desc = desc .. "\nIt is too close to be targeted."
+    elseif actionResult.projectile and not player:can_shoot_tile(self.x,self.y) then
+      desc = desc .. "\nYou can't hit it from here."
+    elseif actionResult.calc_hit_chance then
+      desc = desc .. "\nHit chance with " .. actionResult.name .. ": " .. actionResult:calc_hit_chance(player,self) .. "%"
     end
-    
+  end
     --Debug stuff:
     if self.target and debugMode then
       desc = desc .. "\nFear: " .. self:get_fear() .. "/" .. self:get_bravery()
@@ -408,6 +427,17 @@ function Creature:get_bonus(bonusType,average)
       end
 		end
 	end
+  for _, equipslot in pairs(self.equipment) do
+    for _, equip in ipairs(equipslot) do
+      if equip.bonuses ~= nil then
+        local b = equip.bonuses[bonusType]
+        if b ~= nil then
+          bonus = bonus + b
+          bcount = bcount + 1
+        end
+      end --end bonuses if
+    end --end equipment for
+	end --end equipslot for
   if average and bcount > 0 then bonus = math.ceil(bonus/bcount) end
 	return bonus
 end
@@ -474,6 +504,17 @@ function Creature:attack(target,forceHit,ignore_callbacks)
       self.angle = 0
     end
   end
+  
+  local weapons = self:get_equipped_in_slot('weapon')
+  if #weapons > 0 then
+    local totaldmg = 0
+    for _,weapon in pairs(weapons) do
+      totaldmg = totaldmg + (weapon:attack(target,self) or 0)
+    end
+    return totaldmg
+  end
+  
+  --Basic attack:
   if target.baseType == "feature" and self:touching(target) then
     return target:damage(self.strength,self,self.damage_type)
 	elseif self:touching(target) and (ignore_callbacks or self:callbacks('attacks',target) and target:callbacks('attacked',self)) then
@@ -486,9 +527,10 @@ function Creature:attack(target,forceHit,ignore_callbacks)
 
 		if (result == "miss") then
 			txt = txt .. ucfirst(self:get_name()) .. " misses " .. target:get_name() .. "."
+      dmg = 0
 		else
 			if (result == "critical") then txt = txt .. "CRITICAL HIT! " end
-			dmg = target:damage(dmg,self,self.damage_type,true)
+			dmg = target:damage(dmg,self,self.damage_type,self:get_armor_piercing())
 			if dmg > 0 then txt = txt .. ucfirst(self:get_name()) .. " hits " .. target:get_name() .. " for " .. dmg .. (self.damage_type and " " .. self.damage_type or "") .. " damage."
       else txt = txt .. ucfirst(self:get_name()) .. " hits " .. target:get_name() .. " for no damage." end
       local xMod,yMod = get_unit_vector(self.x,self.y,target.x,target.y)
@@ -502,7 +544,6 @@ function Creature:attack(target,forceHit,ignore_callbacks)
       target.moveTween = tween(.1,target,{xMod=0,yMod=0},'linear',function() target.doneMoving = true end)
       
 			self:callbacks('damages',target,dmg)
-			target.alert = target:get_aggression()
       local cons = (result == "critical" and critConditions or hitConditions)
 			for _, condition in pairs (cons) do
 				if (random(1,100) < condition.chance) then
@@ -515,7 +556,7 @@ function Creature:attack(target,forceHit,ignore_callbacks)
       output:out(txt)
       if result ~= "miss" then output:sound('punch') end
     end
-		return result,dmg
+		return dmg
 	else -- if not touching target
 		return false
 	end
@@ -872,6 +913,231 @@ function Creature:remove(map)
 		self.conditions[condition] = nil
 	end
   --currMap:set_blocked(self.x,self.y,0)
+end
+
+--Let a creature pick up an item from the tile they're standing on
+--@param self Creature. The creature itself
+function Creature:pickup()
+  local x,y = self.x,self.y
+	for id, item in pairs(currMap.contents[x][y]) do
+		if (item.baseType == "item") then
+			if (item.stacks == true) then
+				local _,inv_id = self:has_item(item.id,(item.sortBy and item[item.sortBy]))
+				if inv_id then
+					self.inventory[inv_id].amount = self.inventory[inv_id].amount + item.amount
+				else
+					table.insert(self.inventory,item)
+				end
+			else
+				table.insert(self.inventory,item)
+			end
+			if player:can_sense_creature(self) then output:out(self:get_name() .. " picks up " .. item:get_name() .. ".") end
+			currMap.contents[x][y][id] = nil
+		end --end baseType if
+  end --end contents for
+end
+
+--Make a creature drop an item
+--@param self Creature. The creature itself
+--@param item Item. The item to drop
+function Creature:drop_item(item)
+	local id = in_table(item,self.inventory)
+	if (id) then
+    currMap:add_item(item,self.x,self.y,true)
+		table.remove(self.inventory,id)
+		if player:can_sense_creature(self) then output:out(self:get_name() .. " dropped " .. item:get_name() .. ".") end
+    if self:is_equipped(item) then
+      self:unequip(item)
+    end
+	end
+end
+
+--Remove an item from a creature
+--@param self Creature. The creature itself
+--@param item Item. The item to remove
+--@param amt Number. The amount of the item to remove, if stackable. Defaults to 1. Setting to -1 deletes all
+function Creature:delete_item(item,amt)
+  amt = amt or 1
+	local id = in_table(item,self.inventory)
+	if (id) then
+    if amt == -1 or amt >= (item.amount or 0) then
+      table.remove(self.inventory,id)
+    else
+      item.amount = item.amount - amt
+    end
+    if self:is_equipped(item) then
+      self:unequip(item)
+    end
+	end
+end
+  
+--Check if a creature has an item
+--@param self Creature. The creature itself
+--@param item Item. The item ID to check for
+--@return false, or the item they have in their inventory
+function Creature:has_item(itemID,sortBy)
+	for id, it in ipairs(self.inventory) do
+		if (itemID == it.id) and (not it.sortBy or sortBy == it[it.sortBy]) then
+			return it,id,it.amount
+		end
+	end
+	return false
+end
+
+--Check if a creature has a specific item equipped
+--@param self Creature. The creature itself
+--@param item Item. The item to check for
+--@return True/False. Whether the item is equipped.
+function Creature:is_equipped(item)
+  local equipSlot = item.equipSlot
+  if not equipSlot then return false end
+  
+  for i=1,self.equipment[equipSlot].slots,1 do
+    if self.equipment[equipSlot][i] == item then
+      return true
+    end --end if item == item if
+  end --end slot check for
+	return false
+end
+
+--Get a list of all equipment in a equipment slot
+--@param self Creature. The creature itself
+--@param slot Text. The equipment slot to check
+--@return Table. A list of the equipment.
+function Creature:get_equipped_in_slot(slot)
+  local equipped = {}
+  if not slot or not self.equipment[slot] then return {} end
+  for id,equip in ipairs(self.equipment[slot]) do
+    equipped[#equipped+1] = equip
+  end
+  return equipped
+end
+
+--Equip an item
+--@param self Creature. The creature itself
+--@param item Item. The item to equip
+--@return True/False + Text. Whether or not the item was equipped, and text describing the equipping.
+function Creature:equip(item)
+  local slot = item.equipSlot
+  local equipText = ""
+  if not slot then return false,"You can't equip this type of item." end
+  
+  --Check for item requires code, stat requirements, etc
+  
+  --For items that require "hands" to equip (presumably weapons and offhand items only)
+  if item.hands then
+    --If the item requires more hands to hold than you have, just forget it entirely:
+    if item.hands > (self.hands or 0) then
+      return false,"You don't have enough hands to equip this item."
+    end
+    --Otherwise add up all the hands currently being used:
+    local handsUsed = 0
+    for i=1,self.equipment.weapon.slots,1 do
+      local weap = self.equipment.weapon[i]
+      if weap then
+        handsUsed = handsUsed + weap.hands
+      end
+    end
+    for i=1,self.equipment.offhand.slots,1 do
+      local off = self.equipment.offhand[i]
+      if off then
+        handsUsed = handsUsed + off.hands
+      end
+    end
+    if handsUsed + item.hands > self.hands then
+      local didIt = false
+      --Figure out what items to unequip
+      local initialslots = 0
+      local unequips = {}
+      --Start with the type you're trying to equip first (so you'll unequip weapons first if equipping a weapon, or offhands if equipping an offhand)
+      for i=1,self.equipment[slot].slots,1 do
+        if self.equipment[slot][i] and self.equipment[slot][i].hands then
+          initialslots = initialslots + self.equipment[slot][i].hands
+        end
+        unequips[#unequips+1] = self.equipment[slot][i]
+        if initialslots >= item.hands then
+          for i=1,#unequips,1 do
+            self:unequip(unequips[i])
+          end
+          return self:equip(item)
+        end
+      end --end equipment slot for
+      
+      local slot2 = (slot == "weapon" and "offhand" or "weapon")
+      for i=1,self.equipment[slot2].slots,1 do
+        if self.equipment[slot2][i] and self.equipment[slot2][i].hands then
+          initialslots = initialslots + self.equipment[slot2][i].hands
+        end
+        unequips[#unequips+1] = self.equipment[slot2][i]
+        if initialslots >= item.hands then
+          for i=1,#unequips,1 do
+            self:unequip(unequips[i])
+          end
+          return self:equip(item)
+        end
+      end --end equipment slot for
+      
+      return false,equipText
+    end
+  end
+  
+  --Do the actual equipping:
+  local equipSlot = self.equipment[slot]
+  for i=1,equipSlot.slots,1 do
+    if not equipSlot[i] then --if there's an empty slot, just use that
+      local didIt = true
+      if possibleItems[item.id].equip then
+        didIt,equipText = possibleItems[item.id].equip(item,self)
+      end
+      if didIt ~= false then
+        equipSlot[i] = item
+        equipText = equipText .. (item.equipText or "You equip " .. item:get_name() .. ".")
+      end
+      return didIt,equipText
+    end --end if empty slot if
+  end --end slots for
+  
+  --If there aren't any empty slots, unequip the last one:
+  local unequipped,uqtext = self:unequip(equipSlot[1])
+  equipText = equipText .. uqtext
+  if not unequipped then  --if for whatever reason unequipping the item failed, return false
+    return false,equipText
+  end
+  --TODO:Now that we've unequipped the item, try equipping again by just running this function again:
+  local didIt,newText = self:equip(item)
+  equipText = equipText .. newText
+  return didIt,equipText
+end
+
+--Unequip an item
+--@param self Creature. The creature itself
+--@param item Item. The item to unequip
+function Creature:unequip(item)
+  local equipSlot = item.equipSlot
+  local unequipText = ""
+  if not equipSlot or not self.equipment[equipSlot] then return false,"That item is not equipped." end
+  
+  for i=1,self.equipment[equipSlot].slots,1 do
+    if self.equipment[equipSlot][i] == item then
+      local didIt = true
+      if possibleItems[item.id].unequip then
+        didIt,unequipText = possibleItems[item.id].unequip(item,self)
+      end
+      if didIt ~= false then
+        self.equipment[equipSlot][i] = nil
+        unequipText = unequipText .. (item.unequipText or "You unequip " .. item:get_name() .. ".")
+        --Slide other items of this equiptype to fill empty slot
+        if i ~= self.equipment[equipSlot].slots then
+          for i2=i+1,self.equipment[equipSlot].slots,1 do
+            self.equipment[equipSlot][i2-1] = self.equipment[equipSlot][i2]
+            self.equipment[equipSlot][i2] = nil
+          end
+        end --end if i ~= max slot
+      end --end if didIt
+      return didIt,unequipText
+    end --end if item == item if
+  end --end slot check for
+	return false,unequipText
 end
 
 --Get the possession chance of a creature.
@@ -1509,6 +1775,13 @@ function Creature:get_damage()
   return self.strength + self:get_bonus('damage')
 end
 
+--Gets a creature's armor piercing value, including bonuses
+--@param self Creature. The creature itself
+--@return Number. The damage value
+function Creature:get_armor_piercing()
+  return (self.armor_piercing or 0) + self:get_bonus('armor_piercing')
+end
+
 --Gets a creature's critical_chance stat value, including bonuses
 --@param self Creature. The creature itself
 --@return Number. The stat value
@@ -1516,11 +1789,42 @@ function Creature:get_critical_chance()
   return (self.critical_chance or 1)+self:get_bonus('critical_chance')
 end
 
+--Get all spells a creature has, including those granted by equipment
+--@return Table. A list of the creature's spells
+function Creature:get_spells()
+  local spells = (self.spells and copy_table(self.spells) or {})
+  for _, equipslot in pairs(self.equipment) do
+    for _, equip in ipairs(equipslot) do
+      if equip.spells_granted then
+       for _, spell in ipairs(equip.spells_granted) do
+         if not in_table(spell,self.spells) then spells[#spells+1] = spell end
+       end
+      end --end bonuses if
+    end --end equipment for
+	end --end equipslot for
+  return spells
+end
+
+--Get all ranged attacks a creature has, including those granted by equipment
+--@return Table. A list of the creature's ranged attacks
+function Creature:get_ranged_attacks()
+  local ranged = {}
+  if self.ranged_attack then ranged[#ranged+1] = {attack=self.ranged_attack,charges=player.ranged_charges} end
+  if self.equipment.weapon then
+    for _, equip in ipairs(self.equipment.weapon) do
+      if equip.ranged_attack then
+        ranged[#ranged+1] = {attack=equip.ranged_attack,item=equip,charges=equip.charges}
+      end --end bonuses if
+    end --end equipment for
+  end
+  return ranged
+end
+
 --Checks if a creature possesses a certain spell
 --@param spellName Text. The name of the spell
 --@return True/False. Whether the creature has the spell
 function Creature:has_spell(spellName)
-  return in_table(spellName,self.spells)
+  return in_table(spellName,self:get_spells())
 end
 
 --Checks if a creature possesses a certain AI flag

@@ -316,15 +316,15 @@ function mapgen:addTombstones(map)
     local grave = get_random_element(graves[map.depth])
     local x,y = random(2,map.width-1),random(2,map.height-1)
     local tries = 0
-    while map:isEmpty(x,y,true) and tries < 100 do
+    while map:isEmpty(x,y,true) == false and tries < 100 do
       x,y = random(2,map.width-1),random(2,map.height-1)
       tries = tries+1
     end
-    local text = (random(0,1) == 1 and "R.I.P " or "Here Lies ") .. grave.name .. "\n" .. os.date("%x",grave.time)
+    local text = (random(0,1) == 1 and "R.I.P " or "Here Lies ") .. grave.name .. "\n" .. os.date("%x",grave.date)
     if grave.killer then
       text = text .. "\n Killed by " .. grave.killer
     end
-    map:add_feature(Feature('gravestone',text),x,y)
+    if tries < 100 then map:add_feature(Feature('gravestone',text),x,y) end
   end
 end
 
@@ -464,7 +464,7 @@ function mapgen:generate_map(width, height, depth,force)
           return mapgen:generate_map(width, height, depth,force)
         end
       end --end forest vs. cave if
-      --mapgen:addTombstones(build)
+      mapgen:addTombstones(build)
     end --end special modifiers if
     --Add the pathfinder:
     build:refresh_pathfinder()
@@ -487,7 +487,7 @@ function mapgen:generate_map(width, height, depth,force)
 	-- add creatures:
 	if not build.noCreats then
     local highest = math.max(width,height)
-		for creat_amt=1,random(highest,highest),1 do
+		for creat_amt=1,highest,1 do
 			local nc = mapgen:generate_creature(depth,specialCreats)
       if nc == false then break end
       local cx,cy = random(2,build.width-1),random(2,build.height-1)
@@ -503,6 +503,24 @@ function mapgen:generate_map(width, height, depth,force)
       end --end tries if
 		end --end creature while
 	end --end depth if
+  --Add items:
+  if not build.noItems then
+    for item_amt = 1,100,1 do
+      local ni = mapgen:generate_item(depth)
+      if ni == false then break end
+      local ix,iy = random(2,build.width-1),random(2,build.height-1)
+      local tries = 0
+      while (build:isClear(ix,iy) == false or build[ix][iy] == "<" or build[ix][iy] == ">") do
+        ix,iy = random(2,build.width-1),random(2,build.height-1)
+        tries = tries+1
+        if tries > 100 then break end
+      end
+      if tries ~= 100 then 
+        build:add_item(ni,ix,iy)
+      end --end tries if
+    end
+  end
+  
   currGame.seedState = mapRandom:getState()
   random = love.math.random
 	return build
@@ -526,6 +544,19 @@ function mapgen:generate_creature(level,list,allowAll)
 			return Creature(n,level)
 		end
 	end
+end
+
+function mapgen:generate_item(level)
+	local newItem = nil
+	-- This selects a random item from the table of possible loot
+	while (newItem == nil) do
+		local n = get_random_key(possibleItems)
+		if not n.neverSpawn and random(1,100) >= (n.rarity or 0) then
+			newItem = n
+    end
+  end
+  -- Create the actual item:
+	return Item(newItem)
 end
 
 --Possible types: "wall": next to wall only, "noWalls": not next to wall, "wallsCorners": open walls and corners only, "corners": corners only

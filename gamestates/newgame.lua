@@ -233,8 +233,8 @@ function newgame:draw()
     end
   end
   --Cheats button:
-  output:button(math.ceil(width/2)-32,641,68,false,(output.cursorY == 10 and "hover"))
-  love.graphics.print("Cheats",math.floor(width/2)-24,646)
+  output:button(math.ceil(width/2)-64,641,136,false,(output.cursorY == 10 and "hover"),"Game Modifiers")
+
   
   --close button:
   self.closebutton = output:closebutton((prefs['noImages'] and width/2-256+16 or width/2-256+40),(prefs['noImages'] and 50+24 or 50+56))
@@ -297,7 +297,7 @@ function newgame:keypressed(key)
     elseif output.cursorY == 6 then
       self.tutorial = not self.tutorial
     elseif output.cursorY == 7 then --"begin" line
-      new_game((tonumber(self.seed) > 0 and tonumber(self.seed) or 1),self.tutorial)
+      new_game((tonumber(self.seed) > 0 and tonumber(self.seed) or 1),self.tutorial,self.cheats)
       output:sound('possession')
       self.cursorY=0
       self.blackAmt = 0

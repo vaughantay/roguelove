@@ -144,6 +144,9 @@ function game:print_cursor_game()
             self.hoveringCreat = entity
           elseif entity.baseType ~= "creature" and not entity.noDesc then
             if (text ~= "") then text = text .. "\n----\n" end
+            if entity.baseType == "item" then
+              text = text .. entity:get_name(true) .. "\n"
+            end
             text = text .. ucfirst(currMap.contents[output.cursorX][output.cursorY][id]:get_description())
           end --end entity check
         end --end content for
@@ -198,18 +201,6 @@ function game:print_messages()
       end --end text ~= nil
 		end --end for ipairs(disp)
 	end --end for ipairs(output.toDisp)
-  --[[local width = prefs.enemysidebar.x-15
-  local y = love.graphics.getHeight()-15
-  for id,text in ipairs(text) do
-    if text ~= "" then
-      local _, height = fonts.textFont:getWrap(text,width)
-      y = y-(height*prefs.fontSize)
-      setColor(0,0,0,255)
-      love.graphics.printf(text,16,height+1,width,"left")
-      setColor(255,255,255,255/((id < 3 and id) or id+1))
-      love.graphics.printf(text,15,y,width,"left")
-    end
-  end]]
   setColor(255,255,255,255)
 end
 
@@ -224,8 +215,8 @@ function game:print_sidebar()
   local printY = 48/uiScale
   local maxY = printY+85
   maxY = maxY + (player.magicName and 15 or 0)
-  maxY = maxY + (player.ranged_attack and 40 or 0)
-  maxY = maxY + math.max((#player.spells-2)*15,15)
+  maxY = maxY + (#player:get_ranged_attacks() > 0 and 40 or 0)
+  maxY = maxY + math.max((#player:get_spells()-2)*15,15)
   maxY = maxY + ((next(player.conditions) == nil and 0 or 60))
   --Draw shaded background:
   setColor(20,20,20,200)
@@ -263,10 +254,15 @@ function game:print_sidebar()
     yBonus = 0
   end
 	love.graphics.printf(player.properName,printX,printY-4+yBonus,335,"center")
-  local buttonWidth = fonts.buttonFont:getWidth(keybindings.charScreen .. ") Level " .. player.level .. " " .. player.name)
+  local skillPoints = ""
+  if player.skillPoints and player.skillPoints > 0 then skillPoints = " (+)" end
+  local buttonWidth = fonts.buttonFont:getWidth(keybindings.charScreen .. ") Level " .. player.level .. " " .. player.name .. skillPoints)
+
   local middleX = round(printX+335/2)
   self.characterButton = output:button(round(middleX-buttonWidth/2)-8,printY+15,buttonWidth+16,true,nil,nil,true)
-	love.graphics.printf(keybindings.charScreen .. ") Level " .. player.level .. " " .. player.name,printX,printY+12+yBonus,335,"center")
+	if skillPoints ~= "" then setColor(255,255,0,255) end
+  love.graphics.printf(keybindings.charScreen .. ") Level " .. player.level .. " " .. player.name .. skillPoints,printX,printY+12+yBonus,335,"center")
+  setColor(255,255,255,255) 
   if output.shakeTimer > 0 then
     love.graphics.push()
     local shakeDist = output.shakeDist*output.shakeTimer*2
@@ -293,12 +289,20 @@ function game:print_sidebar()
  
  self.spellButtons = {}
  local descBox = false
-  if (player.ranged_attack) then
-    local attack = rangedAttacks[player.ranged_attack]
-    local ranged_text = keybindings.ranged .. ") Ranged: " .. attack:get_name()
-    if player.ranged_charges and attack.hide_charges ~= true then
-      ranged_text = ranged_text .. " (" .. player.ranged_charges .. ")"
-    end
+ local ranged_attacks = player:get_ranged_attacks()
+  if #ranged_attacks > 0 then
+    local ranged_text = keybindings.ranged .. ") Ranged: "
+    local ranged_description_box = ""
+    for i,attack_instance in ipairs(ranged_attacks) do
+      local attack = rangedAttacks[attack_instance.attack]
+      local item = attack_instance.item or nil
+      ranged_text = ranged_text .. attack:get_name()
+      if attack_instance.charges and attack.hide_charges ~= true then
+        ranged_text = ranged_text .. " (" .. attack_instance.charges .. ")"
+      end
+      if i < #ranged_attacks then ranged_text = ranged_text .. ", " end
+      ranged_description_box = ranged_description_box .. (i > 1 and "\n\n" or "") .. attack.name .. "\n" .. attack.description
+    end --end ranged attack for
     local rangedWidth = fonts.buttonFont:getWidth(ranged_text)
     local minX,minY=printX+xPad-2,printY+yPad
     local maxX,maxY=minX+rangedWidth+4,minY+16
@@ -308,7 +312,7 @@ function game:print_sidebar()
       ranged_text = ranged_text .. " \n(" .. player.ranged_recharge_countdown .. " turns to recharge)"
     end
     if self.spellButtons["ranged"].hover == true then
-      descBox = {desc=attack.name .. "\n" .. attack.description,x=minX,y=minY}
+      descBox = {desc=ranged_description_box,x=minX,y=minY}
     end
     --[[if actionResult and actionResult.name == attack.name or (output.mouseX >= minX and output.mouseY >= minY and output.mouseX <= maxX and output.mouseY <= maxY and not player.ranged_recharge_countdown) then
       setColor(100,100,100,255)
@@ -323,18 +327,18 @@ function game:print_sidebar()
     if player.ranged_recharge_countdown then
       setColor(255,255,255,255)
     end
-    if attack.active_recharge then
+    --[[if attack.active_recharge then
       yPad = yPad+20
       local textWidth = fonts.buttonFont:getWidth(keybindings.recharge .. ") Recharge/Reload")
       maxX = minX+textWidth+4
       self.spellButtons["recharge"] = output:button(minX,minY+22,(maxX-minX),true,nil,nil,true)
       love.graphics.print(keybindings.recharge .. ") Recharge/Reload",printX+xPad,printY+yPad-2+yBonus)
-    end
+    end]]
     yPad = yPad+40
   end
   
   local spellcount = 1
-  for _,spellID in pairs(player.spells) do
+  for _,spellID in pairs(player:get_spells()) do
     local spell = possibleSpells[spellID]
     if spell.innate ~= true and spell.target_type ~= "passive" then
       if spellcount == 1 then
@@ -364,54 +368,6 @@ function game:print_sidebar()
         setColor(255,255,255,255)
       end
       spellcount = spellcount + 1
-    end
-  end
-  if player.id ~= "ghost" then
-    if spellcount == 1 then
-      local buttonWidth = fonts.buttonFont:getWidth(keybindings.spell .. ") Abilities:")
-      local middleX = round(printX+335/2)
-      self.allSpellsButton = output:button(round(middleX-buttonWidth/2)-8,printY+yPad,buttonWidth+16,true,nil,nil,true)
-      love.graphics.printf(keybindings.spell .. ") Abilities:",printX,printY+yPad-4,335,"center")
-    end
-    local spellwidth = fonts.buttonFont:getWidth(keybindings.heal .. ") Repair Body")
-    local minX,minY=printX+xPad-2,printY+yPad+(20*spellcount)
-    local maxX,maxY=minX+spellwidth+4,minY+16
-    local buttonType = ((player.cooldowns["Repair Body"] or possibleSpells.repairBody:requires(player) == false) and "disabled" or nil)
-    self.spellButtons["repairBody"] = output:button(minX,minY+2,(maxX-minX),true,buttonType,nil,true)
-    if self.spellButtons["repairBody"].hover == true then
-      descBox = {desc="Repair Body\n" .. possibleSpells["repairBody"]:get_description(),x=minX,y=minY}
-    end
-    if player.cooldowns["Repair Body"] or possibleSpells.repairBody:requires(player) == false then
-      setColor(100,100,100,255)
-    end
-    love.graphics.print(keybindings.heal .. ") Repair Body" .. (player.cooldowns['Repair Body'] and " (" .. player.cooldowns['Repair Body'] .. " turns to recharge)" or ""),printX+xPad,printY+yPad+(20*spellcount)-2+yBonus)
-    spellcount = spellcount + 1
-    if player.cooldowns["Repair Body"] or possibleSpells.repairBody:requires(player) == false then
-      setColor(255,255,255,255)
-    end
-  end
-  if player:has_spell('possession') then
-    local spellwidth = fonts.buttonFont:getWidth(keybindings.possess .. ") Possession")
-    local minX,minY=printX+xPad-2,printY+yPad+(20*spellcount)
-    local maxX,maxY=minX+spellwidth+4,minY+16
-    local buttonType = (player.cooldowns["Possession"] and "disabled" or (actionResult and actionResult.name == "Possession" and "hover" or nil))
-    self.spellButtons["possession"] = output:button(minX,minY+2,(maxX-minX),true,buttonType,nil,true)
-    if self.spellButtons['possession'].hover == true then
-      descBox = {desc="Possession\n" .. possibleSpells['possession']:get_description(),x=minX,y=minY}
-    end
-    
-    --[[if actionResult and actionResult.name == "Possession" or (output.mouseX >= minX and output.mouseY >= minY and output.mouseX <= maxX and output.mouseY <= maxY) then
-      setColor(100,100,100,255)
-      love.graphics.rectangle('fill',printX+xPad-2,printY+yPad+(20*spellcount),spellwidth+4,16)
-      setColor(255,255,255,255)
-    end
-    love.graphics.rectangle('line',printX+xPad-2,printY+yPad+(20*spellcount),spellwidth+4,16)]]
-    if player.cooldowns["Possession"] then
-      setColor(100,100,100,255)
-    end
-    love.graphics.print(keybindings.possess .. ") Possession" .. (player.cooldowns['Possession'] and " (" .. player.cooldowns['Possession'] .. " turns to recharge)" or ""),printX+xPad,printY+yPad+(20*spellcount)-2+yBonus)
-    if player.cooldowns["Possession"] then
-      setColor(255,255,255,255)
     end
   end
   if currMap[player.x][player.y] == "<" then
@@ -558,24 +514,25 @@ function game:print_target_sidebar()
       love.graphics.printf("Master: " .. target.master:get_name(false,true),printX,printY,335,"center")
     end
     output:draw_health_bar(self.targetHP,target:get_mhp(),printX+xPad,printY+20,325,16)
-    local rangedText = nil
-    local attack = (player.ranged_attack and rangedAttacks[player.ranged_attack] or nil)
-    if attack then
+    local ranged_attacks = player:get_ranged_attacks()
+    if #ranged_attacks > 0 then
       local dist = calc_distance(player.x,player.y,target.x,target.y)
-      local attack = rangedAttacks[player.ranged_attack]
-      if (attack.range and dist > attack.range) or (attack.min_range and dist < attack.min_range) or (attack.projectile and not player:can_shoot_tile(target.x,target.y)) then
-        rangedText = "Impossible"
-      else
-        rangedText = attack:calc_hit_chance(player,target) .. "%"
-      end
-    end
-    local yPadNow = 0
+      for i,attack_instance in ipairs(ranged_attacks) do
+        local attack = rangedAttacks[attack_instance.attack]
+        local hit_chance = attack:calc_hit_chance(player,target)
+        local rangedText = attack:get_name() .. " Chance to Hit: "
+        if hit_chance < 1 then
+          rangedText = rangedText .. "Impossible"
+        else
+          rangedText = rangedText .. hit_chance .. "%"
+        end
+        love.graphics.printf(rangedText,printX+xPad,printY+60+(i-1)*15,335)
+      end --end ranged attack for
+    end --end if #ranged_attacks> 0
     love.graphics.printf("Health: " .. math.ceil(self.targetHP) .. "/" .. target:get_mhp(),printX+xPad,printY+18+yBonus,335,"center")
     love.graphics.print("Chance to Hit: " .. calc_hit_chance(player,target) .. "%",printX+xPad,printY+45)
-    if attack then
-      love.graphics.print(attack.name .. " Chance to Hit: " .. rangedText,printX+xPad,printY+60)
-      yPadNow = 15
-    end
+
+    local yPadNow = 15*#ranged_attacks
     love.graphics.print("Chance to Be Hit: " .. calc_hit_chance(target,player) .. "%",printX+xPad,printY+60+yPadNow)
     love.graphics.print("Possession Chance: " .. target:get_possession_chance() .. "%",printX+xPad,printY+75+yPadNow)
 		if (next(target.conditions) ~= nil) then
@@ -1098,21 +1055,21 @@ function game:update(dt)
     if player.hp < player.pathStartHP then
       output:out("Damaged! Cancelling movement!")
       player.path = nil
-      player.ignoring = nil
+      player.ignoring = {}
       player.pathStartHP = nil
 		elseif player.path and count(player.path) > 0 and move_player(player.path[1]["x"],player.path[1]["y"]) then
       if player.path ~= nil then
         table.remove(player.path,1)
         if (#player.path == 0) then
           player.path = nil
-          player.ignoring = nil
+          player.ignoring = {}
           player.pathStartHP = nil
         end
       end
     else
       output:out("Hazard in path! Cancelling movement!")
       player.path = nil
-      player.ignoring = nil
+      player.ignoring = {}
       player.pathStartHP = nil
     end
 		if (player.path and player.sees and #player.sees > 0) then
@@ -1120,7 +1077,7 @@ function game:update(dt)
         if creat ~= player and creat:is_enemy(player) and not in_table(creat,player.ignoring) then
           output:out(creat.name .. " spotted! Cancelling movement.")
           player.path = nil
-          player.ignoring = nil
+          player.ignoring = {}
           player.pathStartHP = nil
           break
         end
@@ -1422,6 +1379,14 @@ function game:keypressed(key,scancode,isRepeat)
     local enter = currMap:enter(player.x,player.y,player,player.x,player.y) --run the "enter" code for a feature, f'rex, lava burning you even if you don't move
 	elseif (key == keybindings.spell) then
 		Gamestate.switch(spellscreen)
+  elseif (key == keybindings.inventory) then
+		Gamestate.switch(inventory)
+  elseif (key == keybindings.throw) then
+		Gamestate.switch(inventory,"throwable")
+  elseif (key == keybindings.use) then
+		Gamestate.switch(inventory,"usable")
+  elseif (key == keybindings.equip) then
+		Gamestate.switch(inventory,"equippable")
 	elseif (key == keybindings.examine) then
 		action="targeting"
   elseif (key == keybindings.nextTarget) then
@@ -1460,28 +1425,79 @@ function game:keypressed(key,scancode,isRepeat)
         end
       end
     end
-  elseif (key == keybindings.ranged and player.ranged_attack) then
+  elseif (key == keybindings.ranged and count(player:get_ranged_attacks()) > 0) then
+    local ranged_attacks = player:get_ranged_attacks()
+    local anyAvailable = false
+    for i, attack in ipairs(ranged_attacks) do
+      if not attack.charges or attack.charges > 0 then
+        anyAvailable = true
+        break
+      end
+    end --end loopthrough to check charges
     if action == "targeting" then
       setTarget(output.cursorX,output.cursorY)
-    elseif (player.ranged_charges == nil or player.ranged_charges > 0) then
+    elseif anyAvailable then
       action="targeting"
-      actionResult=rangedAttacks[player.ranged_attack]
+      local allAttacks = {}
+      local attackName = ""
+      local min_range,range=nil,nil
+      for i,attack_instance in ipairs(player:get_ranged_attacks()) do
+        local attack = rangedAttacks[attack_instance.attack]
+        attackName = attackName .. (i > 1 and ", " or "") .. attack.name
+        if attack.min_range and (min_range == nil or attack.min_range < min_range) then
+          min_range = attack.min_range
+        end
+        if attack.range and (range == nil or attack.range < range) then
+          range = attack.range
+        end
+      end --end ranged attack for
+      local attackFunction = function(_,target)
+        for _,attack_instance in ipairs(player:get_ranged_attacks()) do
+          local attack = rangedAttacks[attack_instance.attack]
+          if (not attack.charges or attack.charges > 0) and attack:calc_hit_chance(player,target) > 0 then
+            attack:use(target,player,attack_instance.item)
+          end --end can use attack if
+        end --end ranged attack for
+      end --end attackFunction
+      allAttacks.name = attackName
+      allAttacks.use = attackFunction
+      allAttacks.min_range,allAttacks.max_range = min_range,range
+      allAttacks.target_type="creature"
+      actionResult=allAttacks
       if (output.cursorX == 0 or output.cursorY == 0) and target then
         output:setCursor(target.x,target.y,true)
       else
         output:setCursor(player.x,player.y,true)
       end
-    else
-      local attack = rangedAttacks[player.ranged_attack]
-      if (attack.active_recharge) then
-        attack:recharge(player)
-        advance_turn()
+    else --no attacks available, try to recharge if possible
+      local recharge = false
+      for i, attack_instance in ipairs(ranged_attacks) do
+        local attack = rangedAttacks[attack_instance.attack]
+        if (attack.active_recharge) then
+          if attack:recharge(player,attack_instance.item) ~= false then
+            recharge = true
+          end
+        end
+      end
+      if recharge == false then
+        output:out("You can't use any ranged attacks right now.")
       else
-        output:out("You can't use that attack right now.")
+         advance_turn()
       end
     end
-  elseif (key == keybindings.recharge and player.ranged_attack and rangedAttacks[player.ranged_attack].active_recharge and rangedAttacks[player.ranged_attack]:recharge(player)) then
-    advance_turn()
+  elseif key == keybindings.recharge then
+    local recharge = false
+    for i, attack_instance in ipairs(player:get_ranged_attacks()) do
+      local attack = rangedAttacks[attack_instance.attack]
+      if (attack_instance.item and type(attack_instance.item.charges) == "number" and not attack_instance.item.cooldown) or (not attack_instance.item and attack.active_recharge) then
+        if attack:recharge(player,attack_instance.item) ~= false then
+          recharge = true
+        end
+      end
+    end
+    if recharge ~= false then
+      advance_turn()
+    end
 	elseif (key == "escape") then
     if self.contextualMenu then
       self.contextualMenu = nil
@@ -1547,9 +1563,12 @@ function game:keypressed(key,scancode,isRepeat)
   elseif key == keybindings.zoomOut then
     currGame.zoom = math.max((currGame.zoom or 1)-0.1,0.5)
     output:refresh_coordinate_map()
+  elseif key == keybindings.pickup then
+    player:pickup()
+    advance_turn()
   elseif tonumber(key) and prefs.spellShortcuts then
     local spellcount = 1
-    for _,spellID in pairs(player.spells) do
+    for _,spellID in pairs(player:get_spells()) do
       local spell = possibleSpells[spellID]
       if spell.innate ~= true and spell.target_type ~= "passive" then
         if tonumber(key) == spellcount then
@@ -1638,7 +1657,7 @@ function ContextualMenu:init(x,y,printX,printY)
     self.items[1] = {name="Move To",y=spellY,action="moveto"}
     spellY = spellY+15
   end
-  for _,spellID in pairs(player.spells) do
+  for _,spellID in pairs(player:get_spells()) do
     local spell = possibleSpells[spellID]
     if spell.target_type == "square" or spell.target_type == "self" or (spell.target_type == "creature" and self.creature) then
       self.items[#self.items+1] = {name=spell.name,y = spellY,action=spell,cooldown=player.cooldowns[spell.name]}

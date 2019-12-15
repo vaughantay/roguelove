@@ -1,14 +1,11 @@
 gamesettings = {
-  name = "Possession",
-  id="possessionroguelike",
+  name = "Roguelove Example Game",
+  id="rogueloveexample",
   author = "Weirdfellows LLC",
-  version = "10",
+  version = "1",
   levels=11,
   force_special_levels = {},
   force_generic_levels = {},
   bosses=true,
-  inventory=false,
+  inventory=true,
 }
-gamesettings.force_special_levels[1]="graveyard"
-gamesettings.force_special_levels[10]="temple"
-gamesettings.force_special_levels[11]="surface"

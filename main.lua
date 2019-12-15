@@ -1,3 +1,27 @@
+--Custom error handler that logs errors
+function love.errorhandler(msg)
+	local m = debug.traceback("Error: " .. tostring(msg), 1+(layer or 1)):gsub("\n[^\n]+$", "")
+  local date = os.date("%Y-%m-%d %H-%M-%S")
+  
+  if currGame and player then save_game(nil,currGame.fileName .. '-error-' .. date) end
+  
+  local printed = table.concat(printLog, "\n")
+  love.filesystem.write('error ' .. date .. ".txt",printed .. "\n\n" .. m)
+  return love.errhand(msg)
+end
+
+--Custom print that saves everything printed, for logging later
+originalPrint = print
+printLog = {}
+function print(...)
+  originalPrint(...)
+  local str = {}
+	for i = 1, select('#', ...) do
+		str[i] = tostring(select(i, ...))
+	end
+	table.insert(printLog, table.concat(str, "       "))
+end
+
 debugMode = false
 for i,v in pairs(arg) do
   if string.find(v,"debug") then
@@ -7,7 +31,6 @@ for i,v in pairs(arg) do
 end
 if debugMode == true then
   require("lib.lovedebug")
-  require("data.loopthrough")
 end
 
 --pClock = require("profileclock")
@@ -42,12 +65,12 @@ function love.load(arg)
     buttonFont = love.graphics.newFont("VeniceClassic.ttf",18),
     miniMapFont = love.graphics.newFont("VeraMono.ttf",8),
     mapFont = love.graphics.newFont("VeraMono.ttf",prefs['asciiSize']),
-    mapFontDys = love.graphics.newFont("OpenDyslexic-Regular.otf",prefs['asciiSize']),
+    --mapFontDys = love.graphics.newFont("OpenDyslexic-Regular.otf",prefs['asciiSize']),
     mapFontWithImages = love.graphics.newFont("VeraMono.ttf",24),
     textFont = love.graphics.newFont(14),
     descFont = love.graphics.newFont(prefs['descFontSize']),
     menuFont = love.graphics.newFont(24),
-    dysFont = love.graphics.newFont("OpenDyslexic-Regular.otf",14)
+    --dysFont = love.graphics.newFont("OpenDyslexic-Regular.otf",14)
   }
   --[[if prefs['noImages'] ~= true then
     --output:load_all_images()
@@ -115,7 +138,7 @@ function love.wheelmoved(x,y)
 end
 
 function love.quit()
-  if (player ~= nil) then save_game() end
+  if (player ~= nil and currGame ~= nil) then save_game() end
   --save_scores()
   save_prefs()
   save_stats()
@@ -183,8 +206,10 @@ function load_data()
   require "data.effects"
   require "data.features"
   require "data.gamedefinition"
+  require "data.items"
   require "data.levelmodifiers"
   require "data.levels"
+  require "data.layouts"
   require "data.monsters"
   require "data.projectiles"
   require "data.ranged_attacks"
@@ -197,6 +222,7 @@ function load_data()
   require "gamestates.credits"
   require "gamestates.game"
   require "gamestates.help"
+  require "gamestates.inventory"
   require "gamestates.gamestats"
   require "gamestates.loading"
   require "gamestates.loadsaves"
@@ -212,6 +238,7 @@ end
 
 function load_engine()
   require "achievement"
+  require "item"
   require "map"
   require "mod"
   require "creature"
@@ -224,6 +251,7 @@ function load_engine()
   require "feature"
   require "saveload"
   require "namegen"
+  require "mapgen"
   require "condition"
   require "gamelogic"
 end

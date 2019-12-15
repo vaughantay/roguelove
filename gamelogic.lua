@@ -1,6 +1,7 @@
-function new_game(mapSeed,playTutorial)
+function new_game(mapSeed,playTutorial,cheats)
 	maps = {}
   currGame = {startTime=os.date(),fileName=player.properName,playTutorial=playTutorial,tutorialsSeen={},missionFlags={},achievementDisqualifications={},cheats={},autoSave=prefs['autosaveTurns'],seed=mapSeed,stats={}}
+  if cheats then currGame.cheats = cheats end
   update_stat('games')
   currMap = nil
   local forceLevel,forceDepth = parse_name_for_level(player.properName)
@@ -18,10 +19,7 @@ function new_game(mapSeed,playTutorial)
   output.buffer = {}
   output.toDisp = {{1},{},{}}
   output:set_camera(player.x,player.y,true)
-  --This lil bastard will handle the beginning animation:
-  player.color.a=0
-  currMap:add_effect(Effect('beginningPlayerFlyer'),player.x,player.y)
-  update_stat('level_reached',currMap.id or "graveyard")
+  update_stat('level_reached',currMap.id)
 end
 
 function parse_name_for_level(name)
@@ -39,7 +37,7 @@ function parse_name_for_level(name)
 end
 
 function initialize_player()
-	player = Creature('ghost',0)
+	player = Creature('player',0)
 	player.isPlayer = true
   player.playerAlly = true
 	if (random(1,2) == 1) then
@@ -48,20 +46,21 @@ function initialize_player()
 		player.gender = "female"
 	end
 	player.properName=namegen:generate_human_name(player)
+  player.symbol = "@"
+  player.color={r=255,g=255,b=255,a=255}
 end
 
-function calc_hit_chance(attacker,target)
-  if attacker:is_type('ghost') then return 100 end
+function calc_hit_chance(attacker,target,item)
   local hitMod = attacker.melee - (target.dodging or 0)
-  return math.min(math.max(70 + (hitMod > 0 and hitMod*2 or hitMod) + attacker:get_bonus('hit_chance') - (target.get_bonus and target:get_bonus('dodge_chance') or 0),25),95)
+  return math.min(math.max(70 + (hitMod > 0 and hitMod*2 or hitMod) + attacker:get_bonus('hit_chance') - (target.get_bonus and target:get_bonus('dodge_chance') or 0),25 + (item and item.accuracy or 0)),95)
 end
 
-function calc_attack(attacker,target,forceHit)
-	local dmg = attacker:get_damage()
+function calc_attack(attacker,target,forceHit,item)
+	local dmg = (item and item:get_damage(target,attacker) or attacker:get_damage())
   local dbonus = .01*attacker:get_bonus('damage_percent',true)
   dmg = dmg * (dbonus ~= 0 and dbonus or 1)
-	local critChance = attacker:get_critical_chance()
-	local hitMod = calc_hit_chance(attacker,target)
+	local critChance = attacker:get_critical_chance() + (item and item.critical_chance or 0)
+	local hitMod = calc_hit_chance(attacker,target,item)
   local result = "miss"
 
 	local roll = random(1,100)
@@ -204,7 +203,7 @@ function goUp(force)
     end]]
     currMap.creatures[player] = nil
 		if (maps[currMap.depth+1] == nil) then
-			maps[currMap.depth+1] = mapgen:generate_map(75, 75,currMap.depth+1)
+			maps[currMap.depth+1] = mapgen:generate_map((currGame.cheats.largeMaps and 75 or 60), (currGame.cheats.largeMaps and 75 or 60),currMap.depth+1)
 		end
 		currMap.contents[player.x][player.y][player] = nil
 		currMap=maps[currMap.depth+1]
@@ -244,7 +243,7 @@ function regen_level()
   local newGhost = Creature('ghost')
   local oldBody = player-- temporary variable to hold the player's old creature definition
   local oldMap = currMap
-  currMap = mapgen:generate_map(75, 75,currMap.depth,currMap.levelID or "generic")
+  currMap = mapgen:generate_map((currGame.cheats.largeMaps and 75 or 60), (currGame.cheats.largeMaps and 75 or 60),currMap.depth,currMap.levelID or "generic")
   maps[currMap.depth] = currMap
   oldMap.creatures[player] = nil
   oldMap.contents[player.x][player.y][player] = nil
@@ -482,8 +481,17 @@ function setTarget(x,y)
     end --end projectile if
 		if (actionResult.target_type == "square") then
       local possession = actionResult.name == "Possession"
-			if (actionResult:use({x=x,y=y},player) ~= false) then
+			if (actionResult:use({x=x,y=y},player,actionIgnoreCooldown) ~= false) then
+        if actionItem then
+          if actionItem.throwable or actionItem.consumed then
+            player:delete_item(actionItem,1)
+          elseif actionItem.charges then
+            actionItem.charges = actionItem.charges - 1
+          end
+        end
         actionResult = nil
+        actionItem = nil
+        actionIgnoreCooldown = nil
         if not possession then 
           advance_turn()
         end
@@ -493,8 +501,17 @@ function setTarget(x,y)
 		elseif (actionResult.target_type == "creature") then
 			if (creat) then
         local possession = actionResult.name == "Possession"
-				if (actionResult:use(creat,player) ~= false and actionResult ~= possibleSpells['possession']) then
+				if (actionResult:use(creat,player,actionIgnoreCooldown) ~= false and actionResult ~= possibleSpells['possession']) then
+          if actionItem then
+            if actionItem.throwable or actionItem.consumed then
+              player:delete_item(actionItem,1)
+            elseif actionItem.charges then
+              actionItem.charges = actionItem.charges - 1
+            end
+          end
 					actionResult = nil
+          actionItem = nil
+          actionIgnoreCooldown = nil
           if not possession then 
             advance_turn()
           end
@@ -592,4 +609,18 @@ function update_mission_flag(flag,amt)
   else
     currGame.missionFlags[flag] = amt
   end
+end
+
+function mapgen:generate_item(level)
+	local newItem = nil
+	-- This selects a random item from the table of possible loot, and compares the desired item level to this item's level. If it's a match, continue, otherwise select another one
+	while (newItem == nil) do
+		local n = get_random_key(possibleItems)
+		if (1==1) and not n.neverSpawn and random(1,100) >= (n.rarity or 0) then
+			newItem = n
+    end
+  end
+  -- Create the actual item:
+	newItem = Item(newItem)
+	return newItem
 end

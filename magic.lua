@@ -4,6 +4,7 @@ function Spell:init(data)
 	for key, val in pairs(data) do
 		self[key] = data[key]
 	end
+  self.baseType = "spell"
   self.flags = self.flags or {}
 	return self
 end
@@ -19,22 +20,22 @@ function Spell:get_description(no_reqtext)
     return self.description .. (self.cost and "\nCost: " .. self.cost .. " " .. player.magicName or "") .. (no_reqtext and "" or reqtext)
 end
 
-function Spell:target(target,caster)
+function Spell:target(target,caster, ignoreCooldowns)
   local req, reqtext = self:requires(caster)
-  if (caster.cooldowns[self.name]) then
+  if (not ignoreCooldowns and caster.cooldowns[self.name]) then
 		if (caster == player) then output:out("You can't use that ability again for another " .. caster.cooldowns[self.name] .. " turns.") end
 		return false
   elseif req == false then
     if (caster == player) then output:out((reqtext or "You can't use that ability right now.")) end
     return false
   end
-  if not caster:callbacks('casts',target,self) then --We're hoping the callback itself will provide any necessary feedback
+  if not caster:callbacks('casts',target,self,ignoreCooldowns) then --We're hoping the callback itself will provide any necessary feedback
     return false
   end
   
 	if (self.target_type == "self" or self.target_type == "passive") then
 		if (self.target_type ~= "passive") then
-			return self:use(target,caster)
+			return self:use(target,caster,ignoreCooldowns)
 		end
 	else
 		action = "targeting"
@@ -46,9 +47,9 @@ function Spell:target(target,caster)
 	end
 end
 
-function Spell:use(target, caster)
+function Spell:use(target, caster, ignoreCooldowns)
   local req, reqtext = self:requires(caster)
-	if (caster.cooldowns[self.name]) then
+	if (not ignoreCooldowns and caster.cooldowns[self.name]) then
 		if (caster == player) then output:out("You can't use that ability again for another " .. caster.cooldowns[self.name] .. " turns.") end
 		return false
   elseif req == false then
@@ -62,7 +63,7 @@ function Spell:use(target, caster)
     if r ~= false or r == nil then
       if self.sound and player:can_see_tile(caster.x,caster.y) then output:sound(self.sound) end
       if caster == player then update_stat('ability_used',self.name) end
-      if self.cooldown and self.cooldown > 0 then 
+      if self.cooldown and self.cooldown > 0 and not ignoreCooldowns then 
         caster.cooldowns[self.name] = (caster ~= player and self.AIcooldown or self.cooldown)
       end
       if caster.magic and self.cost then

@@ -4,9 +4,11 @@ function register_classes()
   Lady.register_class(Feature,'Feature')
   Lady.register_class(Map,'Map')
   Lady.register_class(Projectile,'Projectile')
+  Lady.register_class(Item,'Item')
 end
 
-function save_game(screenshot)
+function save_game(screenshot,fileName)
+  fileName = fileName or currGame.fileName
 	for i, m in pairs(maps) do
 		m:clear_all_pathfinders()
 	end
@@ -16,9 +18,9 @@ function save_game(screenshot)
     love.filesystem.createDirectory("saves")
   end
   if screenshot then
-    screenshot:encode('png', "saves/" .. currGame.fileName .. ".png");
+    screenshot:encode('png', "saves/" .. fileName .. ".png");
   end
-  Lady.save_all("saves/" .. currGame.fileName .. ".sav", player, maps, currMap,currGame,gamesettings)
+  Lady.save_all("saves/" .. fileName .. ".sav", player, maps, currMap,currGame,gamesettings)
 	output:out("Game Saved.")
 end
 

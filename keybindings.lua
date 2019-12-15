@@ -19,5 +19,11 @@ keybindings = {
   heal = "h",
   nextTarget = "tab",
   zoomIn="=",
-  zoomOut="-"
+  zoomOut="-",
+  pickup="g",
+  inventory="i",
+  equip="w",
+  use="u",
+  drop="d",
+  throw="t"
 }

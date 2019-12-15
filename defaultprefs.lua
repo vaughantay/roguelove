@@ -19,7 +19,9 @@ prefs={
   noSmoothCamera=false,
   statsOnSidebar=false,
   plainFonts=false,
+  minimap=true,
   lastMods={},
+  uiScale=1,
   vsync=true
 }
 

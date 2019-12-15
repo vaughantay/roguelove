@@ -281,7 +281,7 @@ function loadsaves:mousepressed(x,y,button)
       local sidebarX = round(love.graphics.getWidth()/3)*2+padding
       local needsScroll = (count(self.saves) > self.screenMax)
       if x > padding and x < sidebarX-(needsScroll and padding*2 or padding) then
-        if self.cursorY == line then
+        if self.cursorY == line and self.cursorY >= 1 then
           output:play_playlist('silence')
           load_game("saves/" .. self.saves[self.cursorY].fileName)
           Gamestate.switch(game)

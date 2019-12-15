@@ -102,7 +102,7 @@ function menu:draw()
   
 	setColor(255,255,255,255)
 	love.graphics.setFont(fonts.graveFontBig)
-	love.graphics.printf("POSSESSION",14,96,width-28,"center")
+	love.graphics.printf("Roguelove Example Game",14,96,width-28,"center")
 	love.graphics.setFont(fonts.graveFontSmall)
 	--love.graphics.printf("Escape from the Nether Regions",14,115,width-28,"center")
   --love.graphics.setFont(fonts.textFont)

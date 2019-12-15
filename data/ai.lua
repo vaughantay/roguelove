@@ -66,7 +66,7 @@ ai['basic'] = function(self,args)
   if moved == true then return true end
   
   --If you don't have a target or are too close to your target, just wander around, or cast a "random" spell. Later: head towards suspicious noise?
-  for _, id in ipairs(self.spells) do
+  for _, id in ipairs(self:get_spells()) do
     local spell = possibleSpells[id]
     if spell.flags['random'] == true and self.cooldowns[id] == nil then --cast friendly spells first
       local target = spell:decide(self,self,'random')
@@ -236,7 +236,7 @@ ai['rangedAttack'] = function(self,args)
   --Try regular ranged attack first:
   if (self.target and self.target.baseType == "creature" and not self.target:is_type('ghost')) and self:touching(self.target) == false and (self.ranged_attack ~= nil and (rangedAttacks[self.ranged_attack].projectile == false or self:can_shoot_tile(self.target.x,self.target.y)) and rangedAttacks[self.ranged_attack]:use(self.target,self)) then return true end
   -- Then cast a spell, if possible
-  for _, id in ipairs(self.spells) do
+  for _, id in ipairs(self:get_spells()) do
     local spell = possibleSpells[id]
     if spell.flags['friendly'] == true and self.cooldowns[id] == nil then --cast friendly spells first
       local target = spell:decide(self,self,'friendly')
@@ -262,7 +262,7 @@ ai['run'] = function(self,runType,args)
   
   if self.ranged_chance and random(0,100) <= self.ranged_chance then
     -- Cast a defensive/fleeing spell, if possible
-    for _, id in ipairs(self.spells) do
+    for _, id in ipairs(self:get_spells()) do
       local spell = possibleSpells[id]
       if spell.flags[runType] == true and self.cooldowns[id] == nil then
         local target = spell:decide(self,self,runType)

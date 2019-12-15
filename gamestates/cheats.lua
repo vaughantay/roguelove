@@ -21,6 +21,7 @@ function cheats:make_controls()
   self.labels[5] = Setting('regenLevelOnDeath',"Regenerate level on death, instead of Game Over",startX,400,(newgame.cheats['regenLevelOnDeath'] and true or false),true,startX)
   self.labels[6] = Setting('fullMap',"Reveal entire map layout",startX,500,(newgame.cheats['fullMap'] and true or false),true,startX) 
   self.labels[7] = Setting('seeAll',"See everything, all the time",startX,525,(newgame.cheats['seeAll'] and true or false),true,startX)
+  self.labels[8] = Setting('largeMaps',"Larger maps",startX,650,(newgame.cheats['largeMaps'] and true or false),true,startX)
 end
 
 function cheats:draw()
@@ -36,11 +37,12 @@ function cheats:draw()
   output:draw_window(math.ceil(width/4),padding,math.ceil(width/4+width/2),height-padding*2)
   
   love.graphics.setFont(fonts.textFont)
-  love.graphics.printf("You should play without cheats if you can!\nBut if you really just find the game too difficult, or if you're testing something, here you go!",math.ceil(width/4)+padding,padding*2,math.ceil(width/2)-padding,"center")
+  love.graphics.printf("Some of these change the game from its intended difficulty and length.\nBut if you find the game too difficult, or if you're testing something, here you go!",math.ceil(width/4)+padding,padding*2,math.ceil(width/2)-padding,"center")
   love.graphics.printf("These cheats make the game a bit easier without changing too much:",math.ceil(width/4)+padding,165,math.ceil(width/2)-padding,"center")
   love.graphics.printf("The game is meant to be played with permadeath, but if you absolutely hate it, you can turn it off:",math.ceil(width/4)+padding,365,math.ceil(width/2)-padding,"center")
   love.graphics.printf("You really should only use these if you're testing something:",math.ceil(width/4)+padding,475,math.ceil(width/2)-padding,"center")
-  
+  love.graphics.printf("The game originally launched with levels that were 75 x 75 tiles, but the levels seemed too big, so they were changed to 60 x 60. But the option's here if you prefered the larger size:",math.ceil(width/4)+padding,600,math.ceil(width/2)-padding,"center")
+
   --Draw a border around currently selected cheat:
   if self.labels[self.cursorY] then
     local setting = self.labels[self.cursorY]

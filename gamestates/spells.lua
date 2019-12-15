@@ -14,7 +14,7 @@ function spellscreen:enter()
   else
     padX,padY=20,20
   end
-  descY = y+padY+(count(player.spells)+2)*16
+  descY = y+padY+(count(player:get_spells())+2)*16
   self.descY = descY
   self.padX,self.padY = padX,padY
   self.yModPerc = 100
@@ -64,7 +64,8 @@ function spellscreen:draw()
   
   love.graphics.setFont(fonts.textFont)
   
-  if (player.spells[self.cursorY] ~= nil) then
+  local playerSpells = player:get_spells()
+  if (playerSpells[self.cursorY] ~= nil) then
     local printY = y+padY+((self.cursorY+1)*14)
     setColor(100,100,100,255)
     love.graphics.rectangle("fill",x+padX,printY,boxW-8,16)
@@ -73,7 +74,7 @@ function spellscreen:draw()
   
   love.graphics.printf("Spells and Abilities",x+padX,y+padY,boxW-16,"center")
 	local spells = {}
-	for i, spellID in pairs(player.spells) do
+	for i, spellID in pairs(playerSpells) do
 		local letter = string.char(i+96)
 		spells[i] = spellID
     local name = possibleSpells[spellID].name
@@ -92,8 +93,8 @@ function spellscreen:draw()
 		line = line+1
 	end
   
-  if (player.spells[self.cursorY] ~= nil) then
-    local spell = possibleSpells[player.spells[self.cursorY]]
+  if (playerSpells[self.cursorY] ~= nil) then
+    local spell = possibleSpells[playerSpells[self.cursorY]]
     local target_type = spell.target_type
     local targetText = ""
     
@@ -115,25 +116,26 @@ function spellscreen:draw()
 end
 
 function spellscreen:keypressed(key)
+  local playerSpells = player:get_spells()
 	if (key == "escape") then
 		self:switchBack()
 	elseif (key == "return") or key == "kpenter" then
-		if (possibleSpells[player.spells[self.cursorY]] and possibleSpells[player.spells[self.cursorY]]:target(target,player) ~= false) then
+		if (possibleSpells[playerSpells[self.cursorY]] and possibleSpells[playerSpells[self.cursorY]]:target(target,player) ~= false) then
 			advance_turn()
 		end
 		self:switchBack()
 	elseif (key == "up") then
-		if (player.spells[self.cursorY-1] ~= nil) then
+		if (playerSpells[self.cursorY-1] ~= nil) then
 			self.cursorY = self.cursorY - 1
 		end
 	elseif (key == "down") then
-		if (player.spells[self.cursorY+1] ~= nil) then
+		if (playerSpells[self.cursorY+1] ~= nil) then
 			self.cursorY = self.cursorY + 1
 		end
 	else
 		local id = string.byte(key)-96
-		if (player.spells[id] ~= nil) then
-			if(possibleSpells[player.spells[id]]:target(target,player) ~= false) then
+		if (playerSpells[id] ~= nil) then
+			if(possibleSpells[playerSpells[id]]:target(target,player) ~= false) then
 				advance_turn()
 			end
 			self:switchBack()
@@ -142,11 +144,12 @@ function spellscreen:keypressed(key)
 end
 
 function spellscreen:mousepressed(x,y,button)
+  local playerSpells = player:get_spells()
   local uiScale = (prefs['uiScale'] or 1)
 	if (x/uiScale > self.x and x/uiScale < self.x+self.boxW and y/uiScale > self.y and y/uiScale < self.descY) then
     if button == 2 or (x/uiScale > self.closebutton.minX and x/uiScale < self.closebutton.maxX and y/uiScale > self.closebutton.minY and y/uiScale < self.closebutton.maxY) then self:switchBack() end
-		if (player.spells[self.cursorY] ~= nil) then
-			if(possibleSpells[player.spells[self.cursorY]]:target(target,player) ~= false) then
+		if (playerSpells[self.cursorY] ~= nil) then
+			if(possibleSpells[playerSpells[self.cursorY]]:target(target,player) ~= false) then
 				advance_turn()
 			end
 			self:switchBack()
@@ -157,13 +160,14 @@ function spellscreen:mousepressed(x,y,button)
 end
 
 function spellscreen:wheelmoved(x,y)
+  local playerSpells = player:get_spells()
   if y > 0 then
-		if (self.cursorY and player.spells[self.cursorY-1] ~= nil) then
+		if (self.cursorY and playerSpells[self.cursorY-1] ~= nil) then
 			self.cursorY = self.cursorY - 1
 		end
 	elseif y < 0 then
     self.cursorY = self.cursorY or 0
-		if (player.spells[self.cursorY+1] ~= nil) then
+		if (playerSpells[self.cursorY+1] ~= nil) then
 			self.cursorY = self.cursorY + 1
 		end
   end
@@ -176,6 +180,7 @@ function spellscreen:update(dt)
     Gamestate.update(dt)
     return
   end
+  local playerSpells = player:get_spells()
 	local x,y = love.mouse.getPosition()
   local uiScale = (prefs['uiScale'] or 1)
   x,y = x/uiScale, y/uiScale
@@ -185,7 +190,7 @@ function spellscreen:update(dt)
       local mouseY = y-(self.y-self.padY)
 			local listY = math.floor(mouseY/14)
       local yMod = (prefs['noImages'] and 2 or 4)
-			if (player.spells[listY-yMod] ~= nil) then
+			if (playerSpells[listY-yMod] ~= nil) then
 				self.cursorY=listY-yMod
       else
         self.cursorY=nil

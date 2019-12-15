@@ -6,6 +6,7 @@ function ranged_attack:new(data)
 	for key, val in pairs(data) do
 		newRanged[key] = data[key]
 	end
+  newRanged.baseType = "ranged"
   if (not data.target_type) then newRanged.target_type = "creature" end
   if (data.projectile == nil) then newRanged.projectile = true end
 	setmetatable(newRanged,ranged_attack)
@@ -20,17 +21,19 @@ function ranged_attack:get_description()
   return self.description
 end
 
-function ranged_attack:use(target, attacker)
+function ranged_attack:use(target, attacker, item)
 	-- check to see if it can be used
   if target == attacker then
     if attacker == player then output:out("You can't use a ranged attack on yourself. You're too close.") end
     return false
   end
   if not attacker:callbacks('use_ranged_ability',target,self) then return false end
-  if self.max_charges then --if it's not an infinite attack
-    if attacker.ranged_charges > 0 then
+  if (item and item.charges) or (not item and attacker.ranged_charges) then --if it's not an infinite attack
+    if item and item.charges > 0 then
+      item.charges = item.charges - 1
+    elseif not item and attacker.ranged_charges and attacker.ranged_charges > 0 then
       attacker.ranged_charges = attacker.ranged_charges - 1
-    else
+    elseif (item and item.charges < 1) or (not item and attacker.ranged_charges and attacker.ranged_charges < 1) then
       if self.active_recharge == true then --if it's actively reloaded
         self:recharge(attacker)
         return true
@@ -48,7 +51,7 @@ function ranged_attack:use(target, attacker)
     target = {x=newX,y=newY}
   end
   if self.sound and player:can_see_tile(attacker.x,attacker.y) then output:sound(self.sound) end
-  return Projectile(self.projectile_name,attacker,target)
+  return Projectile((item and item.projectile_name or self.projectile_name),attacker,target)
 end
 
 function ranged_attack:does_hit(attacker,target)
@@ -60,6 +63,9 @@ end
 
 function ranged_attack:calc_hit_chance(attacker,target)
   local dist = calc_distance(attacker.x,attacker.y,target.x,target.y)
+  if (self.range and dist > self.range) or (self.min_range and dist < self.min_range) or (self.projectile and not attacker:can_shoot_tile(target.x,target.y)) then
+    return 0
+  end
   local min,max = self.best_distance_min,self.best_distance_max
   local bonus = attacker:get_bonus('ranged_chance') - target:get_bonus('dodge_chance')
   local hitMod = 5
@@ -78,13 +84,21 @@ function ranged_attack:calc_hit_chance(attacker,target)
   return hitMod
 end
 
-function ranged_attack:recharge(possessor)
-  if (possessor.ranged_charges == self.max_charges) then return false --don't do anything if the attack is already full
-  elseif (self.recharge_turns == nil or possessor.ranged_recharge_countdown == 1) then
-    possessor.ranged_charges = possessor.ranged_charges + (self.recharge_amount or self.max_charges)
-    if possessor.ranged_recharge_countdown and self.active_recharge ~= true and self.recharge_turns and self.recharge_turns > 1 then --if it's an auto-recharge, go ahead and start the countdown for the next one
-      possessor.ranged_recharge_countdown = self.recharge_turns
-    end
+function ranged_attack:recharge(possessor,item)
+  local charges = (item and item.charges or possessor.ranged_charges)
+  local max_charges = (item and item.max_charges or self.max_charges)
+  local recharge_cooldown = (item and item.recharge_cooldown or possessor.ranged_recharge_countdown)
+  if charges == max_charges then
+    return false --don't do anything if the attack is already full
+  elseif not recharge_cooldown or recharge_cooldown <= 1 then
+    if item then
+      item:reload(possessor)
+    else --end item reloading. Start code for if it's an inborn ranged attack
+      possessor.ranged_charges = possessor.ranged_charges + (self.recharge_amount or self.max_charges)
+      if possessor.ranged_recharge_countdown and self.active_recharge ~= true and self.recharge_turns and self.recharge_turns > 1 then --if it's an auto-recharge, go ahead and start the countdown for the next one
+        possessor.ranged_recharge_countdown = self.recharge_turns
+      end
+    end --end item or not if
     if (self.active_recharge == true) then
       if player:can_sense_creature(possessor) then
         if self.recharge_sound then
@@ -94,9 +108,18 @@ function ranged_attack:recharge(possessor)
           output:out(possessor:get_name() .. " " .. self.recharge_text)
         end
       end
-      possessor.ranged_recharge_countdown = nil -- don't start the countdown if it's an active recharge
-    end
-    if (possessor.ranged_charges >= self.max_charges) then --if we're fully (or over-)recharged, get rid of the countdown
+      if item then
+        item.recharge_cooldown = nil -- don't start the countdown if it's an active recharge
+      else
+        possessor.ranged_recharge_countdown = nil -- don't start the countdown if it's an active recharge
+      end
+    end --end if active recharge 
+    if item then
+      if item.charges >= item.max_charges then
+        item.charges = item.max_charges
+        if item.charge_cooldown then item.charge_cooldown = nil end
+      end
+    elseif (possessor.ranged_charges >= self.max_charges) then --if we're fully (or over-)recharged, get rid of the countdown
       possessor.ranged_charges = self.max_charges
       if possessor.ranged_recharge_countdown then possessor.ranged_recharge_countdown = nil end
     end

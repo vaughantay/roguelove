@@ -310,6 +310,30 @@ function Map:add_effect(effect,x,y)
   return effect --return the effect so if it's created when tis function is called, you can still access it
 end
 
+--Add an item to a tile
+--@param self Map. The map
+--@param item Item. A specific item object, NOT its ID. Usually a new creature, called using Item('itemID')
+--@param x Number. The x-coordinate
+--@param y Number. The y-coordinate
+--@param ignoreFunc True/False. Whether to ignore the item's new() function (optional)
+function Map:add_item(item,x,y,ignoreFunc)
+	item.x, item.y = x,y
+	self.contents[x][y][item] = item
+  if not ignoreFunc and possibleItems[item.id].new then possibleItems[item.id].new(item,self) end
+  if item.castsLight then self.lights[item] = item end
+  
+  --Check for stacking:
+  if item.stacks then
+    for _,groundItem in pairs(self.contents[x][y]) do
+      if item ~= groundItem and groundItem.baseType == "item" and groundItem.id == item.id and (not item.sortBy or item[item.sortBy] == groundItem[item.sortBy]) then
+        groundItem.amount = groundItem.amount + item.amount
+        self.contents[x][y][item] = nil
+        self.lights[item] = nil
+      end --end checking if they should stack
+    end --end item for
+  end --end if item.stacks
+end
+
 --Set a map tile to be a certain feature
 --@param self Map. The map
 --@param feature Feature or text. A specific feature object, NOT its ID. Usually a new feature, called using Feature('featureID'). OR text representing floor (.) or wall (#)
@@ -533,7 +557,7 @@ function Map:refresh_tile_image(x,y)
     end
   end --end loading images]]
   for _, feat in pairs(self.contents[x][y]) do
-    feat:refresh_image_name()
+    if feat.baseType == "feature" then feat:refresh_image_name() end
   end
   for _,eff in pairs(self:get_tile_effects(x,y)) do
     eff:refresh_image_name()

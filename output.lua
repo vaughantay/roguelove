@@ -574,6 +574,48 @@ function output:closebutton(x,y,hover,useScaling)
   end
 end
 
+function output:tinybutton(x,y,small,hover,text,useScaling)
+  local mouseX,mouseY = love.mouse.getPosition()
+  local uiScale = 1
+  if useScaling then
+    uiScale = (prefs['uiScale'] or 1)
+    mouseX,mouseY = math.ceil(mouseX/uiScale),math.ceil(mouseY/uiScale)
+  end
+  if prefs['noImages'] ~= true then
+    local buttonname = (small and "smallbutton" or "button")
+    local image = images[buttonname].image
+    if hover or (mouseX > x and mouseX < x+32 and mouseY>y and mouseY<y+(small and 16 or 32)) then
+      image = images[buttonname].hover
+      hover = true
+    end
+    love.graphics.draw(image,images[buttonname].small,x,y)
+    if text then
+      love.graphics.setFont(fonts.buttonFont)
+      love.graphics.printf(text,math.floor(x),math.floor(y-2),32,"center")
+      love.graphics.setFont(fonts.textFont)
+    end
+    return {minX=x*uiScale,maxX=(x+32)*uiScale,minY=y*uiScale,maxY=(y+(small and 16 or 32))*uiScale,hover=hover}
+  else --imageless buttons
+    if hover or (mouseX > x and mouseX < x+(small and 16 or 32) and mouseY>y and mouseY<y+(small and 16 or 32)) then
+      hover = true
+    end
+    if hover then
+      setColor(100,100,100,255)
+    else
+      setColor(33,33,33,255)
+    end
+    love.graphics.rectangle('fill',x,y,(small and 16 or 32),(small and 16 or 32))
+    setColor(255,255,255,255)
+    love.graphics.rectangle('line',x,y,(small and 16 or 32),(small and 16 or 32))
+    if text then
+      love.graphics.setFont(fonts.buttonFont)
+      love.graphics.printf(text,math.floor(x),math.floor(y+4),(small and 16 or 32),"center")
+      love.graphics.setFont(fonts.textFont)
+    end
+    return {minX=x*uiScale,maxX=(x+(small and 16 or 32))*uiScale,minY=y*uiScale,maxY=(y+(small and 16 or 32))*uiScale,hover=hover}
+  end
+end
+
 function output:move_camera(xAmt,yAmt,noTween)
   noTween = noTween or prefs['noSmoothCamera']
   if game.moveBlocked == true then return false end
