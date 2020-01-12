@@ -4,38 +4,10 @@ function newgame:enter(previous)
   self.lineCountdown = 0.5
   self.lineOn = true
   if not self.seed or previous == menu then self.seed = random(999999,2147483647) end
-  if previous == menu then
-    self:lightning()
-  end
   self.blackAmt=nil
   if not totalstats or not totalstats.games or totalstats.games == 0 then
     self.tutorial = true
   end
-  self.dirtSkyCanvas = nil
-end
-
-function newgame:preDrawDirt()
-  local width, height = love.graphics:getWidth(),love.graphics:getHeight()
-  self.dirtSkyCanvas = love.graphics.newCanvas(width,height)
-  love.graphics.setCanvas(self.dirtSkyCanvas)
-  local dirt = ""
-  for i=1,width,14 do
-    dirt = dirt .. "# "
-  end
-  --Draw the dirt and sky:
-  local actualDirt = ""
-  for y=1,height,14 do
-    if y >= 540 then
-      setColor(153,103,73,255-(255*((y-540)/(height-540))))
-      love.graphics.print(dirt,1,y)
-    else
-      if 255-(255*(y/540)) > 0 then
-        setColor(0,181,255,255-(255*(y/540)))
-        love.graphics.print(dirt,1,y)
-      end
-    end
-  end
-  love.graphics.setCanvas()
 end
 
 function newgame:draw()
@@ -45,64 +17,6 @@ function newgame:draw()
   love.graphics.setFont(fonts.mapFont)
   love.graphics.push()
   love.graphics.translate(0,math.floor(-((self.blackAmt and self.blackAmt/255 or 0/255))*height/2))
-
-  if prefs['noImages'] == true then
-    -- Calculate the dirt and sky:
-    local dirttime = os.clock()
-    love.graphics.setFont(fonts.mapFont)
-    local grass = ""
-    for i=1,width,7 do
-      if (i % 5 == 0) then grass = grass .. "\\"
-      elseif (i % 7 == 0 or i == 3) then grass = grass .. "/"
-      elseif (i % 11 == 0 or i == 2) then grass = grass .. "|"
-      else grass = grass .. " " end
-    end
-    --Draw the dirt and sky:
-    if not self.dirtSkyCanvas then
-      self:preDrawDirt()
-    end
-    love.graphics.setBlendMode("alpha", "premultiplied")
-    love.graphics.draw(self.dirtSkyCanvas)
-    love.graphics.setBlendMode("alpha")
-    
-    -- Draw the tombstone:
-    setColor(0,0,0,255)
-    love.graphics.rectangle('fill',math.ceil(width/2-256),56,520,490)
-    setColor(255,255,255,255)
-    for y = 50,540,14 do
-      if (y == 50) then
-        for x = width/2-256,(width/2)+256,13 do
-          love.graphics.print("#",x,y)
-        end
-      else
-        love.graphics.print("#",width/2-256,y)
-        love.graphics.print("#",width/2+256,y)
-      end
-    end
-    -- Draw the grass:
-    setColor(0,255,0)
-    love.graphics.print(grass,1,538)
-    setColor(255,255,255,255)
-  else --graphical menu:
-    setColor(255,255,255,255)
-    for x = 0, width, 512 do
-      love.graphics.draw(images['uimenuskydark'],x,0)
-    end
-    love.graphics.draw(images['uimenuskydark'],width-512,0)
-          
-    love.graphics.draw(images['uigravestone'],width/2-256,50)
-    for x = 0, width/64, 1 do
-      for y=572,height,32 do
-        setColor(255,255,255,255-(255*((y-572)/(height-572))))
-        love.graphics.draw(images['uimenudirt'],x*64,y)
-      end
-      setColor(255,255,255,255)
-      love.graphics.draw(images['uimenudirtgrass'],x*64,550)
-      if (x % 3 == 0 or x % 13 == 0) then love.graphics.draw(images['uimenugrass1'],x*64,490)
-      elseif (x % 7 == 0 or x % 9 == 0) then love.graphics.draw(images['uimenugrass2'],x*64,490)
-      elseif (x % 5 == 0 or x % 11 == 0) then love.graphics.draw(images['uimenugrass3'],x*64,490) end
-    end
-  end --end noimages if
 
   -- Define some coordinates:
   local nameBoxX=math.floor(width/2)-256+48-(prefs['noImages'] and 32 or 0)
@@ -243,34 +157,11 @@ function newgame:draw()
   --White and black for flashes and fadeouts
   setColor(255,255,255,self.whiteAlpha)
   love.graphics.rectangle('fill',0,0,width,height)
-  self:drawrain()
   if self.blackAmt then
     setColor(0,0,0,self.blackAmt)
     love.graphics.rectangle('fill',0,0,width,height)
   end
   setColor(255,255,255,255)
-end
-
-function newgame:drawrain()
-  setColor(200,200,255,150)
-  for _,r in pairs(self.rain) do
-    love.graphics.print("|",r.x,r.y)
-  end
-end
-
-function newgame:updaterain(dt)
-  local width = love.graphics.getWidth()
-  local height = love.graphics.getHeight()
-  if random(1,10) == 1 then
-    local r = {x=random(1,width),y=0}
-    self.rain[r] = r
-  end
-  for _,r in pairs(self.rain) do
-    r.y = r.y+height*dt
-    if r.y > 550 then
-      self.rain[r] = nil
-    end
-  end
 end
 
 function newgame:keypressed(key)
@@ -423,10 +314,4 @@ function newgame:textinput(text)
   if output.cursorY == 1 then
     player.properName = player.properName .. text
   end
-end
-
-function newgame:lightning()
-  self.whiteAlpha = random(125,255)
-  tween(0.5,self,{whiteAlpha=0})
-  output:sound('thunder1')
 end
