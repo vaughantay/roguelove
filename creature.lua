@@ -1,10 +1,11 @@
 Creature = Class{}
 
 --Initiates a creature. Don't call this explicitly, it's called when you create a new creature.
---@param self The ID of the creature you want to create.
---@param level The level to set the creature to (optional)
+--@param creatureType String. The ID of the creature you want to create.
+--@param level Number. The level to set the creature to (optional)
+--@param noItems True/False. Whether to generate without items (optional)
 --@return The creature itself.
-function Creature:init(creatureType,level)
+function Creature:init(creatureType,level,noItems)
   local data = possibleMonsters[creatureType]
 	for key, val in pairs(data) do
     if type(val) ~= "function" then
@@ -27,6 +28,7 @@ function Creature:init(creatureType,level)
   self.checked = {}
   self.inventory = {}
   self.equipment = {}
+  self.favor = {}
   self.hands = self.hands or (self.noEquip and 0 or 2)
   if self.equipslots then
     local slotcount = 1
@@ -81,8 +83,112 @@ function Creature:init(creatureType,level)
   self.memory = self.memory or 10 --turns they remember seeing an enemy
   if possibleMonsters[self.id].nameGen then self.properName = possibleMonsters[self.id].nameGen(self)
   elseif self.nameType then self.properName = namegen:generate_name(self.nameType,self) end
-  
+  --Inventory:
+  if not noItems then
+    self:generate_inventory() --generate inventory based on the creature definition's pre-set inventory chances
+    --Generate inventory based on the creatures' creature types and factions:
+    if self.types then
+      for _,ctype in ipairs(self.types) do
+        if creatureTypes[ctype] then self:generate_inventory(creatureTypes[ctype]) end
+      end
+    end
+    if self.factions then
+      for _,fac in ipairs(self.factions) do
+        self:generate_inventory(factions[fac])
+      end
+    end
+  end
+  --Weaknesses and resistances from your creature types:
+  if self.types then
+    for _,ctype in ipairs(self.types) do
+      local typ = creatureTypes[ctype]
+      if typ then
+        if typ.weaknesses then
+          if not self.weaknesses then self.weaknesses = {} end
+          for dtype,amt in pairs(typ.weaknesses) do
+            self.weaknesses[dtype] = (self.weaknesses[dtype] or 0) + amt
+          end
+        end --end if weaknesses
+        if typ.resistances then
+          if not self.resistances then self.resistances = {} end
+          for dtype,amt in pairs(typ.resistances) do
+            self.resistances[dtype] = (self.resistances[dtype] or 0) + amt
+          end
+        end --end if resistances
+      end --end if type is defined
+    end --end ctype for
+  end --end if self.types
 	return self
+end
+
+--Generate items for a creature's inventory. Usually called when the creature first spawns
+--@param self The creature itself
+--@param source The source of potential item lists. Defaults to the creature itself, and will frequently be either a creature type or a faction, but can be any table containing a possible_inventory, possible_death_items, or any possible_[equipslot] table. (optional) 
+--@return The creature's name
+function Creature:generate_inventory(source)
+  source = source or self
+  --Add inventory items:
+  if source.possible_inventory then
+    for _,def in ipairs(source.possible_inventory) do
+      if not def.chance or random(1,100) <= def.chance then
+        local amt = (def.max_amt and random((def.min_amt or 1),def.max_amt) or 1)
+        for i=1,amt,1 do
+          local item = Item(def.item)
+          self.inventory[#self.inventory+1] = item
+        end
+      end --end chance
+    end --end loopthrough possible_inventory
+  end --end if possible inventory
+  --Add death items:
+  if source.possible_death_items then
+    self.death_items = {}
+    for _,def in ipairs(source.possible_death_items) do
+      if not def.chance or random(1,100) <= def.chance then
+        local amt = (def.max_amt and random((def.min_amt or 1),def.max_amt) or 1)
+        for i=1,amt,1 do
+          local item = Item(def.item)
+          self.death_items[#self.death_items+1] = item
+        end
+      end --end chance
+    end --end loopthrough possible_inventory
+  end --end if possible inventory
+  --Equipment:
+  if source.possible_weapon then
+    local weapID = source.possible_weapon[random(#self.possible_weapon)]
+    print(tostring(weapID))
+    local hands = self.hands
+    if weapID then
+      local weap1 = Item(weapID)
+      self.inventory[#self.inventory+1] = weap1
+      self:equip(weap1)
+      hands = hands - weap1.hands
+    end
+    if self.dual_wielding and hands > 1 then
+      
+    end
+  end
+  for slot,info in pairs(self.equipment) do
+    for i=1,(info.slots or 1) do
+      if self['possible_' .. slot] and slot ~= "weapon" then
+        local itemID = source['possible_' .. slot][(random(#self['possible_' .. slot]))]
+        if itemID then
+          local item = Item(itemID)
+          self.inventory[#self.inventory+1] = item
+          self:equip(item)
+        end --end if itemID
+      end --end if checking if we have a possible list set
+    end --end slots for
+  end --end equipslots for
+  
+  --Delete the vistigial item lists:
+  if source == self then
+    self.possible_inventory = nil
+    self.possible_death_items = nil
+    self.possible_weapon = nil
+    for slot,_ in pairs(self.equipment) do
+      self['possible_' .. slot] = nil
+    end
+  end
 end
 
 --Get the name of a creature
@@ -356,7 +462,7 @@ function Creature:get_description()
   if (self.isPlayer ~= true) then
     if (self.playerAlly == true) then desc = desc .. "\n" .. ucfirst(self:get_pronoun('n')) .. " is under your command."
     elseif self.notices[player] and self.ignoring[player] then desc = desc .. "\n" .. ucfirst(self:get_pronoun('n')) .. " is ignoring you."
-    elseif self.notices[player] and not self.shitlist[player]  then desc = desc .. "\n" .. ucfirst(self:get_pronoun('n')) .. ((self.faction=="passive" or (self.faction and player.faction and self.faction==player.faction)) and " is friendly towards you." or " is watching you suspiciously.")
+    elseif self.notices[player] and not self.shitlist[player] then desc = desc .. "\n" .. ucfirst(self:get_pronoun('n')) .. (self:is_friend(player) and " is friendly towards you." or " is watching you suspiciously.")
     elseif (self.notices[player] and self.shitlist[player]) then desc = desc .. "\n" .. ucfirst(self:get_pronoun('n')) .. " is hostile towards you."
     else desc = desc .. "\n" .. ucfirst(self:get_pronoun('n')) .. " has not noticed you." end
     if self:get_fear() > self:get_bravery() then desc = desc .. "\n" .. ucfirst(self:get_pronoun('n')) .. " is afraid, and will try to run from enemies if possible." end
@@ -373,11 +479,25 @@ function Creature:get_description()
     end
   end
     --Debug stuff:
-    if self.target and debugMode then
+    if debugMode then
       desc = desc .. "\nFear: " .. self:get_fear() .. "/" .. self:get_bravery()
-      if self.target.baseType == "creature" then desc = desc .. "\nTarget: " .. self.target:get_name()
-      else desc = desc .. "\nTarget: " .. self.target.x .. ", " .. self.target.y end
-    end
+      if self.target then
+        if self.target.baseType == "creature" then desc = desc .. "\nTarget: " .. self.target:get_name()
+        else desc = desc .. "\nTarget: " .. self.target.x .. ", " .. self.target.y end
+      end --end if self.target
+      desc = desc .. "\nWeapons : "
+      for _,item in ipairs(self.equipment.weapon) do
+        desc = desc .. item:get_name(true) .. ", "
+      end
+      desc = desc .. "\nAccessories : "
+      for _,item in ipairs(self.equipment.accessory) do
+        desc = desc .. item:get_name(true) .. ", "
+      end
+      desc = desc .. "\nInventory : "
+      for _,item in ipairs(self.inventory) do
+        desc = desc .. item:get_name(true) .. ", "
+      end
+    end --end debugmode if
   end --end isPlayer
 	
 	return desc
@@ -809,7 +929,18 @@ function Creature:die(killer)
     
     if (self.killer and self.killer.baseType == "creature") then
       self.killer:level_up()
-    end
+      local favor = self:get_kill_favor()
+      local killer = self.killer or self.killer.master
+      for fac,favor in pairs(favor) do
+        killer.favor[fac] = (killer.favor[fac] or 0) + favor
+        if killer == player and favor ~= 0 then
+          output:out("You " .. (favor > 0 and "gain " or "lose ") .. math.abs(favor) .. " favor with " .. factions[fac].name .. " for killing " .. self:get_name() .. ".")
+        end
+      end --end faction for
+    end --end if killer is a creature
+    
+    --Free Thralls:
+    self:free_thralls()
     
     --Corpse time:
     if self.explosiveDeath then
@@ -835,10 +966,9 @@ function Creature:die(killer)
         local corpse = Feature(self.corpse,self,self.x,self.y)
         currMap:add_feature(corpse,self.x,self.y)
       end --end special corpse vs regular corpse if
+      
+      self:drop_all_items(true)
     end --end absorbs if
-    
-    --Final cleanup:
-    self:free_thralls()
   
     if self == player then
       if action ~= "dying" then player_dies() end
@@ -879,7 +1009,7 @@ function Creature:explode()
         if creat and creat:can_see_tile(self.x,self.y) then --if they can't see it, they can't be scared of it
           if creat.master and creat.master == self then
             creat.fear = creat.fear + 25 --seeing your master explode? really scary
-          elseif creat.faction and self.faction and creat.faction == self.faction then
+          elseif self:is_friend(creat) then
             creat.fear = creat.fear + 10 -- seeing a friend explode? scary
           elseif not creat:is_enemy(self) then --seeing an enemy explode is not scary
             creat.fear = creat.fear + 5  --seeing a rando explode is a little scary
@@ -888,6 +1018,8 @@ function Creature:explode()
       end --end in_map if
     end --end fory
   end --end forx
+  
+  self:drop_all_items(true)
   if self == player then player_dies()
   else self:remove() end
 end -- end function
@@ -917,24 +1049,22 @@ end
 
 --Let a creature pick up an item from the tile they're standing on
 --@param self Creature. The creature itself
-function Creature:pickup()
+function Creature:pickup(item,tileOnly)
+  print(tostring(tileOnly))
   local x,y = self.x,self.y
-	for id, item in pairs(currMap.contents[x][y]) do
-		if (item.baseType == "item") then
-			if (item.stacks == true) then
-				local _,inv_id = self:has_item(item.id,(item.sortBy and item[item.sortBy]))
-				if inv_id then
-					self.inventory[inv_id].amount = self.inventory[inv_id].amount + item.amount
-				else
-					table.insert(self.inventory,item)
-				end
-			else
-				table.insert(self.inventory,item)
-			end
-			if player:can_sense_creature(self) then output:out(self:get_name() .. " picks up " .. item:get_name() .. ".") end
-			currMap.contents[x][y][id] = nil
-		end --end baseType if
-  end --end contents for
+  if (tileOnly ~= true and not self:touching(item)) or (tileOnly == true and (item.x ~= x or item.y ~= y)) then return false end
+  if (item.stacks == true) then
+    local _,inv_id = self:has_item(item.id,(item.sortBy and item[item.sortBy]))
+    if inv_id then
+      self.inventory[inv_id].amount = self.inventory[inv_id].amount + item.amount
+    else
+      table.insert(self.inventory,item)
+    end
+  else
+    table.insert(self.inventory,item)
+  end
+  if player:can_sense_creature(self) then output:out(self:get_name() .. " picks up " .. item:get_name() .. ".") end
+  currMap.contents[item.x][item.y][item] = nil
 end
 
 --Make a creature drop an item
@@ -948,8 +1078,29 @@ function Creature:drop_item(item)
 		if player:can_sense_creature(self) then output:out(self:get_name() .. " dropped " .. item:get_name() .. ".") end
     if self:is_equipped(item) then
       self:unequip(item)
+      item.x,item.y=self.x,self.y
     end
 	end
+end
+
+--Make a creature drop all their items
+--@param self Creature. The creature itself
+--@param deathItems True/False. Whether to also drop death items
+function Creature:drop_all_items(deathItems)
+	for _,item in ipairs(self.inventory) do
+    currMap:add_item(item,self.x,self.y,true)
+    if self:is_equipped(item) then
+      self:unequip(item)
+      item.x,item.y=self.x,self.y
+    end
+	end --end inventory for loop
+  if deathItems and self.death_items then
+    for _,item in ipairs(self.death_items) do
+      currMap:add_item(item,self.x,self.y,true)
+    end --end inventory for loop
+  end
+  self.inventory = {}
+  self.death_items = nil
 end
 
 --Remove an item from a creature
@@ -1236,21 +1387,27 @@ function Creature:is_enemy(target,dontSend)
   if not dontSend and self.master and target:is_enemy(self.master,true) then return true end -- if they're an enemy of your master, they're also your enemy
   if self.ignoring and self.ignoring[target] then return false end -- if you're ignoring it, you won't consider it an enemy
   if self.shitlist and self.shitlist[target] then return true end --if it's on your shitlist, it's your enemy regardless of faction
-  if self.faction == "passive" then return false end --passive only attacks those who attack them
+  if self:is_faction_member('passive') then return false end --passive only attacks those who attack them
   
   if (self.playerAlly == true) then
     if target.playerAlly == true then return false end --if you're both player allies, you're not enemies
-    if target.playerAlly ~= true and (target:is_enemy(player,dontSend) or (target.faction == nil or self.faction or target.faction ~= self.faction)) then return true end --if the target is not a player ally, and is an enemy of the player or not in your faction, they're your enemy too
-  else --if not a player ally
-    if target.playerAlly == true and (target.faction == nil or self.faction == nil or self.faction ~= target.faction) then
-      return true --if the target is a player ally, and is not in your faction, they're your enemy
-    elseif(self.faction == "chaos" and target.facton ~= "chaos") or (self.faction ~="chaos" and target.faction == "chaos") then
-      return true --if you're chaos, or your target is chaos, they are an enemy, UNLESS you are both chaos!
-    elseif self.enemy_factions and in_table(target.faction,self.enemy_factions) then
-      return true --if neither of you are player allies or chaos, they're only your enemy if they're in an enemy faction
+    if target.playerAlly ~= true and (target:is_enemy(player,dontSend) or self:is_faction_enemy(target) or self:is_enemy_type(target)) then return true end --if the target is not a player ally, and is an enemy of the player, an enemy of your faction, or an enemy creature type, they're your enemy too
+  else --if we're not a player ally
+    if self:is_faction_enemy(target) or self:is_enemy_type(target) then
+      return true --if the target is an enemy of your faction, or a creature type you consider an enemy then they're you're enemy too
+    elseif not self.factions and target.playerAlly == true and not self:is_friendly_type(target) then
+      return true --default behavior for non-faction enemies is to treat player and their allies as enemies unless they're a creature type they like
     end
   end --end playerally or not check
   return false --default to not enemy
+end
+
+function Creature:is_friend(target)
+  if target == self then return true end --You're always a friend to yourself
+  if self.master and ((target == self.master) or (target.master and self.master == target.master)) then return true end --You're always a friend to your master and their other thralls
+  if self:is_faction_member('passive') and not self.shitlist[target] then return true end --passive only attacks those who attack them
+  if self:is_friendly_type(target) or self:is_faction_friend(target) then return true end --if it's a type you're friendly to, or someone your faction considers a friend, then you're a friend too
+  return false
 end
 
 --Checks if a creature is of a certain type
@@ -1264,6 +1421,122 @@ function Creature:is_type(ctype)
   end --end for
   return false
 end --end function
+
+--Determine if a creature is an enemy type of yours (this function ignores factions!)
+--@param self Creature. The creature itself
+--@param target Creature. The creature to check
+--@return True/False. If they're an enemy type
+function Creature:is_enemy_type(target)
+  if not target.types then return false end
+  if self.enemyTypes then
+    for _,ctype in ipairs(self.enemyTypes) do
+      if target:is_type(ctype) then return true end
+    end
+  end
+  if self.types then --Check through the enemy types for all your creature types
+    for _,ctype in ipairs(self.types) do
+      if creatureTypes[ctype] and creatureTypes[ctype].enemyTypes then
+        for _,ct in ipairs(creatureTypes[ctype].enemyTypes) do
+          if target:is_type(ct) then return true end
+        end --end enemyTypes for
+      end --end if creatureTypes[ctype]
+    end --end self ctype for
+  end --end if self.types
+  return false
+end
+
+--Determine if a creature is a friendly type of yours (this function ignores factions!)
+--@param self Creature. The creature itself
+--@param target Creature. The creature to check
+--@return True/False. If they're an friendly type
+function Creature:is_friendly_type(target)
+  if not target.types then return false end
+  if self.friendlyTypes then
+    for _,ctype in pairs(self.friendlyTypes) do
+      if target:is_type(ctype) then return true end
+    end
+  end
+  if self.types then --Check through the enemy types for all your creature types
+    for _,ctype in ipairs(self.types) do
+      if creatureTypes[ctype] and creatureTypes[ctype].friendlyTypes then
+        for _,ct in ipairs(creatureTypes[ctype].friendlyTypes) do
+          if target:is_type(ct) then return true end
+        end --end enemyTypes for
+      end --end if creatureTypes[ctype]
+    end --end self ctype for
+  end --end if self.types
+  return false
+end
+
+--Checks if a creature is an enemy of any of your factions
+--@param self Creature. The creature itself
+--@param target Creature. The creature
+--@return True/False. Whether or not the creature is an enemy of any of your factions
+function Creature:is_faction_enemy(target)
+  if not self.factions then return false end
+  for _,f in pairs(self.factions) do
+    if factions[f]:is_enemy(target) then return true end
+  end
+  return false
+end --end function
+
+--Checks if a creature is a friend of any of your factions
+--@param self Creature. The creature itself
+--@param target Creature. The creature
+--@return True/False. Whether or not the creature is a friend of any of your factions
+function Creature:is_faction_friend(target)
+  if not self.factions then return false end
+  for _,f in pairs(self.factions) do
+    if factions[f]:is_friend(target) then return true end
+  end
+  return false
+end --end function
+
+--Checks if a creature is a member of a certain faction
+--@param self Creature. The creature itself
+--@param fac String. The faction ID to check for
+--@return True/False. Whether or not the creature is a member of that faction
+function Creature:is_faction_member(fac)
+  if not self.factions then return false end
+  for _,f in pairs(self.factions) do
+    if f == fac then return true end
+  end
+  return false
+end --end function
+
+--Gets the favor you get for killing a certain creature
+--@param self Creature. The creature itself
+--@return Table. A table of factions, and the favor scores
+function Creature:get_kill_favor()
+  local favor = {}
+  --Kill favor defined in the creature definition itself:
+  if self.killFavor then
+    for faction,score in pairs(self.killFavor) do
+      favor[faction] = (favor[faction] or 0) + score
+    end
+  end --end if self.killFavor
+  --Next, loop through all the factions in the game to look at their killfavor skills
+  for _,faction in pairs(factions) do
+    --Favor for killing this type of creature:
+    if self.types and faction.killFavor_types then
+      for _,typ in pairs(self.types) do
+        if faction.killFavor_types[typ] then
+          favor[faction.id] = (favor[faction.id] or 0) + faction.killFavor_types[typ]
+        end --end if killfavor_types if
+      end --end self.types for
+    end --end if self.types
+    --Favor for killing creatures of this faction:
+    if self.factions and faction.killFavor_factions then
+      for _,fac in pairs(self.factions) do
+        if faction.killFavor_factions[fac] then
+          favor[faction.id] = (favor[faction.id] or 0) + faction.killFavor_factions[fac]
+        end --end if faction.killfavor_factions
+      end --end self.factions for
+    end --end if self.factions
+  end --end faction for
+  return favor
+end
+
 
 --Cause a creature to notice another creature
 --@param self Creature. The creature itself

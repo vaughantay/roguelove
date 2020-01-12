@@ -505,18 +505,22 @@ local dmgPopup = {
   noDesc = true,
   color={r=255,g=0,b=0,a=255},
   use_color_with_tiles = true,
-  yMod = 0
+  yMod = 0,
+  speed=100
 }
 function dmgPopup:update(dt)
   if (self.y) then
     self.countdown = self.countdown - dt
     self.color.a = 255*self.countdown
-    self.yMod = self.yMod - 100*dt
+    self.yMod = self.yMod - self.speed*dt-((1-self.countdown)*3)
     if (self.countdown <= 0) then
       self:delete()
     end --end countdown if
   end --end self.y if
 end --end function
+function dmgPopup:new()
+  self.speed = random(25,150)
+end
 effects['dmgpopup'] = dmgPopup
 
 local sleepZ = {

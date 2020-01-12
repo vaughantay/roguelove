@@ -1409,7 +1409,20 @@ local chest = {
   color={r=255,g=0,b=255,a=255},
   fireChance = 10,
   fireTime = 15,
+  attackable = true
 }
+function chest:new(items)
+  if items then
+    
+  else
+    
+  end
+end
+function chest:damage(_,source)
+  self:delete()
+  if player:can_see_tile(self.x,self.y) then output:sound('smash_wood') end
+  currMap:add_feature(Feature('smashedwood'),self.x,self.y)
+end
 possibleFeatures['chest'] = chest
 
 local bookshelf = {

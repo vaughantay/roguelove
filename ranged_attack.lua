@@ -35,7 +35,7 @@ function ranged_attack:use(target, attacker, item)
       attacker.ranged_charges = attacker.ranged_charges - 1
     elseif (item and item.charges < 1) or (not item and attacker.ranged_charges and attacker.ranged_charges < 1) then
       if self.active_recharge == true then --if it's actively reloaded
-        self:recharge(attacker)
+        self:recharge(attacker,item)
         return true
       else
         return false

@@ -198,6 +198,37 @@ function Map:get_blocking_feature(x,y)
   return false
 end --end function
 
+--Gets all items (if any) on a tile.
+--@param self Map. The map
+--@param x Number. The x-coordinate
+--@param y Number. The y-coordinate
+--@param getAdjacent True/False. Whether to also look at adjacent tiles
+--@return A table of items (may be empty)
+function Map:get_tile_items(x,y,getAdjacent)
+  if not self:in_map(x,y) then return {} end
+  
+  local items = {}
+	for id, entity in pairs(self.contents[x][y]) do
+		if (entity and entity.baseType == "item") then
+			items[#items+1] = entity
+		end --end if
+	end --end entity for
+  if getAdjacent then
+    for x2=x-1,x+1,1 do
+      for y2=y-1,y+1,1 do
+        if x ~= x2 or y ~= y2 then
+          for id, entity in pairs(self.contents[x2][y2]) do
+            if (entity and entity.baseType == "item") then
+              items[#items+1] = entity
+            end --end if
+          end --end entity for
+        end --end no-double-dipping if
+      end --end yfor
+    end --end xfor
+  end --end if get_adjacent
+	return items
+end
+
 --Determines if you can draw a straight line between two tiles.
 --@param self Map. The map
 --@param startX Number. The x-coordinate of the first tile

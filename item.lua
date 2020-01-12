@@ -28,7 +28,7 @@ function Item:init(type_name,info,amt)
 end
 
 function Item:get_description(withName)
-	return (withName and self:get_name(true) .. "\n"  or "") .. self.description
+	return (withName and self:get_name(true) .. "\n"  or "") .. self.description .. self.x .. ',' .. self.y
 end
 
 function Item:get_info()
@@ -44,7 +44,7 @@ function Item:get_info()
   end
   if self.ranged_attack then
     local attack = rangedAttacks[self.ranged_attack]
-    uses = uses .. "\nRanged Attack: " .. attack:get_name()
+    uses = uses .. "\nGrants Ranged Attack: " .. attack:get_name()
     uses = uses .. "\n" .. attack:get_description()
     uses = uses .. "\nBase Accuracy: " .. attack.accuracy .. "%"
     if attack.min_range or attack.range then uses = uses .. "\nRange: " .. (attack.min_range and attack.min_range .. " (min)" or "") .. (attack.min_range and attack.range and " - " or "") .. (attack.range and attack.range .. " (max)" or "") end
@@ -53,7 +53,7 @@ function Item:get_info()
   end
   if self.projectile_name then
     local projectile = projectiles[self.projectile_name]
-    uses = uses .. "\nProjectile: " .. ucfirst(projectile.name)
+    uses = uses .. "\nShoots Projectile: " .. ucfirst(projectile.name)
     uses = uses .. "\n" .. projectile.description
     uses = uses .. "\nDamage: " .. projectile.damage .. (projectile.damage_type and " (" .. projectile.damage_type .. ")" or "")
   end

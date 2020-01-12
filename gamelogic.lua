@@ -526,40 +526,24 @@ function setTarget(x,y)
 end --end function
 
 function player_dies()
-	if (player.id ~= "ghost") then
-    update_stat('deaths_as_creature',player.id)
-		local oldBody = player-- temporary variable to hold the player's old creature definition
-		local newGhost = Creature('ghost',0)
-		newGhost.properName = oldBody.properName
-		--oldBody.properName = nil
-		newGhost.isPlayer = true
-		newGhost.gender = oldBody.gender
-    newGhost.playerAlly=true
-    output:out("You are ejected from the body of " .. (oldBody.properNamed ~= true and "the " or "") .. oldBody.name .. "!")
-		newGhost:give_condition('invincibility',2)
-    oldBody:remove()
-    currMap:add_creature(newGhost,oldBody.x,oldBody.y)
-    game.newGhost = newGhost
-	else
-    local killername = "!"
-    if (player.killer and player.killer.baseType == "creature") then killername = ", courtesy of ".. player.killer:get_name() .. "."
+  local killername = "!"
+  if (player.killer and player.killer.baseType == "creature") then killername = ", courtesy of ".. player.killer:get_name() .. "."
   elseif (player.killer and player.killer.source and player.killer.source.baseType == "creature") then killername = ", courtesy of " .. player.killer.source:get_name() .. "." end
-    output:out("Your spirit returns to the Nether Regions" .. killername)  
-    if not currGame.cheats.regenLevelOnDeath then output:out("Press any key to continue...") end
-		action = "dying"
-    player.speed=100
-    tween(1,player.color,{a=0})
-    game.deadTween = Timer.every(1,advance_turn,5)
-    tween(1,player,{perception=0},'linear',function() game:blackOut(5) end)
-    if currGame.playTutorial == true then
-      show_tutorial('death')
-    end
-    if not currGame.cheats.regenLevelOnDeath then
-      save_graveyard(player.properName,currMap.depth,player.killer,currMap.name,currGame.stats)
-      update_stat('losses')
-      delete_save(currGame.fileName,true)
-    end
-	end
+  output:out("You were killed" .. killername)  
+  if not currGame.cheats.regenLevelOnDeath then output:out("Press any key to continue...") end
+  action = "dying"
+  player.speed=100
+  tween(1,player.color,{a=0})
+  game.deadTween = Timer.every(1,advance_turn,5)
+  tween(1,player,{perception=0},'linear',function() game:blackOut(5) end)
+  if currGame.playTutorial == true then
+    show_tutorial('death')
+  end
+  if not currGame.cheats.regenLevelOnDeath then
+    save_graveyard(player.properName,currMap.depth,player.killer,currMap.name,currGame.stats)
+    update_stat('losses')
+    delete_save(currGame.fileName,true)
+  end
 end
 
 function refresh_player_sight()

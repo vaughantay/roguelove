@@ -1452,10 +1452,13 @@ function game:keypressed(key,scancode,isRepeat)
         end
       end --end ranged attack for
       local attackFunction = function(_,target)
-        for _,attack_instance in ipairs(player:get_ranged_attacks()) do
+        for i,attack_instance in ipairs(player:get_ranged_attacks()) do
           local attack = rangedAttacks[attack_instance.attack]
           if (not attack.charges or attack.charges > 0) and attack:calc_hit_chance(player,target) > 0 then
-            attack:use(target,player,attack_instance.item)
+            local proj = attack:use(target,player,attack_instance.item)
+            if proj and i > 1 then
+              proj.pause = (i-1)/10
+            end
           end --end can use attack if
         end --end ranged attack for
       end --end attackFunction
@@ -1564,8 +1567,14 @@ function game:keypressed(key,scancode,isRepeat)
     currGame.zoom = math.max((currGame.zoom or 1)-0.1,0.5)
     output:refresh_coordinate_map()
   elseif key == keybindings.pickup then
-    player:pickup()
-    advance_turn()
+    local items = currMap:get_tile_items(player.x,player.y,true)
+    if #items == 1 then
+      if player:pickup(items[1]) ~= false then
+        advance_turn()
+      end
+    elseif #items > 1 then
+      Gamestate.switch(multipickup)
+    end
   elseif tonumber(key) and prefs.spellShortcuts then
     local spellcount = 1
     for _,spellID in pairs(player:get_spells()) do

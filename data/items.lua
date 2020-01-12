@@ -1,6 +1,8 @@
 possibleItems = {}
 
-local healthPotionMinor = {name = "potion of minor healing",
+local healthPotionMinor = {
+  name = "potion of minor healing",
+  pluralName = "potions of minor healing",
 	description = "A crimson liquid swirls in this flask.",
 	symbol = "!",
 	color = {r=255,g=0,b=0,a=255},
@@ -17,10 +19,31 @@ function healthPotionMinor:use(user)
 	user:updateHP(heal)
 	user:delete_item(self)
 end
-possibleItems['healthPotionMinor'] = healthPotionMinor
+possibleItems['healthpotionminor'] = healthPotionMinor
+
+local demonblood = {
+  name = "demon blood",
+  pluralName = "demon bloods",
+	description = "A crimson liquid swirls in this flask.",
+	symbol = "!",
+	color = {r=255,g=0,b=0,a=255},
+	itemType="usable",
+	stacks = true,
+  usable=true,
+  useVerb="drink",
+  consumed=true
+}
+function demonblood:use(user)
+	user = user or player
+	local dmg = user:damage(5,nil,"fire")
+	output:out(user.name .. " drinks demon blood and takes " .. dmg .. " fire damage!")
+	user:delete_item(self)
+end
+possibleItems['demonblood'] = demonblood
 
 local scroll = {
 	name = "scroll",
+  pluralName = "scrolls",
 	symbol = "?",
 	description = "A faded parchment, bearing arcane writing.",
 	color={r=255,g=255,b=255,a=255},
@@ -81,7 +104,7 @@ function spellBook:use()
 		output:out(id .. ") " .. possibleSpells[spellid].name)
 	end
 end
-possibleItems['spellBook'] = spellBook
+possibleItems['spellbook'] = spellBook
 
 local greatsword = {
   name="greatsword",

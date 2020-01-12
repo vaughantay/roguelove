@@ -97,6 +97,10 @@ end
 --@param dt Number The number of seconds since the last tick
 --@param force_generic True/False. If set to true, run this code and don't run the projectile's custom hits() code.
 function Projectile:update(dt,force_generic)
+  if self.pause and self.pause > 0 then
+    self.pause = self.pause-dt
+    return
+  end
   if (self.timer <= 0 or force_generic == true) then
     if (force_generic ~= true and projectiles[self.id].update) then return projectiles[self.id].update(self,dt) end
     if (self.timer <= 0) then self.timer = self.time_per_tile end --rechecks in case it's being forced
