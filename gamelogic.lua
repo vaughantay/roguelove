@@ -9,6 +9,7 @@ function new_game(mapSeed,playTutorial,cheats)
 		currMap = mapgen:generate_map(75,75,(forceDepth or 1),forceLevel)
 		player:moveTo(currMap.stairsDown.x,currMap.stairsDown.y)
 		currMap.creatures[player] = player
+    player:apply_class('demonhunter')
 	end
 	table.insert(maps,currMap)
 	output:setCursor(0,0)

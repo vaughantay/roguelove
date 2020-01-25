@@ -23,12 +23,7 @@ function credits:draw()
     love.graphics.setFont(fonts.graveFontSmall)
     love.graphics.printf("Beta Testing",math.floor(width/3),240,math.floor(width/3),"center")
     love.graphics.setFont(fonts.textFont)
-    love.graphics.printf([[Adam Hodges
-Erlend F
-Chris Neal
-Tim Froburg
-Tim Sandford
-Joe Scamardella]],math.floor(width/3),270,math.floor(width/3),"center")
+    love.graphics.printf([[]],math.floor(width/3),270,math.floor(width/3),"center")
   elseif self.slide == 3 then
     love.graphics.setFont(fonts.graveFontSmall)
     love.graphics.printf("Uses Sounds Created By",math.floor(width/3),200,math.floor(width/3),"center")
@@ -118,7 +113,6 @@ function credits:update(dt)
   self.timer = self.timer+dt
   if self.timer >= 3 then
     if self.slide == 6 then
-      menu.rain = self.rain
       Gamestate.switch(menu)
     else
       self.slide = self.slide+1

@@ -34,7 +34,7 @@ end
 --Returns the name of the feature.
 --@param self The feature in question.
 --@param full True/False. Whether to return the name in uppercase and without an article.
---@return Text. The name.
+--@return String. The name.
 function Feature:get_name(full)
   if (full == true) then
 		return ucfirst(self.name) 
@@ -45,7 +45,7 @@ end
 
 --Returns the description of the feature.
 --@param self The feature in question.
---@return Text. The description.
+--@return String. The description.
 function Feature:get_description()
 	local txt = self.name .. "\n" .. self.description
   if self.attackable then txt = txt .. "\nYou can attack it." end
@@ -185,7 +185,7 @@ function Feature:refresh_image_name(map)
 end
 
 --Checks if a feature is hazardous for a certain creature type.
---@param ctype Text. The creature type we're checking for. If blank, just checks if it's generally hazardous. (optional)
+--@param ctype String. The creature type we're checking for. If blank, just checks if it's generally hazardous. (optional)
 --@return True/False. Whether or not the feature is hazardous.
 function Feature:is_hazardous_for(ctype)
   if self.hazard and ((self.hazardousFor == nil and (ctype == nil or self.safeFor == nil or self.safeFor[ctype] ~= true)) or (ctype ~= nil and self.hazardousFor and self.hazardousFor[ctype] == true)) then

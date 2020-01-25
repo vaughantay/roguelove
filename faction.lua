@@ -81,3 +81,64 @@ function Faction:is_friend(creature)
   end
   return false
 end
+
+function Faction:join(creature)
+  creature = creature or player
+  if not creature:is_faction_member(self.id) then
+    creature.factions[#creature.factions+1] = self.id
+  end
+end
+
+function Faction:can_join(creature)
+  creature = creature or player
+  local canJoin = true
+  local reasons = nil
+  if self.neverJoin then
+    return false,"This faction does not accept new members."
+  end
+  if creature.favor[self.id] < self.joinThreshold then
+    reasons = (reasons and reasons .. " " or "") .. "You need at least " .. self.joinThreshold .. " favor to join."
+    canJoin = false
+  end
+  for _,enemy in ipairs(self.enemyFactions) do
+    if player:is_faction_member(enemy) then
+      reasons = (reasons and reasons .. " " or "") .. "You're a member of the enemy faction " .. factions[enemy].name .. "."
+      canJoin = false
+    end
+  end
+  if self.join_requirements then
+    local bool,rejectionText = self:join_requirements(creature)
+    if bool == false then
+      canJoin = false
+      if rejectionText then
+        reasons = (reasons and reasons .. " " or "") .. rejectionText
+      end
+    end
+  end --end join_requirements if
+  return canJoin,reasons
+end
+
+function Faction:teach_spell(spellID,creature)
+  creature = creature or player
+  if creature:has_spell(spellID) then return false end
+  
+  --Get the spell info:
+  local spellInfo = nil
+  for _,s in ipairs(self.teaches_spells) do
+    if s.spell == spellID then
+      spellInfo = s
+      break
+    end
+  end
+  if not spellInfo then return false end
+  
+  --Pay the price:
+  if spellInfo.moneyCost then
+    creature.money = creature.money - spellInfo.moneyCost
+  end
+  if spellInfo.favorCost then
+    creature.favor[self.id] = creature.favor[self.id] - spellInfo.favorCost
+  end
+  --Teach it, finally:
+  creature.spells[#creature.spells+1] = spellID
+end

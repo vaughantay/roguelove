@@ -28,7 +28,7 @@ function Item:init(type_name,info,amt)
 end
 
 function Item:get_description(withName)
-	return (withName and self:get_name(true) .. "\n"  or "") .. self.description .. self.x .. ',' .. self.y
+	return (withName and self:get_name(true) .. "\n"  or "") .. self.description
 end
 
 function Item:get_info()
@@ -142,6 +142,15 @@ function Item:attack(target,wielder,forceHit,ignore_callbacks,forceBasic)
         return possibleItems[self.id].attack_hits(self,target,wielder,dmg,result)
       end
 			if (result == "critical") then txt = txt .. "CRITICAL HIT! " end
+      local bool,ret = wielder:callbacks('calc_damage',target,dmg)
+      if (bool ~= false) and #ret > 0 then --handle possible returned damage values
+        local count = 0
+        local amt = 0
+        for _,val in pairs(ret) do --add up all returned damage values
+          if type(val) == "number" then count = count + 1 amt = amt + val end
+        end
+        if count > 0 then dmg = math.ceil(amt/count) end --final damage is average of all returned damage values
+      end
 			dmg = target:damage(dmg,wielder,self.damage_type,self:get_armor_piercing(wielder))
 			if dmg > 0 then txt = txt .. ucfirst(wielder:get_pronoun('n')) .. " hits " .. target:get_pronoun('o') .. " for " .. dmg .. (self.damage_type and " " .. self.damage_type or "") .. " damage."
       else txt = txt .. ucfirst(wielder:get_pronoun('n')) .. " hits " .. target:get_pronoun('o') .. " for no damage." end

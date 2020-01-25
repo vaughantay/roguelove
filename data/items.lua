@@ -189,6 +189,24 @@ function firedagger:after_damage(target,attacker)
 end
 possibleItems['firedagger'] = firedagger
 
+local holydagger = {
+  name="holy dagger",
+	description="A short-bladed dagger, wickedly sharp, and blessed with righteousness.",
+	symbol="†",
+	itemType="weapon",
+  equippable=true,
+  throwable=true,
+  equipSlot="weapon",
+  hands=1,
+	color={r=255,g=255,b=200,a=255},
+	damage = 3,
+	accuracy = 10,
+	critical = 5,
+	level = 1,
+  damage_type="holy"
+}
+possibleItems['holydagger'] = holydagger
+
 local cattleprod = {
   name="cattle prod",
 	description="A cattle prod. Deals no damage, but stuns.",
@@ -236,6 +254,19 @@ function dart:new()
   self.amount = tweak(100)
 end
 possibleItems['dart'] = dart
+
+local holywater = {
+  name = "holy water",
+  pluralName = "vials of holy water",
+  description = "A small, sharp dart.",
+  symbol="/",
+	itemType="throwable",
+  throwable=true,
+	color={r=0,g=200,b=200,a=255},
+	--ranged_attack="holywater",
+  stacks=true,
+}
+possibleItems['holywater'] = holywater
 
 local painwand = {
   name = "Wand of Horrific Pain",

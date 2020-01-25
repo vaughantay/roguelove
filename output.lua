@@ -318,21 +318,21 @@ function output:load_all_images()
   end
 end
 
-function output:draw_health_bar(val,max_val,x,y,width,height)
-  setColor(255,255,255,255)
+function output:draw_health_bar(val,max_val,x,y,width,height,color)
+  setColor((color and color.r or 200),(color and color.r or 0),(color and color.r or 0),255)
   love.graphics.rectangle('line',x-1,y-1,width+2,height+2)
   if val < 1 then return end
   local barWidth = math.max(math.ceil((val/max_val)*width),1)
   if prefs['noImages'] == true then
-    setColor(255,0,0,255)
+    setColor((color and color.r or 255),(color and color.r or 255),(color and color.r or 255),255)
     love.graphics.rectangle('fill',x,y,barWidth,height)
-    setColor(255,255,255,255)
   else
     for px=x,x+barWidth,2 do
       if px+2 < x+barWidth then love.graphics.draw(images.uihealthbartiny,px,y) end
     end --end for
     love.graphics.draw(images.uihealthbartiny,x+barWidth-2,y)
   end --end images/noimages if
+  setColor(255,255,255,255)
 end
 
 function output:sound(soundName,pitchDiff)
@@ -649,10 +649,11 @@ function output:shake(distance,time)
   self.shakeDist = distance
 end
 
-function output:draw_window(startX,startY,endX,endY)
-  setColor(0,0,0,200)
-  love.graphics.rectangle('fill',startX+9,startY+9,(endX-startX-2)+(prefs['noImages'] and 0 or 16),(endY-startY-2)+(prefs['noImages'] and 0 or 16))
-  setColor(255,255,255,255)
+function output:draw_window(startX,startY,endX,endY,color)
+  color = color or prefs.windowColor
+  setColor((color and color.r or 0),(color and color.g or 0),(color and color.b or 0),200)
+  love.graphics.rectangle('fill',startX+4,startY+4,(endX-startX-2)+(prefs['noImages'] and 0 or 28),(endY-startY-2)+(prefs['noImages'] and 0 or 28))
+  setColor((color and color.r or 255),(color and color.g or 255),(color and color.b or 255),255)
   if prefs['noImages'] ~= true then
     --local batch = love.graphics.newSpriteBatch(images.borders.borderImg,10000)
     for x=startX+16,endX-16,32 do
@@ -688,6 +689,7 @@ function output:draw_window(startX,startY,endX,endY)
   else
     love.graphics.rectangle("line",startX+8,startY+8,endX-startX,endY-startY)
   end
+  setColor(255,255,255,255)
   return {minX=startX,minY=startY,maxX=endX,maxY=endY}
 end
 

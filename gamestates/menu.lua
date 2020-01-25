@@ -70,7 +70,6 @@ function menu:keypressed(key)
       Gamestate.switch(newgame)
       output.cursorY = 1
       newgame.cheats={}
-      newgame.rain=self.rain
     elseif (output.cursorY == 2) then
       Gamestate.switch(loadsaves)
 		elseif (output.cursorY == 3) then

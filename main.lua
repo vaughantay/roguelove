@@ -162,7 +162,6 @@ function love.resize()
   prefs['maximizedWindow'] = love.window.isMaximized()
   output.mapWidth,output.mapHeight=nil,nil
   game.canvas=love.graphics.newCanvas(prefs['width'],prefs['height'])
-  menu:preDrawDirt()
 end
 
 function gen_quads()
@@ -213,15 +212,18 @@ function load_data()
   require "data.levels"
   require "data.layouts"
   require "data.monsters"
+  require "data.playerclasses"
   require "data.projectiles"
   require "data.ranged_attacks"
   require "data.rooms"
   require "data.room_decorators"
+  require "data.services"
   require "data.spells"
   require "data.tilesets"
   require "gamestates.characterscreen"
   require "gamestates.cheats"
   require "gamestates.credits"
+  require "gamestates.factionscreen"
   require "gamestates.game"
   require "gamestates.help"
   require "gamestates.inventory"
@@ -251,6 +253,7 @@ function load_engine()
   require "magic"
   require "projectile"
   require "ranged_attack"
+  require "service"
   require "effect"
   require "feature"
   require "saveload"

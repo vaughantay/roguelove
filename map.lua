@@ -367,7 +367,7 @@ end
 
 --Set a map tile to be a certain feature
 --@param self Map. The map
---@param feature Feature or text. A specific feature object, NOT its ID. Usually a new feature, called using Feature('featureID'). OR text representing floor (.) or wall (#)
+--@param feature Feature or String. A specific feature object, NOT its ID. Usually a new feature, called using Feature('featureID'). OR text representing floor (.) or wall (#)
 --@param x Number. The x-coordinate
 --@param y Number. The y-coordinate
 --@return Feature. The feature added

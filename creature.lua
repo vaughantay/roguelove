@@ -1,6 +1,7 @@
+---@classmod creature
 Creature = Class{}
 
---Initiates a creature. Don't call this explicitly, it's called when you create a new creature.
+---Initiates a creature. Don't call this explicitly, it's called when you create a new creature.
 --@param creatureType String. The ID of the creature you want to create.
 --@param level Number. The level to set the creature to (optional)
 --@param noItems True/False. Whether to generate without items (optional)
@@ -28,7 +29,9 @@ function Creature:init(creatureType,level,noItems)
   self.checked = {}
   self.inventory = {}
   self.equipment = {}
+  self.money = self.money or 0
   self.favor = {}
+  self.factions = self.factions or {}
   self.hands = self.hands or (self.noEquip and 0 or 2)
   if self.equipslots then
     local slotcount = 1
@@ -121,10 +124,9 @@ function Creature:init(creatureType,level,noItems)
 	return self
 end
 
---Generate items for a creature's inventory. Usually called when the creature first spawns
---@param self The creature itself
---@param source The source of potential item lists. Defaults to the creature itself, and will frequently be either a creature type or a faction, but can be any table containing a possible_inventory, possible_death_items, or any possible_[equipslot] table. (optional) 
---@return The creature's name
+---Generate items for a creature's inventory. Usually called when the creature first spawns
+--@param self Creature. The creature itself
+--@param source Table. The source of potential item lists. Defaults to the creature itself, and will frequently be either a creature type or a faction, but can be any table containing a possible_inventory, possible_death_items, or any possible_[equipslot] table. (optional) 
 function Creature:generate_inventory(source)
   source = source or self
   --Add inventory items:
@@ -133,8 +135,7 @@ function Creature:generate_inventory(source)
       if not def.chance or random(1,100) <= def.chance then
         local amt = (def.max_amt and random((def.min_amt or 1),def.max_amt) or 1)
         for i=1,amt,1 do
-          local item = Item(def.item)
-          self.inventory[#self.inventory+1] = item
+          self:give_item(Item(def.item))
         end
       end --end chance
     end --end loopthrough possible_inventory
@@ -158,8 +159,7 @@ function Creature:generate_inventory(source)
     print(tostring(weapID))
     local hands = self.hands
     if weapID then
-      local weap1 = Item(weapID)
-      self.inventory[#self.inventory+1] = weap1
+      local weap1 = self:give_item(Item(weapID))
       self:equip(weap1)
       hands = hands - weap1.hands
     end
@@ -172,8 +172,7 @@ function Creature:generate_inventory(source)
       if self['possible_' .. slot] and slot ~= "weapon" then
         local itemID = source['possible_' .. slot][(random(#self['possible_' .. slot]))]
         if itemID then
-          local item = Item(itemID)
-          self.inventory[#self.inventory+1] = item
+          local item = self:give_item(Item(itemID))
           self:equip(item)
         end --end if itemID
       end --end if checking if we have a possible list set
@@ -191,9 +190,52 @@ function Creature:generate_inventory(source)
   end
 end
 
---Get the name of a creature
---@param self The creature itself
---@param full Whether to display the creature name after the proper name (optional) 
+---Applies a class definition to a creature, granting it that class's starting favor, spells, factions and items
+--@param self Creature. The creature itself
+--@param classID String. The ID of the class to apply 
+function Creature:apply_class(classID)
+  local class = playerClasses[classID]
+  self.class = classID
+  if class.favor then
+    for faction,favor in pairs(class.favor) do
+      self.favor[faction] = (self.favor[faction] or 0) + favor
+    end
+  end --end favor if
+  if class.factions then
+    for _,faction in ipairs(class.factions) do
+      if not self:is_faction_member(faction) then
+        factions[faction]:join(self)
+      end
+    end --end factions for
+  end --end factions if
+  if class.spells then
+    for _,spell in ipairs(class.spells) do
+      if not self:has_spell(spell) then
+        self.spells[#self.spells+1] = spell
+      end
+    end
+  end --end if spells
+  if class.items then
+    for _,itemID in ipairs(class.items) do
+      self:give_item(Item(itemID))
+    end
+  end --end if items
+  if class.equipment then
+    for _,itemID in ipairs(class.equipment) do
+      local i = self:give_item(Item(itemID))
+      self:equip(i)
+    end
+  end--end if equipment
+  if class.stat_modifiers then
+    for stat,mod in pairs(class.stat_modifiers) do
+      self.stat = (self.stat or 0) + mod
+    end
+  end --end if stat_modifiers
+end
+
+---Get the name of a creature
+--@param self Creature. The creature itself
+--@param full True/False. Whether to display the creature name after the proper name (optional) 
 --@param force True/False. If set to true, will force display the name, even if the player can't see it (optional)
 --@return The creature's name
 function Creature:get_name(full,force)
@@ -211,10 +253,10 @@ function Creature:get_name(full,force)
 	end
 end
 
---Get the pronoun of a creature
---@param self The creature itself
---@param ptype The pronoun type. n = nominative, p = possessive, o = objective
---@return The pronoun
+---Get the pronoun of a creature
+--@param self Creature. The creature itself
+--@param ptype String. The pronoun type: n = nominative, p = possessive, o = objective
+--@return String. The pronoun.
 function Creature:get_pronoun(ptype)
 	ptype = ptype or 'n'
 	if (self.gender == "male") then
@@ -229,6 +271,10 @@ function Creature:get_pronoun(ptype)
 		if (ptype == 'n') then return 'it' end
 		if (ptype == 'p') then return 'its' end
 		if (ptype == 'o') then return 'it' end
+  elseif (self.gender == "custom") then
+    if (ptype == 'n') then return (self.pronouns and self.pronouns.n or 'they') end
+		if (ptype == 'p') then return (self.pronouns and self.pronouns.p or 'their') end
+		if (ptype == 'o') then return (self.pronouns and self.pronouns.o or 'them') end
   else
     if (ptype == 'n') then return 'they' end
 		if (ptype == 'p') then return 'their' end
@@ -237,9 +283,9 @@ function Creature:get_pronoun(ptype)
   return "" --return an empty string if something went wrong, so there won't be a "concating nil" error
 end
 
---Get the max HP of a creature
---@param self The creature itself
---@return Number, the max HP
+---Get the max HP of a creature
+--@param self Creature. The creature itself
+--@return Number. the max HP
 function Creature:get_mhp()
 	return self.max_hp+self:get_bonus('mhp')
 end
@@ -393,7 +439,7 @@ end
 
 --Cure a condition
 --@param self Creature. The creature itself
---@param condition Text. The ID of the condition to cure
+--@param condition String. The ID of the condition to cure
 function Creature:cure_condition(condition)
   if self.conditions[condition] then
     conditions[condition]:cure(self)
@@ -403,7 +449,7 @@ end
 
 --Check if a creature has a condition
 --@param self Creature. The creature itself
---@param condition Text. The ID of the condition to check
+--@param condition String. The ID of the condition to check
 --@return True/False. Whether the creature has the condition.
 function Creature:has_condition(condition)
   if self.conditions[condition] then
@@ -454,7 +500,7 @@ end
 
 --Get the description of a creature.
 --@param self Creature. The creature itself
---@return Text. The description of the creature.
+--@return String. The description of the creature.
 function Creature:get_description()
 	local desc = self:get_name(true) .. "\n" .. self.description
 	desc = desc .. "\n" .. self:get_health_text(true)
@@ -506,7 +552,7 @@ end
 --Get a description of a creature's health
 --@param self Creature. The creature itself
 --@param full True/False. Whether to return a full sentence or just a short description (optional)
---@return Text. The health text
+--@return String. The health text
 function Creature:get_health_text(full)
 	local health = self.hp/self:get_mhp()
 	if (health >= 1) then
@@ -532,7 +578,7 @@ end
 
 --Get the bonus for a given bonus type
 --@param self Creature. The creature itself
---@param bonusType Text. The type of bonus to check for. Usually a stat
+--@param bonusType String. The type of bonus to check for. Usually a stat
 --@param average True/False. Whether or not to average or return the total bonus (optional)
 --@return Number. The bonus.
 function Creature:get_bonus(bonusType,average)
@@ -650,6 +696,15 @@ function Creature:attack(target,forceHit,ignore_callbacks)
       dmg = 0
 		else
 			if (result == "critical") then txt = txt .. "CRITICAL HIT! " end
+      local bool,ret = self:callbacks('calc_damage',target,dmg)
+      if (bool ~= false) and #ret > 0 then --handle possible returned damage values
+        local count = 0
+        local amt = 0
+        for _,val in pairs(ret) do --add up all returned damage values
+          if type(val) == "number" then count = count + 1 amt = amt + val end
+        end
+        if count > 0 then dmg = math.ceil(amt/count) end --final damage is average of all returned damage values
+      end
 			dmg = target:damage(dmg,self,self.damage_type,self:get_armor_piercing())
 			if dmg > 0 then txt = txt .. ucfirst(self:get_name()) .. " hits " .. target:get_name() .. " for " .. dmg .. (self.damage_type and " " .. self.damage_type or "") .. " damage."
       else txt = txt .. ucfirst(self:get_name()) .. " hits " .. target:get_name() .. " for no damage." end
@@ -1053,18 +1108,27 @@ function Creature:pickup(item,tileOnly)
   print(tostring(tileOnly))
   local x,y = self.x,self.y
   if (tileOnly ~= true and not self:touching(item)) or (tileOnly == true and (item.x ~= x or item.y ~= y)) then return false end
+  self:give_item(item)
+  if player:can_sense_creature(self) then output:out(self:get_name() .. " picks up " .. item:get_name() .. ".") end
+  currMap.contents[item.x][item.y][item] = nil
+end
+
+--Transfer an item to a creature's inventory
+--@param self Creature. The creature itself
+function Creature:give_item(item)
   if (item.stacks == true) then
     local _,inv_id = self:has_item(item.id,(item.sortBy and item[item.sortBy]))
     if inv_id then
       self.inventory[inv_id].amount = self.inventory[inv_id].amount + item.amount
+      item = self.inventory[inv_id]
     else
       table.insert(self.inventory,item)
     end
   else
     table.insert(self.inventory,item)
   end
-  if player:can_sense_creature(self) then output:out(self:get_name() .. " picks up " .. item:get_name() .. ".") end
-  currMap.contents[item.x][item.y][item] = nil
+  item.x,item.y=self.x,self.y
+  return item
 end
 
 --Make a creature drop an item
@@ -1153,7 +1217,7 @@ end
 
 --Get a list of all equipment in a equipment slot
 --@param self Creature. The creature itself
---@param slot Text. The equipment slot to check
+--@param slot String. The equipment slot to check
 --@return Table. A list of the equipment.
 function Creature:get_equipped_in_slot(slot)
   local equipped = {}
@@ -1167,7 +1231,7 @@ end
 --Equip an item
 --@param self Creature. The creature itself
 --@param item Item. The item to equip
---@return True/False + Text. Whether or not the item was equipped, and text describing the equipping.
+--@return True/False + String. Whether or not the item was equipped, and text describing the equipping.
 function Creature:equip(item)
   local slot = item.equipSlot
   local equipText = ""
@@ -2094,14 +2158,14 @@ function Creature:get_ranged_attacks()
 end
 
 --Checks if a creature possesses a certain spell
---@param spellName Text. The name of the spell
+--@param spellName String. The name of the spell
 --@return True/False. Whether the creature has the spell
 function Creature:has_spell(spellName)
   return in_table(spellName,self:get_spells())
 end
 
 --Checks if a creature possesses a certain AI flag
---@param spellName Text. The AI flag
+--@param spellName String. The AI flag
 --@return True/False. Whether the creature has the AI flag
 function Creature:has_ai_flag(flag)
   if self.ai_flags == nil then return false end

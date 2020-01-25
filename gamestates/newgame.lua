@@ -50,7 +50,6 @@ function newgame:draw()
   local w = fonts.graveFontBig:getWidth("Here Lies")
   love.graphics.printf("Here Lies",math.floor(width/3),100,math.floor(width/3),"center")
   --love.graphics.draw((output.cursorY == 1 and output.cursorX == 2 and images.uidicebuttonhover or images.uidicebutton),math.floor(width/2+w/2)+16,108)
-  love.graphics.printf("??/??/???? - " .. os.date("%x"),math.floor(width/3),305,math.floor(width/3),"center")
   love.graphics.setFont(fonts.graveFontSmall)
   if output.cursorY == 1 then
     setColor(255,255,255,255)
@@ -108,7 +107,6 @@ function newgame:draw()
   end
   setColor(255,255,255,255)
   love.graphics.setFont(fonts.graveFontBig)
-  love.graphics.printf("Gone, but not forgotten...",width/4,335,width/2,"center")
   
   --Tutorial Checkbox:
   local padding = (prefs['noImages'] and 16 or 32)
@@ -151,7 +149,7 @@ function newgame:draw()
 
   
   --close button:
-  self.closebutton = output:closebutton((prefs['noImages'] and width/2-256+16 or width/2-256+40),(prefs['noImages'] and 50+24 or 50+56))
+  self.closebutton = output:closebutton(14,14)
   
   love.graphics.pop()
   --White and black for flashes and fadeouts
@@ -244,8 +242,6 @@ function newgame:keypressed(key)
     end --end seed bounds check
   elseif key == "escape" then
     Gamestate.switch(menu)
-    menu:lightning()
-    menu.rain = self.rain
   end --end key if
 end
 
@@ -253,7 +249,6 @@ function newgame:mousepressed(x,y,button)
   if self.blackAmt then return false end
   if button == 2 then
     Gamestate.switch(menu)
-    menu:lightning()
     return
   end
   local width = love.graphics.getWidth()
@@ -261,7 +256,6 @@ function newgame:mousepressed(x,y,button)
   local nameBoxWidth = 512-128+(prefs['noImages'] and 96 or 0)
   if x > self.closebutton.minX and x < self.closebutton.maxX and y > self.closebutton.minY and y < self.closebutton.maxY then
     Gamestate.switch(menu)
-    menu:lightning()
   elseif output.cursorY ~= 1 and x > nameBoxX and x < nameBoxX+nameBoxWidth then
     output.mouseX,output.mouseY=1,1
     return self:keypressed("return")
@@ -307,7 +301,6 @@ function newgame:update(dt)
   if player.properName == "" and output.cursorY ~= 1 then
     player.properName = namegen:generate_human_name(player)
   end
-  self:updaterain(dt)
 end
 
 function newgame:textinput(text)

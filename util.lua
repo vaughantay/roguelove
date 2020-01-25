@@ -1,10 +1,10 @@
 --[[random utility functions]]
 
--- Checks if "needle" is in "haystack", and returns the key if so
+-- Checks if "needle" is in "haystack", and returns the key (and value) if so
 function in_table(needle, haystack)
 	for i,v in pairs(haystack) do
 		if (v==needle) then 
-			return i end
+			return i,v end
 	end
 	return false
 end

@@ -2,7 +2,7 @@ Projectile = Class{baseType = "projectile"}
 
 --Initiates a projectile. Don't call this explicitly, it's called when you create a new projectile.
 --@param self The new projectile being created.
---@param projectile_type Text. The ID of the projectile you'd like to create
+--@param projectile_type String. The ID of the projectile you'd like to create
 --@param source Entity. A table that contains the X and Y coordinates the projectile is starting at. Might be a creature.
 --@param target Entity. A table that contains the X and Y coordinates the projectile is moving towards. Might be a creature.
 --@param info Whatever you want to pass to the projectile's new() function
@@ -49,7 +49,7 @@ end
 
 --Gets the description of the projectile
 --@param self The projectile itself
---@return Text. The description of the projectile
+--@return String. The description of the projectile
 function Projectile:get_description()
 	return ucfirst(self.name) .. "\n" .. self.description
 end
@@ -187,7 +187,7 @@ end --end hits() function
 --Gets the name of the projectile
 --@param self The projectile itself
 --@param full True/False. If true, return just the basic name of the projectile. If false, preface with "a" or "an"
---@return Text. The name of the projectile
+--@return String. The name of the projectile
 function Projectile:get_name(full)
   if (full == true) then
 		return ucfirst(self.name) 

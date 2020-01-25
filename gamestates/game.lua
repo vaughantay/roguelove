@@ -288,7 +288,19 @@ function game:print_sidebar()
   end
  
  self.spellButtons = {}
- local descBox = false
+  local descBox = false
+  --Button for inventory:
+  local invWidth = fonts.buttonFont:getWidth(keybindings.inventory .. ") Inventory")
+  local minX,minY=printX+xPad-2,printY+yPad
+  local maxX,maxY=minX+invWidth+4,minY+16
+  self.spellButtons["inventory"] = output:button(minX,minY+2,(maxX-minX),true,nil,nil,true)
+  if self.spellButtons["inventory"].hover == true then
+    descBox = {desc="View anduse items and equipment.",x=minX,y=minY}
+  end
+  love.graphics.print(keybindings.inventory .. ") Inventory",printX+xPad,printY+yPad-2+yBonus)
+  yPad = yPad+20
+  
+ --Buttons for ranged attacks:
  local ranged_attacks = player:get_ranged_attacks()
   if #ranged_attacks > 0 then
     local ranged_text = keybindings.ranged .. ") Ranged: "
@@ -381,7 +393,21 @@ function game:print_sidebar()
     end
     love.graphics.print(keybindings.stairsUp .. ") Exit Level",printX+xPad,printY+yPad+(20*spellcount)-2+yBonus)
   end
-  yPad = yPad+(20*spellcount)+15
+  yPad = yPad+(20*spellcount)
+  local items = currMap:get_tile_items(player.x,player.y,true)
+  if #items > 0 then
+    spellcount = spellcount+1
+    local picktext = keybindings.pickup .. ") Pick Up " .. (#items > 1 and "Items" or items[1]:get_name())
+    local spellwidth = fonts.buttonFont:getWidth(picktext)
+    local minX,minY=printX+xPad-2,printY+yPad
+    local maxX,maxY=minX+spellwidth+4,minY+16
+    self.spellButtons["pickup"] = output:button(minX,minY+2,(maxX-minX),true,nil,nil,true)
+    if self.spellButtons['pickup'].hover == true then
+      descBox = {desc=(#items > 1 and "Pick up items here." or items[1]:get_description()),x=minX,y=minY}
+    end
+    love.graphics.print(picktext,printX+xPad,printY+yPad-2+yBonus)
+  end
+  yPad = yPad+15
   
 	
 	if (next(player.conditions) ~= nil) then
@@ -1251,6 +1277,10 @@ function game:mousepressed(x,y,button)
             end
           elseif spell == "goUp" then
             goUp()
+          elseif spell == "pickup" then
+            self:keypressed(keybindings.pickup)
+          elseif spell == "inventory" then
+            self:keypressed(keybindings.inventory)
           else
            possibleSpells[spell]:target(target,player)
           end
@@ -1549,6 +1579,8 @@ function game:keypressed(key,scancode,isRepeat)
 		goUp()
   elseif (key == "u" and action=="moving" and debugMode) then
     goUp(true)
+   elseif (key == "q" and action=="moving") then
+    Gamestate.switch(factionscreen,"lightchurch")
 	elseif (key == keybindings.charScreen) then
 		Gamestate.switch(characterscreen)
 	elseif (key == keybindings.save) then
@@ -1594,26 +1626,28 @@ function game:keypressed(key,scancode,isRepeat)
 end -- end function
 
 function game:description_box(text,x,y)
-	love.graphics.setFont(fonts.descFont)
-	local width, tlines = fonts.descFont:getWrap(text,300)
-	local height = #tlines*(prefs['descFontSize']+2)+5
-  x,y = round(x),round(y)
-  if (y+20+height < love.graphics.getHeight()) then
-    setColor(255,255,255,185)
-    love.graphics.rectangle("line",x+22,y+20,302,height)
-    setColor(0,0,0,185)
-    love.graphics.rectangle("fill",x+23,y+21,301,height-1)
-    setColor(255,255,255,255)
-    love.graphics.printf(ucfirst(text),x+24,y+22,300)
-  else
-    setColor(255,255,255,185)
-    love.graphics.rectangle("line",x+22,y+20-height,302,height)
-    setColor(0,0,0,185)
-    love.graphics.rectangle("fill",x+23,y+21-height,301,height-1)
-    setColor(255,255,255,255)
-    love.graphics.printf(ucfirst(text),x+24,y+22-height,300)
+  if Gamestate.current() == game then
+    love.graphics.setFont(fonts.descFont)
+    local width, tlines = fonts.descFont:getWrap(text,300)
+    local height = #tlines*(prefs['descFontSize']+2)+5
+    x,y = round(x),round(y)
+    if (y+20+height < love.graphics.getHeight()) then
+      setColor(255,255,255,185)
+      love.graphics.rectangle("line",x+22,y+20,302,height)
+      setColor(0,0,0,185)
+      love.graphics.rectangle("fill",x+23,y+21,301,height-1)
+      setColor(255,255,255,255)
+      love.graphics.printf(ucfirst(text),x+24,y+22,300)
+    else
+      setColor(255,255,255,185)
+      love.graphics.rectangle("line",x+22,y+20-height,302,height)
+      setColor(0,0,0,185)
+      love.graphics.rectangle("fill",x+23,y+21-height,301,height-1)
+      setColor(255,255,255,255)
+      love.graphics.printf(ucfirst(text),x+24,y+22-height,300)
+    end
+    love.graphics.setFont(fonts.mapFont)
   end
-	love.graphics.setFont(fonts.mapFont)
 end
 
 function game:blackOut(seconds,win)

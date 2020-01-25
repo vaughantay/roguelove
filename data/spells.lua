@@ -51,4 +51,26 @@ blink = Spell({
 	end
 }),
 
+demondamager = Spell({
+	name = "Demon Slayer",
+	description = "You know a lot about demons. Particularly, how to hurt them.",
+	target_type = "passive",
+  calc_damage = function(self,possessor,target,damage)
+    if target:is_type('demon') then
+      return math.ceil(damage * 1.5)
+    end
+  end
+}),
+
+summonangel = Spell({
+	name = "Summon Angel",
+	description = "You know a lot about demons. Particularly, how to hurt them.",
+	target_type = "passive",
+  calc_damage = function(self,possessor,target,damage)
+    if target:is_type('demon') then
+      return math.ceil(damage * 1.5)
+    end
+  end
+}),
+
 }
