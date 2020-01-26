@@ -256,12 +256,12 @@ function game:print_sidebar()
 	love.graphics.printf(player.properName,printX,printY-4+yBonus,335,"center")
   local skillPoints = ""
   if player.skillPoints and player.skillPoints > 0 then skillPoints = " (+)" end
-  local buttonWidth = fonts.buttonFont:getWidth(keybindings.charScreen .. ") Level " .. player.level .. " " .. player.name .. skillPoints)
+  local buttonWidth = fonts.buttonFont:getWidth(keybindings.charScreen .. ") Level " .. player.level .. " " .. (player.class and playerClasses[player.class].name or player.name) .. skillPoints)
 
   local middleX = round(printX+335/2)
   self.characterButton = output:button(round(middleX-buttonWidth/2)-8,printY+15,buttonWidth+16,true,nil,nil,true)
 	if skillPoints ~= "" then setColor(255,255,0,255) end
-  love.graphics.printf(keybindings.charScreen .. ") Level " .. player.level .. " " .. player.name .. skillPoints,printX,printY+12+yBonus,335,"center")
+  love.graphics.printf(keybindings.charScreen .. ") Level " .. player.level .. " " .. (player.class and playerClasses[player.class].name or player.name) .. skillPoints,printX,printY+12+yBonus,335,"center")
   setColor(255,255,255,255) 
   if output.shakeTimer > 0 then
     love.graphics.push()

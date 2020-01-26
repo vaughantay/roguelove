@@ -73,4 +73,30 @@ summonangel = Spell({
   end
 }),
 
+smite = Spell({
+    name = "Smite",
+    description = "Bring down holy wrath upon a demon, abomination, undead or possessed creature.",
+    target_type="creature",
+    projectile=false,
+    cost=1,
+    cooldown = 5,
+    AIcooldown=10,
+    cast = function(self,target,attacker)
+      if (attacker.magic and attacker.magic == 0) then
+        if attacker == player then output:out("You don't have enough piety to smite your enemies.") end
+        return false
+      end
+      if target:is_type('demon') or target:is_type('undead') or target:is_type('abomination') or target == player or target:has_condition('possessed') then
+        dmg = target:damage(tweak(15),attacker,"holy")
+        if player:can_see_tile(attacker.x,attacker.y) then output:out(attacker:get_name() .. " smites " .. target:get_name() .. " for " .. dmg .. " holy damage.") end
+        if random(1,3) == 1 then
+          target:give_condition('stunned',random(2,4))
+        end
+      else --if not a demon or undead
+        output:out(attacker:get_name() .. " tries to smite " .. target:get_name() .. ", but " .. target:get_pronoun('n') .. " isn't an unholy being and remains unsmote.")
+        return false
+      end
+    end, --end use function
+  }),
+
 }

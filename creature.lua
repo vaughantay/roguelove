@@ -30,6 +30,7 @@ function Creature:init(creatureType,level,noItems)
   self.inventory = {}
   self.equipment = {}
   self.money = self.money or 0
+  self.xp = 0
   self.favor = {}
   self.factions = self.factions or {}
   self.hands = self.hands or (self.noEquip and 0 or 2)
@@ -983,7 +984,8 @@ function Creature:die(killer)
     end --end playerally killer if
     
     if (self.killer and self.killer.baseType == "creature") then
-      self.killer:level_up()
+      local xp = 10-(self.level-self.killer.level)
+      self.killer:give_xp(xp)
       local favor = self:get_kill_favor()
       local killer = self.killer or self.killer.master
       for fac,favor in pairs(favor) do
@@ -1105,12 +1107,11 @@ end
 --Let a creature pick up an item from the tile they're standing on
 --@param self Creature. The creature itself
 function Creature:pickup(item,tileOnly)
-  print(tostring(tileOnly))
   local x,y = self.x,self.y
   if (tileOnly ~= true and not self:touching(item)) or (tileOnly == true and (item.x ~= x or item.y ~= y)) then return false end
+  currMap.contents[item.x][item.y][item] = nil
   self:give_item(item)
   if player:can_sense_creature(self) then output:out(self:get_name() .. " picks up " .. item:get_name() .. ".") end
-  currMap.contents[item.x][item.y][item] = nil
 end
 
 --Transfer an item to a creature's inventory
@@ -2042,13 +2043,42 @@ function Creature:free_thralls()
   end
 end
 
---"Level Up" a random stat. Either strength, dodging or melee
+---Grant XP to a creature
+--@param xp Number. The amount of XP to give
+function Creature:give_xp(xp)
+  self.xp = self.xp+xp
+  if self.xp >= self:get_level_up_cost() then self:level_up() end
+end
+
+---How much XP do you need to level up?
+--@return Number. The XP required to level up
+function Creature:get_level_up_cost()
+  return self.level*100
+end
+
+---"Level Up" a random stat. Either strength, dodging or melee
 --@param self Creature. The creature itself
 function Creature:level_up()
-  local stats = {'strength','dodging','melee'}
-  local stat = get_random_element(stats)
-  if player:can_see_tile(self.x,self.y) and player:does_notice(self) then output:out(self:get_name() .. "'s " .. stat .. (stat ~= "strength" and " skill" or "") .. " increases!") end
-  self[stat] = self[stat] + 1
+  local cost = self:get_level_up_cost()
+  if self.xp < cost then return false end
+  self.xp = self.xp - cost
+  self.level = self.level + 1
+  if self == player and not prefs.autoLevel then
+    self.skillPoints = (self.skillPoints or 0) + 5
+  else
+    for i=1,5,1 do
+      local stats = {'strength','dodging','melee'}
+      local stat = get_random_element(stats)
+      self[stat] = self[stat] + 1
+    end
+  end
+  if self.class and playerClasses[self.class].learns_spells then
+    for _,spell in ipairs(playerClasses[self.class].learns_spells) do
+      if spell.level == self.level and not self:has_spell(spell.spell) then
+        self.spells[#self.spells+1] = spell.spell
+      end
+    end
+  end
 end
 
 --Gets how afraid a creature is
