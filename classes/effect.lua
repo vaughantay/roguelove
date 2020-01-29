@@ -1,5 +1,10 @@
+---@classmod Effect
 Effect = Class{}
 
+---Initiates an effect. Don't call this explicitly, it's called when you create a new effect with Effect('effectID').
+--@param effect_type String. The ID of the effect you want to create.
+--@param anything Anything. The arguments to pass to the effect's new() callback. Can be any number of arguments.
+--@return Effect. The effect itself.
 function Effect:init(effect_type, ...)
 	local data = effects[effect_type]
 	for key, val in pairs(data) do
@@ -26,20 +31,26 @@ function Effect:init(effect_type, ...)
 	return self
 end
 
+---Delete an effect from the map
+--@param map The map that the effect is on. If blank, defaults to the current map. (optional)
 function Effect:delete(map)
   map = map or currMap
 	map.effects[self] = nil
   if self.castsLight then map.lights[self] = nil end
 end
 
+---Returns the name and description of the effect
 function Effect:get_description()
 	return self.name .. "\n" .. self.description
 end
 
+---Called every turn. Calls the advance() function of the effect.
 function Effect:advance()
 	if (effects[self.id].advance) then return effects[self.id].advance(self) end
 end
 
+---This function is run every tick and updates various things. You probably shouldn't call it yourself
+--@param dt Number. The number of seconds since the last time update() was run. Most likely less than 1.
 function Effect:update(dt)
   if self.animated then
     self.animCountdown = (self.animCountdown or 0) - dt
@@ -102,17 +113,28 @@ function Effect:update(dt)
 	if (effects[self.id].update) then return effects[self.id].update(self,dt) end
 end
 
+---Refresh the image name of an effect.
+--Used for effects that look different if they're next to each other, when its surrounding has changed.
 function Effect:refresh_image_name()
   if effects[self.id].refresh_image_name then return effects[self.id].refresh_image_name(self) end
 	return false
 end
 
+---Checks if an effect is hazardous for a certain creature type.
+--@param ctype String. The creature type we're checking for. If blank, just checks if it's generally hazardous. (optional)
+--@return Boolean. Whether or not the effectis hazardous.
 function Effect:is_hazardous_for(ctype)
   if self.hazard and ((self.hazardousFor == nil and (ctype == nil or self.safeFor == nil or self.safeFor[ctype] ~= true)) or (ctype ~= nil and self.hazardousFor and self.hazardousFor[ctype] == true)) then
     return true 
   end
 end
 
+---Move an effect between tiles.
+--@param x Number. The x coordinate
+--@param y Number. The y coordinate
+--@param tweenLength Number. How long it takes to animate the movement between the tiles. If left blank, instantaneous. (optional)
+--@return Number. The x-coordinate (in pixels) of the effect's movement.
+--@return Number. The y-coordinate (in pixels) of the effect's movement.
 function Effect:moveTo(x,y,tweenLength)
   local tileSize = output:get_tile_size()
   local xChange,yChange = (x-self.x)*tileSize,(y-self.y)*tileSize

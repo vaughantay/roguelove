@@ -387,8 +387,8 @@ function game:print_sidebar()
     local spellwidth = fonts.buttonFont:getWidth(keybindings.stairsUp .. ") Exit Level")
     local minX,minY=printX+xPad-2,printY+yPad+(20*spellcount)
     local maxX,maxY=minX+spellwidth+4,minY+16
-    self.spellButtons["goUp"] = output:button(minX,minY+2,(maxX-minX),true,nil,nil,true)
-    if self.spellButtons['goUp'].hover == true then
+    self.spellButtons["nextLevel"] = output:button(minX,minY+2,(maxX-minX),true,nil,nil,true)
+    if self.spellButtons['nextLevel'].hover == true then
       descBox = {desc="Try to go to the next level.",x=minX,y=minY}
     end
     love.graphics.print(keybindings.stairsUp .. ") Exit Level",printX+xPad,printY+yPad+(20*spellcount)-2+yBonus)
@@ -1275,8 +1275,8 @@ function game:mousepressed(x,y,button)
             if rangedAttacks[player.ranged_attack]:recharge(player) then
               advance_turn()
             end
-          elseif spell == "goUp" then
-            goUp()
+          elseif spell == "nextLevel" then
+            nextLevel()
           elseif spell == "pickup" then
             self:keypressed(keybindings.pickup)
           elseif spell == "inventory" then
@@ -1576,9 +1576,9 @@ function game:keypressed(key,scancode,isRepeat)
 			output:out("You can't go back down. The Nether Regions are that way. You have to keep moving forward and get to the surface.")
 		end
 	elseif (key == keybindings.stairsUp and action=="moving" and (currMap[player.x][player.y]=="<" or debugMode)) then
-		goUp()
+		nextLevel()
   elseif (key == "u" and action=="moving" and debugMode) then
-    goUp(true)
+    nextLevel(true)
    elseif (key == "q" and action=="moving") then
     Gamestate.switch(factionscreen,"lightchurch")
 	elseif (key == keybindings.charScreen) then

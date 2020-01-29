@@ -1,11 +1,11 @@
----@classmod creature
+---@classmod Creature
 Creature = Class{}
 
----Initiates a creature. Don't call this explicitly, it's called when you create a new creature.
+---Initiates a creature. Don't call this explicitly, it's called when you create a new creature with Creature('creatureID').
 --@param creatureType String. The ID of the creature you want to create.
 --@param level Number. The level to set the creature to (optional)
---@param noItems True/False. Whether to generate without items (optional)
---@return The creature itself.
+--@param noItems Boolean. Whether to generate without items (optional)
+--@return Creature. The creature itself.
 function Creature:init(creatureType,level,noItems)
   local data = possibleMonsters[creatureType]
 	for key, val in pairs(data) do
@@ -126,8 +126,7 @@ function Creature:init(creatureType,level,noItems)
 end
 
 ---Generate items for a creature's inventory. Usually called when the creature first spawns
---@param self Creature. The creature itself
---@param source Table. The source of potential item lists. Defaults to the creature itself, and will frequently be either a creature type or a faction, but can be any table containing a possible_inventory, possible_death_items, or any possible_[equipslot] table. (optional) 
+--@param source Table. The source of potential item lists. Defaults to the creature itself, and will frequently be either a creature type or a faction, but can be any table containing a possible_inventory, possible_death_items, or any possible_[equipslot] table. (optional)
 function Creature:generate_inventory(source)
   source = source or self
   --Add inventory items:
@@ -192,8 +191,7 @@ function Creature:generate_inventory(source)
 end
 
 ---Applies a class definition to a creature, granting it that class's starting favor, spells, factions and items
---@param self Creature. The creature itself
---@param classID String. The ID of the class to apply 
+--@param classID String. The ID of the class to apply
 function Creature:apply_class(classID)
   local class = playerClasses[classID]
   self.class = classID
@@ -235,10 +233,9 @@ function Creature:apply_class(classID)
 end
 
 ---Get the name of a creature
---@param self Creature. The creature itself
---@param full True/False. Whether to display the creature name after the proper name (optional) 
---@param force True/False. If set to true, will force display the name, even if the player can't see it (optional)
---@return The creature's name
+--@param full Boolean. Whether to display the creature name after the proper name (optional)
+--@param force Boolean. If set to true, will force display the name, even if the player can't see it (otherwise, will show as "Something"). (optional)
+--@return String. The creature's name
 function Creature:get_name(full,force)
   if force ~= true and not (player:can_sense_creature(self) or player:does_notice(self)) then return "something" end
 	if (full == true) then
@@ -255,7 +252,6 @@ function Creature:get_name(full,force)
 end
 
 ---Get the pronoun of a creature
---@param self Creature. The creature itself
 --@param ptype String. The pronoun type: n = nominative, p = possessive, o = objective
 --@return String. The pronoun.
 function Creature:get_pronoun(ptype)
@@ -285,15 +281,13 @@ function Creature:get_pronoun(ptype)
 end
 
 ---Get the max HP of a creature
---@param self Creature. The creature itself
 --@return Number. the max HP
 function Creature:get_mhp()
 	return self.max_hp+self:get_bonus('mhp')
 end
 
---Change the HP of a creature
---@param self The creature itself
---@param amt A number, can be positive or negative.
+---Change the HP of a creature
+--@param amt Number. Can be positive or negative.
 function Creature:updateHP(amt)
   local alreadyDead = false
   if self.hp < 1 then alreadyDead = true end
@@ -312,13 +306,12 @@ function Creature:updateHP(amt)
   end
 end
 
---Damage a creature
---@param self Creature. The creature itself
---@param amt Number. The damage to do.
+---Damage a creature
+--@param amt Number. The damage to deal.
 --@param attacker Entity. The source of the damage.
 --@param damage_type String. The damage type of the attack. (optional)
---@param ignoreAmor True/False, or number. If set to true, it ignores all armor. If set to a number, ignores that much armor. (optional)
---@param noSound True/False. If set to true, no damage type sound will be played. (optional)
+--@param armor_piercing True/False, or Number. If set to true, it ignores all armor. If set to a number, ignores that much armor. (optional)
+--@param noSound Boolean. If set to true, no damage type sound will be played. (optional)
 --@return Number. The final damage done.
 function Creature:damage(amt,attacker,damage_type,armor_piercing,noSound)
   amt = math.ceil(amt) --just in case! to prevent fractional damage
@@ -396,13 +389,12 @@ function Creature:damage(amt,attacker,damage_type,armor_piercing,noSound)
 	end
 end
 
---Give a condition to a creature
---@param self Creature. The creature itself
+---Give a condition to a creature
 --@param name String. The ID of the condition.
 --@param turns Number. How many turns the condition should last.
 --@param applier Entity. Who applied the condition. (optional)
---@param force True/False. Whether to force-apply the condition. (optional)
---@return True/False. Whether the condition was applied
+--@param force Boolean. Whether to force-apply the condition. (optional)
+--@return Boolean. Whether the condition was applied
 function Creature:give_condition(name,turns,applier,force)
   if not force and self:is_type('ghost') and conditions[name].ghost ~= true then return false end
   local ap = ap
@@ -412,8 +404,7 @@ function Creature:give_condition(name,turns,applier,force)
 	return true
 end
 
---Called every turn, this advances all the conditions possessed by a creature.
---@param self Creature. The creature itself
+---Called every turn, this advances all the conditions and decreases all the spell cooldowns 
 function Creature:advance_conditions()
 	for condition, turns in pairs(self.conditions) do
     local r = conditions[condition]:advance(self)
@@ -438,8 +429,7 @@ function Creature:advance_conditions()
 	end --end spell for
 end
 
---Cure a condition
---@param self Creature. The creature itself
+---Cure a condition.
 --@param condition String. The ID of the condition to cure
 function Creature:cure_condition(condition)
   if self.conditions[condition] then
@@ -448,10 +438,9 @@ function Creature:cure_condition(condition)
   end
 end
 
---Check if a creature has a condition
---@param self Creature. The creature itself
+---Check if a creature has a condition
 --@param condition String. The ID of the condition to check
---@return True/False. Whether the creature has the condition.
+--@return Boolean. Whether the creature has the condition.
 function Creature:has_condition(condition)
   if self.conditions[condition] then
     return true
@@ -460,11 +449,10 @@ function Creature:has_condition(condition)
   end
 end
 
---Checks the callbacks of the base creature type, any conditions the creature might have, and any spells the creature might have.
---@param self Creature. The creature itself
+---Checks the callbacks of the base creature type, any conditions the creature might have, any items the creature has equipped, and any spells the creature might have.
 --@param callback_type String. The callback type to check.
 --@param … Anything. Any info you want to pass to the callback. Each callback type is probably looking for something specific (optional)
---@return True/False. If any of the callbacks returned true or false.
+--@return Boolean. If any of the callbacks returned true or false.
 --@return Table. Any other information that the callbacks might return.
 function Creature:callbacks(callback_type,...)
   local ret = {}
@@ -499,8 +487,7 @@ function Creature:callbacks(callback_type,...)
 	return true,ret
 end
 
---Get the description of a creature.
---@param self Creature. The creature itself
+---Get the extended description of a creature, including information like its health info, friendliness to the player, etc.
 --@return String. The description of the creature.
 function Creature:get_description()
 	local desc = self:get_name(true) .. "\n" .. self.description
@@ -550,9 +537,8 @@ function Creature:get_description()
 	return desc
 end
 
---Get a description of a creature's health
---@param self Creature. The creature itself
---@param full True/False. Whether to return a full sentence or just a short description (optional)
+---Get a description of a creature's health
+--@param full Boolean. Whether to return a full sentence or just a short description (optional)
 --@return String. The health text
 function Creature:get_health_text(full)
 	local health = self.hp/self:get_mhp()
@@ -577,10 +563,9 @@ function Creature:get_health_text(full)
 	end
 end
 
---Get the bonus for a given bonus type
---@param self Creature. The creature itself
+---Get the bonus of a certain type, looking at conditions and equipment.
 --@param bonusType String. The type of bonus to check for. Usually a stat
---@param average True/False. Whether or not to average or return the total bonus (optional)
+--@param average Boolean. Whether or not to average the total bonus before returning it (optional)
 --@return Number. The bonus.
 function Creature:get_bonus(bonusType,average)
 	local bonus = 0
@@ -609,8 +594,7 @@ function Creature:get_bonus(bonusType,average)
 	return bonus
 end
 
---Check how much a damage type is reduced by a creature's resistances and bonuses
---@param self Creature. The creature itself
+---Check how much damage of a given damage type is reduced by a creature's resistances and bonuses
 --@param amt Number. The original damage.
 --@param damageType String. The damage type.
 --@return Number. The amount by which the damage is reduced
@@ -622,8 +606,7 @@ function Creature:get_resistance(amt,damageType)
   return reduction
 end --end get_resistance function
 
---Check how much a damage type is increased by a creature's weaknesses and bonuses
---@param self Creature. The creature itself
+---Check how much damage of a given damage type is increased by a creature's weaknesses and bonuses
 --@param amt Number. The original damage.
 --@param damageType String. The damage type.
 --@return Number. The amount by which the damage is increased
@@ -635,25 +618,22 @@ function Creature:get_weakness(amt,damageType)
   return increase
 end --end get_resistance function
 
---Check what hit conditions a creature can inflict
---@param self Creature. The creature itself
+---Check what hit conditions a creature can inflict
 --@return Table. The list of hit conditions
 function Creature:get_hit_conditions()
 	return (self.hit_conditions or {})
 end
 
---Check what conditions a creature can inflict on a critical hit
---@param self Creature. The creature itself
+---Check what conditions a creature can inflict on a critical hit
 --@return Table. The list of hit conditions
 function Creature:get_crit_conditions()
 	return (self.crit_conditions or {})
 end
 
---Determine if you hit a target or not.
---@param self Creature. The creature itself
---@param target Entity. The creature they're attacking
---@param forceHit True/False. Whether to force the attack instead of rolling for it.
---@param ignore_callbacks True/False. Whether to ignore any of the callbacks involved with attacking
+---Attack another entity. If any weapons are equipped, this function will call their attack code instead.
+--@param target Entity. The creature (or feature) they're attacking
+--@param forceHit Boolean. Whether to force the attack instead of rolling for it.
+--@param ignore_callbacks Boolean. Whether to ignore any of the callbacks involved with attacking
 --@return String. Either "miss," "hit," or "critical"
 --@return Number. How much damage (if any) was done
 function Creature:attack(target,forceHit,ignore_callbacks)
@@ -738,9 +718,8 @@ function Creature:attack(target,forceHit,ignore_callbacks)
 	end
 end
 
---This function is run every turn. It handles advancing conditions, recharging attacks, and AI for NPCs
---@param self Creature. The creature itself
---@param skip_conditions True/False. Whether to skip running the condition advance code (optional)
+---This function is run every turn. It handles advancing conditions, recharging attacks, and AI for NPCs
+--@param skip_conditions Boolean. Whether to skip running the condition advance code (optional)
 function Creature:advance(skip_conditions)
   self.sees = nil --clear list of seen creatures
   self.checked = {} --clear list of unnoticed creatures you've checked
@@ -773,12 +752,11 @@ function Creature:advance(skip_conditions)
   end --end skip_conditions if
 end
 
---Check whether a creature can move to a given tile
---@param self Creature. The creature itself
+---Check whether a creature can move to a given tile
 --@param x Number. The x coordinate
 --@param y Number. The y coordinate
 --@param inMap Map. The map to check. Defaults to current map (optional)
---@return True/False. Whether or not the creature can move to that tile
+--@return Boolean. Whether or not the creature can move to that tile
 function Creature:can_move_to(x,y,inMap)
   --First, check to see if the target is A) even in the map, B) has a wall or creature
   inMap = inMap or currMap
@@ -811,13 +789,12 @@ function Creature:can_move_to(x,y,inMap)
   return true
 end
 
---Move a creature to a tile
---@param self Creature. The creature itself
+---Move a creature to a tile
 --@param x Number. The x coordinate
 --@param y Number. The y coordinate
---@param skip_callbacks True/False. Whether to skip any callbacks related to movement (optional)
---@param noTween True/False. If true, move there instantly, no tweening (optional)
---@return True/False. If the creature successfully moved
+--@param skip_callbacks Boolean. Whether to skip any callbacks related to movement (optional)
+--@param noTween Boolean. If true, move there instantly, no tweening animation (optional)
+--@return Boolean. If the creature successfully moved
 function Creature:moveTo(x,y, skip_callbacks,noTween)
   noTween = noTween or prefs['noSmoothMovement']
   local canMove, val = nil,nil
@@ -900,8 +877,7 @@ function Creature:moveTo(x,y, skip_callbacks,noTween)
   if self == player then refresh_player_sight() end
 end
 
---Forcibly move a creature to a tile, no matter what. Please don't use this function unless it's absolutely necessary.
---@param self Creature. The creature itself
+---Forcibly move a creature to a tile, no matter what. Do not use this function unless you absolutely have to, it is terrible and goes against everything we stand for, and can lead to creatures being stuck in places they shouldn't be, multiple creatures in a tile, or other things that you generally don't want.
 --@param x Number. The x coordinate
 --@param y Number. The y coordinate
 function Creature:forceMove(x,y) -- Do not use this function unless you absolutely have to
@@ -926,10 +902,9 @@ function Creature:forceMove(x,y) -- Do not use this function unless you absolute
   currMap.contents[self.x][self.y][self] = self
 end
 
---Check if a creature is touching something else
---@param self Creature. The creature itself
---@param target Entity. The entity to check
---@return True/False. Whether they're touching
+---Check if a creature is touching something else
+--@param target Entity. The entity to check (can be any table with an X and Y coordinate)
+--@return Boolean. Whether they're touching
 function Creature:touching(target)
 	if (math.abs(target.x-self.x) <= 1 and math.abs(target.y-self.y) <= 1) then
 		return true
@@ -937,8 +912,7 @@ function Creature:touching(target)
 	return false
 end
 
---Kill a creature.
---@param self Creature. The creature itself
+---Kill a creature.
 --@param killer Entity. Whodunnit?
 function Creature:die(killer)
   if self.isDead then return self:remove() end
@@ -1035,8 +1009,7 @@ function Creature:die(killer)
   end --end dies callback if
 end
 
---Make a creature explode.
---@param self Creature. The creature itself
+---Make a creature explode.
 function Creature:explode()
 	-- EXPLODE!
 	if not self:is_type('ghost') then
@@ -1081,8 +1054,7 @@ function Creature:explode()
   else self:remove() end
 end -- end function
 
---Remove a creature from the map without killing it
---@param self Creature. The creature itself
+---Remove a creature from the map without killing it. Called to clean up after the creature dies, but can also be called whenever to remove them for some other reason.
 --@param map Map. The map to remove the creature from. Defaults to current map (optional)
 function Creature:remove(map)
   map = map or currMap
@@ -1104,8 +1076,9 @@ function Creature:remove(map)
   --currMap:set_blocked(self.x,self.y,0)
 end
 
---Let a creature pick up an item from the tile they're standing on
---@param self Creature. The creature itself
+---Have a creature pick up an item from a tile.
+--@param item Item. The item to pick up
+--@param tileOnly Boolean. Whether to only allow pickups from the tile the creature is standing on. If not set to TRUE, creatures can also pick up from adjacent tiles.
 function Creature:pickup(item,tileOnly)
   local x,y = self.x,self.y
   if (tileOnly ~= true and not self:touching(item)) or (tileOnly == true and (item.x ~= x or item.y ~= y)) then return false end
@@ -1114,8 +1087,8 @@ function Creature:pickup(item,tileOnly)
   if player:can_sense_creature(self) then output:out(self:get_name() .. " picks up " .. item:get_name() .. ".") end
 end
 
---Transfer an item to a creature's inventory
---@param self Creature. The creature itself
+---Transfer an item to a creature's inventory
+--@param item Item. The item to give.
 function Creature:give_item(item)
   if (item.stacks == true) then
     local _,inv_id = self:has_item(item.id,(item.sortBy and item[item.sortBy]))
@@ -1132,8 +1105,7 @@ function Creature:give_item(item)
   return item
 end
 
---Make a creature drop an item
---@param self Creature. The creature itself
+---Have a creature drop an item on the tile they're on
 --@param item Item. The item to drop
 function Creature:drop_item(item)
 	local id = in_table(item,self.inventory)
@@ -1148,9 +1120,8 @@ function Creature:drop_item(item)
 	end
 end
 
---Make a creature drop all their items
---@param self Creature. The creature itself
---@param deathItems True/False. Whether to also drop death items
+---Have a creature drop all their items on the tile they're on
+--@param deathItems Boolean. Whether to also drop death items
 function Creature:drop_all_items(deathItems)
 	for _,item in ipairs(self.inventory) do
     currMap:add_item(item,self.x,self.y,true)
@@ -1168,10 +1139,9 @@ function Creature:drop_all_items(deathItems)
   self.death_items = nil
 end
 
---Remove an item from a creature
---@param self Creature. The creature itself
+---Remove an item from a creature's inventory
 --@param item Item. The item to remove
---@param amt Number. The amount of the item to remove, if stackable. Defaults to 1. Setting to -1 deletes all
+--@param amt Number. The amount of the item to remove, if the item is stackable. Defaults to 1. 
 function Creature:delete_item(item,amt)
   amt = amt or 1
 	local id = in_table(item,self.inventory)
@@ -1187,10 +1157,9 @@ function Creature:delete_item(item,amt)
 	end
 end
   
---Check if a creature has an item
---@param self Creature. The creature itself
+---Check if a creature has an instance of an item ID
 --@param item Item. The item ID to check for
---@return false, or the item they have in their inventory
+--@return either Boolean or Item. False, or the specific item they have in their inventory
 function Creature:has_item(itemID,sortBy)
 	for id, it in ipairs(self.inventory) do
 		if (itemID == it.id) and (not it.sortBy or sortBy == it[it.sortBy]) then
@@ -1200,10 +1169,9 @@ function Creature:has_item(itemID,sortBy)
 	return false
 end
 
---Check if a creature has a specific item equipped
---@param self Creature. The creature itself
+---Check if a creature has a specific item equipped
 --@param item Item. The item to check for
---@return True/False. Whether the item is equipped.
+--@return Boolean. Whether the item is equipped.
 function Creature:is_equipped(item)
   local equipSlot = item.equipSlot
   if not equipSlot then return false end
@@ -1216,8 +1184,7 @@ function Creature:is_equipped(item)
 	return false
 end
 
---Get a list of all equipment in a equipment slot
---@param self Creature. The creature itself
+---Get a list of all equipment a creature has equipped in an equipment slot
 --@param slot String. The equipment slot to check
 --@return Table. A list of the equipment.
 function Creature:get_equipped_in_slot(slot)
@@ -1229,10 +1196,10 @@ function Creature:get_equipped_in_slot(slot)
   return equipped
 end
 
---Equip an item
---@param self Creature. The creature itself
+---Equip an item
 --@param item Item. The item to equip
---@return True/False + String. Whether or not the item was equipped, and text describing the equipping.
+--@return Boolean. Whether or not the item was equipped.
+--@return String. Text describing the equipping.
 function Creature:equip(item)
   local slot = item.equipSlot
   local equipText = ""
@@ -1325,9 +1292,10 @@ function Creature:equip(item)
   return didIt,equipText
 end
 
---Unequip an item
---@param self Creature. The creature itself
+---Unequip an item
 --@param item Item. The item to unequip
+--@return Boolean. Whether or not the item was successfully unequipped. The only reason this would be false would be if the item had an unequip callback, or if the creature didn't even have the item equipped in the first place.
+--@return String. Text describing the unequipping.
 function Creature:unequip(item)
   local equipSlot = item.equipSlot
   local unequipText = ""
@@ -1356,30 +1324,11 @@ function Creature:unequip(item)
 	return false,unequipText
 end
 
---Get the possession chance of a creature.
---@param self Creature. The creature itself
---@return Number. The possession chance.
-function Creature:get_possession_chance()
-	local chance = (self.possession_chance or 0)
-  if chance <= 0 then return 0 end -- unpossessable creatures always unpossessable no matter what
-	local mod = (self:get_mhp() - self.hp)/self:get_mhp() -- get the % of HP that has been lost
-	chance = math.floor(chance + chance*mod)+self:get_bonus('possession_chance') -- add on that % (as % of original chance) to the chance, as well as possession bonus from conditions or whatever
-  if not self:does_notice(player) then chance = chance + 10 end --if they haven't noticed the player, they're more susceptible
-  if currGame.cheats.easierPossession then
-    chance = math.ceil(chance * 1.5)
-  end
-	if (chance > 100) then chance = 100
-  elseif chance < 0 then chance = 0
-  elseif (chance < 10) then chance = 10 end
-	return chance
-end
-
---Check if a creature can see a given tile
---@param self Creature. The creature itself
+---Check if a creature can see a given tile
 --@param x Number. The x-coordinate
 --@param y Number. The y-coordinate
---@param forceRefresh True/False. Whether to force actually calculating if a player can see it, versus just looking at the stored values of player sight
---@return True/False. Whether or not they can see it.
+--@param forceRefresh Boolean. Whether to force actually calculating if a player can see it, versus just looking at the stored values of player sight. Useful only when calling this for the player.
+--@return Boolean. Whether or not they can see it.
 function Creature:can_see_tile(x,y,forceRefresh)
   if (self == player) and currGame.cheats.seeAll==true then return true end
   if not currMap or not currMap:in_map(x,y,true) then return false end
@@ -1411,11 +1360,10 @@ function Creature:can_see_tile(x,y,forceRefresh)
   return false --default to not being able to see
 end
 
---Check if a creature can sense another, either through sight, or...spooky methods.
---@param self Creature. The creature itself
+---Check if a creature can sense another, either through sight or spooky senses.
 --@param creat Creature. The creature to check.
---@param skipSight True/False. Whether to skip run can_see_tile first and just look at extra senses (optional)
---@return True/False. If the target can be seen.
+--@param skipSight Boolean. Whether to skip running can_see_tile and just look at extra senses (optional)
+--@return Boolean. If the target can be seen.
 function Creature:can_sense_creature(creat,skipSight)
   if creat == self then return true end
   if not currMap then return false end
@@ -1427,11 +1375,10 @@ function Creature:can_sense_creature(creat,skipSight)
   end
 end
 
---Check if you can draw a straight line between the creature and a tile.
---@param self Creature. The creature itself
+---Check if you can draw a straight line between the creature and a tile.
 --@param x Number. The x-coordinate
 --@param y Number. The y-coordinate
---@return True/False. Whether or not they can shoot it.
+--@return Boolean. Whether or not they can shoot it.
 function Creature:can_shoot_tile(x,y)
   --if (self == player) then return true end
 	local dist = calc_distance(self.x,self.y,x,y)
@@ -1441,11 +1388,10 @@ function Creature:can_shoot_tile(x,y)
 	return false
 end
 
---Check if a creature is a potential enemy of another creature. This is NOT to check if they're actually currently hostile.
---@param self Creature. The creature itself
+---Check if a creature is a potential enemy. This is NOT to check if they're actually currently hostile.
 --@param target Creature. The target to check
---@param dontSend True/False. The dontSend argument here is used when is_enemy() is called for checking a master's enemies. In the weird (but possible) case where two creatures were masters of each other, this would result in an infinite loop. Don't use it youself. (optional)
---@return True/False. Whether or not they're enemies
+--@param dontSend Boolean. The dontSend argument here is used when is_enemy() is called for checking a master's enemies. In the weird (but possible) case where two creatures were masters of each other, this would result in an infinite loop. Don't use it yourself. (optional)
+--@return Boolean. Whether or not they're enemies
 function Creature:is_enemy(target,dontSend)
   if target == self then return false end -- You are never an enemy of yourself
   if self.master and ((target == self.master) or (target.master and self.master == target.master)) then return false end --You are never an enemy of your master or your master's thralls
@@ -1467,6 +1413,9 @@ function Creature:is_enemy(target,dontSend)
   return false --default to not enemy
 end
 
+---Check if a creature is a potential friend. This is NOT to check if they're actually currently friendly.
+--@param target Creature. The target to check.
+--@return Boolean. Whether or not they're friends.
 function Creature:is_friend(target)
   if target == self then return true end --You're always a friend to yourself
   if self.master and ((target == self.master) or (target.master and self.master == target.master)) then return true end --You're always a friend to your master and their other thralls
@@ -1475,10 +1424,9 @@ function Creature:is_friend(target)
   return false
 end
 
---Checks if a creature is of a certain type
---@param self Creature. The creature itself
+---Checks if a creature is of a certain type
 --@param ctype String. The creature type to check for
---@return True/False. Whether or not the creature is that type
+--@return Boolean. Whether or not the creature is that type
 function Creature:is_type(ctype)
   if not self.types then return false end
   for _,c in pairs(self.types) do
@@ -1487,10 +1435,9 @@ function Creature:is_type(ctype)
   return false
 end --end function
 
---Determine if a creature is an enemy type of yours (this function ignores factions!)
---@param self Creature. The creature itself
+---Determine if a creature is an enemy type of yours (this function ignores factions, but does look at your creature types' enemy types list)
 --@param target Creature. The creature to check
---@return True/False. If they're an enemy type
+--@return Boolean. If they're an enemy type
 function Creature:is_enemy_type(target)
   if not target.types then return false end
   if self.enemyTypes then
@@ -1510,10 +1457,9 @@ function Creature:is_enemy_type(target)
   return false
 end
 
---Determine if a creature is a friendly type of yours (this function ignores factions!)
---@param self Creature. The creature itself
+---Determine if a creature is a friendly type of yours (this function ignores factions, but does look at your creature types' friendly types list)
 --@param target Creature. The creature to check
---@return True/False. If they're an friendly type
+--@return Boolean. If they're a friendly type
 function Creature:is_friendly_type(target)
   if not target.types then return false end
   if self.friendlyTypes then
@@ -1533,10 +1479,9 @@ function Creature:is_friendly_type(target)
   return false
 end
 
---Checks if a creature is an enemy of any of your factions
---@param self Creature. The creature itself
---@param target Creature. The creature
---@return True/False. Whether or not the creature is an enemy of any of your factions
+---Checks if a creature is an enemy of any of your factions
+--@param target Creature. The creature to check
+--@return Boolean. Whether or not the creature is an enemy of any of your factions
 function Creature:is_faction_enemy(target)
   if not self.factions then return false end
   for _,f in pairs(self.factions) do
@@ -1546,9 +1491,8 @@ function Creature:is_faction_enemy(target)
 end --end function
 
 --Checks if a creature is a friend of any of your factions
---@param self Creature. The creature itself
---@param target Creature. The creature
---@return True/False. Whether or not the creature is a friend of any of your factions
+--@param target Creature. The creature to check
+--@return Boolean. Whether or not the creature is a friend of any of your factions
 function Creature:is_faction_friend(target)
   if not self.factions then return false end
   for _,f in pairs(self.factions) do
@@ -1557,10 +1501,9 @@ function Creature:is_faction_friend(target)
   return false
 end --end function
 
---Checks if a creature is a member of a certain faction
---@param self Creature. The creature itself
+---Checks if the creature is a member of a certain faction
 --@param fac String. The faction ID to check for
---@return True/False. Whether or not the creature is a member of that faction
+--@return Boolean. Whether or not the creature is a member of that faction
 function Creature:is_faction_member(fac)
   if not self.factions then return false end
   for _,f in pairs(self.factions) do
@@ -1569,8 +1512,7 @@ function Creature:is_faction_member(fac)
   return false
 end --end function
 
---Gets the favor you get for killing a certain creature
---@param self Creature. The creature itself
+---Gets the favor you get for killing this creature.
 --@return Table. A table of factions, and the favor scores
 function Creature:get_kill_favor()
   local favor = {}
@@ -1603,12 +1545,11 @@ function Creature:get_kill_favor()
 end
 
 
---Cause a creature to notice another creature
---@param self Creature. The creature itself
+---Cause the creature to notice another creature
 --@param creat Creature. The target to notice.
 --@param skip_callbacks Whether to force notice and skip the notices() callbacks (optional)
 --@param force Whether to force notice, but still run the callbacks (optional)
---@return True/False. Whether the creature successfully noticed the target
+--@return Boolean. Whether the creature successfully noticed the target
 function Creature:notice(creat, skip_callbacks,force)
   if skip_callbacks == true or (creat:callbacks('noticed',self) and self:callbacks('notices',creat)) or force == true then
     self.notices[creat] = math.ceil(self.memory/2)
@@ -1620,10 +1561,8 @@ function Creature:notice(creat, skip_callbacks,force)
   end --end callbacks if
 end --end notice function
 
---Checks if a creature has already noticed a creature. If not, see if they notice them now.
---@param self Creature. The creature itself
---@param creat Creature. The target to check
---@return True/False. Whether the creature has noticed the target.
+---Checks if the creature has already noticed a creature. If not, see if they notice them now.
+--@return Boolean. Whether the creature has noticed the target.
 function Creature:does_notice(creat)
   if self == creat or self.notices[creat] then
     return true
@@ -1636,10 +1575,9 @@ function Creature:does_notice(creat)
   end
 end
 
---Checks if a creature is able to notice another, and sets them as noticed if yes
---@param self Creature. The creature itself
+---Checks if a creature is able to notice another, and sets them as noticed if yes
 --@param creat Creature. The creature to try and notice
---@return True/False. Whether the creature is able to notice the target
+--@return Boolean. Whether the creature is able to notice the target
 function Creature:can_notice(creat)
   if self.id == "ghost" and self:can_see_tile(creat.x,creat.y) then return self:notice(creat,false,true) end -- ghost always notices, so you don't get killed by "invisible" enemy
   --Creatures are more likely to notice others the closer they get
@@ -1655,8 +1593,7 @@ function Creature:can_notice(creat)
   return false
 end
 
---Decrease the "noticed" value for all creatures that this creature has noticed
---@param self Creature. The creature itself
+---Decrease the "noticed" value for all creatures that this creature has noticed
 --@param seenCreats Table. A table full of creatures currently seen, whose noticed value will not be decreased (optional)
 function Creature:decrease_notice(seenCreats)
   for creat,amt in pairs(self.notices) do
@@ -1667,19 +1604,17 @@ function Creature:decrease_notice(seenCreats)
   end
 end
 
---Forget that you saw a creature
---@param self Creature. The creature itself
+---Forget that you saw a creature
 --@param creat Creature. The creature to forget
 function Creature:forget(creat)
   if self.notices[creat] then self.notices[creat] = nil end
 end
 
---Become hostile to another creature
---@param self Creature. The creature itself
+---Become hostile to another creature
 --@param creat Creature. The creature to become hostile towards
---@param skip_callbacks. True/False. Whether to skip hostility-related callbacks (optional)
---@param noSound True/False. Whether to become hostile without playing a sound (optional)
---@return True/False. Whether the creature became hostile to the target.
+--@param skip_callbacks. Boolean. Whether to skip hostility-related callbacks (optional)
+--@param noSound Boolean. Whether to become hostile without playing a sound (optional)
+--@return Boolean. Whether the creature became hostile to the target.
 function Creature:become_hostile(creat, skip_callbacks,noSound,noText)
   if self == player then return false end
   if skip_callbacks == true or (creat:callbacks('became_enemy',self) and self:callbacks('become_hostile',creat)) then
@@ -1706,24 +1641,21 @@ function Creature:become_hostile(creat, skip_callbacks,noSound,noText)
   return false
 end --end notice function
 
---Add a creature to your ignore list
---@param self Creature. The creature itself
+---Add a creature to your ignore list
 --@param creat Creature. The creature to ignore
 function Creature:ignore(creat)
   self.shitlist[creat] = nil
   self.ignoring[creat] = creat
 end
 
---Remove a creature to your ignore list
---@param self Creature. The creature itself
+---Remove a creature from your ignore list
 --@param creat Creature. The creature to stop ignoring
 function Creature:stop_ignoring(creat)
   self.ignoring[creat] = nil
 end
 
---Get a list of all creatures you can see
---@param self Creature. The creature itself
---@return Table. A numbered list of the creatures.
+---Get a list of all creatures you can see
+--@return Table. An array of the creatures.
 function Creature:get_seen_creatures()
   if self.sees then return self.sees end
   local creats = {}
@@ -1737,8 +1669,7 @@ function Creature:get_seen_creatures()
   return creats
 end --end get_all_seen_creatures function
 
---Make a fear map for the given creature
---@param self Creature. The creature itself
+---Make a fear map for the given creature
 --@return Table. A fear map, with coordinates in t[x][y] format
 function Creature:make_fear_map()
   local lMap = {}
@@ -1778,9 +1709,8 @@ function Creature:make_fear_map()
   return lMap
 end --end make_fear_map
 
---This function is run every tick and updates various things. You probably shouldn't run it yourself
---@param self Creature. The creature itself
---@param dt Number. The number (or fractional number) of seconds since the last time update() was run
+---This function is run every tick and updates various things. You probably shouldn't call it yourself
+--@param dt Number. The number of seconds since the last time update() was run. Most likely less than 1.
 function Creature:update(dt) --for charging, and other special effects
   if self == player and self.sees == nil then self.sees = self:get_seen_creatures() end --update player sees if for some reason they don't see anything (after a possession f'rex)
   --Delete tween if done moving:
@@ -1943,29 +1873,27 @@ function Creature:update(dt) --for charging, and other special effects
   end --end animation for
 end --end function
 
---Placeholder. Don't use.
+---Placeholder. Doesn't do anything.
 --@return False.
 function Creature:refresh_image_name()
   return false
 end
 
---Gets a creature's speed stat value, including bonuses
---@param self Creature. The creature itself
+---Gets a creature's speed stat value, including bonuses
 --@return Number. The stat value
 function Creature:get_speed()
   return self.speed+self:get_bonus('speed')
 end
 
---Gets a creature's perception stat value, including bonuses
+---Gets a creature's perception stat value, including bonuses
 --@param self Creature. The creature itself
 --@return Number. The stat value
 function Creature:get_perception()
   return self.perception+self:get_bonus('perception')
 end
 
---Makes a creature fly through the air to a target
---@param self Creature. The creature itself
---@param target Table. A table containing, at the least an x and y index. Can be a creature, a feature, or just a table with nothing but x and y.
+---Makes a creature fly through the air to a target
+--@param target Table. A table containing at least an x and y index. Can be a creature, a feature, or just a table with nothing but x and y.
 --@param result Spell. What spell to use after the zoom is done. A spell object itself, not the ID (optional)
 function Creature:flyTo(target,result)
   self.zoomFrom = {x=self.x,y=self.y}
@@ -1977,10 +1905,9 @@ function Creature:flyTo(target,result)
   if result then self.zoomResult = result end
 end
 
---Become a thrall to another creature
---@param self Creature. The creature itself
+---Become a thrall to another creature. If you already have a master, unset your previous master.
 --@param master Creature. The creature to become a thrall to
---@param skip_callbacks True/False. Whether to skip thrall callbacks (optional)
+--@param skip_callbacks Boolean. Whether to skip thrall callbacks (optional)
 function Creature:become_thrall(master,skip_callbacks,skip_stats)
   --If you had an earlier master, unset yourself as their thrall first:
   if not self:become_free(skip_callbacks) then return false end
@@ -2020,9 +1947,8 @@ function Creature:become_thrall(master,skip_callbacks,skip_stats)
   end
 end
 
---Become free from your master
---@param self Creature. The creature itself
---@param skip_callbacks True/False. Whether to skip freedom callbacks (optional)
+---Become free from your master
+--@param skip_callbacks Boolean. Whether to skip freedom callbacks (optional)
 function Creature:become_free(skip_callbacks)
   if skip_callbacks == true or self:callbacks('became_free') then
     if not self.master then return true end
@@ -2035,8 +1961,7 @@ function Creature:become_free(skip_callbacks)
   end
 end
 
---Free all this creature's thralls
---@param self Creature. The creature itself
+---Free all this creature's thralls
 function Creature:free_thralls()
   for _,creat in pairs(self.thralls) do
     creat:become_free()
@@ -2056,8 +1981,7 @@ function Creature:get_level_up_cost()
   return self.level*100
 end
 
----"Level Up" a random stat. Either strength, dodging or melee
---@param self Creature. The creature itself
+---Level Up, granting skill points (for players), or randomly increasing skills (for NPCs)
 function Creature:level_up()
   local cost = self:get_level_up_cost()
   if self.xp < cost then return false end
@@ -2081,7 +2005,7 @@ function Creature:level_up()
   end
 end
 
---Gets how afraid a creature is
+---Find out how afraid the creature is
 --@param self Creature. The creature itself
 --@return Number. The fear value
 function Creature:get_fear()
@@ -2097,66 +2021,59 @@ function Creature:get_fear()
   return (self.fear or 0)+(enemies-friends)+self:get_bonus('fear')
 end
 
---Gets a creature's bravery stat value, including bonuses
---@param self Creature. The creature itself
+---Gets the creature's bravery stat value, including bonuses
 --@return Number. The stat value
 function Creature:get_bravery()
   return (self.bravery or 10000)+self:get_bonus('bravery')
 end
 
---Gets a creature's aggression stat value, including bonuses
+---Gets the creature's aggression stat value, including bonuses
 --@param self Creature. The creature itself
 --@return Number. The stat value
 function Creature:get_aggression()
   return (self.aggression or 100)+self:get_bonus('aggression')
 end
 
---Gets a creature's animation_time stat value, including bonuses
---@param self Creature. The creature itself
+---Gets the creature's animation_time stat value, including bonuses
 --@return Number. The stat value
 function Creature:get_animation_time()
   local perc_bonus = self:get_bonus('animation_time_percent') or 1
   return math.max(0,(self.animation_time or 0.5)*(perc_bonus ~= 0 and perc_bonus or 1)+self:get_bonus('animation_time'))
 end
 
---Gets a creature's notice chance value, including bonuses
---@param self Creature. The creature itself
+---Gets the creature's notice chance value, including bonuses
 --@return Number. The stat value
 function Creature:get_notice_chance()
   --Player's notice chance defaults to 100%, but can be changed by conditions or whatnot
   return (self == player and 100 or (self.notice_chance or 100))+self:get_bonus('notice_chance')
 end
 
---Gets a creature's stealth stat value, including bonuses
---@param self Creature. The creature itself
+---Gets the creature's stealth stat value, including bonuses
 --@return Number. The stat value
 function Creature:get_stealth()
   if self.zoomTo then return -1000 end --if you're zooming somewhere, you're going to get noticed
   return (self.stealth or 0)+self:get_bonus('stealth')
 end
 
---Gets a creature's damage value, including bonuses
---@param self Creature. The creature itself
+---Gets the creature's damage value, including bonuses
 --@return Number. The damage value
 function Creature:get_damage()
   return self.strength + self:get_bonus('damage')
 end
 
---Gets a creature's armor piercing value, including bonuses
---@param self Creature. The creature itself
+---Gets the creature's armor piercing value, including bonuses
 --@return Number. The damage value
 function Creature:get_armor_piercing()
   return (self.armor_piercing or 0) + self:get_bonus('armor_piercing')
 end
 
---Gets a creature's critical_chance stat value, including bonuses
---@param self Creature. The creature itself
+---Gets the creature's critical_chance stat value, including bonuses
 --@return Number. The stat value
 function Creature:get_critical_chance()
   return (self.critical_chance or 1)+self:get_bonus('critical_chance')
 end
 
---Get all spells a creature has, including those granted by equipment
+---Get all spells the creature has, including those granted by equipment
 --@return Table. A list of the creature's spells
 function Creature:get_spells()
   local spells = (self.spells and copy_table(self.spells) or {})
@@ -2172,7 +2089,7 @@ function Creature:get_spells()
   return spells
 end
 
---Get all ranged attacks a creature has, including those granted by equipment
+---Get all ranged attacks the creature has, including those granted by equipment
 --@return Table. A list of the creature's ranged attacks
 function Creature:get_ranged_attacks()
   local ranged = {}
@@ -2187,16 +2104,16 @@ function Creature:get_ranged_attacks()
   return ranged
 end
 
---Checks if a creature possesses a certain spell
+---Checks if the creature possesses a certain spell
 --@param spellName String. The name of the spell
---@return True/False. Whether the creature has the spell
+--@return Boolean. Whether the creature has the spell
 function Creature:has_spell(spellName)
   return in_table(spellName,self:get_spells())
 end
 
---Checks if a creature possesses a certain AI flag
+---Checks if the creature possesses a certain AI flag
 --@param spellName String. The AI flag
---@return True/False. Whether the creature has the AI flag
+--@return Boolean. Whether the creature has the AI flag
 function Creature:has_ai_flag(flag)
   if self.ai_flags == nil then return false end
   for _,f in pairs(self.ai_flags) do

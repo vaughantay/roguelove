@@ -89,11 +89,21 @@ function factionscreen:draw()
     local missionbuttonW = fonts.textFont:getWidth("Missions")+padding
     local totalWidth = windowWidth
     local startX = math.floor(midX-totalWidth/2)+padding
+    if self.screen == "Info" then setColor(150,150,150,255) end
     self.infoButton = output:button(startX,printY,infobuttonW+padX,false,((self.cursorX == 1 and self.cursorY == 2) and "hover" or nil),"Information")
+    if self.screen == "Info" then setColor(255,255,255,255) end
+    if self.screen == "Items" then setColor(150,150,150,255) end
     self.shopButton = output:button(startX+infobuttonW+padX*2,printY,shopbuttonW,false,((self.cursorX == 2 and self.cursorY == 2) and "hover" or nil),"Items")
+    if self.screen == "Items" then setColor(255,255,255,255) end
+    if self.screen == "Spells" then setColor(150,150,150,255) end
     self.spellsButton = output:button(startX+infobuttonW+shopbuttonW+padX*3,printY,spellbuttonW,false,((self.cursorX == 3 and self.cursorY == 2) and "hover" or nil),"Abilities")
+    if self.screen == "Spells" then setColor(255,255,255,255) end
+    if self.screen == "Services" then setColor(150,150,150,255) end
     self.serviceButton = output:button(startX+infobuttonW+shopbuttonW+spellbuttonW+padX*4,printY,servicebuttonW,false,((self.cursorX == 4 and self.cursorY == 2) and "hover" or nil),"Services")
+    if self.screen == "Services" then setColor(255,255,255,255) end
+    if self.screen == "Missions" then setColor(150,150,150,255) end
     self.missionButton = output:button(startX+infobuttonW+shopbuttonW+spellbuttonW+servicebuttonW+padX*5,printY,missionbuttonW,false,((self.cursorX == 5 and self.cursorY == 2) and "hover" or nil),"Missions")
+    if self.screen == "Missions" then setColor(255,255,255,255) end
     printY = printY+padX
   else
     love.graphics.printf("You need at least " .. faction.enterThreshold .. " favor to do business with this faction.",printX,printY,windowWidth,"center")

@@ -198,6 +198,7 @@ function inventory:draw()
   end
   love.graphics.print("Equipment",optionX+boxpadding,filterY)
   self.filterButtons[#self.filterButtons+1] = {filter="equippable",minX = optionX, maxX = optionX+boxpadding+optionW,minY=filterY-4,maxY=filterY+fontSize+10}
+  love.graphics.line(padding,filterY+fontSize+14,sidebarX-padding,filterY+fontSize+14)
 
 	for i, line in ipairs(self.inventory) do
     local printY = line.y
@@ -317,7 +318,7 @@ function inventory:draw()
     self.maxButtonCursorX = buttonCursorX
     
   end
-  self.closebutton = output:closebutton(padding,padding,nil,true)
+  self.closebutton = output:closebutton(14,14,nil,true)
   love.graphics.pop()
 end
 

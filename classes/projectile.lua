@@ -1,7 +1,7 @@
+---@classmod Projectile
 Projectile = Class{baseType = "projectile"}
 
---Initiates a projectile. Don't call this explicitly, it's called when you create a new projectile.
---@param self The new projectile being created.
+---Initiates a projectile. Don't call this explicitly, it's called when you create a new projectile with Projectile('projectileID',source,target).
 --@param projectile_type String. The ID of the projectile you'd like to create
 --@param source Entity. A table that contains the X and Y coordinates the projectile is starting at. Might be a creature.
 --@param target Entity. A table that contains the X and Y coordinates the projectile is moving towards. Might be a creature.
@@ -47,21 +47,18 @@ function Projectile:init(projectile_type,source,target,info)
 	return self
 end
 
---Gets the description of the projectile
---@param self The projectile itself
---@return String. The description of the projectile
+---Gets the name and description of the projectile
+--@return String. The name and description of the projectile
 function Projectile:get_description()
 	return ucfirst(self.name) .. "\n" .. self.description
 end
 
---Deletes a projectile
---@param self The projectile itself
+---Deletes a projectile
 function Projectile:delete()
 	currMap.projectiles[self] = nil
 end
 
---This code runs every turn a projectile is active. You shouldn't call it explicitly, it's called by the advance_turn() code
---@param self The projectile itself
+---This code runs every turn a projectile is active. You shouldn't call it explicitly, it's called by the advance_turn() code
 function Projectile:advance()
   if (self.path == nil) then --first made?
     if (self.projectile == true) then
@@ -92,10 +89,9 @@ function Projectile:advance()
 	if (projectiles[self.id].advance) then return projectiles[self.id].advance(self) end
 end
 
---This code runs every tick a projectile is active. You shouldn't call it explicity, it's called by the advance_turn() code
---@param self The projectile itself
+---This code runs every tick a projectile is active. You shouldn't call it explicitly.
 --@param dt Number The number of seconds since the last tick
---@param force_generic True/False. If set to true, run this code and don't run the projectile's custom hits() code.
+--@param force_generic Boolean. If set to true, run this code and don't run the projectile's custom update() code.
 function Projectile:update(dt,force_generic)
   if self.pause and self.pause > 0 then
     self.pause = self.pause-dt
@@ -131,10 +127,9 @@ function Projectile:update(dt,force_generic)
   end --end timer check
 end --end update() function
 
---Called when a projectile hits something
---@param self The projectile itself
---@param target Entity. The thing it hit. At least a table with an X and Y coordinate, possibly a creature.
---@param force_generic True/False. If set to true, run this code and don't run the projectile's custom hits() code.
+---Called when a projectile hits something
+--@param target Entity. The thing it hit. Must be a table with an X and Y coordinate, probably a creature.
+--@param force_generic Boolean. If set to true, run this code and don't run the projectile's custom hits() code.
 function Projectile:hits(target,force_generic)
   if (force_generic ~= true and projectiles[self.id].hits) then return projectiles[self.id].hits(self,target) end
   --Generic hits:
@@ -184,9 +179,8 @@ function Projectile:hits(target,force_generic)
   self:delete()
 end --end hits() function
 
---Gets the name of the projectile
---@param self The projectile itself
---@param full True/False. If true, return just the basic name of the projectile. If false, preface with "a" or "an"
+---Gets the name of the projectile
+--@param full Boolean. If true, return just the basic name of the projectile. If false, preface with "a" or "an"
 --@return String. The name of the projectile
 function Projectile:get_name(full)
   if (full == true) then

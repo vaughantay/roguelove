@@ -1,7 +1,7 @@
+---@classmod Feature
 Feature = Class{}
 
---Initiates a feature. Don't call this explicitly, it's called when you create a new feature.
---@param self The new feature being created.
+---Initiates a feature. Don't call this explicitly, it's called when you create a new feature using Feature('featureID').
 --@param feature_type The ID of the feature you'd like to create
 --@param info An argument to pass to the feature's new() function, if applicable (optional)
 --@param x The x-coordinate (optional, will be set when it is added to the map)
@@ -31,9 +31,8 @@ function Feature:init(feature_type,info,x,y)
 	return self
 end
 
---Returns the name of the feature.
---@param self The feature in question.
---@param full True/False. Whether to return the name in uppercase and without an article.
+---Returns the name of the feature.
+--@param full Boolean. Whether to return the name in uppercase and without an article.
 --@return String. The name.
 function Feature:get_name(full)
   if (full == true) then
@@ -43,8 +42,7 @@ function Feature:get_name(full)
 	end
 end
 
---Returns the description of the feature.
---@param self The feature in question.
+---Returns the description of the feature, and descriptive lines noting what you can do with it.
 --@return String. The description.
 function Feature:get_description()
 	local txt = self.name .. "\n" .. self.description
@@ -55,19 +53,11 @@ function Feature:get_description()
   return txt
 end
 
---Calls the possess() function of a feature, if it has one.
---@return True/False. Whether or not the possession happened.
-function Feature:possess()
-  if possibleFeatures[self.id].possess then return possibleFeatures[self.id].possess(self) end
-	return false
-end
-
---Calls the enter() function of a feature, if it has one.
---@param self The feature in question.
---@param enterer The creature entering the feature's tile.
---@param fromX The x-coordinate the creature is coming from
---@param fromY The y-coordinate the creature is coming from
---@return True/False. Whether or not the creature was allowed to enter.
+---Calls the enter() function of a feature, if it has one.
+--@param enterer Creature. The creature entering the feature's tile.
+--@param fromX Number. The x-coordinate the creature is coming from
+--@param fromY Number. The y-coordinate the creature is coming from
+--@return Boolean. Whether or not the creature was allowed to enter.
 function Feature:enter(enterer,fromX,fromY)
   if not fromX or not fromY then
     fromX,fromY = self.x,self.y
@@ -76,10 +66,9 @@ function Feature:enter(enterer,fromX,fromY)
 	return true
 end
 
---Pushes a feature, if it's pushable. Also calls the push() callback of a feature, if applicable.
---@param self The feature in question.
---@param pusher The creature pushing the feature. This will be used to determine where it is being pushed to.
---@return True/False. Whether or not the push went through.
+---Pushes a feature, if it's pushable. This also calls the push() callback of a feature, if applicable.
+--@param pusher Creature. The creature pushing the feature. This will be used to determine where it is being pushed to.
+--@return Boolean. Whether or not the push went through.
 function Feature:push(pusher)
   if self.pushable == false then return false end
   if possibleFeatures[self.id].push then return possibleFeatures[self.id].push(self,pusher) end
@@ -104,12 +93,11 @@ function Feature:push(pusher)
   return false
 end
 
---Moves a feature to a new location.
---@param self The feature in question.
---@param x The x-coordinate to move to.
---@param y The y-coordinate to move to.
---@param noTween True/False. Whether you want to to have the movement appear smooth. (optional)
---@return True/False. Whether or not the move happened.
+---Moves a feature to a new location.
+--@param x Number. The x-coordinate to move to.
+--@param y Number. The y-coordinate to move to.
+--@param noTween Boolean. If true, no tweening animation will be used. (optional)
+--@return Boolean. Whether or not the move happened.
 function Feature:moveTo(x,y,noTween)
   if not noTween and not prefs['noSmoothMovement'] then
     local tileSize = output:get_tile_size()
@@ -128,12 +116,11 @@ function Feature:moveTo(x,y,noTween)
 	return true
 end
 
---Damages a feature, destroying it if it has HP and the damage done was more than its HP.
---@param self The feature in question.
---@param amt How much damage is being done.
---@param source What is damaging the feature.
---@param damage_type The damage type.
---@param force Ignore damage callbacks
+---Damages a feature, destroying it if it has HP and the damage done was more than its HP.
+--@param amt Number. How much damage is being done.
+--@param source Entity. What is damaging the feature.
+--@param damage_type String. The damage type. (optional)
+--@param force Boolean. Whether or not to ignore the feature's damage() callback (optional)
 --@return Number. The final damage that was done.
 function Feature:damage(amt,source,damage_type,force)
   if not force and possibleFeatures[self.id].damage then --has custom damaged code?
@@ -163,7 +150,7 @@ function Feature:damage(amt,source,damage_type,force)
 	return amt
 end
 
---Delete a feature from the map
+---Delete a feature from the map
 --@param map The map that the feature is on. If blank, defaults to the current map. (optional)
 function Feature:delete(map)
   map = map or currMap
@@ -176,25 +163,25 @@ function Feature:delete(map)
   if self.blocksSight then refresh_player_sight() end
 end
 
---Refresh the image name of a feature.
---Used for features that look different if they're next to each other, like water.
---@return True/False. Whether the image name was refreshed or not
+---Refresh the image name of a feature.
+--Used for features that look different if they're next to each other, like water, when its surrounding has changed.
+--@return Boolean. Whether the image name was refreshed or not
 function Feature:refresh_image_name(map)
   if possibleFeatures[self.id].refresh_image_name then return possibleFeatures[self.id].refresh_image_name(self,map) end
 	return false
 end
 
---Checks if a feature is hazardous for a certain creature type.
+---Checks if a feature is hazardous for a certain creature type.
 --@param ctype String. The creature type we're checking for. If blank, just checks if it's generally hazardous. (optional)
---@return True/False. Whether or not the feature is hazardous.
+--@return Boolean. Whether or not the feature is hazardous.
 function Feature:is_hazardous_for(ctype)
   if self.hazard and ((self.hazardousFor == nil and (ctype == nil or self.safeFor == nil or self.safeFor[ctype] ~= true)) or (ctype ~= nil and self.hazardousFor and self.hazardousFor[ctype] == true)) then
     return true 
   end
 end
 
---Checks a feature's combust() callback, if applicable, and then lights it on fire if applicable.
---@param skip_basic True/False. Whether to skip the combust() and just go ahead and light fire. (optional)
+---Checks a feature's combust() callback, if applicable, and then lights it on fire if applicable.
+--@param skip_basic Boolean. Whether to skip the combust() callback and just go ahead and light the fire. (optional)
 function Feature:combust(skip_basic)
   if not skip_basic and possibleFeatures[self.id].combust then return possibleFeatures[self.id].combust(self) end
   currMap:add_effect(Effect('fire',{x=self.x,y=self.y,timer=(self.fireTime or 10)}),self.x,self.y)

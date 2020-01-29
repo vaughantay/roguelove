@@ -1,4 +1,11 @@
-function new_game(mapSeed,playTutorial,cheats)
+---@module gamelogic
+
+---Starts a new game, and does all the bookkeeping necessary for that. Generates the first level, and puts the player on it.
+--@param mapSeed Number. The seed to use to generate the world. (optional)
+--@param playTutorial Boolean. Whether or not to show tutorial messages this game. (optional)
+--@param cheats Table. A table listing all the cheats in use this game. (optional)
+--@param class String. What class to apply to the player character. (optional)
+function new_game(mapSeed,playTutorial,cheats,class)
 	maps = {}
   currGame = {startTime=os.date(),fileName=player.properName,playTutorial=playTutorial,tutorialsSeen={},missionFlags={},achievementDisqualifications={},cheats={},autoSave=prefs['autosaveTurns'],seed=mapSeed,stats={}}
   if cheats then currGame.cheats = cheats end
@@ -9,7 +16,7 @@ function new_game(mapSeed,playTutorial,cheats)
 		currMap = mapgen:generate_map(75,75,(forceDepth or 1),forceLevel)
 		player:moveTo(currMap.stairsDown.x,currMap.stairsDown.y)
 		currMap.creatures[player] = player
-    player:apply_class('demonhunter')
+    if class then player:apply_class(class) end
 	end
 	table.insert(maps,currMap)
 	output:setCursor(0,0)
@@ -23,6 +30,8 @@ function new_game(mapSeed,playTutorial,cheats)
   update_stat('level_reached',currMap.id)
 end
 
+---Figures out which level to load based on a given string. Used for level-skip cheats.
+--@param name String. The name of the level to load, or "level#" to load any level at a given depth, or "generic#" to load the generic level at the given depth.
 function parse_name_for_level(name)
   local depth = (string.sub(name,1,5) == "level" and tonumber(string.sub(name,6)) or (string.sub(name,1,7) == "generic") and tonumber(string.sub(name,8)))
   if specialLevels[name] then
@@ -37,6 +46,7 @@ function parse_name_for_level(name)
   end
 end
 
+---Creates the player character entity.
 function initialize_player()
 	player = Creature('player',0)
 	player.isPlayer = true
@@ -51,11 +61,22 @@ function initialize_player()
   player.color={r=255,g=255,b=255,a=255}
 end
 
+---Calculates the chance of hitting an opponent.
+--@param attacker Creature. The creature doing the attacking.
+--@param target Creature. The creature getting potentially hit
+--@param item Item. The item the attacker is using.
 function calc_hit_chance(attacker,target,item)
   local hitMod = attacker.melee - (target.dodging or 0)
   return math.min(math.max(70 + (hitMod > 0 and hitMod*2 or hitMod) + attacker:get_bonus('hit_chance') - (target.get_bonus and target:get_bonus('dodge_chance') or 0),25 + (item and item.accuracy or 0)),95)
 end
 
+---Calculates whether an attacker hits a target, whether it was a critical, and how much damage was done. Important to note: This function just *calculates* the damage, it does not apply it!
+--@param attacker Creature. The creature attacking.
+--@param target Creature. The creature getting attacked.
+--@param forceHit Boolean. Whether to ignore hit chance and force a hit. (optional)
+--@param item Item. The item the attacker is using, if any. (optional)
+--@return result String. "hit", "miss", or "critical
+--@return dmg Number. The damage to do.
 function calc_attack(attacker,target,forceHit,item)
 	local dmg = (item and item:get_damage(target,attacker) or attacker:get_damage())
   local dbonus = .01*attacker:get_bonus('damage_percent',true)
@@ -81,6 +102,7 @@ function calc_attack(attacker,target,forceHit,item)
 	return result,dmg
 end
 
+---Advances the turn, causing NPCs to move, effects and projectiles to advance, the map's lighting to recalculate, creature conditions to do their thing, and the output buffer to clear.
 function advance_turn()
   local pTime = os.clock()
   game.canvas=nil
@@ -174,6 +196,7 @@ function advance_turn()
   refresh_player_sight()
 end --end advance_turn
 
+---This function is called when you win. It saves the win for posterity, and blacks out the screen.
 function win()
   print('winning!')
   action = "winning"
@@ -183,6 +206,7 @@ function win()
   game:blackOut(5,true)
 end
 
+---This function is called when you lose. It clears out the player and current game variables, and switches back to the main menu.
 function game_over()
 	player = nil
   currGame = nil
@@ -192,7 +216,9 @@ function game_over()
 	Gamestate.switch(menu)
 end
 
-function goUp(force)
+---Advance to the next level of the dungeon.
+--@param force Boolean. Whether to force the game to go to the next level, ignoring whether the boss is dead or not. (optional)
+function nextLevel(force)
 	if (currMap.boss == nil and force ~= true) then
     generate_boss()
 	elseif (force or debugMode) or (currMap.boss == -1 or currMap.boss.hp < 1)  then
@@ -239,6 +265,8 @@ function goUp(force)
 	end
 end
 
+---Regenerates the current level.
+--@todo Strip out the Possession-specific stuff
 function regen_level()
   print('regening')
   local newGhost = Creature('ghost')
@@ -278,6 +306,7 @@ function regen_level()
   currGame.autoSave=true
 end
 
+---Generates the boss for the level.
 function generate_boss()
   achievements:check('boss')
   local alreadyThere = false
@@ -330,6 +359,9 @@ function generate_boss()
   currMap.boss:become_hostile(player)
 end
 
+---Update a game statistic (like turns played, creatures killed, etc.). Increments the given stat by 1.
+--@param stat_type String. The stat type to return.
+--@param id String. The sub-stat type to return (for example, kills of a specific creature type)
 function update_stat(stat_type,id)
   if not currGame.stats then currgame.stats = {} end
   if stat_type and id then
@@ -351,6 +383,9 @@ function update_stat(stat_type,id)
   end
 end
 
+---Get the value of a game statistic (like turns played, creatures killed, etc.)
+--@param stat_type String. The stat type to return.
+--@param id String. The sub-stat type to return (for example, kills of a specific creature type)
 function get_stat(stat_type,id)
   if stat_type and id then
     if currGame.stats[stat_type] == nil then return 0
@@ -359,6 +394,8 @@ function get_stat(stat_type,id)
   end
 end
 
+---Handle movement keys. If action is set to "targeting" then it'll move the cursor, otherwise it'll move the player.
+--@param direction String. The keycode of the pressed key.
 function perform_move(direction)
 	local xMod, yMod = 0,0
 	if (direction == "left" or direction==keybindings.west) then
@@ -389,6 +426,11 @@ function perform_move(direction)
   end
 end
   
+---Move the player to a new location. Also handles warnings for moving into a dangerous area, and advances the turn if the player moves.
+--@param newX Number. The X-coordinate to move the player to.
+--@param newY Number. The Y-coordinate to move the player to.
+--@param force Boolean. Whether to ignore warnings and move the player into a potentially dangerous tile. (optional)
+--@return Boolean. Whether the move was successful or not.
 function move_player(newX,newY,force)
 	output:setCursor(0,0)
   local clear = player:can_move_to(newX,newY)
@@ -453,6 +495,10 @@ function move_player(newX,newY,force)
   end
 end
 
+---Find a path from the player's location to a new location, and start the player moving along it.
+--@param x Number. The x-coordinate to move to.
+--@param y Number. The y-coordinate to move to.
+--@param noMsg Boolean. Whether to suppress the "moving to" notification.
 function pathTo(x,y,noMsg)
   local path = currMap:findPath(player.x,player.y,x,y,player.pathType)
 	if (path ~= false) then
@@ -465,6 +511,9 @@ function pathTo(x,y,noMsg)
 	end
 end
 
+---Set the player's target, and if targeting an action, apply that action to the target. If targeting a tile with a creature, that creature will be the player's target for UI purposes.
+--@param x Number. The x-coordinate of the target.
+--@param y Number. The y-coordinate of the target.
 function setTarget(x,y)
 	local creat = currMap:get_tile_creature(x,y)
 	if (creat) then target = creat end
@@ -526,6 +575,7 @@ function setTarget(x,y)
 	end --end main if
 end --end function
 
+---Called when the player dies. Starts the screen going black, saves a graveyard file, and updates death statistics.
 function player_dies()
   local killername = "!"
   if (player.killer and player.killer.baseType == "creature") then killername = ", courtesy of ".. player.killer:get_name() .. "."
@@ -547,6 +597,7 @@ function player_dies()
   end
 end
 
+---Refreshes the player's sightmap. Called every turn, may need to be called if something changes visibility for some reason (new lights or something that blocks sight showing up)
 function refresh_player_sight()
   if not currMap then return end
   if not player.seeTiles then player.seeTiles = {} end
@@ -558,34 +609,31 @@ function refresh_player_sight()
   end
 end
 
---10-20: 10
---20-30: 15
---30-50: 20
-function calc_possession_cooldown()
-  local possessions = currGame.stats['total_possessions']
-  if possessions < 10 then
-    return 0
-  elseif possessions <= 30 then
-    return math.floor(possessions-10)/2
-  else
-    return math.min(20,10+math.floor((possessions-30)/4))
-  end
-end
-
+---Show a tutorial message
+--@param tutorial String. The ID of the tutorial to show.
 function show_tutorial(tutorial)
   require "data.tutorials"
   game:show_popup(tutorials[tutorial],nil,nil,nil,true)
   currGame.tutorialsSeen[tutorial] = true
 end
 
+---Gets the value of a "mission flag." Mission flags aren't pre-defined, you can use them as you see fit to track whatever information you want in a given playthrough.
+--@param flag String. The ID of the mission flag.
+--@return Anything. The value of the flag.
 function get_mission_flag(flag)
   return currGame.missionFlags[flag]
 end
 
+---Sets a "mission flag" to a specific value. Mission flags aren't pre-defined, you can use them as you see fit to track whatever information you want in a given playthrough.
+--@param flag String. The ID of the mission flag.
+--@param value Anything. The value you'd like to store.
 function set_mission_flag(flag,val)
   currGame.missionFlags[flag] = val
 end
 
+---Updates a "mission flags" value by a given number value. Mission flags aren't pre-defined, you can use them as you see fit to track whatever information you want in a given playthrough. Only call this function on a mission flag that's using number values!
+--@param flag String. The ID of the mission flag.
+--@param amt Number. The amount to increase the flag by. (optional, defaults to 1)
 function update_mission_flag(flag,amt)
   local f = currGame.missionFlags[flag]
   amt = amt or 1
@@ -594,18 +642,4 @@ function update_mission_flag(flag,amt)
   else
     currGame.missionFlags[flag] = amt
   end
-end
-
-function mapgen:generate_item(level)
-	local newItem = nil
-	-- This selects a random item from the table of possible loot, and compares the desired item level to this item's level. If it's a match, continue, otherwise select another one
-	while (newItem == nil) do
-		local n = get_random_key(possibleItems)
-		if (1==1) and not n.neverSpawn and random(1,100) >= (n.rarity or 0) then
-			newItem = n
-    end
-  end
-  -- Create the actual item:
-	newItem = Item(newItem)
-	return newItem
 end
