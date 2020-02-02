@@ -1,5 +1,9 @@
+---@classmod Faction
 Faction = Class{}
 
+---Initiate a faction from its definition. You shouldn't use this function, the game uses it at loadtime to instantiate the factions.
+--@param data Table. The table of faction data.
+--@return self Faction. The faction itself.
 function Faction:init(data)
 	for key, val in pairs(data) do
 		self[key] = data[key]
@@ -8,6 +12,9 @@ function Faction:init(data)
 	return self
 end
 
+---Determine if a creature is an enemy of the faction.
+--@param creature Creature. The creature to test for enmity.
+--@return Boolean. Whether the creature is an enemy or not.
 function Faction:is_enemy(creature)
   --First things first, never consider fellow faction members an enemy (unless you're an infighting faction)
   if not self.attackOwnFaction and creature:is_faction_member(self.id) then
@@ -54,6 +61,9 @@ function Faction:is_enemy(creature)
   return false
 end
 
+---Determine if the faction considers a creature a friend or not.
+--@param creature Creature. The creature to test for friendship.
+--@return Boolean. Whether the creature is a friend or not.
 function Faction:is_friend(creature)
   --First things first, always consider fellow faction members a friend (unless you're an infighting faction)
   if not self.attackOwnFaction and creature:is_faction_member(self.id) then
@@ -82,6 +92,8 @@ function Faction:is_friend(creature)
   return false
 end
 
+---Have a creature become a member of the faction.
+--@param creature Creature. The creature that's joining. (optional, defaults to the player)
 function Faction:join(creature)
   creature = creature or player
   if not creature:is_faction_member(self.id) then
@@ -89,6 +101,10 @@ function Faction:join(creature)
   end
 end
 
+---Test if a creature can become a member of the faction.
+--@param creature Creature. The creature that's a potential applicant. (optional, defaults to the player)
+--@return Boolean. Whether the creature can join or not.
+--@return String. Details on why the creature can't join. (nil if they can join)
 function Faction:can_join(creature)
   creature = creature or player
   local canJoin = true
@@ -118,6 +134,10 @@ function Faction:can_join(creature)
   return canJoin,reasons
 end
 
+---Have a creature learn a spell from a faction.
+--@param spellID String. The ID of the spell they're trying to learn.
+--@param creature Creature. The creature learning the spell. (optional, defaults to the player)
+--@return Boolean. Whether learning the spell was successful or not.
 function Faction:teach_spell(spellID,creature)
   creature = creature or player
   if creature:has_spell(spellID) then return false end

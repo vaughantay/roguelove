@@ -62,6 +62,15 @@ demondamager = Spell({
   end
 }),
 
+scrawny = Spell({
+	name = "Scrawny Arms",
+	description = "Your arms are basically noodles. You can never deal more than 1 damage in melee.",
+	target_type = "passive",
+  calc_damage = function(self,possessor,target,damage)
+    return 1
+  end
+}),
+
 summonangel = Spell({
 	name = "Summon Angel",
 	description = "You know a lot about demons. Particularly, how to hurt them.",

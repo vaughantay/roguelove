@@ -1,6 +1,10 @@
+---@classmod ranged_attack
 ranged_attack = {}
 ranged_attack.__index = ranged_attack
 
+---Initiate a ranged attack from its definition. You shouldn't use this function, the game uses it at loadtime to instantiate the ranged attacks.
+--@param data Table. The table of attack information.
+--@return ranged_attack. The attack itself.
 function ranged_attack:new(data)
 	local newRanged = {}
 	for key, val in pairs(data) do
@@ -13,14 +17,23 @@ function ranged_attack:new(data)
 	return newRanged
 end
 
+---Get the name of the ranged attack.
+--@return String. The name of the attack.
 function ranged_attack:get_name()
   return self.name
 end
 
+---Get the description of the ranged attack.
+--@return String. The description of the attack.
 function ranged_attack:get_description()
   return self.description
 end
 
+---Use the ranged attack.
+--@param target Creature. The creature being targeted.
+--@param attacker Creature. The creature doing the attack.
+--@param item Item. The item being used to do the ranged attack (optional).
+--@return Boolean. Whether the attack was successful.
 function ranged_attack:use(target, attacker, item)
 	-- check to see if it can be used
   if target == attacker then
@@ -54,6 +67,10 @@ function ranged_attack:use(target, attacker, item)
   return Projectile((item and item.projectile_name or self.projectile_name),attacker,target)
 end
 
+---Calculate whether the ranged attack hits.
+--@param target Creature. The creature being targeted.
+--@param attacker Creature. The creature doing the attack.
+--@return Boolean. Whether the attack hits or not.
 function ranged_attack:does_hit(attacker,target)
 	local hitMod = self:calc_hit_chance(attacker,target)
 	
@@ -61,6 +78,10 @@ function ranged_attack:does_hit(attacker,target)
   return false
 end
 
+---Calculate the chance the ranged attack will hit.
+--@param target Creature. The creature being targeted.
+--@param attacker Creature. The creature doing the attack.
+--@return Number. The % hit chance.
 function ranged_attack:calc_hit_chance(attacker,target)
   local dist = calc_distance(attacker.x,attacker.y,target.x,target.y)
   if (self.range and dist > self.range) or (self.min_range and dist < self.min_range) or (self.projectile and not attacker:can_shoot_tile(target.x,target.y)) then
@@ -84,6 +105,10 @@ function ranged_attack:calc_hit_chance(attacker,target)
   return hitMod
 end
 
+---Recharge the charges of the ranged attack.
+--@param possessor Creature. The creature who has the attack.
+--@param item Item. The item that has the attack.
+--@return Boolean. Whether the recharging was successful.
 function ranged_attack:recharge(possessor,item)
   local charges = (item and item.charges or possessor.ranged_charges)
   local max_charges = (item and item.max_charges or self.max_charges)

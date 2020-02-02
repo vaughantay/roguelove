@@ -560,9 +560,8 @@ function game:print_target_sidebar()
 
     local yPadNow = 15*#ranged_attacks
     love.graphics.print("Chance to Be Hit: " .. calc_hit_chance(target,player) .. "%",printX+xPad,printY+60+yPadNow)
-    love.graphics.print("Possession Chance: " .. target:get_possession_chance() .. "%",printX+xPad,printY+75+yPadNow)
 		if (next(target.conditions) ~= nil) then
-      love.graphics.printf("Conditions:",printX,printY+95+yPadNow,335,"center")
+      love.graphics.printf("Conditions:",printX,printY+75+yPadNow,335,"center")
       local conText = ""
       local count = 1
       for condition, turns in pairs(target.conditions) do
@@ -572,7 +571,7 @@ function game:print_target_sidebar()
           count = count + 1
         end
       end
-      love.graphics.printf(conText,printX+5,printY+110+yPadNow,335)
+      love.graphics.printf(conText,printX+5,printY+90+yPadNow,335)
     end
 	end
 end

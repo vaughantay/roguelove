@@ -1,5 +1,11 @@
+---@classmod Item
 Item = Class{}
 
+---Create an instance of the item. Don't call this directly. Called via Item('itemID')
+--@param type_name String. The ID of the item.
+--@param info Anything. Argument to pass into the item's new() function.
+--@param amt Number. The amount of the item to create.
+--@return Item. The item itself.
 function Item:init(type_name,info,amt)
   local data = possibleItems[type_name]
 	for key, val in pairs(data) do
@@ -27,10 +33,15 @@ function Item:init(type_name,info,amt)
 	return self
 end
 
+---Get the description of the item.
+--@param withName Boolean. Whether to also include the name of the item.
+--@return String. The description of the item.
 function Item:get_description(withName)
 	return (withName and self:get_name(true) .. "\n"  or "") .. self.description
 end
 
+--Get the extended information of the item. Charges, damage, range, etc.
+--@return String. The info text of the item.
 function Item:get_info()
 	local uses = ""
   if self.charges and not self.hide_charges then
@@ -63,6 +74,10 @@ function Item:get_info()
 	return uses
 end
 
+---Get the name of the item.
+--@param full Boolean. If false, the item will be called "a dagger", if true, the item will be called "Dagger".
+--@param amount Number. The number of items in question. (optional)
+--@return String. The name of the item
 function Item:get_name(full,amount)
   amount = amount or self.amount or 1
 	if (full == true) then
@@ -94,6 +109,10 @@ function Item:get_name(full,amount)
 	end
 end
 
+---"Use" the item. Calls the item's use() code.
+--@param target Entity. The target of the item's use. Might be another creature, a tile, even the user itself.
+--@param user Creature. The creature using the item.
+--@return Boolean.Whether the use was successful.
 function Item:use(target,user)
 	if possibleItems[self.id].use then
     return possibleItems[self.id].use(self,target,user)
@@ -101,6 +120,10 @@ function Item:use(target,user)
   --Generic item use here:
 end
 
+---Find out how much damage an item will deal. Defaults to the item's damage value + the wielder's strength, but might be overridden by an item's get_damage() code
+--@param target Entity. The target of the item's attack.
+--@param wielder Creature. The creature using the item.
+--@return Number. The damage the item will deal.
 function Item:get_damage(target,wielder)
   if possibleItems[self.id].get_damage then
     return possibleItems[self.id].get_damage(self,target,wielder)
@@ -108,6 +131,13 @@ function Item:get_damage(target,wielder)
   return self.damage or 0 + wielder.strength or 0
 end
 
+---Attack another entity.
+--@param target Entity. The creature (or feature) they're attacking
+--@param wielder Creature. The creature attacking with the item.
+--@param forceHit Boolean. Whether to force the attack instead of rolling for it. (optional)
+--@param ignore_callbacks Boolean. Whether to ignore any of the callbacks involved with attacking (optional)
+--@param forceBasic Boolean. Whether to ignore the weapon's attacked_with and attack_hits code and just do a basic attack. (optional)
+--@return Number. How much damage (if any) was done
 function Item:attack(target,wielder,forceHit,ignore_callbacks,forceBasic)
   local txt = ""
   if not forceBasic and possibleItems[self.id].attacked_with then
@@ -183,12 +213,16 @@ function Item:attack(target,wielder,forceHit,ignore_callbacks,forceBasic)
 	end
 end
 
+---Set the item as the thing currently being used to target (so it'll display as targeting in the game UI)
 function Item:target()
   action = "targeting"
   actionResult = self
   actionItem = self
 end
 
+---Reload an item.
+--@param possessor Creature. The creature using the item.
+--@return Boolean. Whether the reload was successful.
 function Item:reload(possessor)
   if self.charges > 1 and self.usingAmmo then
     local it,id,amt = possessor:has_item(self.usingAmmo)
@@ -249,23 +283,21 @@ function Item:reload(possessor)
   end --end if using specific ammo
 end
 
---Check what hit conditions an item can inflict
---@param self Item. The item itself
+---Check what hit conditions an item can inflict
 --@return Table. The list of hit conditions
 function Item:get_hit_conditions()
 	return (self.hit_conditions or {})
 end
 
---Check what conditions an item can inflict on a critical hit
---@param self Item. The item itself
+---Check what conditions an item can inflict on a critical hit
 --@return Table. The list of hit conditions
 function Item:get_crit_conditions()
 	return (self.crit_conditions or self:get_hit_conditions())
 end
 
---Check what conditions an item can inflict on a critical hit
---@param self Item. The item itself
---@return Table. The list of hit conditions
+---Checks the armor-piercing quality of a weapon.
+--@param wielder Creature. The creature wielding the weapon.
+--@return Number. The armor piercing value.
 function Item:get_armor_piercing(wielder)
 	return (self.armor_piercing or 0) + (wielder and wielder:get_bonus('armor_piercing') or 0)
 end

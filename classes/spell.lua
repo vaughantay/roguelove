@@ -1,5 +1,9 @@
+---@classmod Spell
 Spell = Class{}
 
+---Initiate a spell from its definition. You shouldn't use this function, the game uses it at loadtime to instantiate the spells.
+--@param data Table. The table of spell information.
+--@return Spell. The spell itself.
 function Spell:init(data)
 	for key, val in pairs(data) do
 		self[key] = data[key]
@@ -9,6 +13,9 @@ function Spell:init(data)
 	return self
 end
 
+---Get the description of the spell, its cost, and potentially a description of why you can't use it.
+--@param no_reqtext Boolean. If true, don't show the text that explains why you can't use the ability.
+--@return String. The description of the spell.
 function Spell:get_description(no_reqtext)
   local req, reqtext = self:requires(player)
   if reqtext then
@@ -20,6 +27,11 @@ function Spell:get_description(no_reqtext)
     return self.description .. (self.cost and "\nCost: " .. self.cost .. " " .. player.magicName or "") .. (no_reqtext and "" or reqtext)
 end
 
+---Start targeting a spell (unless it's a self-only spell, in which case it just goes ahead and casts it).
+--@param target Entity. The target of the spell.
+--@param caster Creature. The caster of the spell.
+--@param ignoreCooldowns Boolean. If set to true, this will ignore whether or not the spell is on a cooldown.
+--@return Boolean. Whether the spell was successfully able to be cast/targeted or not.
 function Spell:target(target,caster, ignoreCooldowns)
   local req, reqtext = self:requires(caster)
   if (not ignoreCooldowns and caster.cooldowns[self.name]) then
@@ -47,6 +59,11 @@ function Spell:target(target,caster, ignoreCooldowns)
 	end
 end
 
+---Cast a spell.
+--@param target Entity. The target of the spell.
+--@param caster Creature. The caster of the spell.
+--@param ignoreCooldowns Boolean. If set to true, this will ignore whether or not the spell is on a cooldown.
+--@return Boolean. Whether the spell was successfully able to be cast or not.
 function Spell:use(target, caster, ignoreCooldowns)
   local req, reqtext = self:requires(caster)
 	if (not ignoreCooldowns and caster.cooldowns[self.name]) then
@@ -74,26 +91,18 @@ function Spell:use(target, caster, ignoreCooldowns)
 	end
 end
 
-function Spell:attacked(possessor)
-	return true
-end
-
-function Spell:attacks(possessor)
-	return true
-end
-
-function Spell:damages(possessor,amount)
-	return amount
-end
-
-function Spell:damaged(possessor,amount)
-	return amount
-end
-
+--Placeholder for the decide() callback, which is used by the AI to decide where to target a spell. Defaults to the already-selected target.
+--@param target Entity. The original target of the spell.
+--@param caster Creature. The creature casting the spell.
+--@param use_type String. The way in which this spell is being used. Either aggressive, defensive, fleeing or friendly.
+--@return Entity. The new target of the spell.
 function Spell:decide(target,caster,use_type)
   return target --default to already-selected target
 end
 
+--Placeholder for the requires() callback, used to determine if the creature meets the requirements for using the spell
+--@param possessor Creature. The creature who's trying to use the spell.
+--@return true
 function Spell:requires(possessor)
   return true
 end

@@ -57,6 +57,9 @@ local scroll = {
 }
 function scroll:new()
 	self.spell = get_random_key(possibleSpells)
+  while possibleSpells[self.spell].target_type == "passive" do
+    self.spell = get_random_key(possibleSpells)
+  end
 	self.name = "scroll of " .. possibleSpells[self.spell].name
 end
 function scroll:use(target,user)

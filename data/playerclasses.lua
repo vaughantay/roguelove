@@ -36,4 +36,11 @@ playerClasses = {
     resistances={fire=10,unholy=10}, --These will be added the the characters' base resistances
     stat_modifiers={dodging=2}, --These values will be added to the characters' base stats
   },
+  wimp = {
+    name="Total Wimp",
+    description="A scrawny nerd.",
+    items={"healthpotionminor"}, --These items will be granted on game start
+    stat_modifiers={strength=-5,max_hp=-25}, --These values will be added to the characters' base stats
+    spells={"scrawny"}, --These are spells the character will start with
+  },
 }
