@@ -2306,3 +2306,20 @@ function fence:refresh_image_name()
   end
 end --end get_image
 possibleFeatures['fence'] = fence
+
+local store = {
+  name="Store",
+  description = "A storefront.",
+  symbol="^",
+  alwaysDisplay=true,
+  color={r=0,g=0,b=255,a=255},
+  new = function(self)
+    local whichStore = get_random_element(stores)
+    self.store = whichStore
+    self.name = whichStore.name
+  end,
+  enter = function(self,creature)
+    if creature == player then Gamestate.switch(storescreen,self.store.id) end
+  end
+}
+possibleFeatures['store'] = store

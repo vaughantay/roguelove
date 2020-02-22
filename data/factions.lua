@@ -1,6 +1,6 @@
-factions = {}
+possibleFactions = {}
 
-factions['lightchurch'] = {
+possibleFactions['lightchurch'] = {
   name = "Church of Sweetness and Light", --Name of the faction
   description = "A powerful organization dedicated to eradicating evil. Luckily for them, but unluckily for everyone else, they also get to determine what qualifies as evil.", --Description of the faction
   friendlyTypes = {"angel"}, --Creature types this faction will not attack
@@ -30,7 +30,7 @@ factions['lightchurch'] = {
   end
 }
 
-factions['grievers'] = {
+possibleFactions['grievers'] = {
   name = "The Grievers", --Name of the faction
   description = "A powerful organization dedicated to eradicating evil. Luckily for them, but unluckily for everyone else, they also get to determine what qualifies as evil.", --Description of the faction
   friendlyTypes = {"angel"}, --Creature types this faction will not attack
@@ -60,7 +60,7 @@ factions['grievers'] = {
   end
 }
 
-factions['chaos'] = {
+possibleFactions['chaos'] = {
   name = "Chaos",
   description = "Not really a true faction. All creatures assigned to this faction will attack everyone on sight.",
   attackAllNeutral = true,
@@ -69,8 +69,3 @@ factions['chaos'] = {
   hidden = true,
   neverJoin = true
 }
-
-for id,fac in pairs(factions) do
-  factions[id] = Faction(fac)
-  factions[id].id = id
-end

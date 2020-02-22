@@ -910,6 +910,18 @@ local bspTree = function (map,width,height,doorChance,wideChance,rectChance,poli
 end --end bsptree function
 layouts['bsptree'] = bspTree
 
+local invertedBSP = function(map,width,height)
+  --(map,width,height,doorChance,wideChance,rectChance,politeTunnelPasses,rudeTunnelPasses)
+  local rooms,hallways = layouts['bsptree'](map,width,height,0,0,50,0,0)
+  for x=2,width-1,1 do
+    for y=2,height-1,1 do
+      if map[x][y] == "." then map[x][y] = "#"
+      elseif map[x][y] == "#" then map[x][y] = "." end
+    end
+  end
+end
+--layouts['invertedbsp'] = invertedBSP
+
 --Arguments: doorChance,corridorChance,wideChance,rectChance,maxRoomSize,maxCorridorlength
 local broguelike = function(map,width,height,arguments)
   arguments = arguments or {}

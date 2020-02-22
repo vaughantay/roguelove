@@ -16,7 +16,6 @@ function newgame:enter(previous)
 end
 
 function newgame:draw()
-  love.graphics.print(self.afterClassIndex,14,36)
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
   local mouseX,mouseY = love.mouse.getPosition()
   love.graphics.setFont(fonts.mapFont)
@@ -179,7 +178,7 @@ function newgame:draw()
       desc = desc .. "Faction Membership - "
       for i,fac in ipairs(class.factions) do
         if i ~= 1 then desc = desc .. ", " end
-        desc = desc .. factions[fac].name
+        desc = desc .. possibleFactions[fac].name
       end
       desc = desc .. "\n"
     end
@@ -209,12 +208,15 @@ function newgame:draw()
       end
       desc = desc .. "\n"
     end
+    if class.money then
+      desc = desc .. "Money: $" .. class.money .. "\n"
+    end
     if class.favor and count(class.favor) > 0 then
       desc = desc .. "Favor - "
       local i = 1
       for id,fav in pairs(class.favor) do
         if i ~= 1 then desc = desc .. ", "  end
-        desc = desc .. factions[id].name .. ": " .. fav
+        desc = desc .. possibleFactions[id].name .. ": " .. fav
         i = i + 1
       end
       desc = desc .. "\n"
@@ -366,8 +368,37 @@ function newgame:keypressed(key)
       Gamestate.switch(cheats)
     end -- end cursor check
   elseif (key == "tab") then
-    if self.cursorY == 1 then self.cursorY = 2
-    else self.cursorY = self.afterClassIndex+1 end
+    if self.cursorY == 1 then
+      self.cursorY = 2
+      self.cursorX = 1
+    elseif self.cursorY == 2 then
+      if self.cursorX < #self.classes then
+        self.cursorX = self.cursorX+1
+      else
+        self.cursorY = 3
+      end
+    elseif self.cursorY >= 3 and self.cursorY < self.afterClassIndex then
+      self.cursorY = self.cursorY+1
+    elseif self.cursorY == self.afterClassIndex then
+      if self.class then
+        self.cursorY = self.afterClassIndex+1
+      else
+        self.cursorY = self.afterClassIndex+2
+      end
+    elseif self.cursorY == self.afterClassIndex+1 then
+      self.cursorY = self.afterClassIndex+2
+    elseif self.cursorY == self.afterClassIndex+2 then
+      self.cursorY = self.afterClassIndex+3
+      self.cursorX = 1
+    elseif self.cursorY == self.afterClassIndex+3 then
+      if self.cursorX == 1 then
+        self.cursorX = 2
+      else
+        self.cursorY = self.afterClassIndex+4
+      end
+    elseif self.cursorY == self.afterClassIndex+4 then
+      self.cursorY = 1
+    end
   elseif (key == "backspace") then
     if self.cursorY == 1 then
       player.properName = string.sub(player.properName,1,#player.properName-1)
@@ -426,17 +457,21 @@ function newgame:mousepressed(x,y,button)
     for i = 1,4,1 do
       if x >= self.pronouns[i].minX and x <= self.pronouns[i].maxX then
         player.gender = self.pronouns[i].gender
+        if not self.class then
+          self.cursorY = 3
+        else
+          self.cursorY = self.afterClassIndex
+        end
       end
     end
   end --end gender if
   
   --Class Selection:
   if y >= self.classes[1].minY and y <= self.classes[#self.classes].maxY and x >= self.classes[1].minX and x <= self.classes[1].maxX then
-    print('class select')
     for i = 1,#self.classes,1 do
       if y >= self.classes[i].minY and y <= self.classes[i].maxY then
-        print('classY')
         self.class = self.classes[i].classID
+        self.cursorY = self.afterClassIndex
       end
     end
   end --end class if
@@ -482,11 +517,11 @@ function newgame:wheelmoved(x,y)
 end
 
 function newgame:update(dt)
-  if self.cursorY < 0 then self.cursorY = 0 elseif (self.cursorY > 10) then self.cursorY = 10 end
+  if self.cursorY < 0 then self.cursorY = 0 elseif (self.cursorY > self.afterClassIndex+4) then self.cursorY = self.afterClassIndex+4 end
   if self.cursorX < 1 then
     self.cursorX = 1
-  elseif self.cursorX > 4 and self.cursorY == 2 then
-    self.cursorX = 4
+  elseif self.cursorX > #self.classes and self.cursorY == 2 then
+    self.cursorX = #self.classes
   elseif self.cursorX > 2 and self.cursorY ~= 2 then
     self.cursorX = 2
   end

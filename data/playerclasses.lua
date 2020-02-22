@@ -12,6 +12,7 @@ playerClasses = {
     weaknesses={}, --These will be added to the characters' base weaknesses
     resistances={holy=25}, --These will be added the the characters' base resistances
     stat_modifiers={strength=2,dodging=-2}, --These values will be added to the characters' base stats
+    money=100 --Amount of money the character starts with
   },
   beefcake = {
     name="Beefcake",
@@ -21,6 +22,7 @@ playerClasses = {
     learns_spells={}, --These spells will be automatically granted once a certain level is reached
     spell_options={}, --These spells will show up as options to learn (requiring spending points on them)
     stat_modifiers={strength=5,dodging=-10,max_hp=25,armor=1}, --These values will be added to the characters' base stats
+    money=100 --Amount of money the character starts with
   },
   demonologist = {
     name="Demonologist",
@@ -35,6 +37,7 @@ playerClasses = {
     weaknesses={holy=10}, --These will be added to the characters' base weaknesses
     resistances={fire=10,unholy=10}, --These will be added the the characters' base resistances
     stat_modifiers={dodging=2}, --These values will be added to the characters' base stats
+    money=100 --Amount of money the character starts with
   },
   wimp = {
     name="Total Wimp",
@@ -42,5 +45,6 @@ playerClasses = {
     items={"healthpotionminor"}, --These items will be granted on game start
     stat_modifiers={strength=-5,max_hp=-25}, --These values will be added to the characters' base stats
     spells={"scrawny"}, --These are spells the character will start with
+    money=100 --Amount of money the character starts with
   },
 }

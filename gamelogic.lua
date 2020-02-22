@@ -61,6 +61,20 @@ function initialize_player()
   player.color={r=255,g=255,b=255,a=255}
 end
 
+function initialize_world()
+    --Generate stores and factions:
+  stores = {}
+  for id,store in pairs(stores_static) do
+    stores[id] = Store(store)
+    stores[id].id = id
+  end
+  factions = {}
+  for id,fac in pairs(possibleFactions) do
+    factions[id] = Faction(fac)
+    factions[id].id = id
+  end
+end
+
 ---Calculates the chance of hitting an opponent.
 --@param attacker Creature. The creature doing the attacking.
 --@param target Creature. The creature getting potentially hit

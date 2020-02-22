@@ -112,7 +112,7 @@ function Faction:can_join(creature)
   if self.neverJoin then
     return false,"This faction does not accept new members."
   end
-  if creature.favor[self.id] < self.joinThreshold then
+  if (creature.favor[self.id] or 0) < self.joinThreshold then
     reasons = (reasons and reasons .. " " or "") .. "You need at least " .. self.joinThreshold .. " favor to join."
     canJoin = false
   end

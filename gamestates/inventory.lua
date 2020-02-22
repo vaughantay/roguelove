@@ -283,6 +283,7 @@ function inventory:draw()
     if self.text then
       love.graphics.printf(self.text,sidebarX+padX,buttonY-30,width-sidebarX-padding,"center")
     end
+    if item ~= self.selectedItem then setColor(100,100,100,255) end
     if item.usable==true then
       local useText = (item.useVerb and ucfirst(item.useVerb) or "Use") .. " (" .. keybindings.use .. ")"
       local buttonWidth = fonts.buttonFont:getWidth(useText)+25
@@ -316,7 +317,7 @@ function inventory:draw()
     self.buttons.drop = output:button(buttonX,buttonY,buttonWidth,false,(self.cursorX == buttonCursorX and "hover" or nil),dropText)
     self.buttons.xValues[buttonCursorX] = "drop"
     self.maxButtonCursorX = buttonCursorX
-    
+    if item ~= self.selectedItem then setColor(255,255,255,255) end
   end
   self.closebutton = output:closebutton(14,14,nil,true)
   love.graphics.pop()

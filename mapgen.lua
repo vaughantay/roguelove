@@ -520,6 +520,19 @@ function mapgen:generate_map(width, height, depth,force)
       end --end tries if
     end
   end
+  --Add store:
+  local newStore = Feature('store')
+  local tries = 0
+  local ix,iy = random(2,build.width-1),random(2,build.height-1)
+  while (build:isClear(ix,iy) == false or build[ix][iy] == "<" or build[ix][iy] == ">") do
+    ix,iy = random(2,build.width-1),random(2,build.height-1)
+    tries = tries+1
+    if tries > 100 then break end
+  end
+  if tries ~= 100 then 
+    build:add_feature(newStore,ix,iy)
+    print(ix,iy)
+  end --end tries if
   
   currGame.seedState = mapRandom:getState()
   random = love.math.random

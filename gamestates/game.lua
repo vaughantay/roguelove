@@ -295,7 +295,7 @@ function game:print_sidebar()
   local maxX,maxY=minX+invWidth+4,minY+16
   self.spellButtons["inventory"] = output:button(minX,minY+2,(maxX-minX),true,nil,nil,true)
   if self.spellButtons["inventory"].hover == true then
-    descBox = {desc="View anduse items and equipment.",x=minX,y=minY}
+    descBox = {desc="View and use items and equipment.",x=minX,y=minY}
   end
   love.graphics.print(keybindings.inventory .. ") Inventory",printX+xPad,printY+yPad-2+yBonus)
   yPad = yPad+20
@@ -1580,6 +1580,8 @@ function game:keypressed(key,scancode,isRepeat)
     nextLevel(true)
    elseif (key == "q" and action=="moving") then
     Gamestate.switch(factionscreen,"lightchurch")
+  elseif (key == "a" and action=="moving") then
+    Gamestate.switch(storescreen,"healthstore")
 	elseif (key == keybindings.charScreen) then
 		Gamestate.switch(characterscreen)
 	elseif (key == keybindings.save) then

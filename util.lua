@@ -1,6 +1,10 @@
---[[random utility functions]]
+---Random utility functions
 
--- Checks if "needle" is in "haystack", and returns the key (and value) if so
+---Checks if "needle" is in "haystack", and returns the key (and value) if so
+--@param needle Anything. The item to look for.
+--@param haystack Table. The table to search through.
+--@return Anything or False. The index of the value being searched for. If it wasn't found, then FALSE.
+--@return Anything or nil. The value being searched for. If it wasn't found, then nil.
 function in_table(needle, haystack)
 	for i,v in pairs(haystack) do
 		if (v==needle) then 
@@ -9,7 +13,9 @@ function in_table(needle, haystack)
 	return false
 end
 
--- Returns a number somewhat close to the original number
+---Returns a number between -25% and +25% of the original number.
+--@param val Number. The number to tweak.
+--@return Number. The tweaked number.
 function tweak(val)
   if val == 0 then return 0 end
   if val >= 1 then
@@ -25,7 +31,9 @@ function tweak(val)
   end
 end
 
---Rounds a number up if >= .5, down if <.5
+---Rounds a number up if >= .5, down if <.5
+--@param val number to round.
+--@return Number. The rounded number.
 function round(val)
   local dec = val-math.floor(val)
   if dec >= .5 then
@@ -35,23 +43,37 @@ function round(val)
   end
 end
 
--- Pythagorean Theorem bitches
+--- Uses the Pythagorean Theorem to calculate the distance between two points.
+--@param fromX Number. The origin X-coordinate.
+--@param fromY Number. The origin Y-coordinate.
+--@Param toX Number. The destination X-coordinate.
+--@param toY Number. The destination Y-coordinate.
+--@return Number. The distance.
 function calc_distance(fromX,fromY,toX,toY)
 	return math.sqrt(math.abs(fromX-toX)^2 + math.abs(fromY-toY)^2)
 end
 
--- Semi-Pythagorean Theorem bitches
+---Adds the squared X and Y distances between points. Use this if you're just comparing distances to see which is farther rather than needing to know what the distances actually are, since this is faster. 
+--@param fromX Number. The origin X-coordinate.
+--@param fromY Number. The origin Y-coordinate.
+--@Param toX Number. The destination X-coordinate.
+--@param toY Number. The destination Y-coordinate.
+--@return Number. The sum of the squared X and Y distances between the points.
 function calc_distance_squared(fromX,fromY,toX,toY)
 	return math.abs(fromX-toX)^2 + math.abs(fromY-toY)^2
 end
 
--- Convert the first letter of a string to upper case
+---Convert the first letter of a string to uppercase.
+--@param string String. The string to process.
+--@return String. The original string, but with the first letter uppercase.
 function ucfirst(string)
 	string = tostring(string)
 	return string:gsub("%a", string.upper, 1)
 end
 
--- Convert the first letter of every word in a string to upper case
+---Convert the first letter of every word in a string to uppercase.
+--@param s String. The string to process.
+--@return String. The original string, but with the first letter of every word uppercase.
 function ucfirstall(s)
   s = tostring(s)
   local newstring = ""
@@ -63,13 +85,17 @@ function ucfirstall(s)
 	return newstring
 end
 
--- Convert the first letter of a string to lower case
+---Convert the first letter of a string to lowercase.
+--@param string String. The string to process.
+--@return String. The original string, but with the first letter lowercase.
 function lcfirst(string)
 	string = tostring(string)
 	return string:gsub("%a", string.lower, 1)
 end
 
--- Convert the first letter of every word in a string to lower case
+---Convert the first letter of every word in a string to lowercase.
+--@param s String. The string to process.
+--@return String. The original string, but with the first letter of every word lowercase.
 function lcfirstall(s)
   s = tostring(s)
   local newstring = ""
@@ -81,7 +107,10 @@ function lcfirstall(s)
 	return newstring
 end
 
---"Explode" a string into an array
+---"Explode" a string into an array
+--@param string String. The string to turn into an array.
+--@param delim String. The string used to delineate where each entry starts.
+--@param Table. A table of strings.
 function explode(string,delim)
   local parts = {}
   for part in string.gmatch(string, "[^" .. delim .."]+") do
@@ -90,7 +119,9 @@ function explode(string,delim)
   return parts
 end
 
---Returns true if the string starts with a vowel, false otherwise
+---Returns true if the string starts with a vowel, false otherwise
+--@param string String.
+--@return Boolean. Whether the string starts with a vowel or not.
 function vowel(string)
 	local s = string:sub(1,1)
 	if (s == "a" or s == "e" or s=="i" or s=="o" or s=="u" or s=="sometimes y") then
@@ -99,8 +130,10 @@ function vowel(string)
 	return false
 end
 
--- gets a random element from a table
--- NOTE: This will not work properly if a table has numbered AND associative keys...but why the hell would you do that?
+---Gets a random element from a table.
+--NOTE: This probably will not work properly if a table has both numbered AND associative keys.
+--@param t Table. The table to get an element from.
+--@return Anything. A random element from the table.
 function get_random_element(t)
 	if (t[1] ~= nil) then -- if it is a sequential, numbered "array"
 		return t[random(#t)]
@@ -113,7 +146,10 @@ function get_random_element(t)
 	end
 end
 
--- gets a random key from a table
+---Gets a random key from a table.
+--NOTE: This probably will not work properly if a table has both numbered AND associative keys.
+--@param t Table. The table to get an element from.
+--@return Anything. A random keyfrom the table.
 function get_random_key(t)
 	if (t[1] ~= nil) then -- if it is a sequential, numbered "array"
 		return random(#t)
@@ -126,7 +162,10 @@ function get_random_key(t)
 	end
 end
 
---gets the largest value from a table
+---Gets the largest numerical value from a table
+--@param t Table. The table to look through.
+--@return Number. The largest number.
+--@return Anything. The key of the largest number.
 function get_largest(t)
   local largest = 0
   local largestKey = nil
@@ -138,7 +177,10 @@ function get_largest(t)
   return largest,largestKey
 end
 
--- copies a table
+---Copies a table deeply (copies any sub-tables as well).
+--WARNING: This will probably hang if your table contains a table that contains the original table.
+--@param t Table. The table to copy.
+--@return Table. A copy of the original table.
 function copy_table(t)
 	local newT = {}
 	for key, val in pairs(t) do
@@ -151,9 +193,11 @@ function copy_table(t)
 	return newT
 end
 
---Shuffles a table.
---Also useful at turning an associative array into a numbered array
---Note: Only use if you want resulting table to have sequentially numbered values!
+---Shuffles the order of table. Does not change the original table, but returns a new one.
+--Also useful at turning an associative table into a numbered array
+--Note: Only use if you want the resulting table to have sequentially numbered values!
+--@param t Table. The table to shuffle.
+--@return Table. A new version of the shuffled table.
 function shuffle(t)
   if count(t) == 1 and #t == 1 then return t end
   local newT = {}
@@ -165,7 +209,9 @@ function shuffle(t)
   return newT
 end
 
---Counts values in table (even if associative array)
+---Counts the number of entries in a table (even if not sequentially numbered)
+--@param t Table. The table the count.
+--@return Number. The number of entries in the table.
 function count(t)
   local c = 0
   for _,__ in pairs(t) do
@@ -174,7 +220,9 @@ function count(t)
   return c
 end
 
---Combines multiple arrays into one and returns the result
+---Combines multiple tables into one and returns the result. Does not respect the values of the keys - the resulting table will have sequentially-numbered keys.
+--@param … Any number of tables.
+--@return Table. A new table with all the other tables merged together.
 function merge_arrays(...)
   local new = {}
   for _,t in pairs({...}) do
@@ -194,7 +242,13 @@ function loop_through_tiles(minX,maxX,minY,maxY)
   end
 end
 
---This is probably not actually a unit vector
+---Determines what directions a set of coordinates is in from an origin point. Doesn't actually have anything to do with unit vectors.
+--@param fromX Number. The origin X-coordinate.
+--@param fromY Number. The origin Y-coordinate.
+--@Param toX Number. The destination X-coordinate.
+--@param toY Number. The destination Y-coordinate.
+--@return Number. -1 if toX is to the left of fromX, +1 if it's to the right, 0 if they're the same.
+--@return Number. -1 if toY is up from fromY, +1 if it's down, 0 if they're the same.
 function get_unit_vector(fromX,fromY,toX,toY)
   local x = (fromX == toX and 0 or (fromX > toX and -1 or 1))
   local y = (fromY == toY and 0 or (fromY > toY and -1 or 1))

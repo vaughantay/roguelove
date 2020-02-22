@@ -62,7 +62,7 @@ function factionscreen:draw()
       joinText = "You're not eligible to join this faction" .. (reason and " for the following reasons: " or ".")
     end
     printY=printY+fontSize
-    love.graphics.printf(joinText,printX,windowWidth,width,"center")
+    love.graphics.printf(joinText,printX,printY,windowWidth,"center")
     if reason then
       printY = printY+fontSize
       local _, wrappedtext = fonts.textFont:getWrap(reason, windowWidth)

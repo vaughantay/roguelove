@@ -156,7 +156,6 @@ function Creature:generate_inventory(source)
   --Equipment:
   if source.possible_weapon then
     local weapID = source.possible_weapon[random(#self.possible_weapon)]
-    print(tostring(weapID))
     local hands = self.hands
     if weapID then
       local weap1 = self:give_item(Item(weapID))
@@ -230,6 +229,9 @@ function Creature:apply_class(classID)
       self.stat = (self.stat or 0) + mod
     end
   end --end if stat_modifiers
+  if class.money then
+    self.money = class.money
+  end
 end
 
 ---Get the name of a creature

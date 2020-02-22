@@ -219,6 +219,7 @@ function load_data()
   require "data.room_decorators"
   require "data.services"
   require "data.spells"
+  require "data.stores_static"
   require "data.tilesets"
   require "gamestates.characterscreen"
   require "gamestates.cheats"
@@ -239,6 +240,7 @@ function load_data()
   require "gamestates.pausemenu"
   require "gamestates.settings"
   require "gamestates.spells"
+  require "gamestates.storescreen"
 end
 
 function load_engine()
@@ -261,6 +263,7 @@ function load_engine()
   require "classes.ranged_attack"
   require "classes.service"
   require "classes.spell"
+  require "classes.store"
 end
 
 function load_libraries()

@@ -67,6 +67,7 @@ function menu:keypressed(key)
 	elseif (key == "return") or key == "kpenter" then
 		if (output.cursorY == 1) then
       initialize_player()
+      initialize_world()
       Gamestate.switch(newgame)
       output.cursorY = 1
       newgame.cheats={}

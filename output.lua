@@ -591,7 +591,7 @@ function output:tinybutton(x,y,small,hover,text,useScaling)
     love.graphics.draw(image,images[buttonname].small,x,y)
     if text then
       love.graphics.setFont(fonts.buttonFont)
-      love.graphics.printf(text,math.floor(x),math.floor(y-2),32,"center")
+      love.graphics.printf(text,math.floor(x),math.floor(y+4),32,"center")
       love.graphics.setFont(fonts.textFont)
     end
     return {minX=x*uiScale,maxX=(x+32)*uiScale,minY=y*uiScale,maxY=(y+(small and 16 or 32))*uiScale,hover=hover}

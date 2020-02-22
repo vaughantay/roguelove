@@ -5,15 +5,16 @@ Item = Class{}
 --@param type_name String. The ID of the item.
 --@param info Anything. Argument to pass into the item's new() function.
 --@param amt Number. The amount of the item to create.
+--@param ignoreNewFunc Boolean. Whether to ignore the item's new() function
 --@return Item. The item itself.
-function Item:init(type_name,info,amt)
+function Item:init(type_name,info,amt,ignoreNewFunc)
   local data = possibleItems[type_name]
 	for key, val in pairs(data) do
     if type(val) ~= "function" then
       self[key] = data[key]
     end
 	end
-	if (possibleItems[type_name].new ~= nil) then 
+	if not ignoreNewFunc and (possibleItems[type_name].new ~= nil) then
 		possibleItems[type_name].new(self,(info or nil))
 	end
   self.id = self.id or type_name
@@ -31,6 +32,24 @@ function Item:init(type_name,info,amt)
     end
   end
 	return self
+end
+
+---Clones an instance of the item. Don't call this directly. Called via Item('itemID')
+--@param type_name String. The ID of the item.
+--@param info Anything. Argument to pass into the item's new() function.
+--@param amt Number. The amount of the item to create.
+--@param ignoreNewFunc Boolean. Whether to ignore the item's new() function
+--@return Item. The item itself.
+function Item:clone()
+  local newItem = Item(self.id,nil,nil,true)
+	for key, val in pairs(self) do
+    if type(val) ~= "function" and type(val) ~= "table" then
+      newItem[key] = self[key]
+    elseif type(val) == "table" then
+      newItem[key] = copy_table(self[key])
+    end
+	end
+  return newItem
 end
 
 ---Get the description of the item.
@@ -300,4 +319,14 @@ end
 --@return Number. The armor piercing value.
 function Item:get_armor_piercing(wielder)
 	return (self.armor_piercing or 0) + (wielder and wielder:get_bonus('armor_piercing') or 0)
+end
+
+---Checks if an item has a descriptive tag.
+--@param tag String. The tag to check for
+--@return Boolean. Whether or not it has the tag.
+function Item:has_tag(tag)
+  if self.tags and in_table(tag,self.tags) then
+    return true
+  end
+  return false
 end

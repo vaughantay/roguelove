@@ -5,6 +5,8 @@ function register_classes()
   Lady.register_class(Map,'Map')
   Lady.register_class(Projectile,'Projectile')
   Lady.register_class(Item,'Item')
+  Lady.register_class(Store,'Store')
+  Lady.register_class(Faction,'Faction')
 end
 
 function save_game(screenshot,fileName)
@@ -20,7 +22,7 @@ function save_game(screenshot,fileName)
   if screenshot then
     screenshot:encode('png', "saves/" .. fileName .. ".png");
   end
-  Lady.save_all("saves/" .. fileName .. ".sav", player, maps, currMap,currGame,gamesettings)
+  Lady.save_all("saves/" .. fileName .. ".sav", player, maps, currMap,currGame,gamesettings,stores,factions)
 	output:out("Game Saved.")
 end
 
@@ -29,9 +31,9 @@ function load_game(fileName)
 		return false
 	end
   local saveData = {}
-  saveData.player, saveData.maps, saveData.currMap, saveData.currGame,saveData.gameDefinition = Lady.load_all(fileName)
-  if saveData.player and saveData.maps and saveData.currMap and saveData.currGame then
-    player,maps,currMap,currGame = saveData.player, saveData.maps, saveData.currMap, saveData.currGame
+  saveData.player, saveData.maps, saveData.currMap, saveData.currGame,saveData.gameDefinition,saveData.stores,saveData.factions = Lady.load_all(fileName)
+  if saveData.player and saveData.maps and saveData.currMap and saveData.currGame and saveData.stores and saveData.factions then
+    player,maps,currMap,currGame,stores,factions = saveData.player, saveData.maps, saveData.currMap, saveData.currGame, saveData.stores, saveData.factions
     currMap:clear_all_pathfinders()
     if not currGame.cheats then currGame.cheats = {} end --delet this eventually I guess
     currGame.fileName = string.sub(fileName,7,-5) --in case the file's name got changed
