@@ -1,0 +1,312 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Reference</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>ldoc</h1>
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Methods">Methods</a></li>
+</ul>
+
+
+<h2>Classes</h2>
+<ul class="nowrap">
+  <li><a href="../classes/Condition.html">Condition</a></li>
+  <li><a href="../classes/Creature.html">Creature</a></li>
+  <li><a href="../classes/Effect.html">Effect</a></li>
+  <li><a href="../classes/Faction.html">Faction</a></li>
+  <li><a href="../classes/Feature.html">Feature</a></li>
+  <li><a href="../classes/Item.html">Item</a></li>
+  <li><a href="../classes/Map.html">Map</a></li>
+  <li><a href="../classes/Projectile.html">Projectile</a></li>
+  <li><strong>ranged_attack</strong></li>
+  <li><a href="../classes/Service.html">Service</a></li>
+  <li><a href="../classes/Spell.html">Spell</a></li>
+  <li><a href="../classes/Store.html">Store</a></li>
+</ul>
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/gamelogic.html">gamelogic</a></li>
+  <li><a href="../modules/jumper.core.bheap.html">jumper.core.bheap</a></li>
+  <li><a href="../modules/jumper.core.heuristics.html">jumper.core.heuristics</a></li>
+  <li><a href="../modules/jumper.core.node.html">jumper.core.node</a></li>
+  <li><a href="../modules/jumper.core.path.html">jumper.core.path</a></li>
+  <li><a href="../modules/jumper.grid.html">jumper.grid</a></li>
+  <li><a href="../modules/jumper.pathfinder.html">jumper.pathfinder</a></li>
+  <li><a href="../modules/lib.serialize.html">lib.serialize</a></li>
+  <li><a href="../modules/util.html">util</a></li>
+</ul>
+<h2>Scripts</h2>
+<ul class="nowrap">
+  <li><a href="../scripts/jumper.search.astar.html">jumper.search.astar</a></li>
+  <li><a href="../scripts/jumper.search.bfs.html">jumper.search.bfs</a></li>
+  <li><a href="../scripts/jumper.search.dfs.html">jumper.search.dfs</a></li>
+  <li><a href="../scripts/jumper.search.dijkstra.html">jumper.search.dijkstra</a></li>
+  <li><a href="../scripts/jumper.search.jps.html">jumper.search.jps</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Class <code>ranged_attack</code></h1>
+<p></p>
+<p></p>
+
+
+<h2><a href="#Methods">Methods</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#ranged_attack:new">ranged_attack:new (data)</a></td>
+	<td class="summary">Initiate a ranged attack from its definition.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ranged_attack:get_name">ranged_attack:get_name ()</a></td>
+	<td class="summary">Get the name of the ranged attack.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ranged_attack:get_description">ranged_attack:get_description ()</a></td>
+	<td class="summary">Get the description of the ranged attack.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ranged_attack:use">ranged_attack:use (target, attacker, item)</a></td>
+	<td class="summary">Use the ranged attack.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ranged_attack:does_hit">ranged_attack:does_hit (target, attacker)</a></td>
+	<td class="summary">Calculate whether the ranged attack hits.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ranged_attack:calc_hit_chance">ranged_attack:calc_hit_chance (target, attacker)</a></td>
+	<td class="summary">Calculate the chance the ranged attack will hit.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ranged_attack:recharge">ranged_attack:recharge (possessor, item)</a></td>
+	<td class="summary">Recharge the charges of the ranged attack.</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Methods"></a>Methods</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "ranged_attack:new"></a>
+    <strong>ranged_attack:new (data)</strong>
+    </dt>
+    <dd>
+    Initiate a ranged attack from its definition.  You shouldn't use this function, the game uses it at loadtime to instantiate the ranged attacks.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">data</span>
+         Table. The table of attack information.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        ranged_attack. The attack itself.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ranged_attack:get_name"></a>
+    <strong>ranged_attack:get_name ()</strong>
+    </dt>
+    <dd>
+    Get the name of the ranged attack.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        String. The name of the attack.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ranged_attack:get_description"></a>
+    <strong>ranged_attack:get_description ()</strong>
+    </dt>
+    <dd>
+    Get the description of the ranged attack.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        String. The description of the attack.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ranged_attack:use"></a>
+    <strong>ranged_attack:use (target, attacker, item)</strong>
+    </dt>
+    <dd>
+    Use the ranged attack.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">target</span>
+         Creature. The creature being targeted.
+        </li>
+        <li><span class="parameter">attacker</span>
+         Creature. The creature doing the attack.
+        </li>
+        <li><span class="parameter">item</span>
+         Item. The item being used to do the ranged attack (optional).
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether the attack was successful.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ranged_attack:does_hit"></a>
+    <strong>ranged_attack:does_hit (target, attacker)</strong>
+    </dt>
+    <dd>
+    Calculate whether the ranged attack hits.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">target</span>
+         Creature. The creature being targeted.
+        </li>
+        <li><span class="parameter">attacker</span>
+         Creature. The creature doing the attack.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether the attack hits or not.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ranged_attack:calc_hit_chance"></a>
+    <strong>ranged_attack:calc_hit_chance (target, attacker)</strong>
+    </dt>
+    <dd>
+    Calculate the chance the ranged attack will hit.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">target</span>
+         Creature. The creature being targeted.
+        </li>
+        <li><span class="parameter">attacker</span>
+         Creature. The creature doing the attack.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The % hit chance.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ranged_attack:recharge"></a>
+    <strong>ranged_attack:recharge (possessor, item)</strong>
+    </dt>
+    <dd>
+    Recharge the charges of the ranged attack.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">possessor</span>
+         Creature. The creature who has the attack.
+        </li>
+        <li><span class="parameter">item</span>
+         Item. The item that has the attack.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether the recharging was successful.
+    </ol>
+
+
+
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.4.6</a></i>
+<i style="float:right;">Last updated 2020-02-22 12:38:46 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

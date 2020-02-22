@@ -1,0 +1,499 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Reference</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>ldoc</h1>
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Methods">Methods</a></li>
+</ul>
+
+
+<h2>Classes</h2>
+<ul class="nowrap">
+  <li><a href="../classes/Condition.html">Condition</a></li>
+  <li><a href="../classes/Creature.html">Creature</a></li>
+  <li><a href="../classes/Effect.html">Effect</a></li>
+  <li><a href="../classes/Faction.html">Faction</a></li>
+  <li><a href="../classes/Feature.html">Feature</a></li>
+  <li><strong>Item</strong></li>
+  <li><a href="../classes/Map.html">Map</a></li>
+  <li><a href="../classes/Projectile.html">Projectile</a></li>
+  <li><a href="../classes/ranged_attack.html">ranged_attack</a></li>
+  <li><a href="../classes/Service.html">Service</a></li>
+  <li><a href="../classes/Spell.html">Spell</a></li>
+  <li><a href="../classes/Store.html">Store</a></li>
+</ul>
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/gamelogic.html">gamelogic</a></li>
+  <li><a href="../modules/jumper.core.bheap.html">jumper.core.bheap</a></li>
+  <li><a href="../modules/jumper.core.heuristics.html">jumper.core.heuristics</a></li>
+  <li><a href="../modules/jumper.core.node.html">jumper.core.node</a></li>
+  <li><a href="../modules/jumper.core.path.html">jumper.core.path</a></li>
+  <li><a href="../modules/jumper.grid.html">jumper.grid</a></li>
+  <li><a href="../modules/jumper.pathfinder.html">jumper.pathfinder</a></li>
+  <li><a href="../modules/lib.serialize.html">lib.serialize</a></li>
+  <li><a href="../modules/util.html">util</a></li>
+</ul>
+<h2>Scripts</h2>
+<ul class="nowrap">
+  <li><a href="../scripts/jumper.search.astar.html">jumper.search.astar</a></li>
+  <li><a href="../scripts/jumper.search.bfs.html">jumper.search.bfs</a></li>
+  <li><a href="../scripts/jumper.search.dfs.html">jumper.search.dfs</a></li>
+  <li><a href="../scripts/jumper.search.dijkstra.html">jumper.search.dijkstra</a></li>
+  <li><a href="../scripts/jumper.search.jps.html">jumper.search.jps</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Class <code>Item</code></h1>
+<p></p>
+<p></p>
+
+
+<h2><a href="#Methods">Methods</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#Item:init">Item:init (type_name, info, amt, ignoreNewFunc)</a></td>
+	<td class="summary">Create an instance of the item.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Item:clone">Item:clone (type_name, info, amt, ignoreNewFunc)</a></td>
+	<td class="summary">Clones an instance of the item.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Item:get_description">Item:get_description (withName)</a></td>
+	<td class="summary">Get the description of the item.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Item:get_name">Item:get_name (full, amount)</a></td>
+	<td class="summary">Get the name of the item.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Item:use">Item:use (target, user)</a></td>
+	<td class="summary">"Use" the item.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Item:get_damage">Item:get_damage (target, wielder)</a></td>
+	<td class="summary">Find out how much damage an item will deal.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Item:attack">Item:attack (target, wielder, forceHit, ignore_callbacks, forceBasic)</a></td>
+	<td class="summary">Attack another entity.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Item:target">Item:target ()</a></td>
+	<td class="summary">Set the item as the thing currently being used to target (so it'll display as targeting in the game UI)</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Item:reload">Item:reload (possessor)</a></td>
+	<td class="summary">Reload an item.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Item:get_hit_conditions">Item:get_hit_conditions ()</a></td>
+	<td class="summary">Check what hit conditions an item can inflict</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Item:get_crit_conditions">Item:get_crit_conditions ()</a></td>
+	<td class="summary">Check what conditions an item can inflict on a critical hit</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Item:get_armor_piercing">Item:get_armor_piercing (wielder)</a></td>
+	<td class="summary">Checks the armor-piercing quality of a weapon.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Item:has_tag">Item:has_tag (tag)</a></td>
+	<td class="summary">Checks if an item has a descriptive tag.</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Methods"></a>Methods</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "Item:init"></a>
+    <strong>Item:init (type_name, info, amt, ignoreNewFunc)</strong>
+    </dt>
+    <dd>
+    Create an instance of the item.  Don't call this directly. Called via Item('itemID')
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">type_name</span>
+         String. The ID of the item.
+        </li>
+        <li><span class="parameter">info</span>
+         Anything. Argument to pass into the item's new() function.
+        </li>
+        <li><span class="parameter">amt</span>
+         Number. The amount of the item to create.
+        </li>
+        <li><span class="parameter">ignoreNewFunc</span>
+         Boolean. Whether to ignore the item's new() function
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Item. The item itself.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Item:clone"></a>
+    <strong>Item:clone (type_name, info, amt, ignoreNewFunc)</strong>
+    </dt>
+    <dd>
+    Clones an instance of the item.  Don't call this directly. Called via Item('itemID')
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">type_name</span>
+         String. The ID of the item.
+        </li>
+        <li><span class="parameter">info</span>
+         Anything. Argument to pass into the item's new() function.
+        </li>
+        <li><span class="parameter">amt</span>
+         Number. The amount of the item to create.
+        </li>
+        <li><span class="parameter">ignoreNewFunc</span>
+         Boolean. Whether to ignore the item's new() function
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Item. The item itself.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Item:get_description"></a>
+    <strong>Item:get_description (withName)</strong>
+    </dt>
+    <dd>
+    Get the description of the item.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">withName</span>
+         Boolean. Whether to also include the name of the item.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        String. The description of the item.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Item:get_name"></a>
+    <strong>Item:get_name (full, amount)</strong>
+    </dt>
+    <dd>
+    Get the name of the item.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">full</span>
+         Boolean. If false, the item will be called "a dagger", if true, the item will be called "Dagger".
+        </li>
+        <li><span class="parameter">amount</span>
+         Number. The number of items in question. (optional)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        String. The name of the item
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Item:use"></a>
+    <strong>Item:use (target, user)</strong>
+    </dt>
+    <dd>
+    "Use" the item.  Calls the item's use() code.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">target</span>
+         Entity. The target of the item's use. Might be another creature, a tile, even the user itself.
+        </li>
+        <li><span class="parameter">user</span>
+         Creature. The creature using the item.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean.Whether the use was successful.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Item:get_damage"></a>
+    <strong>Item:get_damage (target, wielder)</strong>
+    </dt>
+    <dd>
+    Find out how much damage an item will deal.  Defaults to the item's damage value + the wielder's strength, but might be overridden by an item's get_damage() code
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">target</span>
+         Entity. The target of the item's attack.
+        </li>
+        <li><span class="parameter">wielder</span>
+         Creature. The creature using the item.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The damage the item will deal.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Item:attack"></a>
+    <strong>Item:attack (target, wielder, forceHit, ignore_callbacks, forceBasic)</strong>
+    </dt>
+    <dd>
+    Attack another entity.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">target</span>
+         Entity. The creature (or feature) they're attacking
+        </li>
+        <li><span class="parameter">wielder</span>
+         Creature. The creature attacking with the item.
+        </li>
+        <li><span class="parameter">forceHit</span>
+         Boolean. Whether to force the attack instead of rolling for it. (optional)
+        </li>
+        <li><span class="parameter">ignore_callbacks</span>
+         Boolean. Whether to ignore any of the callbacks involved with attacking (optional)
+        </li>
+        <li><span class="parameter">forceBasic</span>
+         Boolean. Whether to ignore the weapon's attacked_with and attack_hits code and just do a basic attack. (optional)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. How much damage (if any) was done
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Item:target"></a>
+    <strong>Item:target ()</strong>
+    </dt>
+    <dd>
+    Set the item as the thing currently being used to target (so it'll display as targeting in the game UI)
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Item:reload"></a>
+    <strong>Item:reload (possessor)</strong>
+    </dt>
+    <dd>
+    Reload an item.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">possessor</span>
+         Creature. The creature using the item.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether the reload was successful.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Item:get_hit_conditions"></a>
+    <strong>Item:get_hit_conditions ()</strong>
+    </dt>
+    <dd>
+    Check what hit conditions an item can inflict
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. The list of hit conditions
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Item:get_crit_conditions"></a>
+    <strong>Item:get_crit_conditions ()</strong>
+    </dt>
+    <dd>
+    Check what conditions an item can inflict on a critical hit
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. The list of hit conditions
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Item:get_armor_piercing"></a>
+    <strong>Item:get_armor_piercing (wielder)</strong>
+    </dt>
+    <dd>
+    Checks the armor-piercing quality of a weapon.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">wielder</span>
+         Creature. The creature wielding the weapon.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The armor piercing value.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Item:has_tag"></a>
+    <strong>Item:has_tag (tag)</strong>
+    </dt>
+    <dd>
+    Checks if an item has a descriptive tag.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">tag</span>
+         String. The tag to check for
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether or not it has the tag.
+    </ol>
+
+
+
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.4.6</a></i>
+<i style="float:right;">Last updated 2020-02-22 12:38:46 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

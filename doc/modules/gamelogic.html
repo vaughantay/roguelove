@@ -1,0 +1,678 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Reference</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>ldoc</h1>
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Functions">Functions</a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><strong>gamelogic</strong></li>
+  <li><a href="../modules/jumper.core.bheap.html">jumper.core.bheap</a></li>
+  <li><a href="../modules/jumper.core.heuristics.html">jumper.core.heuristics</a></li>
+  <li><a href="../modules/jumper.core.node.html">jumper.core.node</a></li>
+  <li><a href="../modules/jumper.core.path.html">jumper.core.path</a></li>
+  <li><a href="../modules/jumper.grid.html">jumper.grid</a></li>
+  <li><a href="../modules/jumper.pathfinder.html">jumper.pathfinder</a></li>
+  <li><a href="../modules/lib.serialize.html">lib.serialize</a></li>
+  <li><a href="../modules/util.html">util</a></li>
+</ul>
+<h2>Scripts</h2>
+<ul class="nowrap">
+  <li><a href="../scripts/jumper.search.astar.html">jumper.search.astar</a></li>
+  <li><a href="../scripts/jumper.search.bfs.html">jumper.search.bfs</a></li>
+  <li><a href="../scripts/jumper.search.dfs.html">jumper.search.dfs</a></li>
+  <li><a href="../scripts/jumper.search.dijkstra.html">jumper.search.dijkstra</a></li>
+  <li><a href="../scripts/jumper.search.jps.html">jumper.search.jps</a></li>
+</ul>
+<h2>Classes</h2>
+<ul class="nowrap">
+  <li><a href="../classes/Condition.html">Condition</a></li>
+  <li><a href="../classes/Creature.html">Creature</a></li>
+  <li><a href="../classes/Effect.html">Effect</a></li>
+  <li><a href="../classes/Faction.html">Faction</a></li>
+  <li><a href="../classes/Feature.html">Feature</a></li>
+  <li><a href="../classes/Item.html">Item</a></li>
+  <li><a href="../classes/Map.html">Map</a></li>
+  <li><a href="../classes/Projectile.html">Projectile</a></li>
+  <li><a href="../classes/ranged_attack.html">ranged_attack</a></li>
+  <li><a href="../classes/Service.html">Service</a></li>
+  <li><a href="../classes/Spell.html">Spell</a></li>
+  <li><a href="../classes/Store.html">Store</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>gamelogic</code></h1>
+<p></p>
+<p></p>
+
+
+<h2><a href="#Functions">Functions</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#new_game">new_game (mapSeed, playTutorial, cheats, class)</a></td>
+	<td class="summary">Starts a new game, and does all the bookkeeping necessary for that.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#parse_name_for_level">parse_name_for_level (name)</a></td>
+	<td class="summary">Figures out which level to load based on a given string.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#initialize_player">initialize_player ()</a></td>
+	<td class="summary">Creates the player character entity.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#calc_hit_chance">calc_hit_chance (attacker, target, item)</a></td>
+	<td class="summary">Calculates the chance of hitting an opponent.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#calc_attack">calc_attack (attacker, target, forceHit, item)</a></td>
+	<td class="summary">Calculates whether an attacker hits a target, whether it was a critical, and how much damage was done.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#advance_turn">advance_turn ()</a></td>
+	<td class="summary">Advances the turn, causing NPCs to move, effects and projectiles to advance, the map's lighting to recalculate, creature conditions to do their thing, and the output buffer to clear.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#win">win ()</a></td>
+	<td class="summary">This function is called when you win.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#game_over">game_over ()</a></td>
+	<td class="summary">This function is called when you lose.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#nextLevel">nextLevel (force)</a></td>
+	<td class="summary">Advance to the next level of the dungeon.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#regen_level">regen_level ()</a></td>
+	<td class="summary">Regenerates the current level.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#generate_boss">generate_boss ()</a></td>
+	<td class="summary">Generates the boss for the level.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#update_stat">update_stat (stat_type, id)</a></td>
+	<td class="summary">Update a game statistic (like turns played, creatures killed, etc.).</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#get_stat">get_stat (stat_type, id)</a></td>
+	<td class="summary">Get the value of a game statistic (like turns played, creatures killed, etc.)</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#perform_move">perform_move (direction)</a></td>
+	<td class="summary">Handle movement keys.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#move_player">move_player (newX, newY, force)</a></td>
+	<td class="summary">Move the player to a new location.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#pathTo">pathTo (x, y, noMsg)</a></td>
+	<td class="summary">Find a path from the player's location to a new location, and start the player moving along it.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#setTarget">setTarget (x, y)</a></td>
+	<td class="summary">Set the player's target, and if targeting an action, apply that action to the target.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#player_dies">player_dies ()</a></td>
+	<td class="summary">Called when the player dies.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#refresh_player_sight">refresh_player_sight ()</a></td>
+	<td class="summary">Refreshes the player's sightmap.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#show_tutorial">show_tutorial (tutorial)</a></td>
+	<td class="summary">Show a tutorial message</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#get_mission_flag">get_mission_flag (flag)</a></td>
+	<td class="summary">Gets the value of a "mission flag." Mission flags aren't pre-defined, you can use them as you see fit to track whatever information you want in a given playthrough.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#set_mission_flag">set_mission_flag (flag, value)</a></td>
+	<td class="summary">Sets a "mission flag" to a specific value.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#update_mission_flag">update_mission_flag (flag, amt)</a></td>
+	<td class="summary">Updates a "mission flags" value by a given number value.</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "new_game"></a>
+    <strong>new_game (mapSeed, playTutorial, cheats, class)</strong>
+    </dt>
+    <dd>
+    Starts a new game, and does all the bookkeeping necessary for that.  Generates the first level, and puts the player on it.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">mapSeed</span>
+         Number. The seed to use to generate the world. (optional)
+        </li>
+        <li><span class="parameter">playTutorial</span>
+         Boolean. Whether or not to show tutorial messages this game. (optional)
+        </li>
+        <li><span class="parameter">cheats</span>
+         Table. A table listing all the cheats in use this game. (optional)
+        </li>
+        <li><span class="parameter">class</span>
+         String. What class to apply to the player character. (optional)
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "parse_name_for_level"></a>
+    <strong>parse_name_for_level (name)</strong>
+    </dt>
+    <dd>
+    Figures out which level to load based on a given string.  Used for level-skip cheats.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">name</span>
+         String. The name of the level to load, or "level#" to load any level at a given depth, or "generic#" to load the generic level at the given depth.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "initialize_player"></a>
+    <strong>initialize_player ()</strong>
+    </dt>
+    <dd>
+    Creates the player character entity.
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "calc_hit_chance"></a>
+    <strong>calc_hit_chance (attacker, target, item)</strong>
+    </dt>
+    <dd>
+    Calculates the chance of hitting an opponent.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">attacker</span>
+         Creature. The creature doing the attacking.
+        </li>
+        <li><span class="parameter">target</span>
+         Creature. The creature getting potentially hit
+        </li>
+        <li><span class="parameter">item</span>
+         Item. The item the attacker is using.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "calc_attack"></a>
+    <strong>calc_attack (attacker, target, forceHit, item)</strong>
+    </dt>
+    <dd>
+    Calculates whether an attacker hits a target, whether it was a critical, and how much damage was done.  Important to note: This function just *calculates* the damage, it does not apply it!
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">attacker</span>
+         Creature. The creature attacking.
+        </li>
+        <li><span class="parameter">target</span>
+         Creature. The creature getting attacked.
+        </li>
+        <li><span class="parameter">forceHit</span>
+         Boolean. Whether to ignore hit chance and force a hit. (optional)
+        </li>
+        <li><span class="parameter">item</span>
+         Item. The item the attacker is using, if any. (optional)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+        result String. "hit", "miss", or "critical</li>
+        <li>
+        dmg Number. The damage to do.</li>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "advance_turn"></a>
+    <strong>advance_turn ()</strong>
+    </dt>
+    <dd>
+    Advances the turn, causing NPCs to move, effects and projectiles to advance, the map's lighting to recalculate, creature conditions to do their thing, and the output buffer to clear.
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "win"></a>
+    <strong>win ()</strong>
+    </dt>
+    <dd>
+    This function is called when you win.  It saves the win for posterity, and blacks out the screen.
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "game_over"></a>
+    <strong>game_over ()</strong>
+    </dt>
+    <dd>
+    This function is called when you lose.  It clears out the player and current game variables, and switches back to the main menu.
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "nextLevel"></a>
+    <strong>nextLevel (force)</strong>
+    </dt>
+    <dd>
+    Advance to the next level of the dungeon.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">force</span>
+         Boolean. Whether to force the game to go to the next level, ignoring whether the boss is dead or not. (optional)
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "regen_level"></a>
+    <strong>regen_level ()</strong>
+    </dt>
+    <dd>
+    Regenerates the current level.
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "generate_boss"></a>
+    <strong>generate_boss ()</strong>
+    </dt>
+    <dd>
+    Generates the boss for the level.
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "update_stat"></a>
+    <strong>update_stat (stat_type, id)</strong>
+    </dt>
+    <dd>
+    Update a game statistic (like turns played, creatures killed, etc.).  Increments the given stat by 1.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">stat_type</span>
+         String. The stat type to return.
+        </li>
+        <li><span class="parameter">id</span>
+         String. The sub-stat type to return (for example, kills of a specific creature type)
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "get_stat"></a>
+    <strong>get_stat (stat_type, id)</strong>
+    </dt>
+    <dd>
+    Get the value of a game statistic (like turns played, creatures killed, etc.)
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">stat_type</span>
+         String. The stat type to return.
+        </li>
+        <li><span class="parameter">id</span>
+         String. The sub-stat type to return (for example, kills of a specific creature type)
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "perform_move"></a>
+    <strong>perform_move (direction)</strong>
+    </dt>
+    <dd>
+    Handle movement keys.  If action is set to "targeting" then it'll move the cursor, otherwise it'll move the player.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">direction</span>
+         String. The keycode of the pressed key.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "move_player"></a>
+    <strong>move_player (newX, newY, force)</strong>
+    </dt>
+    <dd>
+    Move the player to a new location.  Also handles warnings for moving into a dangerous area, and advances the turn if the player moves.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">newX</span>
+         Number. The X-coordinate to move the player to.
+        </li>
+        <li><span class="parameter">newY</span>
+         Number. The Y-coordinate to move the player to.
+        </li>
+        <li><span class="parameter">force</span>
+         Boolean. Whether to ignore warnings and move the player into a potentially dangerous tile. (optional)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether the move was successful or not.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "pathTo"></a>
+    <strong>pathTo (x, y, noMsg)</strong>
+    </dt>
+    <dd>
+    Find a path from the player's location to a new location, and start the player moving along it.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">x</span>
+         Number. The x-coordinate to move to.
+        </li>
+        <li><span class="parameter">y</span>
+         Number. The y-coordinate to move to.
+        </li>
+        <li><span class="parameter">noMsg</span>
+         Boolean. Whether to suppress the "moving to" notification.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "setTarget"></a>
+    <strong>setTarget (x, y)</strong>
+    </dt>
+    <dd>
+    Set the player's target, and if targeting an action, apply that action to the target.  If targeting a tile with a creature, that creature will be the player's target for UI purposes.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">x</span>
+         Number. The x-coordinate of the target.
+        </li>
+        <li><span class="parameter">y</span>
+         Number. The y-coordinate of the target.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "player_dies"></a>
+    <strong>player_dies ()</strong>
+    </dt>
+    <dd>
+    Called when the player dies.  Starts the screen going black, saves a graveyard file, and updates death statistics.
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "refresh_player_sight"></a>
+    <strong>refresh_player_sight ()</strong>
+    </dt>
+    <dd>
+    Refreshes the player's sightmap.  Called every turn, may need to be called if something changes visibility for some reason (new lights or something that blocks sight showing up)
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "show_tutorial"></a>
+    <strong>show_tutorial (tutorial)</strong>
+    </dt>
+    <dd>
+    Show a tutorial message
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">tutorial</span>
+         String. The ID of the tutorial to show.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "get_mission_flag"></a>
+    <strong>get_mission_flag (flag)</strong>
+    </dt>
+    <dd>
+    Gets the value of a "mission flag." Mission flags aren't pre-defined, you can use them as you see fit to track whatever information you want in a given playthrough.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">flag</span>
+         String. The ID of the mission flag.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Anything. The value of the flag.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "set_mission_flag"></a>
+    <strong>set_mission_flag (flag, value)</strong>
+    </dt>
+    <dd>
+    Sets a "mission flag" to a specific value.  Mission flags aren't pre-defined, you can use them as you see fit to track whatever information you want in a given playthrough.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">flag</span>
+         String. The ID of the mission flag.
+        </li>
+        <li><span class="parameter">value</span>
+         Anything. The value you'd like to store.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "update_mission_flag"></a>
+    <strong>update_mission_flag (flag, amt)</strong>
+    </dt>
+    <dd>
+    Updates a "mission flags" value by a given number value.  Mission flags aren't pre-defined, you can use them as you see fit to track whatever information you want in a given playthrough. Only call this function on a mission flag that's using number values!
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">flag</span>
+         String. The ID of the mission flag.
+        </li>
+        <li><span class="parameter">amt</span>
+         Number. The amount to increase the flag by. (optional, defaults to 1)
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.4.6</a></i>
+<i style="float:right;">Last updated 2020-02-22 12:38:46 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

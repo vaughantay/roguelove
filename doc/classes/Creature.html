@@ -1,0 +1,2387 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Reference</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>ldoc</h1>
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Methods">Methods</a></li>
+</ul>
+
+
+<h2>Classes</h2>
+<ul class="nowrap">
+  <li><a href="../classes/Condition.html">Condition</a></li>
+  <li><strong>Creature</strong></li>
+  <li><a href="../classes/Effect.html">Effect</a></li>
+  <li><a href="../classes/Faction.html">Faction</a></li>
+  <li><a href="../classes/Feature.html">Feature</a></li>
+  <li><a href="../classes/Item.html">Item</a></li>
+  <li><a href="../classes/Map.html">Map</a></li>
+  <li><a href="../classes/Projectile.html">Projectile</a></li>
+  <li><a href="../classes/ranged_attack.html">ranged_attack</a></li>
+  <li><a href="../classes/Service.html">Service</a></li>
+  <li><a href="../classes/Spell.html">Spell</a></li>
+  <li><a href="../classes/Store.html">Store</a></li>
+</ul>
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/gamelogic.html">gamelogic</a></li>
+  <li><a href="../modules/jumper.core.bheap.html">jumper.core.bheap</a></li>
+  <li><a href="../modules/jumper.core.heuristics.html">jumper.core.heuristics</a></li>
+  <li><a href="../modules/jumper.core.node.html">jumper.core.node</a></li>
+  <li><a href="../modules/jumper.core.path.html">jumper.core.path</a></li>
+  <li><a href="../modules/jumper.grid.html">jumper.grid</a></li>
+  <li><a href="../modules/jumper.pathfinder.html">jumper.pathfinder</a></li>
+  <li><a href="../modules/lib.serialize.html">lib.serialize</a></li>
+  <li><a href="../modules/util.html">util</a></li>
+</ul>
+<h2>Scripts</h2>
+<ul class="nowrap">
+  <li><a href="../scripts/jumper.search.astar.html">jumper.search.astar</a></li>
+  <li><a href="../scripts/jumper.search.bfs.html">jumper.search.bfs</a></li>
+  <li><a href="../scripts/jumper.search.dfs.html">jumper.search.dfs</a></li>
+  <li><a href="../scripts/jumper.search.dijkstra.html">jumper.search.dijkstra</a></li>
+  <li><a href="../scripts/jumper.search.jps.html">jumper.search.jps</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Class <code>Creature</code></h1>
+<p></p>
+<p></p>
+
+
+<h2><a href="#Methods">Methods</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#Creature:init">Creature:init (creatureType, level, noItems)</a></td>
+	<td class="summary">Initiates a creature.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:generate_inventory">Creature:generate_inventory (source)</a></td>
+	<td class="summary">Generate items for a creature's inventory.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:apply_class">Creature:apply_class (classID)</a></td>
+	<td class="summary">Applies a class definition to a creature, granting it that class's starting favor, spells, factions and items</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:get_name">Creature:get_name (full, force)</a></td>
+	<td class="summary">Get the name of a creature</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:get_pronoun">Creature:get_pronoun (ptype)</a></td>
+	<td class="summary">Get the pronoun of a creature</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:get_mhp">Creature:get_mhp ()</a></td>
+	<td class="summary">Get the max HP of a creature</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:updateHP">Creature:updateHP (amt)</a></td>
+	<td class="summary">Change the HP of a creature</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:damage">Creature:damage (amt, attacker, damage_type, armor_piercing, noSound)</a></td>
+	<td class="summary">Damage a creature</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:give_condition">Creature:give_condition (name, turns, applier, force)</a></td>
+	<td class="summary">Give a condition to a creature</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:advance_conditions">Creature:advance_conditions ()</a></td>
+	<td class="summary">Called every turn, this advances all the conditions and decreases all the spell cooldowns</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:cure_condition">Creature:cure_condition (condition)</a></td>
+	<td class="summary">Cure a condition.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:has_condition">Creature:has_condition (condition)</a></td>
+	<td class="summary">Check if a creature has a condition</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:callbacks">Creature:callbacks (callback_type, Anything.)</a></td>
+	<td class="summary">Checks the callbacks of the base creature type, any conditions the creature might have, any items the creature has equipped, and any spells the creature might have.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:get_description">Creature:get_description ()</a></td>
+	<td class="summary">Get the extended description of a creature, including information like its health info, friendliness to the player, etc.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:get_health_text">Creature:get_health_text (full)</a></td>
+	<td class="summary">Get a description of a creature's health</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:get_bonus">Creature:get_bonus (bonusType, average)</a></td>
+	<td class="summary">Get the bonus of a certain type, looking at conditions and equipment.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:get_resistance">Creature:get_resistance (amt, damageType)</a></td>
+	<td class="summary">Check how much damage of a given damage type is reduced by a creature's resistances and bonuses</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:get_weakness">Creature:get_weakness (amt, damageType)</a></td>
+	<td class="summary">Check how much damage of a given damage type is increased by a creature's weaknesses and bonuses</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:get_hit_conditions">Creature:get_hit_conditions ()</a></td>
+	<td class="summary">Check what hit conditions a creature can inflict</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:get_crit_conditions">Creature:get_crit_conditions ()</a></td>
+	<td class="summary">Check what conditions a creature can inflict on a critical hit</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:attack">Creature:attack (target, forceHit, ignore_callbacks)</a></td>
+	<td class="summary">Attack another entity.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:advance">Creature:advance (skip_conditions)</a></td>
+	<td class="summary">This function is run every turn.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:can_move_to">Creature:can_move_to (x, y, inMap)</a></td>
+	<td class="summary">Check whether a creature can move to a given tile</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:moveTo">Creature:moveTo (x, y, skip_callbacks, noTween)</a></td>
+	<td class="summary">Move a creature to a tile</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:forceMove">Creature:forceMove (x, y)</a></td>
+	<td class="summary">Forcibly move a creature to a tile, no matter what.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:touching">Creature:touching (target)</a></td>
+	<td class="summary">Check if a creature is touching something else</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:die">Creature:die (killer)</a></td>
+	<td class="summary">Kill a creature.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:explode">Creature:explode ()</a></td>
+	<td class="summary">Make a creature explode.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:remove">Creature:remove (map)</a></td>
+	<td class="summary">Remove a creature from the map without killing it.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:pickup">Creature:pickup (item, tileOnly)</a></td>
+	<td class="summary">Have a creature pick up an item from a tile.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:give_item">Creature:give_item (item)</a></td>
+	<td class="summary">Transfer an item to a creature's inventory</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:drop_item">Creature:drop_item (item)</a></td>
+	<td class="summary">Have a creature drop an item on the tile they're on</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:drop_all_items">Creature:drop_all_items (deathItems)</a></td>
+	<td class="summary">Have a creature drop all their items on the tile they're on</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:delete_item">Creature:delete_item (item, amt)</a></td>
+	<td class="summary">Remove an item from a creature's inventory</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:has_item">Creature:has_item (item)</a></td>
+	<td class="summary">Check if a creature has an instance of an item ID</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:is_equipped">Creature:is_equipped (item)</a></td>
+	<td class="summary">Check if a creature has a specific item equipped</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:get_equipped_in_slot">Creature:get_equipped_in_slot (slot)</a></td>
+	<td class="summary">Get a list of all equipment a creature has equipped in an equipment slot</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:equip">Creature:equip (item)</a></td>
+	<td class="summary">Equip an item</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:unequip">Creature:unequip (item)</a></td>
+	<td class="summary">Unequip an item</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:can_see_tile">Creature:can_see_tile (x, y, forceRefresh)</a></td>
+	<td class="summary">Check if a creature can see a given tile</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:can_sense_creature">Creature:can_sense_creature (creat, skipSight)</a></td>
+	<td class="summary">Check if a creature can sense another, either through sight or spooky senses.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:can_shoot_tile">Creature:can_shoot_tile (x, y)</a></td>
+	<td class="summary">Check if you can draw a straight line between the creature and a tile.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:is_enemy">Creature:is_enemy (target, dontSend)</a></td>
+	<td class="summary">Check if a creature is a potential enemy.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:is_friend">Creature:is_friend (target)</a></td>
+	<td class="summary">Check if a creature is a potential friend.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:is_type">Creature:is_type (ctype)</a></td>
+	<td class="summary">Checks if a creature is of a certain type</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:is_enemy_type">Creature:is_enemy_type (target)</a></td>
+	<td class="summary">Determine if a creature is an enemy type of yours (this function ignores factions, but does look at your creature types' enemy types list)</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:is_friendly_type">Creature:is_friendly_type (target)</a></td>
+	<td class="summary">Determine if a creature is a friendly type of yours (this function ignores factions, but does look at your creature types' friendly types list)</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:is_faction_enemy">Creature:is_faction_enemy (target)</a></td>
+	<td class="summary">Checks if a creature is an enemy of any of your factions</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:is_faction_member">Creature:is_faction_member (fac)</a></td>
+	<td class="summary">Checks if the creature is a member of a certain faction</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:get_kill_favor">Creature:get_kill_favor ()</a></td>
+	<td class="summary">Gets the favor you get for killing this creature.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:notice">Creature:notice (creat, skip_callbacks, force)</a></td>
+	<td class="summary">Cause the creature to notice another creature</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:does_notice">Creature:does_notice (creat)</a></td>
+	<td class="summary">Checks if the creature has already noticed a creature.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:can_notice">Creature:can_notice (creat)</a></td>
+	<td class="summary">Checks if a creature is able to notice another, and sets them as noticed if yes</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:decrease_notice">Creature:decrease_notice (seenCreats)</a></td>
+	<td class="summary">Decrease the "noticed" value for all creatures that this creature has noticed</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:forget">Creature:forget (creat)</a></td>
+	<td class="summary">Forget that you saw a creature</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:become_hostile">Creature:become_hostile (creat, skip_callbacks., noSound)</a></td>
+	<td class="summary">Become hostile to another creature</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:ignore">Creature:ignore (creat)</a></td>
+	<td class="summary">Add a creature to your ignore list</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:stop_ignoring">Creature:stop_ignoring (creat)</a></td>
+	<td class="summary">Remove a creature from your ignore list</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:get_seen_creatures">Creature:get_seen_creatures ()</a></td>
+	<td class="summary">Get a list of all creatures you can see</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:make_fear_map">Creature:make_fear_map ()</a></td>
+	<td class="summary">Make a fear map for the given creature</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:update">Creature:update (dt)</a></td>
+	<td class="summary">This function is run every tick and updates various things.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:refresh_image_name">Creature:refresh_image_name ()</a></td>
+	<td class="summary">Placeholder.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:get_speed">Creature:get_speed ()</a></td>
+	<td class="summary">Gets a creature's speed stat value, including bonuses</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:get_perception">Creature:get_perception (self)</a></td>
+	<td class="summary">Gets a creature's perception stat value, including bonuses</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:flyTo">Creature:flyTo (target, result)</a></td>
+	<td class="summary">Makes a creature fly through the air to a target</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:become_thrall">Creature:become_thrall (master, skip_callbacks)</a></td>
+	<td class="summary">Become a thrall to another creature.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:become_free">Creature:become_free (skip_callbacks)</a></td>
+	<td class="summary">Become free from your master</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:free_thralls">Creature:free_thralls ()</a></td>
+	<td class="summary">Free all this creature's thralls</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:give_xp">Creature:give_xp (xp)</a></td>
+	<td class="summary">Grant XP to a creature</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:get_level_up_cost">Creature:get_level_up_cost ()</a></td>
+	<td class="summary">How much XP do you need to level up?</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:level_up">Creature:level_up ()</a></td>
+	<td class="summary">Level Up, granting skill points (for players), or randomly increasing skills (for NPCs)</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:get_fear">Creature:get_fear (self)</a></td>
+	<td class="summary">Find out how afraid the creature is</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:get_bravery">Creature:get_bravery ()</a></td>
+	<td class="summary">Gets the creature's bravery stat value, including bonuses</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:get_aggression">Creature:get_aggression (self)</a></td>
+	<td class="summary">Gets the creature's aggression stat value, including bonuses</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:get_animation_time">Creature:get_animation_time ()</a></td>
+	<td class="summary">Gets the creature's animation_time stat value, including bonuses</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:get_notice_chance">Creature:get_notice_chance ()</a></td>
+	<td class="summary">Gets the creature's notice chance value, including bonuses</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:get_stealth">Creature:get_stealth ()</a></td>
+	<td class="summary">Gets the creature's stealth stat value, including bonuses</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:get_damage">Creature:get_damage ()</a></td>
+	<td class="summary">Gets the creature's damage value, including bonuses</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:get_armor_piercing">Creature:get_armor_piercing ()</a></td>
+	<td class="summary">Gets the creature's armor piercing value, including bonuses</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:get_critical_chance">Creature:get_critical_chance ()</a></td>
+	<td class="summary">Gets the creature's critical_chance stat value, including bonuses</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:get_spells">Creature:get_spells ()</a></td>
+	<td class="summary">Get all spells the creature has, including those granted by equipment</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:get_ranged_attacks">Creature:get_ranged_attacks ()</a></td>
+	<td class="summary">Get all ranged attacks the creature has, including those granted by equipment</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:has_spell">Creature:has_spell (spellName)</a></td>
+	<td class="summary">Checks if the creature possesses a certain spell</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:has_ai_flag">Creature:has_ai_flag (spellName)</a></td>
+	<td class="summary">Checks if the creature possesses a certain AI flag</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Methods"></a>Methods</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "Creature:init"></a>
+    <strong>Creature:init (creatureType, level, noItems)</strong>
+    </dt>
+    <dd>
+    Initiates a creature.  Don't call this explicitly, it's called when you create a new creature with Creature('creatureID').
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">creatureType</span>
+         String. The ID of the creature you want to create.
+        </li>
+        <li><span class="parameter">level</span>
+         Number. The level to set the creature to (optional)
+        </li>
+        <li><span class="parameter">noItems</span>
+         Boolean. Whether to generate without items (optional)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Creature. The creature itself.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:generate_inventory"></a>
+    <strong>Creature:generate_inventory (source)</strong>
+    </dt>
+    <dd>
+    Generate items for a creature's inventory.  Usually called when the creature first spawns
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">source</span>
+         Table. The source of potential item lists. Defaults to the creature itself, and will frequently be either a creature type or a faction, but can be any table containing a possible_inventory, possible_death_items, or any possible_[equipslot] table. (optional)
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:apply_class"></a>
+    <strong>Creature:apply_class (classID)</strong>
+    </dt>
+    <dd>
+    Applies a class definition to a creature, granting it that class's starting favor, spells, factions and items
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">classID</span>
+         String. The ID of the class to apply
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:get_name"></a>
+    <strong>Creature:get_name (full, force)</strong>
+    </dt>
+    <dd>
+    Get the name of a creature
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">full</span>
+         Boolean. Whether to display the creature name after the proper name (optional)
+        </li>
+        <li><span class="parameter">force</span>
+         Boolean. If set to true, will force display the name, even if the player can't see it (otherwise, will show as "Something"). (optional)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        String. The creature's name
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:get_pronoun"></a>
+    <strong>Creature:get_pronoun (ptype)</strong>
+    </dt>
+    <dd>
+    Get the pronoun of a creature
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">ptype</span>
+         String. The pronoun type: n = nominative, p = possessive, o = objective
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        String. The pronoun.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:get_mhp"></a>
+    <strong>Creature:get_mhp ()</strong>
+    </dt>
+    <dd>
+    Get the max HP of a creature
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. the max HP
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:updateHP"></a>
+    <strong>Creature:updateHP (amt)</strong>
+    </dt>
+    <dd>
+    Change the HP of a creature
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">amt</span>
+         Number. Can be positive or negative.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:damage"></a>
+    <strong>Creature:damage (amt, attacker, damage_type, armor_piercing, noSound)</strong>
+    </dt>
+    <dd>
+    Damage a creature
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">amt</span>
+         Number. The damage to deal.
+        </li>
+        <li><span class="parameter">attacker</span>
+         Entity. The source of the damage.
+        </li>
+        <li><span class="parameter">damage_type</span>
+         String. The damage type of the attack. (optional)
+        </li>
+        <li><span class="parameter">armor_piercing</span>
+         True/False, or Number. If set to true, it ignores all armor. If set to a number, ignores that much armor. (optional)
+        </li>
+        <li><span class="parameter">noSound</span>
+         Boolean. If set to true, no damage type sound will be played. (optional)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The final damage done.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:give_condition"></a>
+    <strong>Creature:give_condition (name, turns, applier, force)</strong>
+    </dt>
+    <dd>
+    Give a condition to a creature
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">name</span>
+         String. The ID of the condition.
+        </li>
+        <li><span class="parameter">turns</span>
+         Number. How many turns the condition should last.
+        </li>
+        <li><span class="parameter">applier</span>
+         Entity. Who applied the condition. (optional)
+        </li>
+        <li><span class="parameter">force</span>
+         Boolean. Whether to force-apply the condition. (optional)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether the condition was applied
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:advance_conditions"></a>
+    <strong>Creature:advance_conditions ()</strong>
+    </dt>
+    <dd>
+    Called every turn, this advances all the conditions and decreases all the spell cooldowns
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:cure_condition"></a>
+    <strong>Creature:cure_condition (condition)</strong>
+    </dt>
+    <dd>
+    Cure a condition.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">condition</span>
+         String. The ID of the condition to cure
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:has_condition"></a>
+    <strong>Creature:has_condition (condition)</strong>
+    </dt>
+    <dd>
+    Check if a creature has a condition
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">condition</span>
+         String. The ID of the condition to check
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether the creature has the condition.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:callbacks"></a>
+    <strong>Creature:callbacks (callback_type, Anything.)</strong>
+    </dt>
+    <dd>
+    Checks the callbacks of the base creature type, any conditions the creature might have, any items the creature has equipped, and any spells the creature might have.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">callback_type</span>
+         String. The callback type to check.
+        </li>
+        <li><span class="parameter">Anything.</span>
+         Any info you want to pass to the callback. Each callback type is probably looking for something specific (optional)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+        Boolean. If any of the callbacks returned true or false.</li>
+        <li>
+        Table. Any other information that the callbacks might return.</li>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:get_description"></a>
+    <strong>Creature:get_description ()</strong>
+    </dt>
+    <dd>
+    Get the extended description of a creature, including information like its health info, friendliness to the player, etc.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        String. The description of the creature.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:get_health_text"></a>
+    <strong>Creature:get_health_text (full)</strong>
+    </dt>
+    <dd>
+    Get a description of a creature's health
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">full</span>
+         Boolean. Whether to return a full sentence or just a short description (optional)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        String. The health text
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:get_bonus"></a>
+    <strong>Creature:get_bonus (bonusType, average)</strong>
+    </dt>
+    <dd>
+    Get the bonus of a certain type, looking at conditions and equipment.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">bonusType</span>
+         String. The type of bonus to check for. Usually a stat
+        </li>
+        <li><span class="parameter">average</span>
+         Boolean. Whether or not to average the total bonus before returning it (optional)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The bonus.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:get_resistance"></a>
+    <strong>Creature:get_resistance (amt, damageType)</strong>
+    </dt>
+    <dd>
+    Check how much damage of a given damage type is reduced by a creature's resistances and bonuses
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">amt</span>
+         Number. The original damage.
+        </li>
+        <li><span class="parameter">damageType</span>
+         String. The damage type.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The amount by which the damage is reduced
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:get_weakness"></a>
+    <strong>Creature:get_weakness (amt, damageType)</strong>
+    </dt>
+    <dd>
+    Check how much damage of a given damage type is increased by a creature's weaknesses and bonuses
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">amt</span>
+         Number. The original damage.
+        </li>
+        <li><span class="parameter">damageType</span>
+         String. The damage type.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The amount by which the damage is increased
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:get_hit_conditions"></a>
+    <strong>Creature:get_hit_conditions ()</strong>
+    </dt>
+    <dd>
+    Check what hit conditions a creature can inflict
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. The list of hit conditions
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:get_crit_conditions"></a>
+    <strong>Creature:get_crit_conditions ()</strong>
+    </dt>
+    <dd>
+    Check what conditions a creature can inflict on a critical hit
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. The list of hit conditions
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:attack"></a>
+    <strong>Creature:attack (target, forceHit, ignore_callbacks)</strong>
+    </dt>
+    <dd>
+    Attack another entity.  If any weapons are equipped, this function will call their attack code instead.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">target</span>
+         Entity. The creature (or feature) they're attacking
+        </li>
+        <li><span class="parameter">forceHit</span>
+         Boolean. Whether to force the attack instead of rolling for it.
+        </li>
+        <li><span class="parameter">ignore_callbacks</span>
+         Boolean. Whether to ignore any of the callbacks involved with attacking
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+        String. Either "miss," "hit," or "critical"</li>
+        <li>
+        Number. How much damage (if any) was done</li>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:advance"></a>
+    <strong>Creature:advance (skip_conditions)</strong>
+    </dt>
+    <dd>
+    This function is run every turn.  It handles advancing conditions, recharging attacks, and AI for NPCs
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">skip_conditions</span>
+         Boolean. Whether to skip running the condition advance code (optional)
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:can_move_to"></a>
+    <strong>Creature:can_move_to (x, y, inMap)</strong>
+    </dt>
+    <dd>
+    Check whether a creature can move to a given tile
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">x</span>
+         Number. The x coordinate
+        </li>
+        <li><span class="parameter">y</span>
+         Number. The y coordinate
+        </li>
+        <li><span class="parameter">inMap</span>
+         Map. The map to check. Defaults to current map (optional)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether or not the creature can move to that tile
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:moveTo"></a>
+    <strong>Creature:moveTo (x, y, skip_callbacks, noTween)</strong>
+    </dt>
+    <dd>
+    Move a creature to a tile
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">x</span>
+         Number. The x coordinate
+        </li>
+        <li><span class="parameter">y</span>
+         Number. The y coordinate
+        </li>
+        <li><span class="parameter">skip_callbacks</span>
+         Boolean. Whether to skip any callbacks related to movement (optional)
+        </li>
+        <li><span class="parameter">noTween</span>
+         Boolean. If true, move there instantly, no tweening animation (optional)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. If the creature successfully moved
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:forceMove"></a>
+    <strong>Creature:forceMove (x, y)</strong>
+    </dt>
+    <dd>
+    Forcibly move a creature to a tile, no matter what.  Do not use this function unless you absolutely have to, it is terrible and goes against everything we stand for, and can lead to creatures being stuck in places they shouldn't be, multiple creatures in a tile, or other things that you generally don't want.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">x</span>
+         Number. The x coordinate
+        </li>
+        <li><span class="parameter">y</span>
+         Number. The y coordinate
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:touching"></a>
+    <strong>Creature:touching (target)</strong>
+    </dt>
+    <dd>
+    Check if a creature is touching something else
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">target</span>
+         Entity. The entity to check (can be any table with an X and Y coordinate)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether they're touching
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:die"></a>
+    <strong>Creature:die (killer)</strong>
+    </dt>
+    <dd>
+    Kill a creature.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">killer</span>
+         Entity. Whodunnit?
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:explode"></a>
+    <strong>Creature:explode ()</strong>
+    </dt>
+    <dd>
+    Make a creature explode.
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:remove"></a>
+    <strong>Creature:remove (map)</strong>
+    </dt>
+    <dd>
+    Remove a creature from the map without killing it.  Called to clean up after the creature dies, but can also be called whenever to remove them for some other reason.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">map</span>
+         Map. The map to remove the creature from. Defaults to current map (optional)
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:pickup"></a>
+    <strong>Creature:pickup (item, tileOnly)</strong>
+    </dt>
+    <dd>
+    Have a creature pick up an item from a tile.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">item</span>
+         Item. The item to pick up
+        </li>
+        <li><span class="parameter">tileOnly</span>
+         Boolean. Whether to only allow pickups from the tile the creature is standing on. If not set to TRUE, creatures can also pick up from adjacent tiles.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:give_item"></a>
+    <strong>Creature:give_item (item)</strong>
+    </dt>
+    <dd>
+    Transfer an item to a creature's inventory
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">item</span>
+         Item. The item to give.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:drop_item"></a>
+    <strong>Creature:drop_item (item)</strong>
+    </dt>
+    <dd>
+    Have a creature drop an item on the tile they're on
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">item</span>
+         Item. The item to drop
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:drop_all_items"></a>
+    <strong>Creature:drop_all_items (deathItems)</strong>
+    </dt>
+    <dd>
+    Have a creature drop all their items on the tile they're on
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">deathItems</span>
+         Boolean. Whether to also drop death items
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:delete_item"></a>
+    <strong>Creature:delete_item (item, amt)</strong>
+    </dt>
+    <dd>
+    Remove an item from a creature's inventory
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">item</span>
+         Item. The item to remove
+        </li>
+        <li><span class="parameter">amt</span>
+         Number. The amount of the item to remove, if the item is stackable. Defaults to 1.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:has_item"></a>
+    <strong>Creature:has_item (item)</strong>
+    </dt>
+    <dd>
+    Check if a creature has an instance of an item ID
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">item</span>
+         Item. The item ID to check for
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        either Boolean or Item. False, or the specific item they have in their inventory
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:is_equipped"></a>
+    <strong>Creature:is_equipped (item)</strong>
+    </dt>
+    <dd>
+    Check if a creature has a specific item equipped
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">item</span>
+         Item. The item to check for
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether the item is equipped.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:get_equipped_in_slot"></a>
+    <strong>Creature:get_equipped_in_slot (slot)</strong>
+    </dt>
+    <dd>
+    Get a list of all equipment a creature has equipped in an equipment slot
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">slot</span>
+         String. The equipment slot to check
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A list of the equipment.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:equip"></a>
+    <strong>Creature:equip (item)</strong>
+    </dt>
+    <dd>
+    Equip an item
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">item</span>
+         Item. The item to equip
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+        Boolean. Whether or not the item was equipped.</li>
+        <li>
+        String. Text describing the equipping.</li>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:unequip"></a>
+    <strong>Creature:unequip (item)</strong>
+    </dt>
+    <dd>
+    Unequip an item
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">item</span>
+         Item. The item to unequip
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+        Boolean. Whether or not the item was successfully unequipped. The only reason this would be false would be if the item had an unequip callback, or if the creature didn't even have the item equipped in the first place.</li>
+        <li>
+        String. Text describing the unequipping.</li>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:can_see_tile"></a>
+    <strong>Creature:can_see_tile (x, y, forceRefresh)</strong>
+    </dt>
+    <dd>
+    Check if a creature can see a given tile
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">x</span>
+         Number. The x-coordinate
+        </li>
+        <li><span class="parameter">y</span>
+         Number. The y-coordinate
+        </li>
+        <li><span class="parameter">forceRefresh</span>
+         Boolean. Whether to force actually calculating if a player can see it, versus just looking at the stored values of player sight. Useful only when calling this for the player.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether or not they can see it.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:can_sense_creature"></a>
+    <strong>Creature:can_sense_creature (creat, skipSight)</strong>
+    </dt>
+    <dd>
+    Check if a creature can sense another, either through sight or spooky senses.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">creat</span>
+         Creature. The creature to check.
+        </li>
+        <li><span class="parameter">skipSight</span>
+         Boolean. Whether to skip running can_see_tile and just look at extra senses (optional)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. If the target can be seen.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:can_shoot_tile"></a>
+    <strong>Creature:can_shoot_tile (x, y)</strong>
+    </dt>
+    <dd>
+    Check if you can draw a straight line between the creature and a tile.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">x</span>
+         Number. The x-coordinate
+        </li>
+        <li><span class="parameter">y</span>
+         Number. The y-coordinate
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether or not they can shoot it.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:is_enemy"></a>
+    <strong>Creature:is_enemy (target, dontSend)</strong>
+    </dt>
+    <dd>
+    Check if a creature is a potential enemy.  This is NOT to check if they're actually currently hostile.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">target</span>
+         Creature. The target to check
+        </li>
+        <li><span class="parameter">dontSend</span>
+         Boolean. The dontSend argument here is used when is_enemy() is called for checking a master's enemies. In the weird (but possible) case where two creatures were masters of each other, this would result in an infinite loop. Don't use it yourself. (optional)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether or not they're enemies
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:is_friend"></a>
+    <strong>Creature:is_friend (target)</strong>
+    </dt>
+    <dd>
+    Check if a creature is a potential friend.  This is NOT to check if they're actually currently friendly.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">target</span>
+         Creature. The target to check.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether or not they're friends.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:is_type"></a>
+    <strong>Creature:is_type (ctype)</strong>
+    </dt>
+    <dd>
+    Checks if a creature is of a certain type
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">ctype</span>
+         String. The creature type to check for
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether or not the creature is that type
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:is_enemy_type"></a>
+    <strong>Creature:is_enemy_type (target)</strong>
+    </dt>
+    <dd>
+    Determine if a creature is an enemy type of yours (this function ignores factions, but does look at your creature types' enemy types list)
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">target</span>
+         Creature. The creature to check
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. If they're an enemy type
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:is_friendly_type"></a>
+    <strong>Creature:is_friendly_type (target)</strong>
+    </dt>
+    <dd>
+    Determine if a creature is a friendly type of yours (this function ignores factions, but does look at your creature types' friendly types list)
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">target</span>
+         Creature. The creature to check
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. If they're a friendly type
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:is_faction_enemy"></a>
+    <strong>Creature:is_faction_enemy (target)</strong>
+    </dt>
+    <dd>
+    Checks if a creature is an enemy of any of your factions
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">target</span>
+         Creature. The creature to check
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether or not the creature is an enemy of any of your factions
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:is_faction_member"></a>
+    <strong>Creature:is_faction_member (fac)</strong>
+    </dt>
+    <dd>
+    Checks if the creature is a member of a certain faction
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">fac</span>
+         String. The faction ID to check for
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether or not the creature is a member of that faction
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:get_kill_favor"></a>
+    <strong>Creature:get_kill_favor ()</strong>
+    </dt>
+    <dd>
+    Gets the favor you get for killing this creature.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A table of factions, and the favor scores
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:notice"></a>
+    <strong>Creature:notice (creat, skip_callbacks, force)</strong>
+    </dt>
+    <dd>
+    Cause the creature to notice another creature
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">creat</span>
+         Creature. The target to notice.
+        </li>
+        <li><span class="parameter">skip_callbacks</span>
+         Whether to force notice and skip the notices() callbacks (optional)
+        </li>
+        <li><span class="parameter">force</span>
+         Whether to force notice, but still run the callbacks (optional)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether the creature successfully noticed the target
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:does_notice"></a>
+    <strong>Creature:does_notice (creat)</strong>
+    </dt>
+    <dd>
+    Checks if the creature has already noticed a creature.  If not, see if they notice them now.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">creat</span>
+
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether the creature has noticed the target.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:can_notice"></a>
+    <strong>Creature:can_notice (creat)</strong>
+    </dt>
+    <dd>
+    Checks if a creature is able to notice another, and sets them as noticed if yes
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">creat</span>
+         Creature. The creature to try and notice
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether the creature is able to notice the target
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:decrease_notice"></a>
+    <strong>Creature:decrease_notice (seenCreats)</strong>
+    </dt>
+    <dd>
+    Decrease the "noticed" value for all creatures that this creature has noticed
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">seenCreats</span>
+         Table. A table full of creatures currently seen, whose noticed value will not be decreased (optional)
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:forget"></a>
+    <strong>Creature:forget (creat)</strong>
+    </dt>
+    <dd>
+    Forget that you saw a creature
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">creat</span>
+         Creature. The creature to forget
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:become_hostile"></a>
+    <strong>Creature:become_hostile (creat, skip_callbacks., noSound)</strong>
+    </dt>
+    <dd>
+    Become hostile to another creature
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">creat</span>
+         Creature. The creature to become hostile towards
+        </li>
+        <li><span class="parameter">skip_callbacks.</span>
+         Boolean. Whether to skip hostility-related callbacks (optional)
+        </li>
+        <li><span class="parameter">noSound</span>
+         Boolean. Whether to become hostile without playing a sound (optional)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether the creature became hostile to the target.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:ignore"></a>
+    <strong>Creature:ignore (creat)</strong>
+    </dt>
+    <dd>
+    Add a creature to your ignore list
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">creat</span>
+         Creature. The creature to ignore
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:stop_ignoring"></a>
+    <strong>Creature:stop_ignoring (creat)</strong>
+    </dt>
+    <dd>
+    Remove a creature from your ignore list
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">creat</span>
+         Creature. The creature to stop ignoring
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:get_seen_creatures"></a>
+    <strong>Creature:get_seen_creatures ()</strong>
+    </dt>
+    <dd>
+    Get a list of all creatures you can see
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. An array of the creatures.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:make_fear_map"></a>
+    <strong>Creature:make_fear_map ()</strong>
+    </dt>
+    <dd>
+    Make a fear map for the given creature
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A fear map, with coordinates in t[x][y] format
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:update"></a>
+    <strong>Creature:update (dt)</strong>
+    </dt>
+    <dd>
+    This function is run every tick and updates various things.  You probably shouldn't call it yourself
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">dt</span>
+         Number. The number of seconds since the last time update() was run. Most likely less than 1.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:refresh_image_name"></a>
+    <strong>Creature:refresh_image_name ()</strong>
+    </dt>
+    <dd>
+    Placeholder.  Doesn't do anything.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        False.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:get_speed"></a>
+    <strong>Creature:get_speed ()</strong>
+    </dt>
+    <dd>
+    Gets a creature's speed stat value, including bonuses
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The stat value
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:get_perception"></a>
+    <strong>Creature:get_perception (self)</strong>
+    </dt>
+    <dd>
+    Gets a creature's perception stat value, including bonuses
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">self</span>
+         Creature. The creature itself
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The stat value
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:flyTo"></a>
+    <strong>Creature:flyTo (target, result)</strong>
+    </dt>
+    <dd>
+    Makes a creature fly through the air to a target
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">target</span>
+         Table. A table containing at least an x and y index. Can be a creature, a feature, or just a table with nothing but x and y.
+        </li>
+        <li><span class="parameter">result</span>
+         Spell. What spell to use after the zoom is done. A spell object itself, not the ID (optional)
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:become_thrall"></a>
+    <strong>Creature:become_thrall (master, skip_callbacks)</strong>
+    </dt>
+    <dd>
+    Become a thrall to another creature.  If you already have a master, unset your previous master.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">master</span>
+         Creature. The creature to become a thrall to
+        </li>
+        <li><span class="parameter">skip_callbacks</span>
+         Boolean. Whether to skip thrall callbacks (optional)
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:become_free"></a>
+    <strong>Creature:become_free (skip_callbacks)</strong>
+    </dt>
+    <dd>
+    Become free from your master
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">skip_callbacks</span>
+         Boolean. Whether to skip freedom callbacks (optional)
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:free_thralls"></a>
+    <strong>Creature:free_thralls ()</strong>
+    </dt>
+    <dd>
+    Free all this creature's thralls
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:give_xp"></a>
+    <strong>Creature:give_xp (xp)</strong>
+    </dt>
+    <dd>
+    Grant XP to a creature
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">xp</span>
+         Number. The amount of XP to give
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:get_level_up_cost"></a>
+    <strong>Creature:get_level_up_cost ()</strong>
+    </dt>
+    <dd>
+    How much XP do you need to level up?
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The XP required to level up
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:level_up"></a>
+    <strong>Creature:level_up ()</strong>
+    </dt>
+    <dd>
+    Level Up, granting skill points (for players), or randomly increasing skills (for NPCs)
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:get_fear"></a>
+    <strong>Creature:get_fear (self)</strong>
+    </dt>
+    <dd>
+    Find out how afraid the creature is
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">self</span>
+         Creature. The creature itself
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The fear value
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:get_bravery"></a>
+    <strong>Creature:get_bravery ()</strong>
+    </dt>
+    <dd>
+    Gets the creature's bravery stat value, including bonuses
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The stat value
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:get_aggression"></a>
+    <strong>Creature:get_aggression (self)</strong>
+    </dt>
+    <dd>
+    Gets the creature's aggression stat value, including bonuses
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">self</span>
+         Creature. The creature itself
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The stat value
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:get_animation_time"></a>
+    <strong>Creature:get_animation_time ()</strong>
+    </dt>
+    <dd>
+    Gets the creature's animation_time stat value, including bonuses
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The stat value
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:get_notice_chance"></a>
+    <strong>Creature:get_notice_chance ()</strong>
+    </dt>
+    <dd>
+    Gets the creature's notice chance value, including bonuses
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The stat value
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:get_stealth"></a>
+    <strong>Creature:get_stealth ()</strong>
+    </dt>
+    <dd>
+    Gets the creature's stealth stat value, including bonuses
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The stat value
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:get_damage"></a>
+    <strong>Creature:get_damage ()</strong>
+    </dt>
+    <dd>
+    Gets the creature's damage value, including bonuses
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The damage value
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:get_armor_piercing"></a>
+    <strong>Creature:get_armor_piercing ()</strong>
+    </dt>
+    <dd>
+    Gets the creature's armor piercing value, including bonuses
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The damage value
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:get_critical_chance"></a>
+    <strong>Creature:get_critical_chance ()</strong>
+    </dt>
+    <dd>
+    Gets the creature's critical_chance stat value, including bonuses
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The stat value
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:get_spells"></a>
+    <strong>Creature:get_spells ()</strong>
+    </dt>
+    <dd>
+    Get all spells the creature has, including those granted by equipment
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A list of the creature's spells
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:get_ranged_attacks"></a>
+    <strong>Creature:get_ranged_attacks ()</strong>
+    </dt>
+    <dd>
+    Get all ranged attacks the creature has, including those granted by equipment
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A list of the creature's ranged attacks
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:has_spell"></a>
+    <strong>Creature:has_spell (spellName)</strong>
+    </dt>
+    <dd>
+    Checks if the creature possesses a certain spell
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">spellName</span>
+         String. The name of the spell
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether the creature has the spell
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:has_ai_flag"></a>
+    <strong>Creature:has_ai_flag (spellName)</strong>
+    </dt>
+    <dd>
+    Checks if the creature possesses a certain AI flag
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">spellName</span>
+         String. The AI flag
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether the creature has the AI flag
+    </ol>
+
+
+
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.4.6</a></i>
+<i style="float:right;">Last updated 2020-02-22 12:38:46 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

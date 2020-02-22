@@ -1,0 +1,351 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Reference</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>ldoc</h1>
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Functions">Functions</a></li>
+</ul>
+
+
+<h2>Classes</h2>
+<ul class="nowrap">
+  <li><strong>creature</strong></li>
+  <li><a href="../classes/effect.html">effect</a></li>
+  <li><a href="../classes/feature.html">feature</a></li>
+</ul>
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/jumper.core.bheap.html">jumper.core.bheap</a></li>
+  <li><a href="../modules/jumper.core.heuristics.html">jumper.core.heuristics</a></li>
+  <li><a href="../modules/jumper.core.node.html">jumper.core.node</a></li>
+  <li><a href="../modules/jumper.core.path.html">jumper.core.path</a></li>
+  <li><a href="../modules/jumper.grid.html">jumper.grid</a></li>
+  <li><a href="../modules/jumper.pathfinder.html">jumper.pathfinder</a></li>
+  <li><a href="../modules/lib.serialize.html">lib.serialize</a></li>
+</ul>
+<h2>Scripts</h2>
+<ul class="nowrap">
+  <li><a href="../scripts/jumper.search.astar.html">jumper.search.astar</a></li>
+  <li><a href="../scripts/jumper.search.bfs.html">jumper.search.bfs</a></li>
+  <li><a href="../scripts/jumper.search.dfs.html">jumper.search.dfs</a></li>
+  <li><a href="../scripts/jumper.search.dijkstra.html">jumper.search.dijkstra</a></li>
+  <li><a href="../scripts/jumper.search.jps.html">jumper.search.jps</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Class <code>creature</code></h1>
+<p></p>
+<p></p>
+
+
+<h2><a href="#Functions">Functions</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#Creature:init">Creature:init (creatureType, level, noItems)</a></td>
+	<td class="summary">Initiates a creature.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:generate_inventory">Creature:generate_inventory (self, source)</a></td>
+	<td class="summary">Generate items for a creature's inventory.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:apply_class">Creature:apply_class (self, classID)</a></td>
+	<td class="summary">Applies a class definition to a creature, granting it that class's starting favor, spells, factions and items</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:get_name">Creature:get_name (self, full, force)</a></td>
+	<td class="summary">Get the name of a creature</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:get_pronoun">Creature:get_pronoun (self, ptype)</a></td>
+	<td class="summary">Get the pronoun of a creature</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:get_mhp">Creature:get_mhp (self)</a></td>
+	<td class="summary">Get the max HP of a creature</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:give_xp">Creature:give_xp (xp)</a></td>
+	<td class="summary">Grant XP to a creature</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:get_level_up_cost">Creature:get_level_up_cost ()</a></td>
+	<td class="summary">How much XP do you need to level up?</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:level_up">Creature:level_up (self)</a></td>
+	<td class="summary">"Level Up" a random stat.</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "Creature:init"></a>
+    <strong>Creature:init (creatureType, level, noItems)</strong>
+    </dt>
+    <dd>
+    Initiates a creature.  Don't call this explicitly, it's called when you create a new creature.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">creatureType</span>
+         String. The ID of the creature you want to create.
+        </li>
+        <li><span class="parameter">level</span>
+         Number. The level to set the creature to (optional)
+        </li>
+        <li><span class="parameter">noItems</span>
+         True/False. Whether to generate without items (optional)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        The creature itself.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:generate_inventory"></a>
+    <strong>Creature:generate_inventory (self, source)</strong>
+    </dt>
+    <dd>
+    Generate items for a creature's inventory.  Usually called when the creature first spawns
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">self</span>
+         Creature. The creature itself
+        </li>
+        <li><span class="parameter">source</span>
+         Table. The source of potential item lists. Defaults to the creature itself, and will frequently be either a creature type or a faction, but can be any table containing a possible_inventory, possible_death_items, or any possible_[equipslot] table. (optional)
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:apply_class"></a>
+    <strong>Creature:apply_class (self, classID)</strong>
+    </dt>
+    <dd>
+    Applies a class definition to a creature, granting it that class's starting favor, spells, factions and items
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">self</span>
+         Creature. The creature itself
+        </li>
+        <li><span class="parameter">classID</span>
+         String. The ID of the class to apply
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:get_name"></a>
+    <strong>Creature:get_name (self, full, force)</strong>
+    </dt>
+    <dd>
+    Get the name of a creature
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">self</span>
+         Creature. The creature itself
+        </li>
+        <li><span class="parameter">full</span>
+         True/False. Whether to display the creature name after the proper name (optional)
+        </li>
+        <li><span class="parameter">force</span>
+         True/False. If set to true, will force display the name, even if the player can't see it (optional)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        The creature's name
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:get_pronoun"></a>
+    <strong>Creature:get_pronoun (self, ptype)</strong>
+    </dt>
+    <dd>
+    Get the pronoun of a creature
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">self</span>
+         Creature. The creature itself
+        </li>
+        <li><span class="parameter">ptype</span>
+         String. The pronoun type: n = nominative, p = possessive, o = objective
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        String. The pronoun.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:get_mhp"></a>
+    <strong>Creature:get_mhp (self)</strong>
+    </dt>
+    <dd>
+    Get the max HP of a creature
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">self</span>
+         Creature. The creature itself
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. the max HP
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:give_xp"></a>
+    <strong>Creature:give_xp (xp)</strong>
+    </dt>
+    <dd>
+    Grant XP to a creature
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">xp</span>
+         Number. The amount of XP to give
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:get_level_up_cost"></a>
+    <strong>Creature:get_level_up_cost ()</strong>
+    </dt>
+    <dd>
+    How much XP do you need to level up?
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The XP required to level up
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:level_up"></a>
+    <strong>Creature:level_up (self)</strong>
+    </dt>
+    <dd>
+    "Level Up" a random stat.  Either strength, dodging or melee
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">self</span>
+         Creature. The creature itself
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.4.6</a></i>
+<i style="float:right;">Last updated 2020-01-27 17:30:02 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

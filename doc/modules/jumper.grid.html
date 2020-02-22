@@ -1,0 +1,636 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Reference</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>ldoc</h1>
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Functions">Functions</a></li>
+<li><a href="#Tables">Tables</a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/gamelogic.html">gamelogic</a></li>
+  <li><a href="../modules/jumper.core.bheap.html">jumper.core.bheap</a></li>
+  <li><a href="../modules/jumper.core.heuristics.html">jumper.core.heuristics</a></li>
+  <li><a href="../modules/jumper.core.node.html">jumper.core.node</a></li>
+  <li><a href="../modules/jumper.core.path.html">jumper.core.path</a></li>
+  <li><strong>jumper.grid</strong></li>
+  <li><a href="../modules/jumper.pathfinder.html">jumper.pathfinder</a></li>
+  <li><a href="../modules/lib.serialize.html">lib.serialize</a></li>
+  <li><a href="../modules/util.html">util</a></li>
+</ul>
+<h2>Scripts</h2>
+<ul class="nowrap">
+  <li><a href="../scripts/jumper.search.astar.html">jumper.search.astar</a></li>
+  <li><a href="../scripts/jumper.search.bfs.html">jumper.search.bfs</a></li>
+  <li><a href="../scripts/jumper.search.dfs.html">jumper.search.dfs</a></li>
+  <li><a href="../scripts/jumper.search.dijkstra.html">jumper.search.dijkstra</a></li>
+  <li><a href="../scripts/jumper.search.jps.html">jumper.search.jps</a></li>
+</ul>
+<h2>Classes</h2>
+<ul class="nowrap">
+  <li><a href="../classes/Condition.html">Condition</a></li>
+  <li><a href="../classes/Creature.html">Creature</a></li>
+  <li><a href="../classes/Effect.html">Effect</a></li>
+  <li><a href="../classes/Faction.html">Faction</a></li>
+  <li><a href="../classes/Feature.html">Feature</a></li>
+  <li><a href="../classes/Item.html">Item</a></li>
+  <li><a href="../classes/Map.html">Map</a></li>
+  <li><a href="../classes/Projectile.html">Projectile</a></li>
+  <li><a href="../classes/ranged_attack.html">ranged_attack</a></li>
+  <li><a href="../classes/Service.html">Service</a></li>
+  <li><a href="../classes/Spell.html">Spell</a></li>
+  <li><a href="../classes/Store.html">Store</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>jumper.grid</code></h1>
+<p><strong>The <code>grid</code> class API</strong>.</p>
+<p>
+<p> Implementation of a `grid` class, which represents the 2D map (graph) on which a `pathfinder` will perform.
+<p> During a search, the pathfinder evaluates __costs values__ for each node being processed, in order to
+ select, after each step of iteration, what node should be expanded next to reach the target
+ optimally. Those values are cached within an array of nodes inside the `grid` object.
+</p>
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example">-- Usage Example
+-- First, set a collision map
+local map = {
+	{0,1,0,1,0},
+	{0,1,0,1,0},
+	{0,1,1,1,0},
+	{0,0,0,0,0},
+}
+-- Value for walkable tiles
+local walkable = 0
+
+-- Library setup
+local Grid = require (&quot;jumper.grid&quot;) -- The grid class
+
+-- Creates a grid object
+local grid = Grid(map)
+</pre>
+    </ul>
+    <h3>Info:</h3>
+    <ul>
+        <li><strong>Copyright</strong>: 2012-2013</li>
+        <li><strong>License</strong>: <a href="http://www.opensource.org/licenses/mit-license.php">MIT</a></li>
+        <li><strong>Author</strong>: Roland Yonaba</li>
+    </ul>
+
+
+<h2><a href="#Functions">Functions</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#new">new (map[, processOnDemand])</a></td>
+	<td class="summary">Inits a new `grid` object</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#isWalkableAt">isWalkableAt (x, y, walkable)</a></td>
+	<td class="summary">Checks walkability.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#getWidth">getWidth ()</a></td>
+	<td class="summary">Gets the `grid` width.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#getHeight">getHeight ()</a></td>
+	<td class="summary">Gets the `grid` height.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#getMap">getMap ()</a></td>
+	<td class="summary">Gets the collision map.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#getNodes">getNodes ()</a></td>
+	<td class="summary">Gets the `grid` nodes.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#getNeighbours">getNeighbours (node, walkable[, allowDiagonal[, tunnel]])</a></td>
+	<td class="summary">Returns the neighbours of a given `node` on a `grid`</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#iter">iter ([lx[, ly[, ex[, ey]]]])</a></td>
+	<td class="summary">Iterates on nodes on the grid.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#each">each (f[, ...])</a></td>
+	<td class="summary">Each transformation.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#eachRange">eachRange (lx, ly, ex, ey, f[, ...])</a></td>
+	<td class="summary">Each in range transformation.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#imap">imap (f[, ...])</a></td>
+	<td class="summary">Map transformation.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#imapRange">imapRange (lx, ly, ex, ey, f[, ...])</a></td>
+	<td class="summary">Map in range transformation.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#getNodeAt">getNodeAt (x, y)</a></td>
+	<td class="summary">Returns the `node`[x,y] on a `grid`.</td>
+	</tr>
+</table>
+<h2><a href="#Tables">Tables</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#grid">grid</a></td>
+	<td class="summary">The `grid` class</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "new"></a>
+    <strong>new (map[, processOnDemand])</strong>
+    </dt>
+    <dd>
+    Inits a new `grid` object
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">map</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.3/manual.html#6.6">table</a> or <a class="type" href="https://www.lua.org/manual/5.3/manual.html#6.4">string</a></span>
+         A collision map - (2D array) with consecutive integer indices or a string with line-break symbol as a row delimiter.
+        </li>
+        <li><span class="parameter">processOnDemand</span>
+            <span class="types"><span class="type">bool</span></span>
+         whether or not caching nodes in the internal grid should be processed on-demand
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../modules/jumper.grid.html#grid">grid</a></span>
+        a new `grid` object
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "isWalkableAt"></a>
+    <strong>isWalkableAt (x, y, walkable)</strong>
+    </dt>
+    <dd>
+    Checks walkability.  Tests if `node` [x,y] exists on the collision map and is walkable
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">x</span>
+            <span class="types"><span class="type">int</span></span>
+         the x-coordinate of the node
+        </li>
+        <li><span class="parameter">y</span>
+            <span class="types"><span class="type">int</span></span>
+         the y-coordinate of the node
+        </li>
+        <li><span class="parameter">walkable</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.3/manual.html#6.4">string</a>, <span class="type">int</span> or <span class="type">function</span></span>
+         the value for walkable nodes on the passed-in map array.
+ If this parameter is a function, it should be prototyped as `f(value)`, returning a boolean:
+ `true` when value matches a *walkable* node, `false` otherwise. If this parameter is not given and
+ node [x,y] exists, this function return `true`.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">bool</span></span>
+        `true` if the node exist and is walkable, `false` otherwise
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "getWidth"></a>
+    <strong>getWidth ()</strong>
+    </dt>
+    <dd>
+    Gets the `grid` width.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">int</span></span>
+        the `grid` object width
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "getHeight"></a>
+    <strong>getHeight ()</strong>
+    </dt>
+    <dd>
+    Gets the `grid` height.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">int</span></span>
+        the `grid` object height
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "getMap"></a>
+    <strong>getMap ()</strong>
+    </dt>
+    <dd>
+    Gets the collision map.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">{{value},...}</span></span>
+        the collision map previously passed to the `grid` object on initalization
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "getNodes"></a>
+    <strong>getNodes ()</strong>
+    </dt>
+    <dd>
+    Gets the `grid` nodes.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">{{node},...}</span></span>
+        the `grid` nodes
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "getNeighbours"></a>
+    <strong>getNeighbours (node, walkable[, allowDiagonal[, tunnel]])</strong>
+    </dt>
+    <dd>
+    Returns the neighbours of a given `node` on a `grid`
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">node</span>
+            <span class="types"><span class="type">node</span></span>
+         `node` object
+        </li>
+        <li><span class="parameter">walkable</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.3/manual.html#6.4">string</a>, <span class="type">int</span> or <span class="type">function</span></span>
+         the value for walkable nodes on the passed-in map array.
+ If this parameter is a function, it should be prototyped as `f(value)`, returning a boolean:
+ `true` when value matches a *walkable* node, `false` otherwise.
+        </li>
+        <li><span class="parameter">allowDiagonal</span>
+            <span class="types"><span class="type">bool</span></span>
+         whether or not adjacent nodes (8-directions moves) are allowed
+         (<em>optional</em>)
+        </li>
+        <li><span class="parameter">tunnel</span>
+            <span class="types"><span class="type">bool</span></span>
+         Whether or not the pathfinder can tunnel though walls diagonally
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">{node,...}</span></span>
+        an array of nodes neighbouring a passed-in node on the collision map
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "iter"></a>
+    <strong>iter ([lx[, ly[, ex[, ey]]]])</strong>
+    </dt>
+    <dd>
+    Iterates on nodes on the grid.  When given no args, will iterate on every single node
+ on the grid, in case the grid is pre-processed. Passing `lx, ly, ex, ey` args will iterate
+ on nodes inside a bounding-rectangle delimited by those coordinates.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">lx</span>
+            <span class="types"><span class="type">int</span></span>
+         the leftmost x-coordinate coordinate of the rectangle
+         (<em>optional</em>)
+        </li>
+        <li><span class="parameter">ly</span>
+            <span class="types"><span class="type">int</span></span>
+         the topmost y-coordinate of the rectangle
+         (<em>optional</em>)
+        </li>
+        <li><span class="parameter">ex</span>
+            <span class="types"><span class="type">int</span></span>
+         the rightmost x-coordinate of the rectangle
+         (<em>optional</em>)
+        </li>
+        <li><span class="parameter">ey</span>
+            <span class="types"><span class="type">int</span></span>
+         the bottom-most y-coordinate of the rectangle
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">node</span></span>
+        a node on the collision map, upon each iteration step
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "each"></a>
+    <strong>each (f[, ...])</strong>
+    </dt>
+    <dd>
+    Each transformation.  Executes a function on each `node` in the `grid`, passing the `node` as the first arg to function `f`.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">f</span>
+            <span class="types"><span class="type">function</span></span>
+         a function prototyped as `f(node,...)`
+        </li>
+        <li><span class="parameter">...</span>
+            <span class="types"><span class="type">vararg</span></span>
+         args to be passed to function `f`
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "eachRange"></a>
+    <strong>eachRange (lx, ly, ex, ey, f[, ...])</strong>
+    </dt>
+    <dd>
+    Each in range transformation.  Executes a function on each `node` in the range of a rectangle of cells, passing the `node` as the first arg to function `f`.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">lx</span>
+            <span class="types"><span class="type">int</span></span>
+         the leftmost x-coordinate coordinate of the rectangle
+        </li>
+        <li><span class="parameter">ly</span>
+            <span class="types"><span class="type">int</span></span>
+         the topmost y-coordinate of the rectangle
+        </li>
+        <li><span class="parameter">ex</span>
+            <span class="types"><span class="type">int</span></span>
+         the rightmost x-coordinate of the rectangle
+        </li>
+        <li><span class="parameter">ey</span>
+            <span class="types"><span class="type">int</span></span>
+         the bottom-most y-coordinate of the rectangle
+        </li>
+        <li><span class="parameter">f</span>
+            <span class="types"><span class="type">function</span></span>
+         a function prototyped as `f(node,...)`
+        </li>
+        <li><span class="parameter">...</span>
+            <span class="types"><span class="type">vararg</span></span>
+         args to be passed to function `f`
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "imap"></a>
+    <strong>imap (f[, ...])</strong>
+    </dt>
+    <dd>
+    Map transformation.  Maps function `f(node,...)` on each `node` in a given range, passing the `node` as the first arg to function `f`. The passed-in function should return a `node` object.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">f</span>
+            <span class="types"><span class="type">function</span></span>
+         a function prototyped as `f(node,...)`
+        </li>
+        <li><span class="parameter">...</span>
+            <span class="types"><span class="type">vararg</span></span>
+         args to be passed to function `f`
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "imapRange"></a>
+    <strong>imapRange (lx, ly, ex, ey, f[, ...])</strong>
+    </dt>
+    <dd>
+    Map in range transformation.  Maps `f(node,...)` on each `nod`e in the range of a rectangle of cells, passing the `node` as the first arg to function `f`. The passed-in function should return a `node` object.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">lx</span>
+            <span class="types"><span class="type">int</span></span>
+         the leftmost x-coordinate coordinate of the rectangle
+        </li>
+        <li><span class="parameter">ly</span>
+            <span class="types"><span class="type">int</span></span>
+         the topmost y-coordinate of the rectangle
+        </li>
+        <li><span class="parameter">ex</span>
+            <span class="types"><span class="type">int</span></span>
+         the rightmost x-coordinate of the rectangle
+        </li>
+        <li><span class="parameter">ey</span>
+            <span class="types"><span class="type">int</span></span>
+         the bottom-most y-coordinate of the rectangle
+        </li>
+        <li><span class="parameter">f</span>
+            <span class="types"><span class="type">function</span></span>
+         a function prototyped as `f(node,...)`
+        </li>
+        <li><span class="parameter">...</span>
+            <span class="types"><span class="type">vararg</span></span>
+         args to be passed to function `f`
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "getNodeAt"></a>
+    <strong>getNodeAt (x, y)</strong>
+    </dt>
+    <dd>
+    Returns the `node`[x,y] on a `grid`.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">x</span>
+            <span class="types"><span class="type">int</span></span>
+         the x-coordinate coordinate
+        </li>
+        <li><span class="parameter">y</span>
+            <span class="types"><span class="type">int</span></span>
+         the y-coordinate coordinate
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">node</span></span>
+        a `node` object
+ Gets the node at location <x,y> on a preprocessed grid
+    </ol>
+
+
+
+
+</dd>
+</dl>
+    <h2 class="section-header "><a name="Tables"></a>Tables</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "grid"></a>
+    <strong>grid</strong>
+    </dt>
+    <dd>
+    The `grid` class
+
+
+    <h3>Fields:</h3>
+    <ul>
+        <li><span class="parameter">width</span>
+         The grid width
+        </li>
+        <li><span class="parameter">height</span>
+         The grid height
+        </li>
+        <li><span class="parameter">map</span>
+         A reference to the collision map
+        </li>
+        <li><span class="parameter">nodes</span>
+         A 2D array of nodes, each node matching a cell on the collision map
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.4.6</a></i>
+<i style="float:right;">Last updated 2020-02-22 12:38:46 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

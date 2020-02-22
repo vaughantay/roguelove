@@ -1,0 +1,645 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Reference</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>ldoc</h1>
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Functions">Functions</a></li>
+<li><a href="#Tables">Tables</a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/gamelogic.html">gamelogic</a></li>
+  <li><a href="../modules/jumper.core.bheap.html">jumper.core.bheap</a></li>
+  <li><a href="../modules/jumper.core.heuristics.html">jumper.core.heuristics</a></li>
+  <li><a href="../modules/jumper.core.node.html">jumper.core.node</a></li>
+  <li><a href="../modules/jumper.core.path.html">jumper.core.path</a></li>
+  <li><a href="../modules/jumper.grid.html">jumper.grid</a></li>
+  <li><strong>jumper.pathfinder</strong></li>
+  <li><a href="../modules/lib.serialize.html">lib.serialize</a></li>
+  <li><a href="../modules/util.html">util</a></li>
+</ul>
+<h2>Scripts</h2>
+<ul class="nowrap">
+  <li><a href="../scripts/jumper.search.astar.html">jumper.search.astar</a></li>
+  <li><a href="../scripts/jumper.search.bfs.html">jumper.search.bfs</a></li>
+  <li><a href="../scripts/jumper.search.dfs.html">jumper.search.dfs</a></li>
+  <li><a href="../scripts/jumper.search.dijkstra.html">jumper.search.dijkstra</a></li>
+  <li><a href="../scripts/jumper.search.jps.html">jumper.search.jps</a></li>
+</ul>
+<h2>Classes</h2>
+<ul class="nowrap">
+  <li><a href="../classes/Condition.html">Condition</a></li>
+  <li><a href="../classes/Creature.html">Creature</a></li>
+  <li><a href="../classes/Effect.html">Effect</a></li>
+  <li><a href="../classes/Faction.html">Faction</a></li>
+  <li><a href="../classes/Feature.html">Feature</a></li>
+  <li><a href="../classes/Item.html">Item</a></li>
+  <li><a href="../classes/Map.html">Map</a></li>
+  <li><a href="../classes/Projectile.html">Projectile</a></li>
+  <li><a href="../classes/ranged_attack.html">ranged_attack</a></li>
+  <li><a href="../classes/Service.html">Service</a></li>
+  <li><a href="../classes/Spell.html">Spell</a></li>
+  <li><a href="../classes/Store.html">Store</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>jumper.pathfinder</code></h1>
+<p><strong>The <strong>pathfinder</strong> class API</strong>.</p>
+<p>
+<p> Implementation of the `pathfinder` class.
+</p>
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example">-- Usage Example
+-- First, set a collision map
+local map = {
+	{0,1,0,1,0},
+	{0,1,0,1,0},
+	{0,1,1,1,0},
+	{0,0,0,0,0},
+}
+-- Value for walkable tiles
+local walkable = 0
+
+-- Library setup
+local Grid = require (&quot;jumper.grid&quot;) -- The grid class
+local Pathfinder = require (&quot;jumper.pathfinder&quot;) -- The pathfinder lass
+
+-- Creates a grid object
+local grid = Grid(map)
+-- Creates a pathfinder object using Jump Point Search
+local myFinder = Pathfinder(grid, &apos;JPS&apos;, walkable)
+
+-- Define start and goal locations coordinates
+local startx, starty = 1,1
+local endx, endy = 5,1
+
+-- Calculates the path, and its length
+local path, length = myFinder:getPath(startx, starty, endx, endy)
+if path then
+  print((&apos;Path found! Length: %.2f&apos;):format(length))
+	for node, count in path:iter() do
+	  print((&apos;Step: %d - x: %d - y: %d&apos;):format(count, node.x, node.y))
+	end
+end
+
+--&gt; Output:
+--&gt; Path found! Length: 8.83
+--&gt; Step: 1 - x: 1 - y: 1
+--&gt; Step: 2 - x: 1 - y: 3
+--&gt; Step: 3 - x: 2 - y: 4
+--&gt; Step: 4 - x: 4 - y: 4
+--&gt; Step: 5 - x: 5 - y: 3
+--&gt; Step: 6 - x: 5 - y: 1
+</pre>
+    </ul>
+    <h3>Info:</h3>
+    <ul>
+        <li><strong>Copyright</strong>: 2012-2013</li>
+        <li><strong>License</strong>: <a href="http://www.opensource.org/licenses/mit-license.php">MIT</a></li>
+        <li><strong>Author</strong>: Roland Yonaba</li>
+    </ul>
+
+
+<h2><a href="#Functions">Functions</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#new">new (grid[, finderName[, walkable]])</a></td>
+	<td class="summary">Inits a new `pathfinder` object</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#setGrid">setGrid (grid)</a></td>
+	<td class="summary">Sets a `grid` object.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#getGrid">getGrid ()</a></td>
+	<td class="summary">Returns the `grid` object.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#setWalkable">setWalkable (walkable)</a></td>
+	<td class="summary">Sets the `walkable` value or function.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#getWalkable">getWalkable ()</a></td>
+	<td class="summary">Gets the `walkable` value or function.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#setFinder">setFinder (finderName)</a></td>
+	<td class="summary">Sets a finder.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#getFinder">getFinder ()</a></td>
+	<td class="summary">Gets the name of the finder being used.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#getFinders">getFinders ()</a></td>
+	<td class="summary">Gets the list of all available finders names.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#setHeuristic">setHeuristic (heuristic)</a></td>
+	<td class="summary">Set a heuristic.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#getHeuristic">getHeuristic ()</a></td>
+	<td class="summary">Gets the heuristic used.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#getHeuristics">getHeuristics ()</a></td>
+	<td class="summary">Gets the list of all available heuristics.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#setMode">setMode (mode)</a></td>
+	<td class="summary">Changes the search mode.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#getMode">getMode ()</a></td>
+	<td class="summary">Gets the search mode.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#getModes">getModes ()</a></td>
+	<td class="summary">Gets the list of all available search modes.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#version">version ()</a></td>
+	<td class="summary">Returns version and release date.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#getPath">getPath (startX, startY, endX, endY[, tunnel])</a></td>
+	<td class="summary">Calculates a path.</td>
+	</tr>
+</table>
+<h2><a href="#Tables">Tables</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#pathfinder">pathfinder</a></td>
+	<td class="summary">The `pathfinder` class</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "new"></a>
+    <strong>new (grid[, finderName[, walkable]])</strong>
+    </dt>
+    <dd>
+    Inits a new `pathfinder` object
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">grid</span>
+            <span class="types"><span class="type">grid</span></span>
+         a `grid` object
+        </li>
+        <li><span class="parameter">finderName</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.3/manual.html#6.4">string</a></span>
+         the name of the `finder` (search algorithm) to be used for further searches.
+ Defaults to `ASTAR` when not given. Use <a href="../modules/jumper.pathfinder.html#getFinders">pathfinder:getFinders</a> to get the full list of available finders..
+         (<em>optional</em>)
+        </li>
+        <li><span class="parameter">walkable</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.3/manual.html#6.4">string</a>, <span class="type">int</span> or <span class="type">function</span></span>
+         the value for walkable nodes on the passed-in map array.
+ If this parameter is a function, it should be prototyped as `f(value)`, returning a boolean:
+ `true` when value matches a *walkable* node, `false` otherwise.
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../modules/jumper.pathfinder.html#pathfinder">pathfinder</a></span>
+        a new `pathfinder` object
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "setGrid"></a>
+    <strong>setGrid (grid)</strong>
+    </dt>
+    <dd>
+    Sets a `grid` object.  Defines the `grid` on which the `pathfinder` will make path searches.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">grid</span>
+            <span class="types"><span class="type">grid</span></span>
+         a `grid` object
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "getGrid"></a>
+    <strong>getGrid ()</strong>
+    </dt>
+    <dd>
+    Returns the `grid` object.  Returns a reference to the internal `grid` object used by the `pathfinder` object.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">grid</span></span>
+        the `grid` object
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "setWalkable"></a>
+    <strong>setWalkable (walkable)</strong>
+    </dt>
+    <dd>
+    Sets the `walkable` value or function.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">walkable</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.3/manual.html#6.4">string</a>, <span class="type">int</span> or <span class="type">function</span></span>
+         the value for walkable nodes on the passed-in map array.
+ If this parameter is a function, it should be prototyped as `f(value)`, returning a boolean:
+ `true` when value matches a *walkable* node, `false` otherwise.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "getWalkable"></a>
+    <strong>getWalkable ()</strong>
+    </dt>
+    <dd>
+    Gets the `walkable` value or function.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.3/manual.html#6.4">string</a>, <span class="type">int</span> or <span class="type">function</span></span>
+        the `walkable` previously set
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "setFinder"></a>
+    <strong>setFinder (finderName)</strong>
+    </dt>
+    <dd>
+    Sets a finder.  The finder refers to the search algorithm used by the `pathfinder` object.
+ The default finder is `ASTAR`. Use <a href="../modules/jumper.pathfinder.html#getFinders">pathfinder:getFinders</a> to get the list of available finders.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">finderName</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.3/manual.html#6.4">string</a></span>
+         the name of the finder to be used for further searches.
+        </li>
+    </ul>
+
+
+
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/jumper.pathfinder.html#getFinders">pathfinder:getFinders</a>
+    </ul>
+
+
+</dd>
+    <dt>
+    <a name = "getFinder"></a>
+    <strong>getFinder ()</strong>
+    </dt>
+    <dd>
+    Gets the name of the finder being used.  The finder refers to the search algorithm used by the `pathfinder` object.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.3/manual.html#6.4">string</a></span>
+        the name of the finder to be used for further searches.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "getFinders"></a>
+    <strong>getFinders ()</strong>
+    </dt>
+    <dd>
+    Gets the list of all available finders names.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.3/manual.html#6.4">{string,...}</a></span>
+        array of finders names.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "setHeuristic"></a>
+    <strong>setHeuristic (heuristic)</strong>
+    </dt>
+    <dd>
+    Set a heuristic.  This is a function internally used by the `pathfinder` to get the optimal path during a search.
+ Use <a href="../modules/jumper.pathfinder.html#getHeuristics">pathfinder:getHeuristics</a> to get the list of all available heuristics. One can also defined
+ his own heuristic function.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">heuristic</span>
+            <span class="types"><span class="type">function</span> or <a class="type" href="https://www.lua.org/manual/5.3/manual.html#6.4">string</a></span>
+         a heuristic function, prototyped as `f(dx,dy)` or a string.
+        </li>
+    </ul>
+
+
+
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/jumper.pathfinder.html#getHeuristics">pathfinder:getHeuristics</a>
+    </ul>
+
+
+</dd>
+    <dt>
+    <a name = "getHeuristic"></a>
+    <strong>getHeuristic ()</strong>
+    </dt>
+    <dd>
+    Gets the heuristic used.  Returns the function itself.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">function</span></span>
+        the heuristic function being used by the `pathfinder` object
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "getHeuristics"></a>
+    <strong>getHeuristics ()</strong>
+    </dt>
+    <dd>
+    Gets the list of all available heuristics.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.3/manual.html#6.4">{string,...}</a></span>
+        array of heuristic names.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "setMode"></a>
+    <strong>setMode (mode)</strong>
+    </dt>
+    <dd>
+    Changes the search mode.  Defines a new search mode for the `pathfinder` object.
+ The default search mode is `DIAGONAL`, which implies 8-possible directions when moving (north, south, east, west and diagonals).
+ In `ORTHOGONAL` mode, only 4-directions are allowed (north, south, east and west).
+ Use <a href="../modules/jumper.pathfinder.html#getModes">pathfinder:getModes</a> to get the list of all available search modes.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">mode</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.3/manual.html#6.4">string</a></span>
+         the new search mode.
+        </li>
+    </ul>
+
+
+
+    <h3>See also:</h3>
+    <ul>
+         <a href="../modules/jumper.pathfinder.html#getModes">pathfinder:getModes</a>
+    </ul>
+
+
+</dd>
+    <dt>
+    <a name = "getMode"></a>
+    <strong>getMode ()</strong>
+    </dt>
+    <dd>
+    Gets the search mode.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.3/manual.html#6.4">string</a></span>
+        the current search mode
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "getModes"></a>
+    <strong>getModes ()</strong>
+    </dt>
+    <dd>
+    Gets the list of all available search modes.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.3/manual.html#6.4">{string,...}</a></span>
+        array of search modes.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "version"></a>
+    <strong>version ()</strong>
+    </dt>
+    <dd>
+    Returns version and release date.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.3/manual.html#6.4">string</a></span>
+        the version of the current implementation</li>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.3/manual.html#6.4">string</a></span>
+        the release of the current implementation</li>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "getPath"></a>
+    <strong>getPath (startX, startY, endX, endY[, tunnel])</strong>
+    </dt>
+    <dd>
+    Calculates a path.  Returns the path from location `<startX, startY>` to location `<endX, endY>`.
+ Both locations must exist on the collision map.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">startX</span>
+            <span class="types"><span class="type">number</span></span>
+         the x-coordinate for the starting location
+        </li>
+        <li><span class="parameter">startY</span>
+            <span class="types"><span class="type">number</span></span>
+         the y-coordinate for the starting location
+        </li>
+        <li><span class="parameter">endX</span>
+            <span class="types"><span class="type">number</span></span>
+         the x-coordinate for the goal location
+        </li>
+        <li><span class="parameter">endY</span>
+            <span class="types"><span class="type">number</span></span>
+         the y-coordinate for the goal location
+        </li>
+        <li><span class="parameter">tunnel</span>
+            <span class="types"><span class="type">bool</span></span>
+         Whether or not the pathfinder can tunnel though walls diagonally (not compatible with `Jump Point Search`)
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+           <span class="types"><span class="type">{node,...}</span></span>
+        a path (array of `nodes`) when found, otherwise `nil`</li>
+        <li>
+           <span class="types"><span class="type">number</span></span>
+        the path length when found, `0` otherwise</li>
+    </ol>
+
+
+
+
+</dd>
+</dl>
+    <h2 class="section-header "><a name="Tables"></a>Tables</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "pathfinder"></a>
+    <strong>pathfinder</strong>
+    </dt>
+    <dd>
+    The `pathfinder` class
+
+
+
+
+
+
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.4.6</a></i>
+<i style="float:right;">Last updated 2020-02-22 12:38:46 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

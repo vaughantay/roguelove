@@ -1,0 +1,286 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Reference</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>ldoc</h1>
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Methods">Methods</a></li>
+</ul>
+
+
+<h2>Classes</h2>
+<ul class="nowrap">
+  <li><strong>Condition</strong></li>
+  <li><a href="../classes/Creature.html">Creature</a></li>
+  <li><a href="../classes/Effect.html">Effect</a></li>
+  <li><a href="../classes/Faction.html">Faction</a></li>
+  <li><a href="../classes/Feature.html">Feature</a></li>
+  <li><a href="../classes/Item.html">Item</a></li>
+  <li><a href="../classes/Map.html">Map</a></li>
+  <li><a href="../classes/Projectile.html">Projectile</a></li>
+  <li><a href="../classes/ranged_attack.html">ranged_attack</a></li>
+  <li><a href="../classes/Service.html">Service</a></li>
+  <li><a href="../classes/Spell.html">Spell</a></li>
+  <li><a href="../classes/Store.html">Store</a></li>
+</ul>
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/gamelogic.html">gamelogic</a></li>
+  <li><a href="../modules/jumper.core.bheap.html">jumper.core.bheap</a></li>
+  <li><a href="../modules/jumper.core.heuristics.html">jumper.core.heuristics</a></li>
+  <li><a href="../modules/jumper.core.node.html">jumper.core.node</a></li>
+  <li><a href="../modules/jumper.core.path.html">jumper.core.path</a></li>
+  <li><a href="../modules/jumper.grid.html">jumper.grid</a></li>
+  <li><a href="../modules/jumper.pathfinder.html">jumper.pathfinder</a></li>
+  <li><a href="../modules/lib.serialize.html">lib.serialize</a></li>
+  <li><a href="../modules/util.html">util</a></li>
+</ul>
+<h2>Scripts</h2>
+<ul class="nowrap">
+  <li><a href="../scripts/jumper.search.astar.html">jumper.search.astar</a></li>
+  <li><a href="../scripts/jumper.search.bfs.html">jumper.search.bfs</a></li>
+  <li><a href="../scripts/jumper.search.dfs.html">jumper.search.dfs</a></li>
+  <li><a href="../scripts/jumper.search.dijkstra.html">jumper.search.dijkstra</a></li>
+  <li><a href="../scripts/jumper.search.jps.html">jumper.search.jps</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Class <code>Condition</code></h1>
+<p></p>
+<p></p>
+
+
+<h2><a href="#Methods">Methods</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#Condition:init">Condition:init (data)</a></td>
+	<td class="summary">Initiate a condition from its definition.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Condition:advance">Condition:advance (possessor)</a></td>
+	<td class="summary">Placeholder for the advance() callback, code called by the condition every turn</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Condition:moves">Condition:moves (possessor)</a></td>
+	<td class="summary">Placeholder for the moves() callback, code called by the condition when the possessor the condition moves</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Condition:attacks">Condition:attacks (possessor)</a></td>
+	<td class="summary">Placeholder for the attacks() callback, code called by the condition when the possessor the condition attacks someone</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Condition:apply">Condition:apply (possessor, applier, turns)</a></td>
+	<td class="summary">Wrapper for the applied() callback</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Condition:cure">Condition:cure (possessor)</a></td>
+	<td class="summary">Wrapper for the cured() callback</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Methods"></a>Methods</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "Condition:init"></a>
+    <strong>Condition:init (data)</strong>
+    </dt>
+    <dd>
+    Initiate a condition from its definition.  You shouldn't use this function, the game uses it at loadtime to instantiate the conditions.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">data</span>
+         Table. The table of condition information.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Condition. The condition itself.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Condition:advance"></a>
+    <strong>Condition:advance (possessor)</strong>
+    </dt>
+    <dd>
+    Placeholder for the advance() callback, code called by the condition every turn
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">possessor</span>
+         Creature. The creature who's afflicted with the condition
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        true
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Condition:moves"></a>
+    <strong>Condition:moves (possessor)</strong>
+    </dt>
+    <dd>
+    Placeholder for the moves() callback, code called by the condition when the possessor the condition moves
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">possessor</span>
+         Creature. The creature who's afflicted with the condition
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        true
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Condition:attacks"></a>
+    <strong>Condition:attacks (possessor)</strong>
+    </dt>
+    <dd>
+    Placeholder for the attacks() callback, code called by the condition when the possessor the condition attacks someone
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">possessor</span>
+         Creature. The creature who's afflicted with the condition
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        true
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Condition:apply"></a>
+    <strong>Condition:apply (possessor, applier, turns)</strong>
+    </dt>
+    <dd>
+    Wrapper for the applied() callback
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">possessor</span>
+         Creature. The creature who's afflicted with the condition
+        </li>
+        <li><span class="parameter">applier</span>
+         Creature. The creature who inflicts the condition
+        </li>
+        <li><span class="parameter">turns</span>
+         Number. The number of turns to apply the condition.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether the application was successful or not.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Condition:cure"></a>
+    <strong>Condition:cure (possessor)</strong>
+    </dt>
+    <dd>
+    Wrapper for the cured() callback
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">possessor</span>
+         Creature. The creature who's afflicted with the condition
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether the cure was successful or not.
+    </ol>
+
+
+
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.4.6</a></i>
+<i style="float:right;">Last updated 2020-02-22 12:38:46 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>
