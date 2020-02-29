@@ -22,7 +22,7 @@ function Store:generate_items()
   for _,info in pairs(self.sells_items) do
     local itemID = info.item
     local item = Item(itemID,nil,(info.amount or -1))
-    if not item.amount then item.amount = (info.amount or -1) end
+    if not item.amount then item.amount = (info.amount or -1) end --This is here because non-stackable items don't generate with amounts
     self.inventory[#self.inventory+1] = item
     item.store_cost = info.cost
   end
@@ -34,17 +34,31 @@ function Store:get_inventory()
 end
 
 function Store:get_buy_list(creat)
+  creat = creat or player
+  local buying = {}
+  for id,item in ipairs(creat.inventory) do
+    if self.buys_items and self.buys_items[item.id] then
+      buying[#buying+1]={item=item,cost=self.buys_items[item.id]}
+    end
+  end
+  return buying
 end
 
-function Store:creature_sells_item(item,amt,creature)
+function Store:creature_sells_item(item,amt,cost,creature)
+  creature = creature or player
+  local totalAmt = item.amount or 1
+  if amt > totalAmt then amt = totalAmt end
+  local totalCost = cost*amt
+  creature:delete_item(item,amt)
+  creature.money = creature.money+totalCost
 end
 
 function Store:creature_buys_item(item,amt,creature)
   creature = creature or player
   local totalAmt = item.amount or 1
-  local totalCost = item.store_cost*amt 
   if totalAmt == -1 then totalAmt = 9999999 end
   if amt > totalAmt then amt = totalAmt end
+  local totalCost = item.store_cost*amt 
   if creature.money > totalCost then
     if amt == totalAmt then
       if item.stacks or totalAmt == 1 then
