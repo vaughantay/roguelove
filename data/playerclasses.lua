@@ -42,7 +42,7 @@ playerClasses = {
   wimp = {
     name="Total Wimp",
     description="A scrawny nerd.",
-    items={"healthpotionminor","healthpotionminor","healthpotionminor","healthpotionminor","healthpotionminor","healthpotionminor"}, --These items will be granted on game start
+    items={"healthpotionminor","healthpotionminor","healthpotionminor","healthpotionminor","healthpotionminor","healthpotionminor","scroll","scroll","scroll","scroll","scroll","scroll","scroll","scroll"}, --These items will be granted on game start
     stat_modifiers={strength=-5,max_hp=-25}, --These values will be added to the characters' base stats
     spells={"scrawny"}, --These are spells the character will start with
     money=100 --Amount of money the character starts with

@@ -19,8 +19,9 @@ function storescreen:refresh_lists()
   self.buying_list = {}
   self.selling_list = {}
 
-  for _,item in pairs(self.store:get_inventory()) do
-    self.selling_list[#self.selling_list+1] = {name=item:get_name(true,1),description=item:get_description(),info=item:get_info(),cost=item.store_cost,amount=item.amount,buyAmt=0,item=item}
+  for _,ilist in pairs(self.store:get_inventory()) do
+    local item = ilist.item
+    self.selling_list[#self.selling_list+1] = {name=item:get_name(true,1),description=item:get_description(),info=item:get_info(),cost=ilist.cost,amount=item.amount,buyAmt=0,item=item}
   end
   for _,ilist in pairs(self.store:get_buy_list()) do
     local item = ilist.item
@@ -385,20 +386,20 @@ function storescreen:player_buys()
   if self.totalCost <= player.money then
     for id,info in ipairs(self.selling_list) do
       if info.buyAmt > 0 then
-        self.store:creature_buys_item(info.item,info.buyAmt,player)
+        self.store:creature_buys_item(info.item,info.cost,info.buyAmt,player)
         info.buyAmt = 0
       end
     end
+    self:refresh_lists()
   end
-  self:refresh_lists()
 end
 
 function storescreen:player_sells()
   for id,info in ipairs(self.buying_list) do
     if info.buyAmt > 0 then
-      self.store:creature_sells_item(info.item,info.buyAmt,info.cost,player)
+      self.store:creature_sells_item(info.item,info.cost,info.buyAmt,player)
       info.buyAmt = 0
     end
+    self:refresh_lists()
   end
-  self:refresh_lists()
 end

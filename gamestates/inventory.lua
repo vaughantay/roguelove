@@ -121,7 +121,7 @@ function inventory:draw()
   local sidebarX = round(width/2)+padding
   output:draw_window(1,1,sidebarX-padding,height-padding)
   output:draw_window(sidebarX,1,width-padding,height-padding)
-  love.graphics.printf("Inventory",padding,round(padding*.75),sidebarX-padding,"center")
+  love.graphics.printf("Inventory\nYou have: $" .. player.money,padding,round(padding*.75),sidebarX-padding,"center")
   
   local printX = (prefs['noImages'] and 14 or 32)
   

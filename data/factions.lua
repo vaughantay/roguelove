@@ -15,9 +15,9 @@ possibleFactions['lightchurch'] = {
   attackEnemyPlayerOnly = true, --If set to true, this faction is only hostile to the player if they're explicitly considered an enemy. If false, they'll be hostile to the player if they're not a friend
   hostileThreshold = 0, --The amount of favor below which the player is treated as an enemy. If left blank, the player will always be considered an enemy unless something else marks them as a friend (like faction membership or favor meeting the friendlyThreshold)
   friendlyThreshold = 100, --The amount of favor above which the player is treated as a friend. If left blank, this faction will never consider the player a friend based on favor alone (they'll still be treated as a friend due to faction membership, unless alwaysAttackPlayer is true)
-  enterThreshold = 100, --The amount of favor below which you're not allowed to do business with the faction
+  enterThreshold = 0, --The amount of favor below which you're not allowed to do business with the faction
   joinThreshold = 100, --The amount of favor you need to be eligible to join the faction
-  sells_items = {{item="holywater",favorCost=5,moneyCost=50}, {item="holysword",favorCost=250,amount=1,membersOnly=true}}, --items that this faction sells to friendly players
+  sells_items = {{item="holywater",favorCost=5,moneyCost=50}, {item="dagger",favorCost=250,amount=1,membersOnly=true}}, --items that this faction sells to friendly players
   buys_items = {{item="demonblood",favor=2}}, --items that this faction buys in return for favor
   teaches_spells = {{spell="demondamager",favorCost=100,moneyCost = 100}, {spell="summonangel",favorCost=100,membersOnly=true}}, --spells that this faction teaches to friendly players
   offers_services = {"healing","blessing"}, --services that this faction offers to friendly players
@@ -47,7 +47,7 @@ possibleFactions['grievers'] = {
   friendlyThreshold = 100, --The amount of favor above which the player is treated as a friend. If left blank, this faction will never consider the player a friend based on favor alone (they'll still be treated as a friend due to faction membership, unless alwaysAttackPlayer is true)
   enterThreshold = 100, --The amount of favor below which you're not allowed to do business with the faction
   joinThreshold = 100, --The amount of favor you need to be eligible to join the faction
-  sells_items = {{item="holywater",favorCost=5,moneyCost=50}, {item="holysword",favorCost=250,amount=1,membersOnly=true}}, --items that this faction sells to friendly players
+  sells_items = {{item="holywater",favorCost=5,moneyCost=50}}, --items that this faction sells to friendly players
   buys_items = {{item="demonblood",favor=2}}, --items that this faction buys in return for favor
   teaches_spells = {{spell="smite",favorCost=100}, {spell="summonangel",favorCost=100,membersOnly=true}}, --spells that this faction teaches to friendly players
   offers_services = {{service="blessing",favorCost=10}, {service="bigblessing",favorCost=20,membersOnly=true}}, --services that this faction offers to friendly players

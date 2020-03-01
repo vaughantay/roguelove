@@ -55,8 +55,8 @@ local scroll = {
   useVerb="read",
   consumed=true
 }
-function scroll:new()
-	self.spell = get_random_key(possibleSpells)
+function scroll:new(spell)
+	self.spell = (type(spell) == "string" and spell or get_random_key(possibleSpells))
   while possibleSpells[self.spell].target_type == "passive" do
     self.spell = get_random_key(possibleSpells)
   end
