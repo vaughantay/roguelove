@@ -107,6 +107,30 @@
 	<td class="name" nowrap><a href="#Faction:teach_spell">Faction:teach_spell (spellID, creature)</a></td>
 	<td class="summary">Have a creature learn a spell from a faction.</td>
 	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Faction:generate_items">Faction:generate_items ()</a></td>
+	<td class="summary">Generates the faction's store's inventory</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Faction:get_inventory">Faction:get_inventory ()</a></td>
+	<td class="summary">Gets a list of the items the faction is selling</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Faction:get_buy_list">Faction:get_buy_list (creat)</a></td>
+	<td class="summary">Gets a list of the items that a creature can sell to a faction</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Faction:creature_sells_item">Faction:creature_sells_item (item, moneyCost, favorCost, amt, creat)</a></td>
+	<td class="summary">Sell an item to the faction</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Faction:creature_buys_item">Faction:creature_buys_item (item, moneyCost, favorCost, amt, creat)</a></td>
+	<td class="summary">Buy an item from the faction</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Faction:get_inventory_index">Faction:get_inventory_index (item)</a></td>
+	<td class="summary">Gets the index within the faction's inventory of the item in question</td>
+	</tr>
 </table>
 
 <br/>
@@ -266,6 +290,158 @@
 
 
 </dd>
+    <dt>
+    <a name = "Faction:generate_items"></a>
+    <strong>Faction:generate_items ()</strong>
+    </dt>
+    <dd>
+    Generates the faction's store's inventory
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Faction:get_inventory"></a>
+    <strong>Faction:get_inventory ()</strong>
+    </dt>
+    <dd>
+    Gets a list of the items the faction is selling
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. The list of items the faction has in stock
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Faction:get_buy_list"></a>
+    <strong>Faction:get_buy_list (creat)</strong>
+    </dt>
+    <dd>
+    Gets a list of the items that a creature can sell to a faction
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">creat</span>
+         Creature. The creature selling. Optional, defaults to the player
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. The list of items the player can sell, each of which is another table in the format {item=Item,cost=Number}
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Faction:creature_sells_item"></a>
+    <strong>Faction:creature_sells_item (item, moneyCost, favorCost, amt, creat)</strong>
+    </dt>
+    <dd>
+    Sell an item to the faction
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">item</span>
+         Item. The item being sold
+        </li>
+        <li><span class="parameter">moneyCost</span>
+         Number. The amount of money the faction will pay per item.
+        </li>
+        <li><span class="parameter">favorCost</span>
+         Number. The amount of favor the faction will pay per item.
+        </li>
+        <li><span class="parameter">amt</span>
+         Number. The amount of the item being sold. Optional, defaults to 1
+        </li>
+        <li><span class="parameter">creat</span>
+         Creature. The creature selling. Optional, defaults to the player
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Faction:creature_buys_item"></a>
+    <strong>Faction:creature_buys_item (item, moneyCost, favorCost, amt, creat)</strong>
+    </dt>
+    <dd>
+    Buy an item from the faction
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">item</span>
+         Item. The item being sold
+        </li>
+        <li><span class="parameter">moneyCost</span>
+         Number. The amount of money the faction is charging per item.
+        </li>
+        <li><span class="parameter">favorCost</span>
+         Number. The amount of favor the faction is charging per item.
+        </li>
+        <li><span class="parameter">amt</span>
+         Number. The amount of the item being sold. Optional, defaults to 1.
+        </li>
+        <li><span class="parameter">creat</span>
+         Creature. The creature selling. Optional, defaults to the player.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean, Text/nil. True and nil if the buying was successful, False and a string if there's a reason the buying didn't go through.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Faction:get_inventory_index"></a>
+    <strong>Faction:get_inventory_index (item)</strong>
+    </dt>
+    <dd>
+    Gets the index within the faction's inventory of the item in question
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">item</span>
+         Item. The item to seach for.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The index ID of the item.
+    </ol>
+
+
+
+
+</dd>
 </dl>
 
 
@@ -273,7 +449,7 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.4.6</a></i>
-<i style="float:right;">Last updated 2020-02-22 12:38:46 </i>
+<i style="float:right;">Last updated 2020-03-04 19:30:04 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

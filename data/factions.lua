@@ -18,7 +18,7 @@ possibleFactions['lightchurch'] = {
   enterThreshold = 0, --The amount of favor below which you're not allowed to do business with the faction
   joinThreshold = 100, --The amount of favor you need to be eligible to join the faction
   sells_items = {{item="holywater",favorCost=5,moneyCost=50}, {item="dagger",favorCost=250,amount=1,membersOnly=true}}, --items that this faction sells to friendly players
-  buys_items = {{item="demonblood",favor=2}}, --items that this faction buys in return for favor
+  buys_items = {demonblood={favorCost=2}}, --items that this faction buys in return for favor
   teaches_spells = {{spell="demondamager",favorCost=100,moneyCost = 100}, {spell="summonangel",favorCost=100,membersOnly=true}}, --spells that this faction teaches to friendly players
   offers_services = {"healing","blessing"}, --services that this faction offers to friendly players
   offers_missions = {}, --missions that this faction offers to friendly players

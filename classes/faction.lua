@@ -203,9 +203,9 @@ function Faction:get_buy_list(creat)
   creat = creat or player
   local buying = {}
   for id,item in ipairs(creat.inventory) do
-    --[[if self.buys_items and self.buys_items[item.id] then
-      buying[#buying+1]={item=item,favor=self.buys_items[item.id]}
-    end]]
+    if self.buys_items and self.buys_items[item.id] then
+      buying[#buying+1]={item=item,moneyCost=self.buys_items[item.id].moneyCost,favorCost=self.buys_items[item.id].favorCost}
+    end
     --TODO: Test for dynamic selling:
   end
   return buying
@@ -230,7 +230,7 @@ function Faction:creature_sells_item(item,moneyCost,favorCost,amt,creature)
     self.inventory[index].item.amount = self.inventory[index].item.amount+amt
   end
   creature:delete_item(item,amt)
-  creature.favor[self.id] = (self.favor[self.id] or 0) + totalFavor
+  creature.favor[self.id] = (creature.favor[self.id] or 0) + totalFavor
   creature.money = creature.money+totalCost
 end
 

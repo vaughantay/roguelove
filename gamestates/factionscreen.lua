@@ -25,10 +25,10 @@ function factionscreen:refresh_store_lists()
     local item = ilist.item
     self.selling_list[#self.selling_list+1] = {name=item:get_name(true,1),description=item:get_description(),info=item:get_info(),moneyCost=ilist.moneyCost,favorCost=ilist.favorCost,membersOnly=ilist.membersOnly,amount=item.amount,buyAmt=0,item=item}
   end
-  --[[for _,ilist in pairs(self.store:get_buy_list()) do
+  for _,ilist in pairs(self.faction:get_buy_list()) do
     local item = ilist.item
-    self.buying_list[#self.buying_list+1] = {name=item:get_name(true,1),description=item:get_description(),info=item:get_info(),cost=ilist.cost,amount=item.amount,buyAmt=0,item=item}
-  end]]
+    self.buying_list[#self.buying_list+1] = {name=item:get_name(true,1),description=item:get_description(),info=item:get_info(),moneyCost=ilist.moneyCost,favorCost=ilist.favorCost,amount=item.amount,buyAmt=0,item=item}
+  end
 end
 
 function factionscreen:draw()
@@ -222,8 +222,8 @@ function factionscreen:draw()
       local buyBoxW = fonts.textFont:getWidth("1000")+8
       local amtX = nameX+225
       local priceX = nameX+300
-      local costlineW = fonts.textFont:getWidth("Favor cost: 9999. Money Cost: $9999 (You have $9999)")
-      love.graphics.print("Favor cost: " .. self.totalCost.favor .. ". Money Cost: $" .. self.totalCost.money .. " (You have $" .. player.money .. ")",math.floor(midX-costlineW/2),printY+4)
+      local costlineW = fonts.textFont:getWidth("Favor Cost: 9999. Money Cost: $9999 (You have $9999)")
+      love.graphics.print("Favor Cost: " .. self.totalCost.favor .. ". Money Cost: $" .. self.totalCost.money .. " (You have $" .. player.money .. ")",math.floor(midX-costlineW/2),printY+4)
       if self.totalCost.money > player.money or self.totalCost.favor > favor then
         setColor(100,100,100,255)
       end
@@ -291,7 +291,74 @@ function factionscreen:draw()
         self.totalCost.favor = self.totalCost.favor + (info.buyAmt*(info.favorCost or 0))
       end
     elseif self.subScreen == "Sell" then
-      
+      local sellbuttonW = fonts.textFont:getWidth("Sell")+padding
+      local nameX = windowX+padding
+      local costX = 0
+      local amountX = 0
+      local sellButtonX = 0
+      local yPad = 8
+      local sellBoxX = windowX+windowWidth-padding*2-8
+      local sellBoxW = fonts.textFont:getWidth("1000")+8
+      local amtX = nameX+225
+      local priceX = nameX+300
+      local costlineW = fonts.textFont:getWidth("Favor Gain: 9999. Money Gain: $9999")
+      love.graphics.print("Favor Gain: " .. self.totalCost.favor .. ". Money Gain: $" .. self.totalCost.money,math.floor(midX-costlineW/2),printY+4)
+      self.storeActionButton = output:button(math.ceil(midX+costlineW/2)+32,printY-2,sellbuttonW,false,(self.cursorY == 4 and "hover" or nil),"Sell")
+      printY = printY+32
+      self.totalCost.money,self.totalCost.favor=0,0
+      for id,info in ipairs(self.buying_list) do
+        local selected = self.cursorY == id+4
+        local sellTextY = printY+math.floor(padding/4)
+        info.minX,info.minY = windowX+yPad,sellTextY-yPad
+        info.maxX,info.maxY = info.minX+windowWidth+yPad,info.minY+fontSize+yPad*2
+        local nameLen = fonts.textFont:getWidth(tostring(info.name))
+        if selected then
+          setColor(25,25,25,255)
+          love.graphics.rectangle('fill',info.minX,info.minY,windowWidth+yPad,fontSize+yPad*2)
+          setColor(255,255,255,255)
+        end
+        if selected and self.cursorX == 1 then
+          setColor(100,100,100,255)
+          love.graphics.rectangle('fill',nameX,sellTextY-yPad,nameLen,fontSize+yPad*2)
+          setColor(255,255,255,255)
+        end
+        love.graphics.print(info.name,nameX,sellTextY)
+        love.graphics.print("x " .. (info.amount == -1 and "∞" or info.amount),amtX,sellTextY)
+        local priceText = ""
+        if info.moneyCost then
+          priceText = priceText .. "$" .. info.moneyCost .. (info.favorCost and ", ")
+        end
+        if info.favorCost then
+          priceText = priceText .. info.favorCost .. " Favor"
+        end
+        love.graphics.print(priceText,priceX,sellTextY)
+        --Minus button:
+        info.minusButton = output:tinybutton(sellBoxX-fontSize*3,printY,nil,((selected and self.cursorX == 2) and "hover" or nil),"-")
+        --Handle the item amount box:
+        info.numberEntry = {minX=sellBoxX,minY=sellTextY-2,maxX=sellBoxX+sellBoxW,maxY=sellTextY-2+fontSize+4}
+        if self.cursorX == 3 and selected or (mouseX > info.numberEntry.minX and mouseX < info.numberEntry.maxX and mouseY > info.numberEntry.minY and mouseY < info.numberEntry.maxY) then
+          setColor(50,50,50,255)
+          love.graphics.rectangle('fill',info.numberEntry.minX,info.numberEntry.minY,sellBoxW,fontSize+4)
+          setColor(255,255,255,255)
+          if self.lineOn and selected and self.cursorX == 3 then
+            local w = fonts.textFont:getWidth(tostring(info.buyAmt))
+            local lineX = sellBoxX+math.ceil(sellBoxW/2+w/2)
+            love.graphics.line(lineX,sellTextY,lineX,sellTextY+fontSize)
+          end
+        end
+        love.graphics.rectangle('line',info.numberEntry.minX,info.numberEntry.minY,sellBoxW,fontSize+4)
+        love.graphics.printf(info.buyAmt,sellBoxX,sellTextY,sellBoxW,"center")
+        --Plus Button:
+        info.plusButton = output:tinybutton(sellBoxX+sellBoxW+fontSize,printY,nil,((selected and self.cursorX == 4) and "hover" or nil),"+")
+        --Display description if necessary:
+        if (selected and self.cursorX == 1) or (mouseX > nameX and mouseX < priceX and mouseY > info.minY and mouseY < info.maxY) then
+          local text = info.item:get_name(true,1) .. "\n" .. info.item:get_description() .. "\n" .. info.item:get_info(true)
+          self:description_box(text,nameX+yPad,sellTextY)
+        end
+        printY = printY+fontSize+16
+        self.totalCost.money = self.totalCost.money + (info.buyAmt*(info.moneyCost or 0))
+        self.totalCost.favor = self.totalCost.favor + (info.buyAmt*(info.favorCost or 0))
+      end
     end --end buy/sell split
   elseif self.screen == "Spells" then
     self.spellButtons = {}
@@ -604,7 +671,7 @@ end
 function factionscreen:player_sells()
   for id,info in ipairs(self.buying_list) do
     if info.buyAmt > 0 then
-      self.faction:creature_sells_item(info.item,info.cost,info.buyAmt,player)
+      self.faction:creature_sells_item(info.item,info.moneyCost,info.favorCost,info.buyAmt,player)
       info.buyAmt = 0
     end
     self:refresh_store_lists()

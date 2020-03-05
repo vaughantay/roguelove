@@ -87,6 +87,34 @@
 	<td class="name" nowrap><a href="#Store:init">Store:init (data)</a></td>
 	<td class="summary">Initiate a store from its definition.</td>
 	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Store:generate_items">Store:generate_items ()</a></td>
+	<td class="summary">Generates the store's inventory</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Store:get_inventory">Store:get_inventory ()</a></td>
+	<td class="summary">Gets a list of the items the store is selling</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Store:get_buy_list">Store:get_buy_list (creat)</a></td>
+	<td class="summary">Gets a list of the items that a creature can sell to a store</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Store:creature_sells_item">Store:creature_sells_item (item, cost, amt, creat)</a></td>
+	<td class="summary">Sell an item to the store</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Store:creature_buys_item">Store:creature_buys_item (item, cost, amt, creat)</a></td>
+	<td class="summary">Buy an item from the store</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Store:get_inventory_index">Store:get_inventory_index (item)</a></td>
+	<td class="summary">Gets the index within the store's inventory of the item in question</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Store:requires">Store:requires ()</a></td>
+	<td class="summary">Placeholder for the requires() code, which is run to determine if the player can enter the store or not.</td>
+	</tr>
 </table>
 
 <br/>
@@ -121,6 +149,171 @@
 
 
 </dd>
+    <dt>
+    <a name = "Store:generate_items"></a>
+    <strong>Store:generate_items ()</strong>
+    </dt>
+    <dd>
+    Generates the store's inventory
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Store:get_inventory"></a>
+    <strong>Store:get_inventory ()</strong>
+    </dt>
+    <dd>
+    Gets a list of the items the store is selling
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. The list of items the store has in stock
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Store:get_buy_list"></a>
+    <strong>Store:get_buy_list (creat)</strong>
+    </dt>
+    <dd>
+    Gets a list of the items that a creature can sell to a store
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">creat</span>
+         Creature. The creature selling to the store. Optional, defaults to the player
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. The list of items the player can sell, each of which is another table in the format {item=Item,cost=Number}
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Store:creature_sells_item"></a>
+    <strong>Store:creature_sells_item (item, cost, amt, creat)</strong>
+    </dt>
+    <dd>
+    Sell an item to the store
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">item</span>
+         Item. The item being sold
+        </li>
+        <li><span class="parameter">cost</span>
+         Number. The amount the store will pay per item.
+        </li>
+        <li><span class="parameter">amt</span>
+         Number. The amount of the item being sold. Optional, defaults to 1.
+        </li>
+        <li><span class="parameter">creat</span>
+         Creature. The creature selling to the store. Optional, defaults to the player.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Store:creature_buys_item"></a>
+    <strong>Store:creature_buys_item (item, cost, amt, creat)</strong>
+    </dt>
+    <dd>
+    Buy an item from the store
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">item</span>
+         Item. The item being sold
+        </li>
+        <li><span class="parameter">cost</span>
+         Number. The amount the store is charging per item.
+        </li>
+        <li><span class="parameter">amt</span>
+         Number. The amount of the item being sold. Optional, defaults to 1.
+        </li>
+        <li><span class="parameter">creat</span>
+         Creature. The creature selling to the store. Optional, defaults to the player.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean, Text/nil. True and nil if the buying was successful, False and a string if there's a reason the buying didn't go through.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Store:get_inventory_index"></a>
+    <strong>Store:get_inventory_index (item)</strong>
+    </dt>
+    <dd>
+    Gets the index within the store's inventory of the item in question
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">item</span>
+         Item. The item to seach for.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The index ID of the item.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Store:requires"></a>
+    <strong>Store:requires ()</strong>
+    </dt>
+    <dd>
+    Placeholder for the requires() code, which is run to determine if the player can enter the store or not.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        True.
+    </ol>
+
+
+
+
+</dd>
 </dl>
 
 
@@ -128,7 +321,7 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.4.6</a></i>
-<i style="float:right;">Last updated 2020-02-22 12:38:46 </i>
+<i style="float:right;">Last updated 2020-03-04 19:30:04 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>
