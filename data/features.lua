@@ -241,9 +241,18 @@ local door = {
   blocksSight = true,
   ghostPassable=true,
   alwaysDisplay = true,
-    enter=function(self,entity)
-    if entity:is_type('ghost') then return true end
-    if self.symbol == "+" then
+  actions={opendoor={text="Open Door",description="Open a nearby door."}},
+  closed=true,
+  enter=function(self,entity)
+    if not self.closed or entity:is_type('ghost') then
+      return true
+    elseif self.closed then
+      self:action(entity,"opendoor")
+      return false
+    end
+  end,
+  action = function(self,entity,action)
+    if self.closed then
       local squeak = self.squeak or self.sleeper or random(1,4) == 1
       if self.playerOnly and entity ~= player then return false end
       self.symbol="'"
@@ -251,6 +260,8 @@ local door = {
       self.blocksMovement = false
       self.blocksSight = false
       self.alwaysDisplay = false
+      self.actions={closedoor={text="Close Door",description="Close a nearby door."}}
+      self.closed = false
       if player:can_see_tile(self.x,self.y) then
         if squeak then
           output:out("The door creaks loudly!")
@@ -277,9 +288,20 @@ local door = {
         end --end forx
       end --end if self squeak
       self.image_name = "dooropen"
-      return false
+    else -- close the door
+      self.symbol="+"
+      self.description = "A closed door."
+      self.blocksMovement = true
+      self.blocksSight = true
+      self.alwaysDisplay = true
+      self.actions={opendoor={text="Open Door",description="Open the door."}}
+      self.image_name = "doorclosed"
+      self.closed=true
+      if player:can_see_tile(self.x,self.y) then
+        output:sound('door_close')
+      end
     end
-    end
+  end
 }
 possibleFeatures['door'] = door
 

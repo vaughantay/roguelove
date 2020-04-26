@@ -187,3 +187,11 @@ function Feature:combust(skip_basic)
   currMap:add_effect(Effect('fire',{x=self.x,y=self.y,timer=(self.fireTime or 10)}),self.x,self.y)
   self:delete()
 end
+
+---Perform a feature's action() callback, if applicable.
+--@param activator Creature. The creature activating the feature.
+--@param actionID Text. The ID of the action (optional, only if a feature has multiple actions available).
+function Feature:action(activator,actionID)
+  if possibleFeatures[self.id].action then return possibleFeatures[self.id].action(self,activator,actionID) end
+  return false
+end

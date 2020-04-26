@@ -235,6 +235,7 @@ function load_data()
   require "gamestates.modloader"
   require "gamestates.monsterpedia"
   require "gamestates.multipickup"
+  require "gamestates.multiselect"
   require "gamestates.menu"
   require "gamestates.newgame"
   require "gamestates.pausemenu"

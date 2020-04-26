@@ -25,5 +25,6 @@ keybindings = {
   equip="w",
   use="u",
   drop="d",
-  throw="t"
+  throw="t",
+  action="a"
 }

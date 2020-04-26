@@ -403,7 +403,21 @@ function game:print_sidebar()
     local maxX,maxY=minX+spellwidth+4,minY+16
     self.spellButtons["pickup"] = output:button(minX,minY+2,(maxX-minX),true,nil,nil,true)
     if self.spellButtons['pickup'].hover == true then
-      descBox = {desc=(#items > 1 and "Pick up items here." or items[1]:get_description()),x=minX,y=minY}
+      descBox = {desc=(#items > 1 and "Pick up items in the area." or items[1]:get_description()),x=minX,y=minY}
+    end
+    love.graphics.print(picktext,printX+xPad,printY+yPad-2+yBonus)
+  end
+  yPad = yPad+15
+  local featureActions = currMap:get_tile_actions(player.x,player.y,true)
+  if #featureActions > 0 then
+    spellcount = spellcount+1
+    local picktext = keybindings.action .. ") " .. (#featureActions > 1 and "Nearby Actions" or featureActions[1].text)
+    local spellwidth = fonts.buttonFont:getWidth(picktext)
+    local minX,minY=printX+xPad-2,printY+yPad
+    local maxX,maxY=minX+spellwidth+4,minY+16
+    self.spellButtons["action"] = output:button(minX,minY+2,(maxX-minX),true,nil,nil,true)
+    if self.spellButtons['action'].hover == true then
+      descBox = {desc=(#featureActions > 1 and "Use a nearby feature." or featureActions[1].description),x=minX,y=minY}
     end
     love.graphics.print(picktext,printX+xPad,printY+yPad-2+yBonus)
   end
@@ -1280,6 +1294,8 @@ function game:mousepressed(x,y,button)
             self:keypressed(keybindings.pickup)
           elseif spell == "inventory" then
             self:keypressed(keybindings.inventory)
+          elseif spell == "action" then
+            self:keypressed(keybindings.action)
           else
            possibleSpells[spell]:target(target,player)
           end
@@ -1580,7 +1596,7 @@ function game:keypressed(key,scancode,isRepeat)
     nextLevel(true)
    elseif (key == "q" and action=="moving") then
     Gamestate.switch(factionscreen,"lightchurch")
-  elseif (key == "a" and action=="moving") then
+  elseif (key == "w" and action=="moving") then
     Gamestate.switch(storescreen,"healthstore")
 	elseif (key == keybindings.charScreen) then
 		Gamestate.switch(characterscreen)
@@ -1607,6 +1623,26 @@ function game:keypressed(key,scancode,isRepeat)
       end
     elseif #items > 1 then
       Gamestate.switch(multipickup)
+    end
+  elseif key == keybindings.action then
+    local actions = currMap:get_tile_actions(player.x,player.y)
+    if #actions == 1 then
+      if actions[1].entity:action(player,actions[1].id) ~= false then
+        advance_turn()
+      end
+    elseif #actions > 1 then
+      local list = {}
+      for _,action in ipairs(actions) do
+        local direction = ""
+        local entity = action.entity
+        if entity.y < player. y then direction = direction .. "north"
+        elseif entity.y > player. y then direction = direction .. "south" end
+        if entity.x < player. x then direction = direction .. "west"
+        elseif entity.x > player. x then direction = direction .. "east" end
+        if direction == "" then direction = "Your Tile" end
+        list[#list+1] = {text=action.text .. " (" .. ucfirst(direction) .. ")",description=action.description,selectFunction=entity.action,selectArgs={entity,player,action.id}}
+      end
+      Gamestate.switch(multiselect,list,"Select an Action",true,true)
     end
   elseif tonumber(key) and prefs.spellShortcuts then
     local spellcount = 1

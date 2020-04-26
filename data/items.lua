@@ -102,10 +102,23 @@ function spellBook:new()
   self.info = text
 end
 function spellBook:use()
-	output:out("You look at the spells in the book.")
+  local list = {}
+  for _, spellid in ipairs(self.spells) do
+    if not player:has_spell(spellid) then
+      list[#list+1] = {text="Learn " .. possibleSpells[spellid].name,description=possibleSpells[spellid].description,selectFunction=function() player.spells[#player.spells+1] = spellid end}
+    end
+  end
+  if #list > 0 then
+    Gamestate.switch(multiselect,list,"Learn a Spell from " .. self.properName,true,true)
+    return false
+  else
+    output:out("You already know all the spells in this book.")
+    return false,"You already know all the spells in this book."
+  end
+	--[[output:out("You look at the spells in the book.")
 	for id, spellid in ipairs(self.spells) do
 		output:out(id .. ") " .. possibleSpells[spellid].name)
-	end
+	end]]
 end
 possibleItems['spellbook'] = spellBook
 

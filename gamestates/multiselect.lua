@@ -1,9 +1,10 @@
 multiselect = {}
 
-function multiselect:enter(list,functionObject,functionName,functionArgs,closeAfter)
-  self.functionObject = functionObject
-  self.functionName = functionName
-  self.functionArgs = functionArgs or {}
+function multiselect:enter(origin,list,title,closeAfter,advanceAfter)
+  self.list = list
+  self.title = title or "Select an Option"
+  self.closeAfter = closeAfter
+  self.advanceAfter = advanceAfter
   self.cursorY = 0
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
   local uiScale = (prefs['uiScale'] or 1)
@@ -26,8 +27,9 @@ function multiselect:enter(list,functionObject,functionName,functionArgs,closeAf
 end
 
 function multiselect:select(item)
-  if self.functionObject[functionName](unpack(self.functionArgs),item) ~= false then
-    
+  if item.selectFunction(type(item.selectArgs) == "table" and unpack(item.selectArgs) or item.selectArgs) ~= false then
+    if self.closeAfter then self:switchBack() end
+    if self.advanceAfter then advance_turn() end
   end
 end
 
@@ -49,34 +51,24 @@ function multiselect:draw()
   
   love.graphics.setFont(fonts.textFont)
   
-  if (self.items[self.cursorY] ~= nil) then
+  if (self.list[self.cursorY] ~= nil) then
     local printY = y+padY+((self.cursorY+1)*14)
     setColor(100,100,100,255)
     love.graphics.rectangle("fill",x+padX,printY,boxW-8,16)
     setColor(255,255,255,255)
 	end
   
-  love.graphics.printf("Pick Up Items",x+padX,y+padY,boxW-16,"center")
-	local items = {}
-	for i, item in ipairs(self.items) do
+  love.graphics.printf(self.title,x+padX,y+padY,boxW-16,"center")
+	for i, item in ipairs(self.list) do
 		local letter = string.char(i+96)
-    local name = item:get_name(true)
-		love.graphics.print(letter .. ") " .. name,x+padX,y+padY+((line-1)*14))
+		love.graphics.print(letter .. ") " .. item.text,x+padX,y+padY+((line-1)*14))
 		line = line+1
 	end
   
-  if (self.items[self.cursorY] ~= nil) then
-    local fontSize = prefs['fontSize']
-    local item = self.items[self.cursorY]
-    local desc = item:get_description()
-    local info = item:get_info(true)
-    local _, dlines = fonts.descFont:getWrap(desc,x+padX)
-    local descH = #dlines*fontSize+fontSize
-    local _, ilines = fonts.descFont:getWrap(info,x+padX)
-    local infoH = #ilines*fontSize+fontSize*(#ilines > 0 and 2 or 0)
-    love.graphics.printf(desc,x+padX,descY+8,boxW-16,"left")
-    love.graphics.printf(info,x+padX,descY+descH+8,boxW-16,"left")
+  if (self.list[self.cursorY] ~= nil) then
+    love.graphics.printf(self.list[self.cursorY].description,x+padX,descY+4,boxW-16,"left")
   end
+  
   self.closebutton = output:closebutton(self.x+(prefs['noImages'] and 8 or 20),self.y+(prefs['noImages'] and 8 or 20),nil,true)
   love.graphics.pop()
 end
@@ -85,21 +77,21 @@ function multiselect:keypressed(key)
 	if (key == "escape") then
 		self:switchBack()
 	elseif (key == "return") or key == "kpenter" then
-		if self.items[self.cursorY] then
-      self:pickup(self.items[self.cursorY])
+		if self.list[self.cursorY] then
+      self:select(self.list[self.cursorY])
     end
 	elseif (key == "up") then
-		if (self.items[self.cursorY-1] ~= nil) then
+		if (self.list[self.cursorY-1] ~= nil) then
 			self.cursorY = self.cursorY - 1
 		end
 	elseif (key == "down") then
-		if (self.items[self.cursorY+1] ~= nil) then
+		if (self.list[self.cursorY+1] ~= nil) then
 			self.cursorY = self.cursorY + 1
 		end
 	else
 		local id = string.byte(key)-96
-		if (self.items[id] ~= nil) then
-			self:pickup(self.items[id])
+		if (self.list[id] ~= nil) then
+			self:select(self.list[id])
 		end
 	end
 end
@@ -108,20 +100,20 @@ function multiselect:mousepressed(x,y,button)
   local uiScale = (prefs['uiScale'] or 1)
 	if (x/uiScale > self.x and x/uiScale < self.x+self.boxW and y/uiScale > self.y and y/uiScale < self.descY) then
     if button == 2 or (x/uiScale > self.closebutton.minX and x/uiScale < self.closebutton.maxX and y/uiScale > self.closebutton.minY and y/uiScale < self.closebutton.maxY) then self:switchBack() end
-		if (self.items[self.cursorY] ~= nil) then
-      self:pickup(self.items[self.cursorY])
+		if (self.list[self.cursorY] ~= nil) then
+      self:select(self.list[self.cursorY])
 		end
 	end
 end
 
 function multiselect:wheelmoved(x,y)
   if y > 0 then
-		if (self.cursorY and self.items[self.cursorY-1] ~= nil) then
+		if (self.cursorY and self.list[self.cursorY-1] ~= nil) then
 			self.cursorY = self.cursorY - 1
 		end
 	elseif y < 0 then
     self.cursorY = self.cursorY or 0
-		if (self.items[self.cursorY+1] ~= nil) then
+		if (self.list[self.cursorY+1] ~= nil) then
 			self.cursorY = self.cursorY + 1
 		end
   end
@@ -143,7 +135,7 @@ function multiselect:update(dt)
       local mouseY = y-(self.y-self.padY)
 			local listY = math.floor(mouseY/14)
       local yMod = (prefs['noImages'] and 2 or 4)
-			if (self.items[listY-yMod] ~= nil) then
+			if (self.list[listY-yMod] ~= nil) then
 				self.cursorY=listY-yMod
       else
         self.cursorY=nil
