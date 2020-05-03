@@ -21,11 +21,11 @@ function storescreen:refresh_lists()
 
   for _,ilist in pairs(self.store:get_inventory()) do
     local item = ilist.item
-    self.selling_list[#self.selling_list+1] = {name=item:get_name(true,1),description=item:get_description(),info=item:get_info(),cost=ilist.cost,amount=item.amount,buyAmt=0,item=item}
+    self.selling_list[#self.selling_list+1] = {name=item:get_name(true,1),description=item:get_description(),info=item:get_info(),cost=ilist.cost,amount=(item.amount or 1),buyAmt=0,item=item}
   end
   for _,ilist in pairs(self.store:get_buy_list()) do
     local item = ilist.item
-    self.buying_list[#self.buying_list+1] = {name=item:get_name(true,1),description=item:get_description(),info=item:get_info(),cost=ilist.cost,amount=item.amount,buyAmt=0,item=item}
+    self.buying_list[#self.buying_list+1] = {name=item:get_name(true,1),description=item:get_description(),info=item:get_info(),cost=ilist.cost,amount=(item.amount or 1),buyAmt=0,item=item}
   end
 end
 

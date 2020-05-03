@@ -569,7 +569,12 @@ function mapgen:generate_item(level)
     end
   end
   -- Create the actual item:
-	return Item(newItem)
+	local item = Item(newItem)
+  --Add enchantments: TODO: Make this not ridiculous
+  if item.itemType == "weapon" and random(1,10) == 1 then
+    item:apply_enchantment(get_random_key(enchantments,random(5,10)))
+  end
+  return item
 end
 
 --Possible types: "wall": next to wall only, "noWalls": not next to wall, "wallsCorners": open walls and corners only, "corners": corners only

@@ -7,10 +7,12 @@ Features that have been added that weren't in Possession:
 * Items and inventory
   * Players and NPCs can have, use, equip, and throw items.
   * Equipment can add stat bonuses, have callbacks when various things happen, and grant abilities.
+  * Items can have "tags" attached to them, that can be used by various things throughout the game (so far, only stores look at items' tags to determine if they want to buy them).
+  * In Process: Item enchantments (currently can be applied to items, and change the item's name, but don't do anything else).
   * TODO: Getting NPCs to use items and change equipment.
   * TODO: Implement a scrollbar on the inventory screen if the item list gets too long.
   * TODO: Auto-comparing an item's stats to your current equipment.
-  * Future Improvements: Item enchantments, crafting.
+  * Future Improvements: Crafting
 * NPC factions
   * Factions can determine NPCs' hostility or friendliness to the player, to other faction members, and to specific creature types.
   * Players can gain or lose favor with factions from killing specific creatures or creature types. Factions can view the player as an ally or enemy depending on their favor level.
@@ -20,12 +22,14 @@ Features that have been added that weren't in Possession:
   * Stores can have a variety of items, and can generate with infinite or limited numbers of that item.
   * Stores can sell and buy different lists of items.
   * A "Store" feature generates during mapgen, with a store definition attached to it, and moving onto it lets you interact with the store.
+  * Stores can be defined with a list of tags they'll buy. You can sell items to the store matching these tags rather than having to pre-define every single item the store will buy. The stores will use that item's defined Value attribute as the amount they'll pay for it.
   * Future improvements: Stores using an item as a token rather than normal money.
-  * Future improvements: Stores letting you sell items matching certain qualifiers to them rather than having to pre-define what they buy.
 * Player classes and class selection on the newgame screen.
   * Classes can modify stats, give starting items, spells, faction membership and favor, money, and damage weaknesses/resistances.
   * Classes can also automatically grant certain abilities on level up.
   * Future improvements: Classes granting options to choose between abilities on level up, rather than automatically giving them.
+* Miscellaneous:
+  * Features can have "actions" attached to them. There's a new keybinding used to perform a feature's action. Theoretically, features can have multiple actions attached to them, but this is untested.
 
 [Incomplete guide to using the Roguelove engine](https://docs.google.com/document/d/1bJmuokbK8Xtd2P9K8KRQRSeGdHd78HGKuOKaZltCoE4/edit?usp=sharing)
 

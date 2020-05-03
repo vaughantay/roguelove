@@ -27,7 +27,7 @@ function multiselect:enter(origin,list,title,closeAfter,advanceAfter)
 end
 
 function multiselect:select(item)
-  if item.selectFunction(type(item.selectArgs) == "table" and unpack(item.selectArgs) or item.selectArgs) ~= false then
+  if item.selectFunction(unpack(item.selectArgs)) ~= false then
     if self.closeAfter then self:switchBack() end
     if self.advanceAfter then advance_turn() end
   end

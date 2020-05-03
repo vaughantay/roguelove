@@ -1596,7 +1596,7 @@ function game:keypressed(key,scancode,isRepeat)
     nextLevel(true)
    elseif (key == "q" and action=="moving") then
     Gamestate.switch(factionscreen,"lightchurch")
-  elseif (key == "w" and action=="moving") then
+  elseif (key == "s" and action=="moving") then
     Gamestate.switch(storescreen,"healthstore")
 	elseif (key == keybindings.charScreen) then
 		Gamestate.switch(characterscreen)

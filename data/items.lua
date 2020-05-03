@@ -10,7 +10,9 @@ local healthPotionMinor = {
 	stacks = true,
   usable=true,
   useVerb="drink",
-  consumed=true
+  consumed=true,
+  tags={'liquid','healing'},
+  value=5
 }
 function healthPotionMinor:use(user)
 	user = user or player
@@ -31,7 +33,9 @@ local demonblood = {
 	stacks = true,
   usable=true,
   useVerb="drink",
-  consumed=true
+  consumed=true,
+  tags={'liquid','unholy','fire','blood'},
+  value=5
 }
 function demonblood:use(user)
 	user = user or player
@@ -53,7 +57,9 @@ local scroll = {
   sortBy = "spell",
   usable=true,
   useVerb="read",
-  consumed=true
+  consumed=true,
+  tags={'paper','magic'},
+  value=10
 }
 function scroll:new(spell)
 	self.spell = (type(spell) == "string" and spell or get_random_key(possibleSpells))
@@ -84,7 +90,9 @@ local spellBook = {
 	spells={},
 	itemType="usable",
   usable=true,
-  useVerb="study"
+  useVerb="study",
+  tags={'paper','magic'},
+  value=100
 }
 function spellBook:new()
 	require "data.spells"
@@ -105,7 +113,7 @@ function spellBook:use()
   local list = {}
   for _, spellid in ipairs(self.spells) do
     if not player:has_spell(spellid) then
-      list[#list+1] = {text="Learn " .. possibleSpells[spellid].name,description=possibleSpells[spellid].description,selectFunction=function() player.spells[#player.spells+1] = spellid end}
+      list[#list+1] = {text="Learn " .. possibleSpells[spellid].name,description=possibleSpells[spellid].description,selectFunction=player.learn_spell,selectArgs={player,spellid}}
     end
   end
   if #list > 0 then
@@ -135,7 +143,9 @@ local greatsword = {
 	accuracy = 10,
 	critical = 5,
 	level = 1,
-	strmod=5
+	strmod=5,
+  tags={'large','sharp','sword'},
+  value=50
 }
 possibleItems['greatsword'] = greatsword
 
@@ -153,7 +163,9 @@ local dagger = {
 	accuracy = 10,
 	critical = 5,
 	level = 1,
-	strmod=5
+	strmod=5,
+  tags={'sharp'},
+  value=5
 }
 possibleItems['dagger'] = dagger
 
@@ -172,7 +184,9 @@ local selfharmdagger = {
 	accuracy = 10,
 	critical = 5,
 	level = 1,
-	strmod=5
+	strmod=5,
+  tags={'sharp'},
+  value=1
 }
 function selfharmdagger:attacked_with(target,wielder)
   local dmg = wielder:damage(5)
@@ -198,7 +212,9 @@ local firedagger = {
 	accuracy = 10,
 	critical = 5,
 	level = 1,
-  damage_type="fire"
+  damage_type="fire",
+  tags={'sharp','fire','hot'},
+  value=10
 }
 function firedagger:after_damage(target,attacker)
   target:give_condition('onfire',10)
@@ -219,7 +235,9 @@ local holydagger = {
 	accuracy = 10,
 	critical = 5,
 	level = 1,
-  damage_type="holy"
+  damage_type="holy",
+  tags={'sharp','holy'},
+  value=10
 }
 possibleItems['holydagger'] = holydagger
 
@@ -234,7 +252,9 @@ local cattleprod = {
 	color={r=200,g=200,b=200,a=255},
 	damage = 3,
 	accuracy = 10,
-	level = 1
+	level = 1,
+  tags={'nonlethal','electric'},
+  value=10
 }
 function cattleprod:attack_hits(target,wielder,damage)
   if player:can_sense_creature(target) then output:out(wielder:get_name() .. " gives " .. target:get_name() .. " a nasty shock with a cattle prod!") end
@@ -251,7 +271,9 @@ local buckler = {
   equippable=true,
   equipSlot="offhand",
   hands=1,
-	color={r=200,g=200,b=200,a=255}
+	color={r=200,g=200,b=200,a=255},
+  tags={'wood'},
+  value=5
 }
 possibleItems['buckler'] = buckler
 
@@ -265,6 +287,7 @@ local dart = {
 	color={r=200,g=200,b=200,a=255},
 	ranged_attack="dart",
   stacks=true,
+  value=1
 }
 function dart:new()
   self.amount = tweak(100)
@@ -281,6 +304,8 @@ local holywater = {
 	color={r=0,g=200,b=200,a=255},
 	--ranged_attack="holywater",
   stacks=true,
+  tags={'liquid','holy'},
+  value=5
 }
 possibleItems['holywater'] = holywater
 
@@ -292,7 +317,9 @@ local painwand = {
   usable=true,
   color={r=255,g=0,b=255,a=255},
   charges=5,
-  target_type = "creature"
+  target_type = "creature",
+  tags={'magic','wood'},
+  value=50
 }
 function painwand:use(target,user)
   if self.charges < 1 then
@@ -302,6 +329,8 @@ function painwand:use(target,user)
   if target then
     local dmg = target:damage(5)
     if player:can_sense_creature(target) then output:out(user:get_name() .. " blasts " .. target:get_name() .. " with a wand, dealing " .. dmg .. " damage.") end
+    self.charges = self.charges-1
+    self.value = math.max(self.charges*10,1)
     return true
   else
     return false
@@ -319,6 +348,8 @@ local breastplate = {
   equipText = "You put on the iron breastplate. It's heavy.",
   unequipText = "You take off the iron breastplate and breathe easier.",
 	color={r=150,g=150,b=150,a=255},
+  tags={'iron'},
+  value=25,
   equip = function(self,equipper)
     equipper.max_hp = 1000
     return true,"Woof!"
@@ -333,11 +364,13 @@ local sexyring = {
 	itemType="accessory",
   equippable=true,
   equipSlot="accessory",
+  tags={'magic'},
   damaged = function(self,possessor,attacker)
     possessor:give_condition('fireaura',random(5,10),attacker)
     conditions['fireaura']:advance(possessor)
 	end,
-	color={r=255,g=0,b=255,a=255}
+	color={r=255,g=0,b=255,a=255},
+  value=5
 }
 possibleItems['sexyring'] = sexyring
 
@@ -349,7 +382,9 @@ local uglyring = {
   equippable=true,
   equipSlot="accessory",
   bonuses={armor=1000},
-	color={r=0,g=255,b=255,a=255}
+	color={r=0,g=255,b=255,a=255},
+  tags={'magic'},
+  value=5
 }
 possibleItems['uglyring'] = uglyring
 
@@ -361,7 +396,9 @@ local strengthring = {
   equippable=true,
   equipSlot="accessory",
   bonuses={damage=1000},
-	color={r=255,g=0,b=0,a=255}
+	color={r=255,g=0,b=0,a=255},
+  tags={'magic'},
+  value=5
 }
 possibleItems['strengthring'] = strengthring
 
@@ -373,7 +410,9 @@ local sadring = {
   equippable=true,
   equipSlot="accessory",
   spells_granted={'blast'},
-	color={r=0,g=0,b=255,a=255}
+	color={r=0,g=0,b=255,a=255},
+  tags={'magic'},
+  value=5
 }
 possibleItems['sadring'] = sadring
 
@@ -389,7 +428,9 @@ local crossbow = {
   max_charges=1,
   ranged_attack="crossbow",
   usesAmmo="bolt",
-  color={r=150,g=150,b=150,a=255}
+  color={r=150,g=150,b=150,a=255},
+  tags={'wooden'},
+  value=10
 }
 possibleItems['crossbow'] = crossbow
 
@@ -406,7 +447,8 @@ local revolver = {
   max_charges=6,
   ranged_attack="revolver",
   usesAmmo="bullet",
-  color={r=98,g=73,b=22,a=255}
+  color={r=98,g=73,b=22,a=255},
+  value=10
 }
 possibleItems['revolver'] = revolver
 
@@ -420,7 +462,8 @@ local bolt = {
   equipSlot="ammo",
   ammoType = "bolt",
   stacks=true,
-  color={r=150,g=150,b=150,a=255}
+  color={r=150,g=150,b=150,a=255},
+  value=1
 }
 function bolt:new()
   self.amount = tweak(100)
@@ -437,7 +480,8 @@ local bullet = {
   equipSlot="ammo",
   ammoType = "bullet",
   stacks=true,
-  color={r=33,g=33,b=33,a=33}
+  color={r=33,g=33,b=33,a=33},
+  value=1
 }
 function bullet:new()
   self.amount = tweak(100)
@@ -456,7 +500,9 @@ local firebolt = {
   damage_type="fire",
   projectile_name="smallfireball",
   stacks=true,
-  color={r=255,g=150,b=150,a=255}
+  color={r=255,g=150,b=150,a=255},
+  tags={'fire'},
+  value=1
 }
 function firebolt:new()
   self.amount = tweak(100)
@@ -474,7 +520,8 @@ local explosivebolt = {
   ammoType = "bullet",
   projectile_name="bomb",
   stacks=true,
-  color={r=255,g=255,b=150,a=255}
+  color={r=255,g=255,b=150,a=255},
+  value=1
 }
 function explosivebolt:new()
   self.amount = tweak(100)

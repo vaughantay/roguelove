@@ -2000,8 +2000,8 @@ function Creature:level_up()
   end
   if self.class and playerClasses[self.class].learns_spells then
     for _,spell in ipairs(playerClasses[self.class].learns_spells) do
-      if spell.level == self.level and not self:has_spell(spell.spell) then
-        self.spells[#self.spells+1] = spell.spell
+      if spell.level == self.level then
+        self:learn_spell(spell.spell)
       end
     end
   end
@@ -2076,9 +2076,13 @@ function Creature:get_critical_chance()
 end
 
 ---Get all spells the creature has, including those granted by equipment
+--@param noEquip Boolean. If true, ignore spells granted by equipment.
 --@return Table. A list of the creature's spells
-function Creature:get_spells()
+function Creature:get_spells(noEquip)
   local spells = (self.spells and copy_table(self.spells) or {})
+  if noEquip then
+    return spells
+  end
   for _, equipslot in pairs(self.equipment) do
     for _, equip in ipairs(equipslot) do
       if equip.spells_granted then
@@ -2089,6 +2093,23 @@ function Creature:get_spells()
     end --end equipment for
 	end --end equipslot for
   return spells
+end
+
+---Checks if the creature possesses a certain spell
+--@param spellName String. The name of the spell
+--@param noEquip Boolean. If true, ignore spells granted by equipment
+--@return Boolean. Whether the creature has the spell
+function Creature:has_spell(spellName,noEquip)
+  return in_table(spellName,self:get_spells(noEquip))
+end
+
+---Add a spell to a creature's spell list
+--@param spellID Text. The ID of the spell to learn
+function Creature:learn_spell(spellID)
+  print('learn ' .. spellID)
+  if not self:has_spell(spellID,true) then
+    self.spells[#self.spells+1] = spellID
+  end
 end
 
 ---Get all ranged attacks the creature has, including those granted by equipment
@@ -2104,13 +2125,6 @@ function Creature:get_ranged_attacks()
     end --end equipment for
   end
   return ranged
-end
-
----Checks if the creature possesses a certain spell
---@param spellName String. The name of the spell
---@return Boolean. Whether the creature has the spell
-function Creature:has_spell(spellName)
-  return in_table(spellName,self:get_spells())
 end
 
 ---Checks if the creature possesses a certain AI flag

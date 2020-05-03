@@ -55,8 +55,13 @@ function Store:get_buy_list(creat)
   for id,item in ipairs(creat.inventory) do
     if self.buys_items and self.buys_items[item.id] then
       buying[#buying+1]={item=item,cost=self.buys_items[item.id]}
+    elseif self.buys_tags and item.value then
+      for _,tag in ipairs(self.buys_tags) do
+        if item:has_tag(tag) then
+          buying[#buying+1]={item=item,cost=item.value}
+        end
+      end
     end
-    --TODO: Test for dynamic selling:
   end
   return buying
 end

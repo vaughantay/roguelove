@@ -99,18 +99,31 @@ end
 --@return String. The name of the item
 function Item:get_name(full,amount)
   amount = amount or self.amount or 1
+  local prefix = ""
+  local suffix = ""
+  if self.enchantments then
+    for ench,_ in pairs(self.enchantments) do
+      local enchantment = enchantments[ench]
+      if enchantment.prefix then
+        prefix = prefix .. enchantment.prefix .. " "
+      end
+      if enchantment.suffix then
+        suffix = suffix .. " " .. enchantment.suffix
+      end
+    end
+  end --end enchantment info
 	if (full == true) then
 		if (self.properName ~= nil) then
-			return self.properName .. " (" .. self.name .. ")"
+			return self.properName .. " (" .. prefix .. self.name .. suffix .. ")"
 		else
       if self.stacks and amount > 1 then
         if self.pluralName then
-          return amount .. " " .. ucfirst(self.pluralName)
+          return amount .. " " .. ucfirst(prefix .. self.pluralName .. suffix)
         else
-          return amount .. " x " .. ucfirst(self.name)
+          return amount .. " x " .. ucfirst(prefix .. self.name .. suffix)
         end
       else
-        return ucfirst(self.name)
+        return ucfirst(prefix .. self.name .. suffix)
       end
 		end
 	elseif (self.properName ~= nil) then
@@ -118,12 +131,12 @@ function Item:get_name(full,amount)
 	else
     if self.stacks and amount > 1 then
       if self.pluralName then
-          return amount .. " " .. self.pluralName
+          return amount .. " " .. prefix .. self.pluralName .. suffix
         else
-          return amount .. " x " .. self.name
+          return amount .. " x " .. prefix .. self.name .. suffix
         end
     else
-      return (vowel(self.name) and "an " or "a " ) .. self.name
+      return (vowel(prefix .. self.name) and "an " or "a " ) .. prefix .. self.name .. suffix
     end
 	end
 end
@@ -300,6 +313,30 @@ function Item:reload(possessor)
       output:out(possessor:get_name() .. " reloads " .. self:get_name() .. " with " .. usedAmmo:get_name(false,amt) .. ".")
     end
   end --end if using specific ammo
+end
+
+---Apply an enchantment to an item
+--@param enchantment Text. The ID of the enchantment
+--@param turns Number. The number of turns to apply the enchantment, if applicable. What "turns" refers to will vary by enchantment, and some are always permanent, and so this number will do nothing. Add a -1 to make force this enchantment to be permanent.
+function Item:apply_enchantment(enchantment,turns)
+  turns = turns or 1
+  if not self.enchantments then self.enchantments = {} end
+  local currEnch = self.enchantments[enchantment]
+  if currEnch == -1 then
+    --do nothing
+  elseif turns == -1 then --if making it permanent, always make it permanent
+    self.enchantments[enchantment] = -1
+  elseif currEnch then --if you currently have this enchantment, add turns
+    self.enchantments[enchantment] = currEnch+turns
+  else --if you don't currently have this enchantment, set it to the passed turns value
+    self.enchantments[enchantment] = turns
+  end
+end
+
+---Return a list of all enchantments currently applied to an item
+--@return Table. The list of enchantments
+function Item:get_enchantments()
+  return self.enchantments or {}
 end
 
 ---Check what hit conditions an item can inflict
