@@ -25,7 +25,7 @@ local poisoned = {
   prefix = "poisoned",
   removal_type="hit",
   description = "Poisons the target on a successful hit.",
-  hit_conditions={{condition='poisoned',chance=100,minTurns=2,maxTurns=4}},
+  hit_conditions={{condition='poisoned',chance=25,minTurns=2,maxTurns=4}},
   crit_conditions={{condition="poisoned",turns=5,chance=100}},
   item_type="weapon"
 }
@@ -48,4 +48,14 @@ local blessed = {
   removal_type="kill",
   tags={"holy"},
   item_type="weapon"
+}
+
+local sharpened = {
+  name = "Sharpened",
+  prefix = "sharpened",
+  description = "Wickedly sharp and ready to draw blood.",
+  removal_type="hit",
+  item_type="weapon",
+  hit_conditions={{condition="bleeding",minTurns=2,maxTurns=5,chance=100}},
+  crit_conditions={{condition="bleeding",turns=5,chance=100}}
 }

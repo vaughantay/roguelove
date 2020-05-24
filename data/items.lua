@@ -193,9 +193,6 @@ function selfharmdagger:attacked_with(target,wielder)
   output:out(wielder:get_name() .. " cuts themselves on " .. self:get_name() .. ", taking " .. dmg .. " damage.")
   return true
 end
-function selfharmdagger:calc_attack(target,wielder)
-  return "hit",1000
-end
 possibleItems['selfharmdagger'] = selfharmdagger
 
 local firedagger = {
