@@ -570,6 +570,7 @@ function game:print_target_sidebar()
       end --end ranged attack for
     end --end if #ranged_attacks> 0
     love.graphics.printf("Health: " .. math.ceil(self.targetHP) .. "/" .. target:get_mhp(),printX+xPad,printY+18+yBonus,335,"center")
+    --TODO: Separate out accuracy for mult-wielding wearpons
     love.graphics.print("Chance to Hit: " .. calc_hit_chance(player,target) .. "%",printX+xPad,printY+45)
 
     local yPadNow = 15*#ranged_attacks

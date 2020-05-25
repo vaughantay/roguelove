@@ -81,7 +81,7 @@ end
 --@param item Item. The item the attacker is using.
 function calc_hit_chance(attacker,target,item)
   local hitMod = attacker.melee - (target.dodging or 0)
-  return math.min(math.max(70 + (hitMod > 0 and hitMod*2 or hitMod) + attacker:get_bonus('hit_chance') - (target.get_bonus and target:get_bonus('dodge_chance') or 0),25 + (item and item.accuracy or 0)),95)
+  return math.min(math.max(70 + (hitMod > 0 and hitMod*2 or hitMod) + attacker:get_bonus('hit_chance') - (target.get_bonus and target:get_bonus('dodge_chance') or 0) + (item and item:get_accuracy() or 0),25),95)
 end
 
 ---Calculates whether an attacker hits a target, whether it was a critical, and how much damage was done. Important to note: This function just *calculates* the damage, it does not apply it!
@@ -95,7 +95,7 @@ function calc_attack(attacker,target,forceHit,item)
 	local dmg = (item and item:get_damage(target,attacker) or attacker:get_damage())
   local dbonus = .01*attacker:get_bonus('damage_percent',true)
   dmg = dmg * (dbonus ~= 0 and dbonus or 1)
-	local critChance = attacker:get_critical_chance() + (item and item.critical_chance or 0)
+	local critChance = attacker:get_critical_chance() + (item and item:get_critical_chance() or 0)
 	local hitMod = calc_hit_chance(attacker,target,item)
   local result = "miss"
 

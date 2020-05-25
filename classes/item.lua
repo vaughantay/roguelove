@@ -160,7 +160,7 @@ function Item:get_damage(target,wielder)
   if possibleItems[self.id].get_damage then
     return possibleItems[self.id].get_damage(self,target,wielder)
   end
-  return self.damage or 0 + wielder.strength or 0
+  return (self.damage or 0) + self:get_enchantment_bonus('damage') + (wielder.strength or 0)
 end
 
 ---Attack another entity.
@@ -200,7 +200,6 @@ function Item:attack(target,wielder,forceHit,ignore_callbacks,forceBasic)
 			txt = txt .. ucfirst(wielder:get_pronoun('n')) .. " misses."
       dmg = 0
 		else
-      result = "critical"
       if not forceBasic and possibleItems[self.id].attack_hits then
         return possibleItems[self.id].attack_hits(self,target,wielder,dmg,result)
       end
@@ -340,6 +339,20 @@ function Item:get_enchantments()
   return self.enchantments or {}
 end
 
+---Returns the total value of the bonuses of a given type provided by enchantments.
+--@param bonusType Text. The bonus type to look at
+--@return Number. The bonus
+function Item:get_enchantment_bonus(bonusType)
+  local total = 0
+  for e,_ in pairs(self:get_enchantments()) do
+    local enchantment = enchantments[e]
+    if enchantment.bonuses and enchantment.bonuses[bonusType] then
+      total = total + enchantment.bonuses[bonusType]
+    end --end if it has the right bonus
+  end --end enchantment for
+  return total
+end
+
 ---Check what hit conditions an item can inflict
 --@return Table. The list of hit conditions
 function Item:get_hit_conditions()
@@ -405,6 +418,18 @@ end
 --@return Number. The armor piercing value.
 function Item:get_armor_piercing(wielder)
 	return (self.armor_piercing or 0) + (wielder and wielder:get_bonus('armor_piercing') or 0)
+end
+
+---Returns the accuracy (modifier to the hit roll) of a weapon.
+--@return Number. The accuracy of the weapon.
+function Item:get_accuracy()
+  return (self.accuracy or 0)+self:get_enchantment_bonus('hit_chance')
+end
+
+---Checks the critical chance of a weapon.
+--@return Number. The crit chance of the weapon.
+function Item:get_critical_chance()
+  return (self.critical_chance or 0)+self:get_enchantment_bonus('critical_chance')
 end
 
 ---Checks if an item has a descriptive tag.

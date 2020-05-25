@@ -34,11 +34,12 @@ enchantments['poisoned'] = poisoned
 local accurate = {
   name = "Accurate",
   suffix = "of Accuracy",
-  bonuses={hit_chance=10,critical_chance=1},
+  bonuses={hit_chance=10,critical_chance=5},
   description = "Has a higher chance of hitting the target.",
   value_increase=0.5,
   item_type="weapon"
 }
+enchantments['accurate'] = accurate
 
 local blessed = {
   name = "Blessed",
@@ -59,3 +60,4 @@ local sharpened = {
   hit_conditions={{condition="bleeding",minTurns=2,maxTurns=5,chance=100}},
   crit_conditions={{condition="bleeding",turns=5,chance=100}}
 }
+enchantments['accurate'] = accurate
