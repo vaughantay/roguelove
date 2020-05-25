@@ -199,6 +199,9 @@ function Item:attack(target,wielder,forceHit,ignore_callbacks,forceBasic)
 		if (result == "miss") then
 			txt = txt .. ucfirst(wielder:get_pronoun('n')) .. " misses."
       dmg = 0
+      if player:can_see_tile(self.x,self.y) or player:can_see_tile(target.x,target.y) and player:does_notice(wielder) and player:does_notice(target) then
+        output:out(txt)
+      end
 		else
       if not forceBasic and possibleItems[self.id].attack_hits then
         return possibleItems[self.id].attack_hits(self,target,wielder,dmg,result)
@@ -222,7 +225,9 @@ function Item:attack(target,wielder,forceHit,ignore_callbacks,forceBasic)
         Timer.cancel(target.moveTween)
       end
       target.moveTween = tween(.1,target,{xMod=0,yMod=0},'linear',function() target.doneMoving = true end)
-      
+      if player:can_see_tile(wielder.x,wielder.y) or player:can_see_tile(target.x,target.y) and player:does_notice(wielder) and player:does_notice(target) then
+        output:out(txt)
+      end
       if possibleItems[self.id].after_damage then
         possibleItems[self.id].after_damage(self,target,wielder)
       end
@@ -235,10 +240,6 @@ function Item:attack(target,wielder,forceHit,ignore_callbacks,forceBasic)
 				end -- end condition chance
 			end	-- end condition forloop
 		end -- end hit if
-    if player:can_see_tile(self.x,self.y) or player:can_see_tile(target.x,target.y) and player:does_notice(wielder) and player:does_notice(target) then
-      output:out(txt)
-      if result ~= "miss" then output:sound('punch') end
-    end
 		return dmg
 	else -- if not touching target
 		return false

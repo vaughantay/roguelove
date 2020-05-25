@@ -677,6 +677,9 @@ function Creature:attack(target,forceHit,ignore_callbacks)
 		if (result == "miss") then
 			txt = txt .. ucfirst(self:get_name()) .. " misses " .. target:get_name() .. "."
       dmg = 0
+      if player:can_see_tile(self.x,self.y) or player:can_see_tile(target.x,target.y) and player:does_notice(self) and player:does_notice(target) then
+        output:out(txt)
+      end
 		else
 			if (result == "critical") then txt = txt .. "CRITICAL HIT! " end
       local bool,ret = self:callbacks('calc_damage',target,dmg)
@@ -701,6 +704,9 @@ function Creature:attack(target,forceHit,ignore_callbacks)
       end
       target.moveTween = tween(.1,target,{xMod=0,yMod=0},'linear',function() target.doneMoving = true end)
       
+      if player:can_see_tile(self.x,self.y) or player:can_see_tile(target.x,target.y) and player:does_notice(self) and player:does_notice(target) then
+        output:out(txt)
+      end
 			self:callbacks('damages',target,dmg)
       local cons = (result == "critical" and critConditions or hitConditions)
 			for _, condition in pairs (cons) do
@@ -710,10 +716,6 @@ function Creature:attack(target,forceHit,ignore_callbacks)
 				end -- end condition chance
 			end	-- end condition forloop
 		end -- end hit if
-    if player:can_see_tile(self.x,self.y) or player:can_see_tile(target.x,target.y) and player:does_notice(self) and player:does_notice(target) then
-      output:out(txt)
-      if result ~= "miss" then output:sound('punch') end
-    end
 		return dmg
 	else -- if not touching target
 		return false
