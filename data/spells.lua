@@ -58,6 +58,8 @@ demondamager = Spell({
   calc_damage = function(self,possessor,target,damage)
     if target:is_type('demon') then
       return math.ceil(damage * 1.5)
+    else
+      return damage
     end
   end
 }),
