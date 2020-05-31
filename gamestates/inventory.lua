@@ -367,11 +367,11 @@ function inventory:keypressed(key)
       self.cursorX = 1
       self.cursorY = 0
 		elseif self.cursorX == 1 and self.cursorY > 1 then
-			if self.inventory[self.cursorY-1].item then
+			if self.inventory[self.cursorY-1] and self.inventory[self.cursorY-1].item then
         self.cursorY = self.cursorY-1
       else
         for i = self.cursorY-1,1,-1 do
-          if self.inventory[i].item then
+          if self.inventory[i] and self.inventory[i].item then
             self.cursorY = i
             break
           elseif i == 1 then
@@ -380,11 +380,11 @@ function inventory:keypressed(key)
         end --end equipment for
       end --end if item exists at next slot if
     elseif self.cursorX == 2 and self.cursorY > 1 then
-      if self.equipment[self.cursorY-1].item then
+      if self.equipment[self.cursorY-1] and self.equipment[self.cursorY-1].item then
         self.cursorY = self.cursorY-1
       else
         for i = self.cursorY-1,1,-1 do
-          if self.equipment[i].item then
+          if self.equipment[i] and self.equipment[i].item then
             self.cursorY = i
             break
           end --end if item exists here if
