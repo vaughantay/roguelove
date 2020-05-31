@@ -5,9 +5,9 @@ local vampiric = {
   prefix = "vampiric",
   description = "Drains health from your enemies and gives it to you.",
   tags={"unholy"},
-  item_type="weapon"
+  itemType="weapon"
 }
-function vampiric:damages(item,possessor,target,damage)
+function vampiric:after_damage(item,possessor,target,damage)
   if (random(1,2) == 1 and not target:is_type('bloodless')) or target:has_condition('bleeding') then
     local hp = tweak(math.ceil(damage*(random(2,6)/10)))
     if player:can_see_tile(possessor.x,possessor.y) and hp > 0 then
@@ -27,7 +27,8 @@ local poisoned = {
   description = "Poisons the target on a successful hit.",
   hit_conditions={{condition='poisoned',chance=25,minTurns=2,maxTurns=4}},
   crit_conditions={{condition="poisoned",turns=5,chance=100}},
-  item_type="weapon"
+  itemType="weapon",
+  requires_tags={"sharp"}
 }
 enchantments['poisoned'] = poisoned
 
@@ -37,7 +38,7 @@ local accurate = {
   bonuses={hit_chance=10,critical_chance=5},
   description = "Has a higher chance of hitting the target.",
   value_increase=0.5,
-  item_type="weapon"
+  itemType="weapon"
 }
 enchantments['accurate'] = accurate
 
@@ -48,7 +49,7 @@ local blessed = {
   extra_damage = {},
   removal_type="kill",
   tags={"holy"},
-  item_type="weapon"
+  itemType="weapon"
 }
 
 local sharpened = {
@@ -56,8 +57,9 @@ local sharpened = {
   prefix = "sharpened",
   description = "Wickedly sharp and ready to draw blood.",
   removal_type="hit",
-  item_type="weapon",
+  itemType="weapon",
+  requires_tags={"sharp"},
   hit_conditions={{condition="bleeding",minTurns=2,maxTurns=5,chance=100}},
   crit_conditions={{condition="bleeding",turns=5,chance=100}}
 }
-enchantments['accurate'] = accurate
+enchantments['sharpened'] = sharpened

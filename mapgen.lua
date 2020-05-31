@@ -572,7 +572,10 @@ function mapgen:generate_item(level)
 	local item = Item(newItem)
   --Add enchantments: TODO: Make this not ridiculous
   if item.itemType == "weapon" and random(1,1) == 1 then
-    item:apply_enchantment(get_random_key(enchantments),random(5,10))
+    local eid = get_random_key(enchantments)
+    if item:qualifies_for_enchantment(eid) then
+      item:apply_enchantment(eid,random(5,10))
+    end
   end
   return item
 end

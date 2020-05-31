@@ -8,7 +8,8 @@ Features that have been added that weren't in Possession:
   * Players and NPCs can have, use, equip, and throw items.
   * Equipment can add stat bonuses, have callbacks when various things happen, and grant abilities.
   * Items can have "tags" attached to them, that can be used by various things throughout the game (so far, only stores look at items' tags to determine if they want to buy them).
-  * In Process: Item enchantments (currently can be applied to items, and change the item's name, but don't do anything else).
+  * Item enchantments: Can add prefixes and suffixes to item's name, can add hit and critical conditions to an attack, can modify a weapon's stats (damage, accuracy, etc.), can run code after a succesful hit is made. Can be permanent, or can last for a set number of either attacks or successful hits.
+    * TODO: Enchantments that decrease their time left when a kill is made with the item. Other situations where code can be run by enchantments.
   * TODO: Getting NPCs to use items and change equipment.
   * TODO: Implement a scrollbar on the inventory screen if the item list gets too long.
   * TODO: Auto-comparing an item's stats to your current equipment.
@@ -29,7 +30,7 @@ Features that have been added that weren't in Possession:
   * Classes can also automatically grant certain abilities on level up.
   * Future improvements: Classes granting options to choose between abilities on level up, rather than automatically giving them.
 * Miscellaneous:
-  * Features can have "actions" attached to them. There's a new keybinding used to perform a feature's action. Theoretically, features can have multiple actions attached to them, but this is untested.
+  * Features can have "actions" attached to them. There's a new keybinding used to perform a feature's action. Features can have multiple actions attached to them.
 
 [Incomplete guide to using the Roguelove engine](https://docs.google.com/document/d/1bJmuokbK8Xtd2P9K8KRQRSeGdHd78HGKuOKaZltCoE4/edit?usp=sharing)
 

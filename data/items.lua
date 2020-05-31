@@ -130,6 +130,41 @@ function spellBook:use()
 end
 possibleItems['spellbook'] = spellBook
 
+local weaponPoison = {
+	name = "weapon poison",
+	symbol= "!",
+	color={r=0,g=255,b=0,a=255},
+	description="A bottle filled with a toxic substance.",
+	spells={},
+	itemType="usable",
+  usable=true,
+  useVerb="apply",
+  tags={'liquid'},
+  value=100
+}
+function weaponPoison:use()
+  local list = {}
+  for i,item in ipairs(player.inventory) do
+    if item:qualifies_for_enchantment('poisoned') then
+      local afterFunc = function()
+        output:out(player:get_name() .. " applies poison to " .. item:get_name() .. ".")
+        item:apply_enchantment('poisoned',tweak(5))
+        player:delete_item(self)
+        advance_turn()
+      end
+      list[#list+1] = {text=item:get_name(true),description=item:get_description(),selectFunction=afterFunc,selectArgs={}}
+    end
+  end
+  if #list > 0 then
+    Gamestate.switch(multiselect,list,"Poison a Weapon",true,true)
+    return false
+  else
+    output:out("You can't apply poison to any of your weapons.")
+    return false,"You can't apply poison to any of your weapons."
+  end
+end
+possibleItems['weaponpoison'] = weaponPoison
+
 local greatsword = {
   name="greatsword",
 	description="A really big sword.",

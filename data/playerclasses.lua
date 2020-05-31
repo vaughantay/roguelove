@@ -30,7 +30,7 @@ playerClasses = {
     favor={lightchurch=-100}, --List of favor scores the character starts with
     factions={"chaos"}, --List of factions the character begins as a member of
     spells={"demondamager"}, --These are spells the character will start with
-    items={"holywater"}, --These items will be granted on game start
+    items={"holywater","weaponpoison","weaponpoison"}, --These items will be granted on game start
     equipment={"dagger"}, --These items will be equipped on game start
     learns_spells={}, --These spells will be automatically granted once a certain level is reached
     spell_options={}, --These spells will show up as options to learn (requiring spending points on them)

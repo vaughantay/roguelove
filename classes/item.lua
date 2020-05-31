@@ -90,6 +90,14 @@ function Item:get_info()
   if self.info then
     uses = uses .. "\n" .. self.info
   end
+  local enches = self:get_enchantments()
+  if count(enches) > 0 then
+    uses = uses .. "\n\nEnchantments:"
+    for ench,turns in pairs(enches) do
+      local enchantment = enchantments[ench]
+      uses = uses .. "\n\n" .. ucfirst(ench) .. (enchantment.removal_type and " (" .. turns .. " " .. enchantment.removal_type .. "s remaining)" or "") .. "\n" .. enchantment.description
+    end
+  end
 	return uses
 end
 
@@ -172,6 +180,7 @@ end
 --@return Number. How much damage (if any) was done
 function Item:attack(target,wielder,forceHit,ignore_callbacks,forceBasic)
   local txt = ""
+  self:decrease_all_enchantments('attack') --decrease the turns left for any enchantments that decrease on attack
   if not forceBasic and possibleItems[self.id].attacked_with then
     local result, damage, text = possibleItems[self.id].attacked_with(self,target,wielder)
     if result == false then
@@ -229,8 +238,13 @@ function Item:attack(target,wielder,forceHit,ignore_callbacks,forceBasic)
         output:out(txt)
       end
       if possibleItems[self.id].after_damage then
-        possibleItems[self.id].after_damage(self,target,wielder)
+        possibleItems[self.id].after_damage(self,target,wielder,dmg)
       end
+      for ench,_ in pairs(self:get_enchantments()) do
+        if enchantments[ench].after_damage then
+          enchantments[ench]:after_damage(self,wielder,target,dmg)
+        end
+      end --end enchantment after_damage for
 			wielder:callbacks('damages',target,dmg)
       local cons = (result == "critical" and critConditions or hitConditions)
 			for _, condition in pairs (cons) do
@@ -239,6 +253,7 @@ function Item:attack(target,wielder,forceHit,ignore_callbacks,forceBasic)
 					target:give_condition(condition.condition,turns,wielder)
 				end -- end condition chance
 			end	-- end condition forloop
+      self:decrease_all_enchantments('hit') --decrease the turns left for any enchantments that decrease on hit
 		end -- end hit if
 		return dmg
 	else -- if not touching target
@@ -316,21 +331,58 @@ function Item:reload(possessor)
   end --end if using specific ammo
 end
 
+---Determine if an item qualifies for a particular enchantment
+--@param enchantment Text. The enchantment ID
+--@return Boolean. Whether or not the item qualifies for the enchantment
+function Item:qualifies_for_enchantment(eid)
+  local enchantment = enchantments[eid]
+  if self.itemType ~= enchantment.itemType then
+    return false
+  end
+  if enchantment.requires_tags then
+    for _,tag in ipairs(enchantment.requires_tags) do
+      if not self:has_tag(tag) then
+        return false
+      end --end if self:has_tag
+    end --end tag for
+  end --end requires_tags if
+  return true
+end
+
 ---Apply an enchantment to an item
---@param enchantment Text. The ID of the enchantment
+--@param enchantment Text. The enchantment ID
 --@param turns Number. The number of turns to apply the enchantment, if applicable. What "turns" refers to will vary by enchantment, and some are always permanent, and so this number will do nothing. Add a -1 to make force this enchantment to be permanent.
 function Item:apply_enchantment(enchantment,turns)
   turns = turns or 1
   if not self.enchantments then self.enchantments = {} end
   local currEnch = self.enchantments[enchantment]
-  if currEnch == -1 then
-    --do nothing
-  elseif turns == -1 then --if making it permanent, always make it permanent
+  if currEnch == -1 or turns == -1 then --permanent enchantments are always permanent
     self.enchantments[enchantment] = -1
   elseif currEnch then --if you currently have this enchantment, add turns
     self.enchantments[enchantment] = currEnch+turns
   else --if you don't currently have this enchantment, set it to the passed turns value
     self.enchantments[enchantment] = turns
+  end
+end
+
+---Remove an enchantment from an item
+--@param enchantment Text. The ID of the enchantment
+function Item:remove_enchantment(enchantment)
+  self.enchantments[enchantment] = nil
+end
+
+---Decrease the amount of enchantment on an item
+--@param removal_type Text. The removal type of the enchantment
+function Item:decrease_all_enchantments(removal_type)
+  for ench,turns in pairs(self:get_enchantments()) do
+    if turns ~= -1 and enchantments[ench].removal_type == removal_type then
+      turns = turns - 1
+      if turns > 0 then
+        self.enchantments[ench] = turns
+      else
+        self:remove_enchantment(ench)
+      end
+    end
   end
 end
 
