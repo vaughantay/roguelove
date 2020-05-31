@@ -554,29 +554,46 @@ function game:print_target_sidebar()
       love.graphics.printf("Master: " .. target.master:get_name(false,true),printX,printY,335,"center")
     end
     output:draw_health_bar(self.targetHP,target:get_mhp(),printX+xPad,printY+20,325,16)
+    love.graphics.printf("Health: " .. math.ceil(self.targetHP) .. "/" .. target:get_mhp(),printX+xPad,printY+18+yBonus,335,"center")
+    
+    --Melee attack hit chance:
+    local weapons = player:get_equipped_in_slot('weapon')
+    local weapCount = count(weapons)
+    printY = printY+45
+    if weapCount == 0 then
+      love.graphics.print("Hit chance: " .. calc_hit_chance(player,target) .. "%",printX+xPad,printY)
+      printY = printY+15
+    elseif weapCount == 1 then
+      love.graphics.print(weapons[1]:get_name(true) .. " hit chance: " .. calc_hit_chance(player,target,player.equipment.weapon[1]) .. "%",printX+xPad,printY)
+      printY = printY+15
+    else
+      for _,weap in pairs(weapons) do
+        love.graphics.printf(weap:get_name(true) .. " hit chance" .. (weap.ranged_attack and " (melee)" or "") .. ": " .. calc_hit_chance(player,target,weap) .. "%",printX+xPad,printY,335,"left")
+        printY = printY+15
+      end
+    end --end weapon count if
+    
+    --Ranged attack hit chance:
     local ranged_attacks = player:get_ranged_attacks()
     if #ranged_attacks > 0 then
       local dist = calc_distance(player.x,player.y,target.x,target.y)
       for i,attack_instance in ipairs(ranged_attacks) do
         local attack = rangedAttacks[attack_instance.attack]
         local hit_chance = attack:calc_hit_chance(player,target)
-        local rangedText = attack:get_name() .. " Chance to Hit: "
+        local rangedText = attack:get_name() .. " hit chance: "
         if hit_chance < 1 then
           rangedText = rangedText .. "Impossible"
         else
           rangedText = rangedText .. hit_chance .. "%"
         end
-        love.graphics.printf(rangedText,printX+xPad,printY+60+(i-1)*15,335)
+        love.graphics.printf(rangedText,printX+xPad,printY+(i-1)*15,335)
       end --end ranged attack for
     end --end if #ranged_attacks> 0
-    love.graphics.printf("Health: " .. math.ceil(self.targetHP) .. "/" .. target:get_mhp(),printX+xPad,printY+18+yBonus,335,"center")
-    --TODO: Separate out accuracy for mult-wielding wearpons
-    love.graphics.print("Chance to Hit: " .. calc_hit_chance(player,target) .. "%",printX+xPad,printY+45)
 
     local yPadNow = 15*#ranged_attacks
-    love.graphics.print("Chance to Be Hit: " .. calc_hit_chance(target,player) .. "%",printX+xPad,printY+60+yPadNow)
+    love.graphics.print("Chance to Be Hit: " .. calc_hit_chance(target,player) .. "%",printX+xPad,printY+yPadNow)
 		if (next(target.conditions) ~= nil) then
-      love.graphics.printf("Conditions:",printX,printY+75+yPadNow,335,"center")
+      love.graphics.printf("Conditions:",printX,printY+30+yPadNow,335,"center")
       local conText = ""
       local count = 1
       for condition, turns in pairs(target.conditions) do
@@ -586,7 +603,7 @@ function game:print_target_sidebar()
           count = count + 1
         end
       end
-      love.graphics.printf(conText,printX+5,printY+90+yPadNow,335)
+      love.graphics.printf(conText,printX+5,printY+45+yPadNow,335)
     end
 	end
 end
