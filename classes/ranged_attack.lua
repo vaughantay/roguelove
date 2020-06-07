@@ -55,6 +55,8 @@ function ranged_attack:use(target, attacker, item)
       end
     end
   end -- end charges if
+  
+  --Do the attack itself:
   if attacker == player then update_stat('ability_used',self.name) end
   if (self:does_hit(attacker,target) == false) then --check to see if it hits
     local newX,newY = random(target.x-1,target.x+1),random(target.y-1,target.y+1)
@@ -64,7 +66,10 @@ function ranged_attack:use(target, attacker, item)
     target = {x=newX,y=newY}
   end
   if self.sound and player:can_see_tile(attacker.x,attacker.y) then output:sound(self.sound) end
-  return Projectile((item and item.projectile_name or self.projectile_name),attacker,target)
+  --Create the projectile:
+  local proj = Projectile((item and item.projectile_name or self.projectile_name),attacker,target)
+  proj.enchantments = (item and item.enchantments or nil)
+  return proj
 end
 
 ---Calculate whether the ranged attack hits.

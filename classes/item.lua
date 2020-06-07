@@ -95,7 +95,7 @@ function Item:get_info()
     uses = uses .. "\n\nEnchantments:"
     for ench,turns in pairs(enches) do
       local enchantment = enchantments[ench]
-      uses = uses .. "\n\n" .. ucfirst(ench) .. (enchantment.removal_type and " (" .. turns .. " " .. enchantment.removal_type .. "s remaining)" or "") .. "\n" .. enchantment.description
+      uses = uses .. "\n\n" .. ucfirst(enchantment.name) .. (enchantment.removal_type and " (" .. turns .. " " .. enchantment.removal_type .. "s remaining)" or "") .. "\n" .. enchantment.description
     end
   end
 	return uses
@@ -336,7 +336,7 @@ end
 --@return Boolean. Whether or not the item qualifies for the enchantment
 function Item:qualifies_for_enchantment(eid)
   local enchantment = enchantments[eid]
-  if self.itemType ~= enchantment.itemType then
+  if self.itemType ~= enchantment.itemType and not (enchantment.itemType == "projectile" and (self.itemType == "throwable" or self.itemType == "ammo")) then
     return false
   end
   if enchantment.requires_tags then

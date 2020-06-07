@@ -1591,12 +1591,6 @@ function game:keypressed(key,scancode,isRepeat)
       self.contextualMenu = ContextualMenu(output.cursorX,output.cursorY)
       setTarget(output.cursorX,output.cursorY)
     end
-  elseif (key == keybindings.possess) then
-    if action == "targeting" and actionResult == possibleSpells['possession'] then
-      setTarget(output.cursorX,output.cursorY)
-    else
-      possibleSpells['possession']:target(target,player)
-    end
 	elseif (key == keybindings.stairsDown and action=="moving" and currMap[player.x][player.y]==">") then
 		if (currMap.depth ~= 1) then
 			currMap.contents[player.x][player.y][player] = nil

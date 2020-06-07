@@ -63,3 +63,13 @@ local sharpened = {
   crit_conditions={{condition="bleeding",turns=5,chance=100}}
 }
 enchantments['sharpened'] = sharpened
+
+local poisonedProjectile = {
+  name = "Poisoned",
+  prefix = "poisoned",
+  description = "Poisons the target on a successful hit.",
+  hit_conditions={{condition='poisoned',chance=100,minTurns=2,maxTurns=4}},
+  itemType="projectile",
+  requires_tags={"sharp"}
+}
+enchantments['poisoned_projectile'] = poisonedProjectile

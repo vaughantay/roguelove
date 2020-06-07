@@ -145,10 +145,15 @@ local weaponPoison = {
 function weaponPoison:use()
   local list = {}
   for i,item in ipairs(player.inventory) do
-    if item:qualifies_for_enchantment('poisoned') then
+    if item:qualifies_for_enchantment('poisoned') or item:qualifies_for_enchantment('poisoned_projectile') then
       local afterFunc = function()
         output:out(player:get_name() .. " applies poison to " .. item:get_name() .. ".")
-        item:apply_enchantment('poisoned',tweak(5))
+        if item.itemType == "weapon" then
+          item:apply_enchantment('poisoned',tweak(5))
+        elseif item.itemType == "ammo" or item.itemType == "throwable" then
+          output:out("Poison projectile")
+          item:apply_enchantment('poisoned_projectile',tweak(5))
+        end
         player:delete_item(self)
         advance_turn()
       end
@@ -319,7 +324,8 @@ local dart = {
 	color={r=200,g=200,b=200,a=255},
 	ranged_attack="dart",
   stacks=true,
-  value=1
+  value=1,
+  tags={'sharp'}
 }
 function dart:new()
   self.amount = tweak(100)
@@ -495,7 +501,8 @@ local bolt = {
   ammoType = "bolt",
   stacks=true,
   color={r=150,g=150,b=150,a=255},
-  value=1
+  value=1,
+  tags={'sharp'}
 }
 function bolt:new()
   self.amount = tweak(100)

@@ -36,10 +36,10 @@ dart = ranged_attack:new({
     cooldown = 5,
     projectile_name="dart",
     recharge_turns = 5,
-    accuracy=5,
+    accuracy=100,
     best_distance_min=4,
     best_distance_max=7,
-    accuracy_decay = 50,
+    accuracy_decay = 5,
     min_range=2
   }),
 

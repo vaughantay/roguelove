@@ -119,8 +119,11 @@ function Projectile:update(dt,force_generic)
       end
     else --reached the end of the line
       local creat = currMap:get_tile_creature(self.x,self.y)
-      if creat and creat ~= self.source then self:hits(creat)
-      else self:hits({x=self.x,y=self.y}) end --defaults to just deleting itself, but can be overwritten by projectiles
+      if creat and creat ~= self.source then
+        self:hits(creat)
+      else
+        self:hits({x=self.x,y=self.y})
+      end --defaults to just deleting itself, but can be overwritten by projectiles
     end --end path check
   else
     self.timer = self.timer - dt
@@ -143,14 +146,16 @@ function Projectile:hits(target,force_generic)
         output:out("The " .. self.name .. " hits " .. target:get_name() .. ".")
       end --end dmg/nodmg if
     end --end playersees if
-    if self.hit_conditions and target.baseType == "creature" then
-      for _, condition in pairs(self.hit_conditions) do
+    local hitCons = self:get_hit_conditions()
+    if hitCons and target.baseType == "creature" then
+      for _, condition in pairs(hitCons) do
 				if (random(1,100) < condition.chance) then
-					target:give_condition(condition.condition,tweak(condition.turns),self)
+          local turns = ((condition.minTurns and condition.maxTurns and random(condition.minTurns,condition.maxTurns)) or tweak(condition.turns))
+					target:give_condition(condition.condition,turns,self)
 				end -- end condition chance
 			end	-- end condition forloop
     end
-  elseif self.miss_item and (not self.miss_item_chance or random(1,100) <= self.miss_item_chance) and currMap:isClear(target.x,target.y,nil,true,true) then
+  elseif self.miss_item and (not self.miss_item_chance or random(10,100) <= self.miss_item_chance) and currMap:isClear(target.x,target.y,nil,true,true) then
     if type(self.miss_item) == "string" then
       currMap:add_item(Item(self.miss_item),target.x,target.y,true)
     else
@@ -188,4 +193,40 @@ function Projectile:get_name(full)
 	else
 		return (vowel(self.name) ~= true and "a " or "an ") .. self.name
 	end
+end
+
+---Return a list of all enchantments currently applied to an projectile
+--@return Table. The list of enchantments
+function Projectile:get_enchantments()
+  return self.enchantments or {}
+end
+
+---Check what hit conditions a projectile can inflict
+--@return Table. The list of hit conditions
+function Projectile:get_hit_conditions()
+  local cons = self.hit_conditions or {}
+	for e,_ in pairs(self:get_enchantments()) do
+    local ench = enchantments[e]
+    if ench.hit_conditions then
+      for _,con in ipairs(ench.hit_conditions) do
+        local already = false
+        for i, c in ipairs(cons) do --check current conditions, and if we already have this condition, use the maximum values between the condition we have and the condition applied by the enchantment
+          if c.condition == con.condition then --c is the current condition, con is the new condition
+            already = true
+            c.minTurns = math.max(c.minTurns or 0,con.minTurns or 0)
+            c.maxTurns = math.max(c.maxTurns or 0,con.maxTurns or 0)
+            c.turns = math.max(c.turns or 0,con.turns or 0)
+            if c.minTurns == 0 then c.minTurns = nil end
+            if c.maxTurns == 0 then c.maxTurns = nil end
+            if c.turns == 0 then c.turns = nil end
+            c.chance = math.max(c.chance,con.chance)
+          end
+        end --end loopthrough of own conditions
+        if not already then
+          cons[#cons+1] = con
+        end
+      end --end ehcnatment's conditions loop
+    end --end if the enchantment has hit conditions
+  end --end enchantment loop
+  return cons
 end

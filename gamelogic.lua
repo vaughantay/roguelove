@@ -544,8 +544,8 @@ function setTarget(x,y)
       creat = currMap:get_tile_creature(x,y)
     end --end projectile if
 		if (actionResult.target_type == "square") then
-      local possession = actionResult.name == "Possession"
-			if (actionResult:use({x=x,y=y},player,actionIgnoreCooldown) ~= false) then
+      local arg = (actionResult.baseType == "spell" and actionIgnoreCooldown or actionItem)
+			if actionResult:use({x=x,y=y},player,arg) ~= false then
         if actionItem then
           if actionItem.throwable or actionItem.consumed then
             player:delete_item(actionItem,1)
@@ -556,16 +556,14 @@ function setTarget(x,y)
         actionResult = nil
         actionItem = nil
         actionIgnoreCooldown = nil
-        if not possession then 
-          advance_turn()
-        end
+        advance_turn()
 				action="moving"
         output:setCursor(0,0)
 			end
 		elseif (actionResult.target_type == "creature") then
 			if (creat) then
-        local possession = actionResult.name == "Possession"
-				if (actionResult:use(creat,player,actionIgnoreCooldown) ~= false and actionResult ~= possibleSpells['possession']) then
+        local arg = (actionResult.baseType == "spell" and actionIgnoreCooldown or actionItem)
+				if actionResult:use(creat,player,arg) ~= false then
           if actionItem then
             if actionItem.throwable or actionItem.consumed then
               player:delete_item(actionItem,1)
@@ -576,9 +574,7 @@ function setTarget(x,y)
 					actionResult = nil
           actionItem = nil
           actionIgnoreCooldown = nil
-          if not possession then 
-            advance_turn()
-          end
+          advance_turn()
 					action="moving"
           output:setCursor(0,0)
 				end
