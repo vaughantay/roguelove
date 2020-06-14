@@ -27,12 +27,6 @@ function Projectile:init(projectile_type,source,target,info)
   self.timer = self.time_per_tile
   self.path = nil
   self.stopsInput = (self.stopsInput == nil and true or self.stopsInput)
-  if self.extra_damage_per_level and source and source.baseType == "creature" then
-    self.damage = self.damage + math.floor(self.extra_damage_per_level*source.level)
-  end
-  if self.damage and source and source == player then
-    self.damage = self.damage + math.ceil(player.level/3)
-  end
 	currMap.projectiles[self] = self
   if self.angled == true then
     if self.symbol == "/" then
@@ -115,14 +109,31 @@ function Projectile:update(dt,force_generic)
       table.remove(self.path,1)
       if self.passThrough ~= true and currMap:isClear(self.x,self.y,'flyer') == false then
         local creat = currMap:get_tile_creature(self.x,self.y,true)
-        if creat and creat ~= self.source then self:hits(creat) end
+        if creat and creat ~= self.source then
+          local dmg = self:hits(creat)
+          for ench,_ in pairs(self:get_enchantments()) do
+          if enchantments[ench].after_damage then
+            enchantments[ench]:after_damage(self,creat,dmg)
+          end
+        end --end enchantment after_damage for
+        end
       end
     else --reached the end of the line
       local creat = currMap:get_tile_creature(self.x,self.y)
       if creat and creat ~= self.source then
-        self:hits(creat)
+        local dmg = self:hits(creat)
+        for ench,_ in pairs(self:get_enchantments()) do
+          if enchantments[ench].after_damage then
+            enchantments[ench]:after_damage(self,creat,dmg)
+          end
+        end --end enchantment after_damage for
       else
         self:hits({x=self.x,y=self.y})
+        for ench,_ in pairs(self:get_enchantments()) do
+          if enchantments[ench].after_miss then
+            enchantments[ench]:after_miss(self,{x=self.x,y=self.y})
+          end
+        end --end enchantment after_miss for
       end --defaults to just deleting itself, but can be overwritten by projectiles
     end --end path check
   else
@@ -136,9 +147,10 @@ end --end update() function
 function Projectile:hits(target,force_generic)
   if (force_generic ~= true and projectiles[self.id].hits) then return projectiles[self.id].hits(self,target) end
   --Generic hits:
+  local dmg = false
   local playersees = player:can_see_tile(target.x,target.y)
   if target and ((target.baseType == "creature" and not target:is_type('ghost')) or (target.baseType == "feature" and (target.attackable or target.damage))) then
-    local dmg = target:damage(tweak(self.damage),self.source,self.damage_type)
+    dmg = target:damage(tweak(self:get_damage()),self.source,self.damage_type)
     if playersees then
       if dmg and (type(dmg) ~= "number" or dmg > 0) then
         output:out("The " .. self.name .. " hits " .. target:get_name() .. " for " .. dmg .. (self.damage_type and " " .. self.damage_type or "") .. " damage.")
@@ -156,10 +168,19 @@ function Projectile:hits(target,force_generic)
 			end	-- end condition forloop
     end
   elseif self.miss_item and (not self.miss_item_chance or random(10,100) <= self.miss_item_chance) and currMap:isClear(target.x,target.y,nil,true,true) then
+    local it = nil
     if type(self.miss_item) == "string" then
-      currMap:add_item(Item(self.miss_item),target.x,target.y,true)
+      it = currMap:add_item(Item(self.miss_item),target.x,target.y,true)
     else
-      currMap:add_item(self.miss_item,target.x,target.y,true)
+      it = currMap:add_item(self.miss_item,target.x,target.y,true)
+    end
+    if self.enchantments then
+      for ench,t in pairs(self.enchantments) do
+        if enchantments[ench].itemType == "projectile" then
+          if not it.enchantments then it.enchantments = {} end
+          it.enchantments[ench] = t
+        end
+      end
     end
   end -- end target if
   
@@ -182,6 +203,7 @@ function Projectile:hits(target,force_generic)
     end
   end
   self:delete()
+  return dmg
 end --end hits() function
 
 ---Gets the name of the projectile
@@ -229,4 +251,29 @@ function Projectile:get_hit_conditions()
     end --end if the enchantment has hit conditions
   end --end enchantment loop
   return cons
+end
+
+---Return the damage done by the projectile
+--@return Number. The damage done
+function Projectile:get_damage()
+  local damage = self.damage
+  if self.extra_damage_per_level and self.source and self.source.baseType == "creature" then
+    damage = damage + math.floor(self.extra_damage_per_level*self.source.level)
+  end
+  damage = damage + self:get_enchantment_bonus('damage')
+  return damage
+end
+
+---Returns the total value of the bonuses of a given type provided by enchantments.
+--@param bonusType Text. The bonus type to look at
+--@return Number. The bonus
+function Projectile:get_enchantment_bonus(bonusType)
+  local total = 0
+  for e,_ in pairs(self:get_enchantments()) do
+    local enchantment = enchantments[e]
+    if enchantment.bonuses and enchantment.bonuses[bonusType] then
+      total = total + enchantment.bonuses[bonusType]
+    end --end if it has the right bonus
+  end --end enchantment for
+  return total
 end

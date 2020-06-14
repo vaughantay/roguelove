@@ -511,7 +511,7 @@ function Creature:get_description()
     elseif actionResult.projectile and not player:can_shoot_tile(self.x,self.y) then
       desc = desc .. "\nYou can't hit it from here."
     elseif actionResult.calc_hit_chance then
-      desc = desc .. "\nHit chance with " .. actionResult.name .. ": " .. actionResult:calc_hit_chance(player,self) .. "%"
+      desc = desc .. "\n" .. actionResult.name .. " hit chance: " .. actionResult:calc_hit_chance(player,self,actionItem) .. "%"
     end
   end
     --Debug stuff:
@@ -1095,7 +1095,7 @@ end
 --@param item Item. The item to give.
 function Creature:give_item(item)
   if (item.stacks == true) then
-    local _,inv_id = self:has_item(item.id,(item.sortBy and item[item.sortBy]))
+    local _,inv_id = self:has_item(item.id,(item.sortBy and item[item.sortBy]),item.enchantments)
     if inv_id then
       self.inventory[inv_id].amount = self.inventory[inv_id].amount + item.amount
       item = self.inventory[inv_id]
@@ -1163,13 +1163,30 @@ end
   
 ---Check if a creature has an instance of an item ID
 --@param item Item. The item ID to check for
+--@param enchantments Table. The table of echantments to match (optional)
 --@return either Boolean or Item. False, or the specific item they have in their inventory
-function Creature:has_item(itemID,sortBy)
+function Creature:has_item(itemID,sortBy,enchantments)
+  enchantments = enchantments or {}
 	for id, it in ipairs(self.inventory) do
 		if (itemID == it.id) and (not it.sortBy or sortBy == it[it.sortBy]) then
-			return it,id,it.amount
+      local matchEnch = true
+      --Compare enchantments:
+      if (enchantments and count(enchantments) or 0) == (it.enchantments and count(it.enchantments) or 0) then
+        for ench,turns in pairs(enchantments) do
+          if it.enchantments[ench] ~= turns then
+            matchEnch = false
+            break
+          end
+        end --end enchantment for
+      else --if the number of enchantments doesn't match, obviously the enchantments themselves won't match
+        matchEnch = false
+      end
+      
+      if matchEnch == true then
+        return it,id,it.amount
+      end
 		end
-	end
+	end --end inventory for
 	return false
 end
 

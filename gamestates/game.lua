@@ -579,7 +579,7 @@ function game:print_target_sidebar()
       local dist = calc_distance(player.x,player.y,target.x,target.y)
       for i,attack_instance in ipairs(ranged_attacks) do
         local attack = rangedAttacks[attack_instance.attack]
-        local hit_chance = attack:calc_hit_chance(player,target)
+        local hit_chance = attack:calc_hit_chance(player,target,attack.item)
         local rangedText = attack:get_name() .. " hit chance: "
         if hit_chance < 1 then
           rangedText = rangedText .. "Impossible"
@@ -1517,7 +1517,7 @@ function game:keypressed(key,scancode,isRepeat)
       local attackFunction = function(_,target)
         for i,attack_instance in ipairs(player:get_ranged_attacks()) do
           local attack = rangedAttacks[attack_instance.attack]
-          if (not attack.charges or attack.charges > 0) and attack:calc_hit_chance(player,target) > 0 then
+          if (not attack.charges or attack.charges > 0) and attack:calc_hit_chance(player,target,attack_instance.item) > 0 then
             local proj = attack:use(target,player,attack_instance.item)
             if proj and i > 1 then
               proj.pause = (i-1)/10

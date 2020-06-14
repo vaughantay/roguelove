@@ -58,7 +58,7 @@ function ranged_attack:use(target, attacker, item)
   
   --Do the attack itself:
   if attacker == player then update_stat('ability_used',self.name) end
-  if (self:does_hit(attacker,target) == false) then --check to see if it hits
+  if (self:does_hit(attacker,target,item) == false) then --check to see if it hits
     local newX,newY = random(target.x-1,target.x+1),random(target.y-1,target.y+1)
     while(newX==attacker.x and newY==attacker.y) do
       newX,newY = random(target.x-1,target.x+1),random(target.y-1,target.y+1)
@@ -68,16 +68,25 @@ function ranged_attack:use(target, attacker, item)
   if self.sound and player:can_see_tile(attacker.x,attacker.y) then output:sound(self.sound) end
   --Create the projectile:
   local proj = Projectile((item and item.projectile_name or self.projectile_name),attacker,target)
-  proj.enchantments = (item and item.enchantments or nil)
+  --Add enchantments:
+  if item then
+    if item.projectile_enchantments then
+      proj.enchantments = item.projectile_enchantments
+    end
+    if item.enchantments and item.itemType == "throwable" or item.itemType == "ammo" then
+      proj.enchantments = item.enchantments
+    end
+  end --end if item
   return proj
 end
 
 ---Calculate whether the ranged attack hits.
 --@param target Creature. The creature being targeted.
 --@param attacker Creature. The creature doing the attack.
+--@param item Item. The item being used to do the attack. (optional)
 --@return Boolean. Whether the attack hits or not.
-function ranged_attack:does_hit(attacker,target)
-	local hitMod = self:calc_hit_chance(attacker,target)
+function ranged_attack:does_hit(attacker,target,item)
+	local hitMod = self:calc_hit_chance(attacker,target,item)
 	
   if (random(1,100) <= hitMod) then return true end
   return false
@@ -86,8 +95,9 @@ end
 ---Calculate the chance the ranged attack will hit.
 --@param target Creature. The creature being targeted.
 --@param attacker Creature. The creature doing the attack.
+--@param item Item. The item being used to do the attack. (optional)
 --@return Number. The % hit chance.
-function ranged_attack:calc_hit_chance(attacker,target)
+function ranged_attack:calc_hit_chance(attacker,target,item)
   local dist = calc_distance(attacker.x,attacker.y,target.x,target.y)
   if (self.range and dist > self.range) or (self.min_range and dist < self.min_range) or (self.projectile and not attacker:can_shoot_tile(target.x,target.y)) then
     return 0
@@ -106,6 +116,7 @@ function ranged_attack:calc_hit_chance(attacker,target)
   else --if no min/max distance, accuracy is flat
     hitMod = self.accuracy + bonus
   end
+  if item then hitMod = hitMod + item:get_enchantment_bonus('ranged_accuracy') end
   if (hitMod > 95) then hitMod = 95 elseif (hitMod < 10) then hitMod = 10 end
   return hitMod
 end

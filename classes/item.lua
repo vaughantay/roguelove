@@ -64,7 +64,7 @@ end
 function Item:get_info()
 	local uses = ""
   if self.charges and not self.hide_charges then
-    uses = uses .. (self.charge_name and ucfirst(self.charge_name) or "Charges") .. ": " .. self.charges
+    uses = uses .. (self.charge_name and ucfirst(self.charge_name) or "Charges") .. (" (" .. self.ammo_name .. ")" or "") .. ": " .. self.charges
   end
 	if (self.itemType == "weapon") then
 		if self.damage then uses = uses .. "Melee Damage: " .. self.damage .. (self.damage_type and " (" .. self.damage_type .. ")" or "") end
@@ -211,9 +211,15 @@ function Item:attack(target,wielder,forceHit,ignore_callbacks,forceBasic)
       if player:can_see_tile(self.x,self.y) or player:can_see_tile(target.x,target.y) and player:does_notice(wielder) and player:does_notice(target) then
         output:out(txt)
       end
+      for ench,_ in pairs(self:get_enchantments()) do
+        if enchantments[ench].after_miss then
+          enchantments[ench]:after_miss(self,wielder,target,dmg)
+        end
+      end --end enchantment after_miss for
 		else
       if not forceBasic and possibleItems[self.id].attack_hits then
         return possibleItems[self.id].attack_hits(self,target,wielder,dmg,result)
+        --[[TODO: Run enchantment hit code]]
       end
 			if (result == "critical") then txt = txt .. "CRITICAL HIT! " end
       local bool,ret = wielder:callbacks('calc_damage',target,dmg)
@@ -273,7 +279,7 @@ end
 --@return Boolean. Whether the reload was successful.
 function Item:reload(possessor)
   if self.charges > 1 and self.usingAmmo then
-    local it,id,amt = possessor:has_item(self.usingAmmo)
+    local it,id,amt = possessor:has_item(self.usingAmmo,nil,self.projectile_enchantments)
     amt = math.min((amt or 0),self.max_charges - self.charges) --don't reload more than the item can hold
     if amt > 0 then
       self.charges = self.charges + amt
@@ -324,7 +330,9 @@ function Item:reload(possessor)
     self.charges = self.charges + amt
     possessor:delete_item(usedAmmo,amt)
     self.usingAmmo = usedAmmo.id
+    self.ammo_name = usedAmmo:get_name(false,1)
     self.projectile_name = usedAmmo.projectile_name
+    self.projectile_enchantments = usedAmmo.enchantments
     if player:can_sense_creature(possessor) then
       output:out(possessor:get_name() .. " reloads " .. self:get_name() .. " with " .. usedAmmo:get_name(false,amt) .. ".")
     end

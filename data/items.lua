@@ -467,7 +467,7 @@ local crossbow = {
   ranged_attack="crossbow",
   usesAmmo="bolt",
   color={r=150,g=150,b=150,a=255},
-  tags={'wooden'},
+  tags={'wooden','ranged'},
   value=10
 }
 possibleItems['crossbow'] = crossbow
@@ -486,6 +486,7 @@ local revolver = {
   ranged_attack="revolver",
   usesAmmo="bullet",
   color={r=98,g=73,b=22,a=255},
+  tags={'ranged'},
   value=10
 }
 possibleItems['revolver'] = revolver
