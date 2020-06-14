@@ -368,6 +368,7 @@ function Map:add_item(item,x,y,ignoreFunc)
       end --end checking if they should stack
     end --end item for
   end --end if item.stacks
+  return item
 end
 
 ---Set a map tile to be a certain feature
