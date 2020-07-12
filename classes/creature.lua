@@ -2156,3 +2156,55 @@ function Creature:has_ai_flag(flag)
   end --end for
   return false
 end
+
+---Get all possible recipes the creature can craft
+--@return Table. A table with the IDs of all craftable recipes
+function Creature:get_all_possible_recipes()
+  local canCraft = {}
+  for id,recipe in pairs(possibleRecipes) do
+    if self:can_craft_recipe(id) then
+      canCraft[#canCraft+1] = id
+    end
+  end
+  return canCraft
+end
+
+---Check if it's possible to craft a recipe
+--@param recipeID String. The ID of the recipe
+--@return Boolean. Whether or not the recipe can be crafted
+function Creature:can_craft_recipe(recipeID)
+  local recipe = possibleRecipes[recipeID]
+  if recipe.requires then
+    if not recipe:requires(self) then return false end
+  end
+  if recipe.requires_class then
+    if self.class ~= recipe.requires_class then return false end
+  end
+  if recipe.requires_spells then
+    for _,spell in ipairs(recipe.requires_spells) do
+      if not self:has_spell(spell) then return false end
+    end
+  end
+  if recipe.specific_tools then
+    for _,tool in ipairs(recipe.specific_tools) do
+      if not self:has_item(tool) then return false end
+    end
+  end
+  if recipe.tool_tags then
+    for _,tag in ipairs(recipe.tool_tags) do
+      local has = false
+      for _,item in pairs(self.inventory) do
+        if item:has_tag(tag) then
+          has = true
+          break
+        end --end if has_tag
+      end -- end inventory for
+      if not has then return false end
+    end --end tag for
+  end
+  for item,amt in pairs(recipe.ingredients) do
+    local i = self:has_item(item)
+    if not i or (i.amount or 1) < amt then return false end
+  end
+  return true --if no requirements have been false, we should be good to go
+end

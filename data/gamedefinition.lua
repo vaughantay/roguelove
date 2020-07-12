@@ -8,4 +8,6 @@ gamesettings = {
   force_generic_levels = {},
   bosses=true,
   inventory=true,
+  crafting=true,
+  leveling=true
 }

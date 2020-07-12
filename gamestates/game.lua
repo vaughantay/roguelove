@@ -287,18 +287,31 @@ function game:print_sidebar()
     yPad = yPad+50
   end
  
- self.spellButtons = {}
+  self.spellButtons = {}
   local descBox = false
   --Button for inventory:
-  local invWidth = fonts.buttonFont:getWidth(keybindings.inventory .. ") Inventory")
-  local minX,minY=printX+xPad-2,printY+yPad
-  local maxX,maxY=minX+invWidth+4,minY+16
-  self.spellButtons["inventory"] = output:button(minX,minY+2,(maxX-minX),true,nil,nil,true)
-  if self.spellButtons["inventory"].hover == true then
-    descBox = {desc="View and use items and equipment.",x=minX,y=minY}
+  if gamesettings.inventory then
+    local invWidth = fonts.buttonFont:getWidth(keybindings.inventory .. ") Inventory")
+    local minX,minY=printX+xPad-2,printY+yPad
+    local maxX,maxY=minX+invWidth+4,minY+16
+    self.spellButtons["inventory"] = output:button(minX,minY+2,(maxX-minX),true,nil,nil,true)
+    if self.spellButtons["inventory"].hover == true then
+      descBox = {desc="View and use items and equipment.",x=minX,y=minY}
+    end
+    love.graphics.print(keybindings.inventory .. ") Inventory",printX+xPad,printY+yPad-2+yBonus)
+    yPad = yPad+20
   end
-  love.graphics.print(keybindings.inventory .. ") Inventory",printX+xPad,printY+yPad-2+yBonus)
-  yPad = yPad+20
+  if gamesettings.crafting then
+    local invWidth = fonts.buttonFont:getWidth(keybindings.crafting .. ") Crafting")
+    local minX,minY=printX+xPad-2,printY+yPad
+    local maxX,maxY=minX+invWidth+4,minY+16
+    self.spellButtons["crafting"] = output:button(minX,minY+2,(maxX-minX),true,nil,nil,true)
+    if self.spellButtons["crafting"].hover == true then
+      descBox = {desc="Make new items.",x=minX,y=minY}
+    end
+    love.graphics.print(keybindings.crafting .. ") Crafting",printX+xPad,printY+yPad-2+yBonus)
+    yPad = yPad+20
+  end
   
  --Buttons for ranged attacks:
  local ranged_attacks = player:get_ranged_attacks()
@@ -1312,6 +1325,8 @@ function game:mousepressed(x,y,button)
             self:keypressed(keybindings.pickup)
           elseif spell == "inventory" then
             self:keypressed(keybindings.inventory)
+          elseif spell == "crafting" then
+            self:keypressed(keybindings.crafting)
           elseif spell == "action" then
             self:keypressed(keybindings.action)
           else
@@ -1450,6 +1465,8 @@ function game:keypressed(key,scancode,isRepeat)
 		Gamestate.switch(inventory,"usable")
   elseif (key == keybindings.equip) then
 		Gamestate.switch(inventory,"equippable")
+  elseif (key == keybindings.crafting) then
+		Gamestate.switch(crafting)
 	elseif (key == keybindings.examine) then
 		action="targeting"
   elseif (key == keybindings.nextTarget) then

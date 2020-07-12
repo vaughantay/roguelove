@@ -12,11 +12,9 @@ keybindings = {
   spell="z",
   stairsUp = ",",
   charScreen = "c",
-  messages = "m",
+  messages = "h",
   ranged = "f",
   recharge = "r",
-  possess = "p",
-  heal = "h",
   nextTarget = "tab",
   zoomIn="=",
   zoomOut="-",
@@ -26,5 +24,6 @@ keybindings = {
   use="u",
   drop="d",
   throw="t",
-  action="a"
+  action="a",
+  crafting="m"
 }
