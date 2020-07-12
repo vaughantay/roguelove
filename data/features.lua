@@ -140,16 +140,16 @@ local trap = {
 possibleFeatures['trap'] = trap
 
 local corpse = {
-    name = "corpse",
+  name = "corpse",
   id="corpse",
-    symbol = "%",
+  symbol = "%",
   imageType = "creature",
   angle = .5*math.pi,
   useWalkedOnImage = true,
-    description = "A dead body.",
-    targetable = true,
+  description = "A dead body.",
+  targetable = true,
   alwaysDisplay = true,
-    new = function (self,creature)
+  new = function (self,creature)
     if creature.spritesheet then
       self.spritesheet = true
       self.image_max = creature.image_max
@@ -160,18 +160,22 @@ local corpse = {
     else
       self.name = creature.name .. " corpse"
     end
-        self.creature = creature
+    self.creature = creature
     self.image_name = (creature.image_name or creature.id)
     self.scale = .75
-    --[[if prefs['noImages'] == false then
-      -self.color = {r=100,g=100,b=100,a=255}
-      self.use_color_with_tiles = true
-    else
-      self.color = creature.color
-    end]]
     self.color = creature.color
+    if not creature:is_type('bloodless') then
+      if not self.actions then self.actions = {} end
+      self.actions['extractblood'] = {text="Extract blood from " .. creature.name .. " corpse",description="Extract blood from a corpse.",requires=function(self,user) if not self.bloodless and user:has_item('bloodextractor') then return true else return false end end}
     end
+  end
 }
+function corpse:action(entity,action)
+  if action == "extractblood" then
+    local extractor = entity:has_item('bloodextractor')
+    if extractor then return extractor:use(self,entity) end
+  end
+end
 possibleFeatures['corpse'] = corpse
 
 local statue = {
@@ -241,7 +245,7 @@ local door = {
   blocksSight = true,
   ghostPassable=true,
   alwaysDisplay = true,
-  actions={opendoor={text="Open Door",description="Open a nearby door."}},
+  actions={opendoor={text="Open Door",description="Open a nearby door.",requires=function(self,user) return self.closed end},closedoor={text="Close Door",description="Close a nearby door.",requires=function(self,user) return not self.closed end}},
   closed=true,
   enter=function(self,entity)
     if not self.closed or entity:is_type('ghost') then
@@ -260,7 +264,7 @@ local door = {
       self.blocksMovement = false
       self.blocksSight = false
       self.alwaysDisplay = false
-      self.actions={closedoor={text="Close Door",description="Close a nearby door."}}
+      --self.actions={closedoor={text="Close Door",description="Close a nearby door."}}
       self.closed = false
       if player:can_see_tile(self.x,self.y) then
         if squeak then
@@ -294,7 +298,7 @@ local door = {
       self.blocksMovement = true
       self.blocksSight = true
       self.alwaysDisplay = true
-      self.actions={opendoor={text="Open Door",description="Open the door."}}
+      --self.actions={opendoor={text="Open Door",description="Open the door."}}
       self.image_name = "doorclosed"
       self.closed=true
       if player:can_see_tile(self.x,self.y) then

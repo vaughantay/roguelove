@@ -223,9 +223,11 @@ end
 ---Gets a list of all feature actions (if any) available at and around a tile.
 --@param x Number. The x-coordinate
 --@param y Number. The y-coordinate
+--@param user Creature. The user looking for actions. Optional, defaults to player
 --@return A table of items (may be empty)
-function Map:get_tile_actions(x,y)
+function Map:get_tile_actions(x,y,user)
   if not self:in_map(x,y) then return {} end
+  user = player or user
   
   local actions = {}
   for x2=x-1,x+1,1 do
@@ -233,8 +235,10 @@ function Map:get_tile_actions(x,y)
       for id, entity in pairs(self.contents[x2][y2]) do
         if (entity and entity.baseType == "feature" and entity.actions) then
           for id,act in pairs(entity.actions) do
-            actions[#actions+1] = {id=id,entity=entity,text=act.text,description=act.description}
-          end
+            if not act.requires or act.requires(entity,user) then
+              actions[#actions+1] = {id=id,entity=entity,text=act.text,description=act.description}
+            end --end requires if
+          end --end action for
         end --end if
       end --end entity for
     end --end yfor

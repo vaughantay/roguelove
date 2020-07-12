@@ -23,6 +23,34 @@ function healthPotionMinor:use(user)
 end
 possibleItems['healthpotionminor'] = healthPotionMinor
 
+local blood = {
+  name = "blood vial",
+  pluralName = "blood vials",
+	description = "A crimson liquid swirls in this flask.",
+	symbol = "!",
+	color = {r=200,g=0,b=0,a=255},
+	itemType="usable",
+	stacks = true,
+  usable=true,
+  useVerb="drink",
+  consumed=true,
+  tags={'liquid','blood'},
+  value=5
+}
+function blood:use(user)
+	user = user or player
+  if user:has_spell('vampirism') then
+    local dmg = tweak(10)
+    output:out(user:get_name() .. " drinks some blood and regains " .. dmg .. " health!")
+    user:update_hp(dmg)
+    user:delete_item(self)
+  else
+    if user == player then output:out("You're not going to drink blood. That's disgusting.") end
+    return false
+  end
+end
+possibleItems['blood'] = blood
+
 local demonblood = {
   name = "demon blood",
   pluralName = "demon bloods",
@@ -335,8 +363,8 @@ possibleItems['dart'] = dart
 local holywater = {
   name = "holy water",
   pluralName = "vials of holy water",
-  description = "A small, sharp dart.",
-  symbol="/",
+  description = "A small vial filled with a slightly glowing liquid.",
+  symbol="!",
 	itemType="throwable",
   throwable=true,
 	color={r=0,g=200,b=200,a=255},
@@ -346,6 +374,21 @@ local holywater = {
   value=5
 }
 possibleItems['holywater'] = holywater
+
+local unholywater = {
+  name = "unholy water",
+  pluralName = "vials of unholy water",
+  description = "A small vial filled with a liquid that seems to absorb all light around it.",
+  symbol="!",
+	itemType="throwable",
+  throwable=true,
+	color={r=100,g=0,b=100,a=255},
+	--ranged_attack="holywater",
+  stacks=true,
+  tags={'liquid','unholy'},
+  value=5
+}
+possibleItems['unholywater'] = unholywater
 
 local painwand = {
   name = "Wand of Horrific Pain",
@@ -566,7 +609,39 @@ local explosivebolt = {
 function explosivebolt:new()
   self.amount = tweak(100)
 end
-function explosivebolt:hits(target,shooter)
-  
-end
 possibleItems['explosivebolt'] = explosivebolt
+
+local bloodextractor = {
+  name = "blood extractor",
+  description = "A device with a series of syringes and tubes, for extracting vials of blood.",
+  symbol = "&",
+  itemType="usable",
+  usable=true,
+  useText="Extract Blood",
+  color={r=100,g=100,b=100,a=255},
+  value=50
+}
+function bloodextractor:use(corpse,user)
+  if not corpse then
+    local corpses = {}
+    for _,feat in pairs(currMap:get_tile_features(user.x,user.y)) do
+      if feat.id == "corpse" and not feat.bloodless and feat.creature and not feat.creature:is_type('bloodless') then
+        corpses[#corpses+1] = corpse
+      end
+    end
+    if #corpses == 1 then
+      corpse = corpses[1]
+    elseif #corpses > 1 then
+      --add a list
+    end
+  end
+  if corpse then
+    corpse.bloodless = true
+    user:give_item(Item('blood'))
+    if user == player or player:can_sense_creature(user) then output:out(user:get_name() .. " extracts some blood from the corpse of " .. corpse.creature:get_name() ..  ".") end
+  else
+    output:out("There are no corpses here with blood in them.")
+    return false,"There are no corpses here with blood in them."
+  end
+end
+possibleItems['bloodextractor'] = bloodextractor
