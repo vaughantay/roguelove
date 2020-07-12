@@ -405,7 +405,7 @@ function mapgen:generate_map(width, height, depth,force)
     build.bossPlaylist = (l.bossPlaylist or id .. "boss")
     build.lit = l.lit
     build.noCreats = l.noCreats
-    build.id = forceLevel or force or id
+    build.id = id
     l.create(build,width,height)
   else --Generic level generation:
     build.id = "generic" .. depth

@@ -50,23 +50,25 @@ function gamestats:enter(previous)
   local creatureStats = {}
   if totalstats.turns_as_creature then
     for creat,turns in pairs(totalstats.turns_as_creature) do
-      local id = #creatureStats+1
-      creatureStats[id] = {}
-      creatureStats[id].creat = creat
-      creatureStats[id].turns = turns
-      if creat ~= "ghost" then
-        creatureStats[id].kills = (totalstats.kills_as_creature and totalstats.kills_as_creature[creat] or 0)
-        creatureStats[id].possessions = (totalstats.creature_possessions and totalstats.creature_possessions[creat] or 0)
-        creatureStats[id].explosions = (totalstats.exploded_creatures and totalstats.exploded_creatures[creat] or 0)
-        creatureStats[id].explosionPercent = round((creatureStats[id].explosions / creatureStats[id].possessions)*100)
-        local ratio = round(turns/(totalstats.creature_possessions[creat] or 1))
-        creatureStats[id].ratio = ratio
-        creatureStats[id].sortBy = ratio
-        creatureStats[id].killRatio = round((creatureStats[id].kills or 0)/((creatureStats[id].possessions and creatureStats[id].possessions > 0 and creatureStats[id].possessions) or 1))
-        if ratio > creatTurns or fav==nil then
-          creatTurns,fav=ratio,creat
-        end
-      end --end if creat ~= ghost
+      if possibleMonsters[creat] then --check to make sure this creature exists (it might not due to mods loaded)
+        local id = #creatureStats+1
+        creatureStats[id] = {}
+        creatureStats[id].creat = creat
+        creatureStats[id].turns = turns
+        if creat ~= "ghost" then
+          creatureStats[id].kills = (totalstats.kills_as_creature and totalstats.kills_as_creature[creat] or 0)
+          creatureStats[id].possessions = (totalstats.creature_possessions and totalstats.creature_possessions[creat] or 0)
+          creatureStats[id].explosions = (totalstats.exploded_creatures and totalstats.exploded_creatures[creat] or 0)
+          creatureStats[id].explosionPercent = round((creatureStats[id].explosions / creatureStats[id].possessions)*100)
+          local ratio = round(turns/(totalstats.creature_possessions[creat] or 1))
+          creatureStats[id].ratio = ratio
+          creatureStats[id].sortBy = ratio
+          creatureStats[id].killRatio = round((creatureStats[id].kills or 0)/((creatureStats[id].possessions and creatureStats[id].possessions > 0 and creatureStats[id].possessions) or 1))
+          if ratio > creatTurns or fav==nil then
+            creatTurns,fav=ratio,creat
+          end
+        end --end if creat ~= ghost
+      end --end check that creature exists
     end --end creat for
     table.sort(creatureStats,sortByMost)
   end
@@ -146,25 +148,27 @@ function gamestats:enter(previous)
   local levelStats = {}
   if totalstats.level_reached then
     for level,reached in pairs(totalstats.level_reached) do
-      local id = #levelStats+1
-      levelStats[#levelStats+1] = {}
-      local beaten = (totalstats.level_beaten and totalstats.level_beaten[level] or 0)
-      local turns = (totalstats.turns_on_level and totalstats.turns_on_level[level] or 0)
-      levelStats[id].reached = reached
-      levelStats[id].beaten = beaten
-      levelStats[id].losses = (totalstats.losses_per_level and totalstats.losses_per_level[level] or 0)
-      levelStats[id].beatPercent = round((beaten/reached or 1)*100)
-      levelStats[id].turns = turns
-      levelStats[id].avgTurns = round(turns/(reached or 1))
-      levelStats[id].avgTurnsBeat = beaten > 0 and round(turns/beaten) or "N/A"
-      levelStats[id].name = (specialLevels[level] and (specialLevels[level].genericName or specialLevels[level].generateName()) or false)
-      levelStats[id].depth = (specialLevels[level] and specialLevels[level].depth or false)
-      if not levelStats[id].name then
-        local depth = string.sub(level,8)
-        levelStats[id].name = "Non-Special Level"
-        levelStats[id].depth = tonumber(depth)
+      if type(level) == "string" then
+        local id = #levelStats+1
+        levelStats[#levelStats+1] = {}
+        local beaten = (totalstats.level_beaten and totalstats.level_beaten[level] or 0)
+        local turns = (totalstats.turns_on_level and totalstats.turns_on_level[level] or 0)
+        levelStats[id].reached = reached
+        levelStats[id].beaten = beaten
+        levelStats[id].losses = (totalstats.losses_per_level and totalstats.losses_per_level[level] or 0)
+        levelStats[id].beatPercent = round((beaten/reached or 1)*100)
+        levelStats[id].turns = turns
+        levelStats[id].avgTurns = round(turns/(reached or 1))
+        levelStats[id].avgTurnsBeat = beaten > 0 and round(turns/beaten) or "N/A"
+        levelStats[id].name = (specialLevels[level] and (specialLevels[level].genericName or specialLevels[level].generateName()) or false)
+        levelStats[id].depth = (specialLevels[level] and specialLevels[level].depth or false)
+        if not levelStats[id].name then
+          local depth = string.sub(level,8)
+          levelStats[id].name = "Non-Special Level"
+          levelStats[id].depth = tonumber(depth)
+        end
+        levelStats[id].sortBy = levelStats[id].depth
       end
-      levelStats[id].sortBy = levelStats[id].depth
     end
     table.sort(levelStats,sortByLeast)
   end
@@ -233,7 +237,7 @@ function gamestats:enter(previous)
   --Last two stats, that depend on wins and losses
   local totalWinTurns = 0
   for _,win in pairs(self.wins) do
-    totalWinTurns = totalWinTurns+win.stats.turns
+    totalWinTurns = totalWinTurns+(win.stats.turns or 0)
   end
   self.stats[13] = {id="turnsperwin",label="Average Turns/Win: " .. (totalstats.wins and round(totalWinTurns/totalstats.wins) or "N/A"),stats={}}
   local totalLossTurns = 0
