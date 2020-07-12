@@ -8,10 +8,6 @@ function output:out(txt)
   end
 end
 
-function output.print_minimap()
-  
-end
-
 function output.display_entity(entity,x,y, seen,ignoreDistMods,scale)
   if entity.noDraw then return end
   scale = scale or 1
