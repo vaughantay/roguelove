@@ -1307,7 +1307,7 @@ function Creature:equip(item)
   if not unequipped then  --if for whatever reason unequipping the item failed, return false
     return false,equipText
   end
-  --TODO:Now that we've unequipped the item, try equipping again by just running this function again:
+  --Now that we've unequipped the item, try equipping again by just running this function again:
   local didIt,newText = self:equip(item)
   equipText = equipText .. newText
   return didIt,equipText
@@ -2207,4 +2207,22 @@ function Creature:can_craft_recipe(recipeID)
     if not i or (i.amount or 1) < amt then return false end
   end
   return true --if no requirements have been false, we should be good to go
+end
+
+---Craft a recipe
+--@param recipeID Text. The ID of the recipe to craft
+function Creature:craft_recipe(recipeID)
+  local recipe = possibleRecipes[recipeID]
+  for item,amt in pairs(recipe.ingredients) do
+    local i = self:has_item(item)
+      self:delete_item(i,amt)
+  end
+  for item,amt in pairs(recipe.results) do
+    local newItem = Item(item)
+      newItem.amount = amt
+      self:give_item(newItem)
+  end
+  local text = recipe.result_text or "You make stuff."
+  output:out(text)
+  return true,text
 end

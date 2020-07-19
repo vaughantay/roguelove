@@ -4,6 +4,8 @@ function crafting:enter()
   self.crafts = player:get_all_possible_recipes()
   self.makeAmt = 1
   self.cursorY = 0
+  self.outText = nil
+  self.outHeight = 0
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
   local uiScale = (prefs['uiScale'] or 1)
   local boxW,boxH = 600,(#self.crafts+2)*prefs['fontSize']+250
@@ -34,22 +36,26 @@ function crafting:draw()
 	local line = 3
   local boxW,boxH = self.boxW,self.boxH
   local padX,padY = self.padX,self.padY
+  local outHeight = self.outHeight
   local descY = self.descY
   local x,y=self.x,self.y
 	
   output:draw_window(x,y,x+boxW,y+boxH)
-  love.graphics.line(x,descY,x+padX+boxW,descY)
-  
   love.graphics.setFont(fonts.textFont)
   
+  love.graphics.printf("Crafting",x+padX,y+padY,boxW-16,"center")
+  if self.outText then
+    local extra = prefs['fontSize']*2
+    love.graphics.printf(self.outText,x+padX,y+padY+extra,boxW-16,"center")
+  end
+  love.graphics.line(x,descY,x+padX+boxW,descY)
   if (self.crafts[self.cursorY] ~= nil) then
-    local printY = y+padY+((self.cursorY+1)*14)
+    local printY = y+padY+((self.cursorY+1)*14)+outHeight
     setColor(100,100,100,255)
     love.graphics.rectangle("fill",x+padX,printY,boxW-8,16)
     setColor(255,255,255,255)
 	end
   
-  love.graphics.printf("Crafting",x+padX,y+padY,boxW-16,"center")
 	local crafts = {}
 	for i, craftID in pairs(self.crafts) do
     local recipe = possibleRecipes[craftID]
@@ -66,11 +72,11 @@ function crafting:draw()
       end
       count = count + 1
     end
-		love.graphics.print(letter .. ") " .. name,x+padX,y+padY+((line-1)*14))
+		love.graphics.print(letter .. ") " .. name,x+padX,y+padY+outHeight+((line-1)*14))
 		line = line+1
 	end
   if count(crafts) < 1 then
-    love.graphics.printf("You can't craft anything right now.",x+padX,y+padY+prefs['fontSize']*2,boxW-16,"center")
+    love.graphics.printf("You can't craft anything right now.",x+padX,y+padY+outHeight+prefs['fontSize']*2,boxW-16,"center")
   end
   
   if (self.crafts[self.cursorY] ~= nil) then
@@ -92,8 +98,9 @@ function crafting:keypressed(key)
 	if (key == "escape") then
 		self:switchBack()
 	elseif (key == "return") or key == "kpenter" then
-		--TODO: do craft
-		self:switchBack()
+    if self.crafts[self.cursorY] ~= nil then
+      self:doCraft(self.crafts[self.cursorY])
+    end
 	elseif (key == "up") then
 		if (self.crafts[self.cursorY-1] ~= nil) then
 			self.cursorY = self.cursorY - 1
@@ -105,8 +112,7 @@ function crafting:keypressed(key)
 	else
 		local id = string.byte(key)-96
 		if (self.crafts[id] ~= nil) then
-			--TODO: Do craft
-			self:switchBack()
+			self:doCraft(self.crafts[id])
 		end
 	end
 end
@@ -116,8 +122,7 @@ function crafting:mousepressed(x,y,button)
 	if (x/uiScale > self.x and x/uiScale < self.x+self.boxW and y/uiScale > self.y and y/uiScale < self.descY) then
     if button == 2 or (x/uiScale > self.closebutton.minX and x/uiScale < self.closebutton.maxX and y/uiScale > self.closebutton.minY and y/uiScale < self.closebutton.maxY) then self:switchBack() end
 		if (self.crafts[self.cursorY] ~= nil) then
-			--TODO: Do the craft itself
-			self:switchBack()
+			self:doCraft(self.crafts[self.cursorY])
 		end
   else
     self:switchBack()
@@ -150,7 +155,7 @@ function crafting:update(dt)
 	if (x ~= output.mouseX or y ~= output.mouseY) then -- only do this if the mouse has moved
     output.mouseX,output.mouseY = x,y
 		if (x > self.x and x < self.x+self.boxW and y > self.y and y < self.descY) then --if inside the screen
-      local mouseY = y-(self.y-self.padY)
+      local mouseY = y-(self.y-self.padY)-self.outHeight
 			local listY = math.floor(mouseY/14)
       local yMod = (prefs['noImages'] and 2 or 4)
 			if (self.crafts[listY-yMod] ~= nil) then
@@ -160,6 +165,15 @@ function crafting:update(dt)
 			end
 		end
 	end
+end
+
+function crafting:doCraft(craftID)
+  local result,text = player:craft_recipe(craftID)
+  self.outText = text
+  local _, dlines = fonts.textFont:getWrap(text,self.boxW-16)
+  self.outHeight = #dlines*prefs['fontSize']+(prefs['fontSize']*2)
+  self.descY = self.descY+self.outHeight
+  self.crafts = player:get_all_possible_recipes()
 end
 
 function crafting:switchBack()
