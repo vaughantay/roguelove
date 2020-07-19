@@ -280,24 +280,13 @@ function nextLevel(force)
 end
 
 ---Regenerates the current level.
---@todo Strip out the Possession-specific stuff
 function regen_level()
   print('regening')
-  local newGhost = Creature('ghost')
-  local oldBody = player-- temporary variable to hold the player's old creature definition
-  local oldMap = currMap
   currMap = mapgen:generate_map((currGame.cheats.largeMaps and 75 or 60), (currGame.cheats.largeMaps and 75 or 60),currMap.depth,currMap.levelID or "generic")
   maps[currMap.depth] = currMap
-  oldMap.creatures[player] = nil
-  oldMap.contents[player.x][player.y][player] = nil
-  newGhost.x,newGhost.y = currMap.stairsDown.x,currMap.stairsDown.y
-  currMap.contents[currMap.stairsDown.x][currMap.stairsDown.y][newGhost]=newGhost
-  currMap.creatures[newGhost] = newGhost
-  newGhost.properName = player.properName
-  newGhost.isPlayer = true
-  newGhost.gender = player.gender
-  newGhost.playerAlly=true
-  player = newGhost
+  player.x,player.y = currMap.stairsDown.x,currMap.stairsDown.y
+  currMap.contents[currMap.stairsDown.x][currMap.stairsDown.y][player]=player
+  currMap.creatures[player] = player
   target = nil
   -- Remove creatures near stairs
   for x=currMap.stairsDown.x-1,currMap.stairsDown.x+1,1 do
