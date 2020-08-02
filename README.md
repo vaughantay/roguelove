@@ -20,18 +20,20 @@ Features that have been added that weren't in Possession:
   * Factions can determine NPCs' hostility or friendliness to the player, to other faction members, and to specific creature types.
   * Players can gain or lose favor with factions from killing specific creatures or creature types. Factions can view the player as an ally or enemy depending on their favor level.
   * It's possible to join, learn spells from, and trade items with factions.
-  * TODO: Implementing faction missions (first, missions in general  need to be implemented).
+  * TODO: Implementing faction missions (first, missions in general need to be implemented).
 * Stores
   * Stores can have a variety of items, and can generate with infinite or limited numbers of that item.
   * Stores can sell and buy different lists of items.
   * A "Store" feature generates during mapgen, with a store definition attached to it, and moving onto it lets you interact with the store.
   * Stores can be defined with a list of tags they'll buy. You can sell items to the store matching these tags rather than having to pre-define every single item the store will buy. The stores will use that item's defined Value attribute as the amount they'll pay for it.
-  * Future improvements: Stores using an item as a token rather than normal money.
+  * Stores can use an item as a currency rather than money.
   * Future improvements: Stores dynamically generating their inventory rather than it being pre-defined.
+  * Future improvements: Different instances of the same store (eg. a weapon store shows up every level, but has different items every time)
 * Player classes and class selection on the newgame screen.
   * Classes can modify stats, give starting items, spells, faction membership and favor, money, and damage weaknesses/resistances.
   * Classes can also automatically grant certain abilities on level up.
   * Future improvements: Classes granting options to choose between abilities on level up, rather than automatically giving them.
+    * Possible: Skill trees
 * Miscellaneous:
   * Features can have "actions" attached to them. There's a new keybinding used to perform a feature's action. Features can have multiple actions attached to them.
 

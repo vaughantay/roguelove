@@ -13,6 +13,7 @@ function storescreen:enter(_,whichStore)
   self:refresh_lists()
   self.lineCountdown = 0.5
   self.totalCost = 0
+  self.currency_item = self.store.currency_item and possibleItems[self.store.currency_item]
 end
 
 function storescreen:refresh_lists()
@@ -94,13 +95,27 @@ function storescreen:draw()
     local buyBoxW = fonts.textFont:getWidth("1000")+8
     local amtX = nameX+225
     local priceX = nameX+300
-    local costlineW = fonts.textFont:getWidth("Total cost: $99999. You have $999999.")
-    love.graphics.print("Total cost: $" .. self.totalCost .. ". You have $" .. player.money .. ".",math.floor(midX-costlineW/2),printY+4)
-    if self.totalCost > player.money then
+    local canBuy = false
+    local itemText = self.currency_item and (self.currency_item.pluralName or " x " .. self.currency_item.name) or nil
+    local costlineW = 0
+    if self.currency_item then
+      costlineW = fonts.textFont:getWidth("Total cost: 99999 " .. itemText .. ". You have 999999.")
+      local playerItem = player:has_item(self.store.currency_item)
+      local playerAmt = playerItem and playerItem.amount or 0
+      local itemText = self.currency_item.pluralName or "x " .. self.currency_item.name
+      love.graphics.print("Total cost: " .. self.totalCost .. " " .. itemText .. ". You have " .. playerAmt .. ".",math.floor(midX-costlineW/2),printY+4)
+      canBuy = (self.totalCost <= playerAmt)
+    else
+      costlineW = fonts.textFont:getWidth("Total cost: $99999. You have $999999.")
+      love.graphics.print("Total cost: $" .. self.totalCost .. ". You have $" .. player.money .. ".",math.floor(midX-costlineW/2),printY+4)
+      canBuy = (self.totalCost <= player.money)
+    end
+    
+    if not canBuy then
       setColor(100,100,100,255)
     end
     self.actionButton = output:button(math.ceil(midX+costlineW/2)+32,printY-2,buybuttonW,false,(self.cursorY == 2 and "hover" or nil),"Buy")
-    if self.totalCost > player.money then
+    if not canBuy then
       setColor(255,255,255,255)
     end
     printY = printY+32
@@ -123,7 +138,11 @@ function storescreen:draw()
       end
       love.graphics.print(info.name,nameX,buyTextY)
       love.graphics.print("x " .. (info.amount == -1 and "∞" or info.amount),amtX,buyTextY)
-      love.graphics.print("$" .. info.cost,priceX,buyTextY)
+      if self.currency_item then
+        love.graphics.print(info.cost .. " " .. itemText,priceX,buyTextY)
+      else
+        love.graphics.print("$" .. info.cost,priceX,buyTextY)
+      end
       --Minus buttoN:
       --function output:button(x,y,width,small,special,text,useScaling)
       info.minusButton = output:tinybutton(buyBoxX-fontSize*3,printY,nil,((selected and self.cursorX == 2) and "hover" or nil),"-")
@@ -162,8 +181,16 @@ function storescreen:draw()
     local sellBoxW = fonts.textFont:getWidth("1000")+8
     local amtX = nameX+225
     local priceX = nameX+300
-    local costlineW = fonts.textFont:getWidth("You will receive: $99999.")
-    love.graphics.print("You will receive: $" .. self.totalCost .. ".",math.floor(midX-costlineW/2),printY+4)
+    local itemText = self.currency_item and (self.currency_item.pluralName or " x " .. self.currency_item.name) or nil
+    local costlineW = 0
+    
+    if self.currency_item then
+      costlineW = fonts.textFont:getWidth("You will receive: 99999 " .. itemText .. ".")
+      love.graphics.print("You will receive: " .. self.totalCost .. " " .. itemText .. ".",math.floor(midX-costlineW/2),printY+4)
+    else
+      costlineW = fonts.textFont:getWidth("You will receive: $99999.")
+      love.graphics.print("You will receive: $" .. self.totalCost .. ".",math.floor(midX-costlineW/2),printY+4)
+    end
 
     self.actionButton = output:button(math.ceil(midX+costlineW/2)+32,printY-2,sellbuttonW,false,(self.cursorY == 2 and "hover" or nil),"Sell")
     printY = printY+32
@@ -186,7 +213,11 @@ function storescreen:draw()
       end
       love.graphics.print(info.name,nameX,sellTextY)
       love.graphics.print("x " .. (info.amount == -1 and "∞" or info.amount),amtX,sellTextY)
-      love.graphics.print("$" .. info.cost,priceX,sellTextY)
+      if self.currency_item then
+        love.graphics.print(info.cost .. " " .. itemText,priceX,sellTextY)
+      else
+        love.graphics.print("$" .. info.cost,priceX,sellTextY)
+      end
       --Minus buttoN:
       --function output:button(x,y,width,small,special,text,useScaling)
       info.minusButton = output:tinybutton(sellBoxX-fontSize*3,printY,nil,((selected and self.cursorX == 2) and "hover" or nil),"-")

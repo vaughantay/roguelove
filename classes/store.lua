@@ -81,7 +81,18 @@ function Store:creature_sells_item(item,cost,amt,creature)
     self.inventory[index].item.amount = self.inventory[index].item.amount+amt
   end
   creature:delete_item(item,amt)
-  creature.money = creature.money+totalCost
+  if self.currency_item then
+    local creatureItem = creature:has_item(self.currency_item)
+    if not creatureItem then
+      creatureItem = Item(self.currency_item)
+      creature:give_item(creatureItem)
+      creatureItem.amount = totalCost
+    else
+      creatureItem.amount = creatureItem.amount+totalCost
+    end
+  else
+    creature.money = creature.money+totalCost
+  end
 end
 
 ---Buy an item from the store
@@ -95,9 +106,17 @@ function Store:creature_buys_item(item,cost,amt,creature)
   local totalAmt = item.amount or 1
   if totalAmt == -1 then totalAmt = 9999999 end
   if amt > totalAmt then amt = totalAmt end
-  local totalCost = cost*amt 
-  if creature.money > totalCost then
-    if amt == totalAmt then
+  local totalCost = cost*amt
+  local canBuy = false
+  local creatureItem = nil
+  if self.currency_item then
+    creatureItem = creature:has_item(self.currency_item)
+    canBuy = (creatureItem.amount >= totalCost)
+  else
+    canBuy = (creature.money >= totalCost)
+  end --end currency checks
+  if canBuy then
+    if amt == totalAmt then --if buying all the store has
       if item.stacks or totalAmt == 1 then
         creature:give_item(item)
         if not item.stacks then item.amount = nil end
@@ -110,25 +129,37 @@ function Store:creature_buys_item(item,cost,amt,creature)
       end
       local id = self:get_inventory_index(item)
       table.remove(self.inventory,id)
-      creature.money = creature.money-totalCost
-    elseif item.stacks then
+      if self.currency_item then
+        creatureItem.amount = creatureItem.amount-totalCost
+      else
+        creature.money = creature.money-totalCost
+      end
+    elseif item.stacks then --if buying a stackable item
       local newItem = item:clone()
       if item.amount ~= -1 then item.amount = item.amount - amt end
       newItem.amount = amt
       creature:give_item(newItem)
-      creature.money = creature.money-totalCost
-    else
+      if self.currency_item then
+        creatureItem.amount = creatureItem.amount-totalCost
+      else
+        creature.money = creature.money-totalCost
+      end
+    else --if buying a nonstackable item
       for i=1,amt,1 do
         local newItem = item:clone()
         newItem.amount = nil
         creature:give_item(newItem)
       end
       if item.amount ~= -1 then item.amount = item.amount - amt end
-      creature.money = creature.money-totalCost
+      if self.currency_item then
+        creatureItem.amount = creatureItem.amount-totalCost
+      else
+        creature.money = creature.money-totalCost
+      end
     end
     return true
   end
-  return false,"You don't have enough money to buy " .. item:get_name(true,amt) .. " ."
+  return false,"You don't have enough to buy " .. item:get_name(true,amt) .. " ."
 end
 
 ---Gets the index within the store's inventory of the item in question
