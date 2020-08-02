@@ -6,11 +6,13 @@ Store = Class{}
 --@return self Store. The faction itself.
 function Store:init(data)
 	for key, val in pairs(data) do
-		self[key] = data[key]
+		if type(val) ~= "function" then
+      self[key] = data[key]
+    end
 	end
   self.baseType = "store"
-  if self.nameGen then
-    self.name = self:nameGen()
+  if data.nameGen then
+    self.name = data:nameGen()
   end
   self.inventory = {}
   self:generate_items()
