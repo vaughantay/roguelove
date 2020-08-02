@@ -95,6 +95,7 @@ function scroll:new(spell)
     self.spell = get_random_key(possibleSpells)
   end
 	self.name = "scroll of " .. possibleSpells[self.spell].name
+  self.pluralName = "scrolls of " .. possibleSpells[self.spell].name
 end
 function scroll:use(target,user)
   if possibleSpells[self.spell].target_type == "self" then
