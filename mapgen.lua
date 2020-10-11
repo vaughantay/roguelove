@@ -295,8 +295,6 @@ function mapgen:addGenericStairs(build,width,height,depth)
       local p = build:findPath(build.stairsDown.x,build.stairsDown.y,build.stairsUp.x,build.stairsUp.y)
       if p ~= false then
         if random(1,2) == 1 then build.stairsUp,build.stairsDown = build.stairsDown,build.stairsUp end --flip them sometimes for fun
-        build[build.stairsUp.x][build.stairsUp.y] = "<"
-        build[build.stairsDown.x][build.stairsDown.y] = ">"
         acceptable = true
         return true
       end
@@ -371,105 +369,72 @@ function mapgen:make_blob(map,startX,startY,feature,decay,includeWalls)
   return finalPoints
 end
 
-function mapgen:generate_map(width, height, depth,force)
+function mapgen:generate_map(width, height, branchID, depth,force)
+  --set the random generator to use the seeded generator
   local mapRandom = love.math.newRandomGenerator(currGame.seed)
   if currGame.seedState then mapRandom:setState(currGame.seedState) end
-  --set the random generator to use the seeded generator
   random = function(...) return mapRandom:random(...) end
+  
   --Basic initialization of empty map
   local build = Map(width,height)
   build.depth = depth
+  build.branch = branchID
   --End initialization
-  
-  local levels = specialLevels.index[depth]
+
+  local branch = branches[branchID]
   local specialCreats = nil
-  local forceLevel = gamesettings.force_special_levels[depth]
-  if not forceLevel and force then forceLevel = force end --game will default to the game definition's force levels. But if the game definition has no forced level, then you can potentially pass in a forced level instead
-  if levels and #levels > 0 and (forceLevel or random(1,2) == 1) and forceLevel ~="generic" then
-    local id = get_random_element(levels)
-    local l = specialLevels[id]
-    if forceLevel and specialLevels[forceLevel] then -- if the game settings are forcing us to use a specific level for this level
-      l = specialLevels[forceLevel]
-      id = forceLevel
-    elseif force and specialLevels[force] then
-      l = specialLevels[force]
-      id=force
+  local forceMapType = branch.forceMapTypes and branch.forceMapTypes[depth]
+  if not forceMapType and force then forceMapType = force end --game will default to the branch's forced maps. But if the game definition has no forced map, then you can potentially pass in a forced map instead
+  local whichMap = nil
+  local id = nil
+  if forceMapType then --If forced map creation, assign the ID as appropriate
+    if forceMapType and mapTypes[forceMapType] then -- if the branch is forcing us to use a specific map
+      id = forceMapType
     end
-    specialCreats = l.creatures
-    build.name = (l.generateName and l.generateName() or generate_cave_name())
-    build.tileset = (l.tileset or 'cave')
-    build.bossID = l.boss
-    build.description = l.description
-    build.levelID = id
-    build.playlist = (l.playlist or id)
-    build.bossPlaylist = (l.bossPlaylist or id .. "boss")
-    build.lit = l.lit
-    build.noCreats = l.noCreats
-    build.id = id
-    l.create(build,width,height)
-  else --Generic level generation:
-    build.id = "generic" .. depth
-    if (depth == 11) then
-      layouts['caves'](build,width,height)
-      if levelModifiers['surface'](build) == false then return mapgen:generate_map(width, height, depth,force) end
-      build.name = "The Surface"
-    else --seriously generic level gen
-      local mapType = random(1,3) -- 1: forest, 2: dungeon, 3: cave
-      if (mapType == 1) then --forest
-        build.playlist = "genericforest"
-        build.bossPlaylist = "genericforestboss"
-        local newMap = get_random_element({'connectednodes','cavemaze','caves','drunkwalker','noise'}) --forest can only be cave-looking layouts
-        layouts[newMap](build,width,height)
-        if newMap == "connectednodes" then
-          mapgen:contourBomb(build)
-        end
-        build.tileset = "forest"
-        build.name = namegen:generate_forest_name()
-        build.description = namegen:generate_forest_description()
-        --build.description = "Somehow, a small forest has sprouted up undergound. The fact that all these plants and trees are able to grow without the sun would be fascinating to a botanist, but you're not one, so you don't think much of it."
-        if levelModifiers['forest'](build) == false then
-          print('failed to do modifier, regening')
-          currGame.seedState = mapRandom:getState()
-          random = love.math.random
-          return mapgen:generate_map(width, height, depth,force)
-        end
-      elseif mapType == 2 then  --dungeon
-        build.playlist = "genericdungeon"
-        build.bossPlaylist = "genericdungeonboss"
-        local rooms,hallways = layouts['bsptree'](build,width,height) --"dungeon" only uses BSP tree
-        build.tileset = "dungeon"
-        build.name = namegen:generate_dungeon_name()
-        build.description = namegen:generate_dungeon_description()
-        if levelModifiers['dungeon'](build,rooms,hallways) == false then
-          print('failed to do modifier, regening')
-          currGame.seedState = mapRandom:getState()
-          random = love.math.random
-          return mapgen:generate_map(width, height, depth,force)
-        end
-      elseif mapType == 3 then --cave
-        build.playlist = "genericcave"
-        build.bossPlaylist = "genericcaveboss"
-        local newMap = get_random_element({'connectednodes','cavemaze','caves','drunkwalker','noise'}) --"cave" can only be cave-looking layouts
-        layouts[newMap](build,width,height)
-        if newMap == "connectednodes" then
-          mapgen:contourBomb(build)
-        end
-        build.tileset = "cave"
-        build.name = namegen:generate_cave_name()
-        build.description = namegen:generate_cave_description()
-        if levelModifiers['cave'](build) == false then
-          print('failed to do modifier, regening')
-          currGame.seedState = mapRandom:getState()
-          random = love.math.random
-          return mapgen:generate_map(width, height, depth,force)
-        end
-      end --end forest vs. cave if
-      mapgen:addTombstones(build)
-    end --end special modifiers if
-    --Add the pathfinder:
-    build:refresh_pathfinder()
-  end --end generic level generation
-  -- add stairs, if they're not already added
+  else --Non-forced map generation:
+    local index = get_random_key(branch.mapTypes)
+    id = branch.mapTypes[index]
+    if branch.allMapsUnique then --if the branch doesn't allow repeated levels
+      table.remove(branch.mapTypes,index)
+    end
+  end
+  whichMap = mapTypes[id]
+  build.id = branchID .. depth
+  build.mapID = id
+  --Pull over the map's info
+  build.name = whichMap.name or (whichMap.generateName and whichMap.generateName()) or (whichMap.nameType and namegen:generate_name(whichMap.nameType)) or false
+  build.description = whichMap.description or (whichMap.generateDesc and whichMap.generateDesc()) or (whichMap.descType and namegen:generate_description(whichMap.descType)) or false
+  specialCreats = whichMap.creatures
+  build.bossID = whichMap.boss
+  build.tileset = whichMap.tileset
+  build.playlist = whichMap.playlist or id
+  build.bossPlaylist = whichMap.bossPlaylist or id .. "boss"
+  build.lit = whichMap.lit
+  build.noCreats = whichMap.noCreats
+  --Generate the map itself:
+  local success = true
+  if whichMap.create then
+    success = whichMap.create(build,width,height)
+  else
+    local whichLayout = get_random_element(whichMap.layouts)
+    local whichModifier = whichMap.modifiers and get_random_element(whichMap.modifiers) or false
+    success = layouts[whichLayout](build,width,height)
+    if success ~= false and whichModifier then
+      local args = whichMap.modifier_arguments and whichMap.modifier_arguments[whichModifier] or {}
+      success = mapModifiers[whichModifier](build,unpack(args))
+    end
+  end
+  if success == false then
+    print('failed to do modifier, regening')
+    currGame.seedState = mapRandom:getState()
+    random = love.math.random
+    return mapgen:generate_map(width, height, branchID, depth,force)
+  end
+  --Add tombstones:
+  mapgen:addTombstones(build)
+  --Add the pathfinder:
+  build:refresh_pathfinder()
+  -- define where the stairs should do, if they're not already added
   if (build.stairsUp.x == 0 or build.stairsUp.y == 0 or build.stairsDown.x == 0 or build.stairsDown.y == 0) then
     --build.stairsUp = {x=5,y=5}
     --build.stairsDown = {x=10,y=10}
@@ -478,13 +443,27 @@ function mapgen:generate_map(width, height, depth,force)
     if s == false then
       currGame.seedState = mapRandom:getState()
       random = love.math.random
-      return mapgen:generate_map(width, height, depth,force)
+      return mapgen:generate_map(width, height, branchID, depth,force)
     end
   end --end if stairs already exist
-  if depth ~=11 then build[build.stairsUp.x][build.stairsUp.y] = "<" end
-  build[build.stairsDown.x][build.stairsDown.y] = ">"
-	
-	-- add creatures:
+  
+  --Add exits:
+  if build.depth > 1 then
+    local upStairs = Feature('exit',build.branch,build.depth-1)
+    build:change_tile(upStairs,build.stairsUp.x,build.stairsUp.y)
+  end
+  if build.depth < branch.floors then
+    local downStairs = Feature('exit',build.branch,build.depth+1)
+    build:change_tile(downStairs,build.stairsDown.x,build.stairsDown.y)
+  end
+  for floor,branch in pairs(branch.exits) do
+    if floor == build.depth then
+      local whichX,whichY = random(2,build.width-1),random(2,build.height-1)
+      local branchStairs = Feature('exit',branch,1)
+      build:change_tile(branchStairs,whichX,whichY)
+    end
+  end
+	--Add creatures:
 	if not build.noCreats then
     local highest = math.max(width,height)
 		for creat_amt=1,highest,1 do
@@ -541,7 +520,7 @@ end
 
 -- This initializes and creates a new creature at the given level, applying a class if necessary and returning the creature object
 function mapgen:generate_creature(level,list,allowAll)
-  --Prevent an infinite loop if there are no creatures on a given level:
+  --Prevent an infinite loop if there are no creatures of a given level:
   if not list then
     local noCreats = true
     for _,creat in pairs(possibleMonsters) do
@@ -578,6 +557,24 @@ function mapgen:generate_item(level)
     end
   end
   return item
+end
+
+function mapgen:generate_branch(branchID)
+  local newBranch = {}
+  local data = dungeonBranches[branchID]
+  for key, val in pairs(data) do
+		if type(val) ~= "function" then
+      newBranch[key] = data[key]
+    end
+	end
+  if data.nameGen then
+    newBranch.name = data:nameGen()
+  end
+  if data.new then
+    data.new(newBranch)
+  end
+  self.id = branchID
+	return newBranch
 end
 
 --Possible types: "wall": next to wall only, "noWalls": not next to wall, "wallsCorners": open walls and corners only, "corners": corners only

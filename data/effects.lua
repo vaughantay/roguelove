@@ -654,8 +654,6 @@ function chunkmaker:update(dt)
           currMap:add_feature(chunk,x,y)
           --display wall or stairs if chunk lands on wall or stairs:
           if (currMap[x][y] == "#") then chunk.symbol="#"
-          elseif (currMap[x][y] == ">") then chunk.symbol = ">"
-          elseif (currMap[x][y] == "<") then chunk.symbol = "<"
           else --make features display properly
             local delete = false
             if (currMap[x][y].baseType == "feature") then
@@ -741,8 +739,6 @@ function slimemaker:update(dt)
           --display wall or stairs if chunk lands on wall or stairs:
           local delete = false
           if (currMap[x][y] == "#") then delete = true
-          elseif (currMap[x][y] == ">") then chunk.symbol = ">"
-          elseif (currMap[x][y] == "<") then chunk.symbol = "<"
           else --make features display properly
             if (currMap[x][y].baseType == "feature") then
             if currMap[x][y].absorbs or currMap[x][y].blocksMovement or currMap[x][y].id == "slime" or currMap[x][y].water == true then delete = true end
@@ -813,8 +809,6 @@ function lavamaker:update(dt)
           --display wall or stairs if chunk lands on wall or stairs:
           local delete = false
           if (currMap[x][y] == "#") then delete = true
-          elseif (currMap[x][y] == ">") then delete = true
-          elseif (currMap[x][y] == "<") then delete = true
           else --make features display properly
             if (currMap[x][y].baseType == "feature") then
               if currMap[x][y].absorbs or currMap[x][y].blocksMovement or currMap[x][y].id == "lava" or currMap[x][y].water == true then delete = true end
@@ -864,48 +858,6 @@ function lavamaker:update(dt)
   else --if self.countdown is not 0
     self.countdown = self.countdown - dt
   end
-  --[[
-  if self.chunked == true then self:delete()
-  elseif (self.countdown <= 0 and self.chunked ~= true) then
-    self.chunked = true
-    if currMap[self.x][self.y] == "#" then return false end
-    if type (currMap[self.x][self.y]) == "table" then
-      local tile = currMap[self.x][self.y]
-      if tile.blocksMovement or tile.absorbs or tile.id == "water" then self:delete() return false end
-    end
-    for _,f in pairs(currMap:get_tile_features(self.x,self.y)) do
-      if f.blocksMovement or f.id == "water" or f.absorbs then self:delete() return false end
-    end
-      
-    if random(1,5) == 1 then
-      local lava = Feature('lava')
-      if (currMap[self.x][self.y] ~= ">" and currMap[self.x][self.y] ~= "<") then
-        currMap[self.x][self.y] = lava
-      end
-    end
-    
-    --Damage creatures:
-    local creat = currMap:get_tile_creature(self.x,self.y)
-		if (creat ~= false and creat.id ~= "ghost") then
-      local dmg = creat:damage(random(10,25),self.creature,fire)
-			output:out(creat:get_name() .. " gets hit by lava and takes " .. dmg .. " damage!")
-    end --end if creat
-    
-    --Spread to nearby tiles:
-    for x=math.min(self.x-1,2),math.max(self.x+1,currMap.width-1),1 do
-      for y=math.min(self.y-1,2),math.max(self.y+1,currMap.height-1),1 do
-        if calc_distance(x,y,self.creature.x,self.creature.y) < 3 and currMap:is_line(self.creature.x,self.creature.y,x,y) then --only spread if it's close enough
-          local newChunk = true
-          for _,e in pairs(currMap:get_tile_effects(x,y)) do
-              if e.id == "lavamaker" then newChunk = false break end
-          end --end effect for
-          if (newChunk == true) then currMap:add_effect(Effect('lavamaker',self.creature),x,y) end
-        end --end distance if
-      end --end fory
-    end --end forx
-  else --if self.countdown is not 0
-    self.countdown = self.countdown - dt
-  end]]
 end
 effects['lavamaker'] = lavamaker
 
@@ -2604,7 +2556,7 @@ function beginningPlayerFlyer:update(dt)
   anim.seen = true
   anim.features = self.fmaker.features
   output:play_playlist('graveyard')
-  game:show_level_description()
+  game:show_map_description()
   self:delete()
   --[[local count = 0
   while player.zoomTo == nil do
@@ -2624,7 +2576,7 @@ function beginningPlayerFlyer:update(dt)
     --if clear == true then and currMap:is_line(player.x,player.y,flyX,flyY) then
       --player:flyTo({x=flyX,y=flyY})
       output:play_playlist('graveyard')
-      game:show_level_description()
+      game:show_map_description()
       self:delete()
       --break
     end --end if clear == true

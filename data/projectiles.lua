@@ -908,3 +908,81 @@ function dirtchunk:hits(target)
   self:delete()
 end
 projectiles['dirtchunk'] = dirtchunk
+
+local holywater = {
+  name = "vial of holy water",
+  description = "A vial filled with holy water.",
+  symbol = "|",
+  color={r=33,g=33,b=33,a=255},
+  damage = 1,
+  time_per_tile = .01,
+  use_color_with_tiles=true,
+  hit_sound = 'breakingbottle',
+  miss_sound = 'breakingbottle',
+  new = function(self)
+    self.angle = random(0,math.ceil(2*math.pi))
+  end,
+  update = function(self,dt)
+    if self.symbol == "/" then self.symbol = "-"
+    elseif self.symbol == "-" then self.symbol = "\\"
+    elseif self.symbol == "\\" then self.symbol = "|"
+    elseif self.symbol == "|" then self.symbol = "/" end
+    self.angle = self.angle+dt*8*math.pi
+    Projectile.update(self,dt,true)
+  end,
+  hits = function(self,target)
+    Projectile.hits(self,target,true)
+    if target.weaknesses and target.weaknesses.holy then --only deal damage to creature that actually have a weakness to holy damage
+      local dmg = target:damage(5,self.source,'holy')
+      if player:can_sense_creature(target) then
+        output:out("The holy water burns " .. target:get_name() .. " for " .. dmg .. "damage.")
+      end
+    elseif target.baseType == "creature" then -- hit a creature, just not vulnerable?
+      if player:can_sense_creature(target) then
+        output:out("The holy water itself has no effect on " .. target:get_name() .. ".")
+      end
+    elseif not target.baseType == "creature" then --didn't hit a creature? leave a puddle
+      
+    end
+  end
+}
+projectiles['holywater'] = holywater
+
+local unholywater = {
+  name = "vial of unholy water",
+  description = "A vial filled with unholy water.",
+  symbol = "|",
+  color={r=33,g=33,b=33,a=255},
+  damage = 1,
+  time_per_tile = .01,
+  use_color_with_tiles=true,
+  hit_sound = 'breakingbottle',
+  miss_sound = 'breakingbottle',
+  new = function(self)
+    self.angle = random(0,math.ceil(2*math.pi))
+  end,
+  update = function(self,dt)
+    if self.symbol == "/" then self.symbol = "-"
+    elseif self.symbol == "-" then self.symbol = "\\"
+    elseif self.symbol == "\\" then self.symbol = "|"
+    elseif self.symbol == "|" then self.symbol = "/" end
+    self.angle = self.angle+dt*8*math.pi
+    Projectile.update(self,dt,true)
+  end,
+  hits = function(self,target)
+    Projectile.hits(self,target,true)
+    if target.weaknesses and target.weaknesses.unholy then --only deal damage to creature that actually have a weakness to holy damage
+      local dmg = target:damage(5,self.source,'unholy')
+      if player:can_sense_creature(target) then
+        output:out("The unholy water burns " .. target:get_name() .. " for " .. dmg .. "damage.")
+      end
+    elseif target.baseType == "creature" then -- hit a creature, just not vulnerable?
+      if player:can_sense_creature(target) then
+        output:out("The unholy water itself has no effect on " .. target:get_name() .. ".")
+      end
+    elseif not target.baseType == "creature" then --didn't hit a creature? leave a puddle
+      
+    end
+  end
+}
+projectiles['holywater'] = holywater

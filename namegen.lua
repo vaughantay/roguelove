@@ -91,7 +91,7 @@ namegen.lists.groupTypes = {"army","assembly","association","band","circle","cli
 
 namegen.lists.adjectives = {"Airborne","Ancestral","Angry","Attractive","Backwards","Black","Bleeding","Blessed","Bloody","Blue","Bottled","Bright","Brown","Burning","Caffeinated","Cold","Congressional","Contemporary","Corrupted","Current","Cursed","Dark","Dead","Deadly","Debased","Defiled","Destructive","Disgusting","Drunk","Dry","Electric","Entertaining","Evil","Faceless","Famous","Fashionable","Fearless","Fearsome","Flying","Foolish","Forgotten","Former","Frail","Freaky","Future","Godly","Good","Grateful","Green","Happy","Holy","Horrifying","Incredible","Indestructible","Infamous","Irritating","Joyous","Large","Laughing","Loathsome","Lost","Magnetic","Monstrous","Original","Peaceful","Plastic","Playful","Pleasurable","Poor","Pornographic","Powerless","Primordial","Problematic","Psychedelic","Red","Revolutionary","Rich","Rotten","Rotting","Schwarz","Sexual","Sharp","Shiny","Short","Silly","Sleepy","Small","Soft","Spiritual","Splendored","Stoned","Sweet","Unbelievable","Undying","Unholy","Unknowable","Unknown","Unpleasant","Unwilling","Wet","White","Willful","Wrathful","Yellow"}
 
-namegen.lists.levelAdjectives = {"Blasphemous","Bloody","Damned","Dark","Deadly","Defiled","Demonic","Depressing","Desecrated","Desolate","Doomed","Enchanted","Eternal","Evil","Fearsome","Hidden","Horrible","Horrifying","Infinite","Lost","Maddening","Monstrous","Mystical","Pathetic","Shadowy","Silent","Spooky","Terrible","Uncomfortable","Unending","Unholy","Unknown"}
+namegen.lists.mapAdjectives = {"Blasphemous","Bloody","Damned","Dark","Deadly","Defiled","Demonic","Depressing","Desecrated","Desolate","Doomed","Enchanted","Eternal","Evil","Fearsome","Hidden","Horrible","Horrifying","Infinite","Lost","Maddening","Monstrous","Mystical","Pathetic","Shadowy","Silent","Spooky","Terrible","Uncomfortable","Unending","Unholy","Unknown"}
 
 namegen.lists.evilAdjectives = {"Blasphemous","Bloody","Damned","Dark","Deadly","Defiled","Demonic","Depressing","Desecrated","Desolate","Doomed","Eternal","Evil","Fearsome","Hidden","Horrible","Horrifying","Infinite","Lost","Mad","Monstrous","Mystical","Shadowy","Silent","Spooky","Terrible","Unending","Unholy","Unknown"}
 
@@ -105,10 +105,11 @@ namegen.lists.entities = {"Adventurer","Angel","Athlete","Author","Baby","Bard",
 
 namegen.lists.magicCreatures = {"antelope","ape","basilisk","bicorn","blorp blorp","bugbear","bunyip","chupacabra","cockatrice","crocodile","dragon","drake","drop bear","gremlin","griffin","gruffalow","hippogriff","hobgoblin","hoodwink","hydra","hyena","jackalope","kelpie","landshark","manticore","minotaur","monkey","mothman","myrmidon","oni","pegasus","pigeon","piggie","sasquatch","slizzard","snapping turtle","snipe","snugglebeast","spider","tortoise","rock eater","roc","tengu","thunderbird","unicorn","warbler","wolpertinger","wyvern","yeti"}
 
-namegen.lists.levelConcepts = {"Blood","Darkness","Death","Demons","Desecration","Desolation","Destruction","Discomfort","Disease","Doom","Eternity","Evil","Fear","Gods","Heartbreak","Horror","Insanity","Madness","Malice","Monsters","Murder","Sadness","Seceration","Shadows","Silence","Solitude","Souls","Terror","Torture","Travesty","Unease"}
+namegen.lists.mapConcepts = {"Blood","Darkness","Death","Demons","Desecration","Desolation","Destruction","Discomfort","Disease","Doom","Eternity","Evil","Fear","Gods","Heartbreak","Horror","Insanity","Madness","Malice","Monsters","Murder","Sadness","Seceration","Shadows","Silence","Solitude","Souls","Terror","Torture","Travesty","Unease"}
 
 namegen.lists.bookNames = {"Atlas","Book","Codex","Dictionary","Encyclopedia","Grimoire","Lexicon","Manual","Omnibus","Scroll","Textbook","Tome","Treatise"}
 
+--Metafunctions start here:
 function namegen:get_from_list(list)
   if self.lists[list] then
     return self.lists[list][random(#self.lists[list])]
@@ -121,22 +122,20 @@ end
 function namegen:generate_name(nameType,...)
   if self["generate_" .. nameType .. "_name"] and type(self["generate_" .. nameType .. "_name"]) == "function" then
     return self["generate_" .. nameType .. "_name"](self,unpack({...}))
+  else
+    return "The Unknown"
   end
-  --[[
-  elseif nameType == "human" then return self:generate_human_name(unpack({...}))
-  elseif nameType == "rat" then return self:generate_rat_name(unpack({...}))
-  elseif nameType == "dwarf" then return self:generate_dwarf_name(unpack({...}))
-  elseif nameType == "witch" then return self:generate_witch_name(unpack({...}))
-  elseif nameType == "hippie" then return self:generate_hippie_name(unpack({...}))
-  elseif nameType == "elf" then return self:generate_elf_name(unpack({...}))
-  elseif nameType == "orc" then return self:generate_orc_name(unpack({...}))
-  elseif nameType == "troll" then return self:generate_troll_name(unpack({...}))
-  elseif nameType == "goblin" then return self:generate_goblin_name(unpack({...}))
-  elseif nameType == "spartan" then return self:generate_spartan_name(unpack({...}))
-  elseif nameType == "wizard" then return self:generate_wizard_name(unpack({...})) end]]
 end
 
+function namegen:generate_description(descType,...)
+  if self["generate_" .. descType .. "_description"] and type(self["generate_" .. descType .. "_description"]) == "function" then
+    return self["generate_" .. descType .. "_description"](self,unpack({...}))
+  else
+    return "A totally unremarkable place."
+  end
+end
 
+--Individual name generators start here:
 function namegen:generate_guttural_name(creature,endings)
   endings = (endings or random(1,2))
   local name = self.lists.gutturalFirst[random(#self.lists.gutturalFirst)]
@@ -616,12 +615,12 @@ end
 
 
 
---Level names and descriptions:
+--Map names and descriptions:
 
 function namegen:generate_cave_name()
   local dnames = {"Caverns","Caves","Catacombs","Cave","Cavern","Grotto","Chasm","Hell","Hole","Geological Formation","Darkness","Rocks","Mines","Mine","Mountain","Emptiness","Carvings"}
-  local concepts = self.lists.levelConcepts
-  local adjectives = self.lists.levelAdjectives
+  local concepts = self.lists.mapConcepts
+  local adjectives = self.lists.mapAdjectives
  
   local dtype = random(1,3)
     if (dtype == 1) then
@@ -683,8 +682,8 @@ end
 
 function namegen:generate_forest_name()
   local dnames = {"Woods","Forest","Trees","Jungle","Wilds","Timberlands","Wood","Woodland","Woodlands","Jungles","Overgrowth","Thicket","Fields","Growth","Grove","Nature","Garden"}
-  local concepts = merge_arrays(self.lists.levelConcepts,{"Nature","Growth","Unending Growth","Plants","Trees"})
-  local adjectives = merge_arrays(self.lists.levelAdjectives,{"Lush","Ever-Growing","Verdant"})
+  local concepts = merge_arrays(self.lists.mapConcepts,{"Nature","Growth","Unending Growth","Plants","Trees"})
+  local adjectives = merge_arrays(self.lists.mapAdjectives,{"Lush","Ever-Growing","Verdant"})
  
   local dtype = random(1,3)
   if (dtype == 1) then
@@ -717,8 +716,8 @@ end
 
 function namegen:generate_dungeon_name()
   local dnames = {"Dungeon","Keep","Fortress","Castle","Palace","Halls","Dungeons","Tomb","Chamber","Chambers","Hallways","Rooms"}
-  local concepts = self.lists.levelConcepts
-  local adjectives = self.lists.levelAdjectives
+  local concepts = self.lists.mapConcepts
+  local adjectives = self.lists.mapAdjectives
     
   local dtype = random(1,3)
   if (dtype == 1) then

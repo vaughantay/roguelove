@@ -188,14 +188,14 @@ local statue = {
   useWalkedOnImage = true,
 }
 function statue:placed(map)
-  if map.levelID == "eldritchcity" then
+  if map.mapID == "eldritchcity" then
     local statues = {{name="guardian",img='eldritchguardianstatue',cid="eldritchguardian"},{name="eldritch aristocrat",img='eldritcharistocratstatue',cid="eldritcharistocrat"},{name="tentaclebeast",img='tentaclebeaststatue',cid="tentaclebeast"},{name="mi-go",img='migostatue',cid="migo"}}
     local statdat = statues[random(#statues)]
     self.image_name = statdat.img
     self.description = "A stone statue of a " .. statdat.name .. "."
     self.name = ucfirst(statdat.name) .. " Statue"
     self.cid = statdat.cid
-  elseif map.levelID == "tombs" then
+  elseif map.mapID == "tombs" then
     local statueType = random(1,3)
     if statueType == 1 then --king
       self.description = "A sandstone statue of " .. (random(1,4) == 1 and "some ancient king or another." or "the ancient king " .. possibleMonsters['mummy']:nameGen() .. ".")
@@ -206,7 +206,7 @@ function statue:placed(map)
     end
     self.image_name = "tombstatue" .. statueType
   else
-    local statueType = (map.levelID == "temple" and random(1,3) or random(1,4))
+    local statueType = (map.mapID == "temple" and random(1,3) or random(1,4))
     if statueType == 1 then --warrior
       self.description = "A stone statue of " .. (random(1,4) == 1 and "some warrior you don't recognize." or namegen:generate_ruler_name() .. ", a famous hero from olden times.")
     elseif statueType == 2 then -- angel
@@ -2150,9 +2150,9 @@ local lectern = {
 }
 function lectern:placed(map)
   local bookType = random(1,4)
-  if map.levelID == "eldritchcity" then bookType = 1
-  elseif map.levelID == "demonruins" then bookType = 2
-  elseif map.levelID == "temple" then bookType = 4 end
+  if map.mapID == "eldritchcity" then bookType = 1
+  elseif map.mapID == "demonruins" then bookType = 2
+  elseif map.mapID == "temple" then bookType = 4 end
  
   if bookType == 1 then --tomb of forbidden knowledge
     self.name = namegen.lists.bookNames[random(#namegen.lists.bookNames)] .. " of Forbidden Knowledge"
@@ -2349,3 +2349,32 @@ local store = {
   end
 }
 possibleFeatures['store'] = store
+
+local exit = {
+  name = "Exit",
+  description = "An exit to another floor.",
+  symbol = ">",
+  alwaysDisplay=true,
+  color={r=255,g=255,b=255,a=22},
+  actions={exit={text="Exit",description="Exit the current location."}},
+}
+function exit:new(branch,depth,locked)
+  self.branch = branch
+  self.depth = depth
+  self.locked = locked
+end
+function exit:placed(map)
+  local tileset = tilesets[map.tileset]
+  self.color = tileset.groundColor or tileset.textColor or self.color
+  local matches = (map.branch == self.branch)
+  self.name = (matches and "Stairs to Depth " .. self.depth or "Exit to " .. branches[self.branch].name)
+  if matches and self.depth < map.depth then self.symbol = "<" end
+  self.actions.exit.text = (matches and (self.depth < map.depth and "Go up" or "Go down") or "Go to " .. branches[self.branch].name)
+  map.exits[#map.exits+1] = self
+end
+function exit:action(entity,action)
+  if not self.locked then
+    goToFloor(self.depth,self.branch)
+  end
+end
+possibleFeatures['exit'] = exit

@@ -195,7 +195,7 @@ function loadsaves:keypressed(key, isRepeat)
       elseif self.cursorX == 2 and self.cursorY ~= 0 and self.saves[self.cursorY] then
         load_game("saves/" .. self.saves[self.cursorY].fileName)
         Gamestate.switch(game)
-        game:show_level_description()
+        game:show_map_description()
       elseif self.cursorX == 3 then
         self.deletewarning = true
         self.cursorX = 2
@@ -271,7 +271,7 @@ function loadsaves:mousepressed(x,y,button)
       output:play_playlist('silence')
       load_game("saves/" .. self.saves[self.cursorY].fileName)
       Gamestate.switch(game)
-      game:show_level_description()
+      game:show_map_description()
     elseif self.deletebutton and x>self.deletebutton.minX and x<self.deletebutton.maxX and y>self.deletebutton.minY and y<self.deletebutton.maxY then
       self.deletewarning = true
       self.cursorX = 2
@@ -285,7 +285,7 @@ function loadsaves:mousepressed(x,y,button)
           output:play_playlist('silence')
           load_game("saves/" .. self.saves[self.cursorY].fileName)
           Gamestate.switch(game)
-          game:show_level_description()
+          game:show_map_description()
         else
           self.cursorY = line
         end

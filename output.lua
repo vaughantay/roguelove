@@ -299,13 +299,13 @@ function output:load_all_images()
       end --end fileName for
     end --end is folder if
   end --end folderName for
-  for _,tileset in pairs(love.filesystem.getDirectoryItems('images/levels')) do
-    local files = love.filesystem.getDirectoryItems('images/levels/' .. tileset)
+  for _,tileset in pairs(love.filesystem.getDirectoryItems('images/maps')) do
+    local files = love.filesystem.getDirectoryItems('images/maps/' .. tileset)
     for _,fileName in pairs(files) do
       local extension = string.sub(fileName, -4)
       if extension == ".png" then
         fileName = string.sub(fileName,1,-5)
-        images[tileset .. fileName] = love.graphics.newImage("images/levels/" .. tileset .. "/" .. fileName .. ".png")
+        images[tileset .. fileName] = love.graphics.newImage("images/maps/" .. tileset .. "/" .. fileName .. ".png")
       end --end extension check
     end --end fileName for
   end

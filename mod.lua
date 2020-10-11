@@ -15,13 +15,13 @@ local load_mod_media = function(modFolder)
       end --end fileName for
     end --end is folder if
   end --end folderName for
-  for _,tileset in pairs(love.filesystem.getDirectoryItems("mods/" .. modFolder .. '/images/levels')) do
-    local files = love.filesystem.getDirectoryItems("mods/" .. modFolder .. '/images/levels/' .. tileset)
+  for _,tileset in pairs(love.filesystem.getDirectoryItems("mods/" .. modFolder .. '/images/maps')) do
+    local files = love.filesystem.getDirectoryItems("mods/" .. modFolder .. '/images/maps/' .. tileset)
     for _,fileName in pairs(files) do
       local extension = string.sub(fileName, -4)
       if extension == ".png" then
         fileName = string.sub(fileName,1,-5)
-        images[tileset .. fileName] = love.graphics.newImage("mods/" .. modFolder .. "/images/levels/" .. tileset .. "/" .. fileName .. ".png")
+        images[tileset .. fileName] = love.graphics.newImage("mods/" .. modFolder .. "/images/maps/" .. tileset .. "/" .. fileName .. ".png")
         print("loading mod image: " .. tileset .. fileName)
       end --end extension check
     end --end fileName for
@@ -118,37 +118,30 @@ function load_mod(mod,mediaOnly)
           layouts[id] = layout --layout changes will replace by default! (because they're functions, not tables, and so can't have an replace flag
         end --end content for
       end
-      if loadedmod['levels'] then
-        for id,level in pairs(loadedmod['levels']) do
-          level.modded=true
-          if not specialLevels[id] or level.replace then
-            specialLevels[id] = level
+      if loadedmod['mapTypes'] then
+        for id,mapType in pairs(loadedmod['mapTypes']) do
+          mapType.modded=true
+          if not mapTypes[id] or mapType.replace then
+            mapTypes[id] = mapType
           else --if not new and not overwriting, just replace the fields that are defined in the mod file
-            for key,value in pairs(level) do
-              specialLevels[id][key] = value
+            for key,value in pairs(mapType) do
+              mapTypes[id][key] = value
             end
-          end
-          if level.depth then
-            if specialLevels.index[level.depth] then
-              table.insert(specialLevels.index[level.depth],id)
-            else
-              specialLevels.index[level.depth] = {id}
-            end --end if depth
           end
         end --end content for
       end
-      if loadedmod['levelCreatures'] then
-        for id, levelCreats in pairs(loadedmod['levelCreatures']) do
-          if specialLevels[id] then
-            for _,creat in pairs(levelCreats) do
-              table.insert(specialLevels[id].creatures,creat)
+      if loadedmod['mapCreatures'] then
+        for id, mapCreats in pairs(loadedmod['mapCreatures']) do
+          if mapTypes[id] then
+            for _,creat in pairs(mapCreats) do
+              table.insert(mapTypes[id].creatures,creat)
             end
           end
         end
       end --end levelcreatures for
-      if loadedmod['levelModifiers'] then
-        for id,level in pairs(loadedmod['levelModifiers']) do
-          levelModifiers[id] = level --level modifier changes will replace by default! (because they're functions, not tables, and so can't have an replace flag
+      if loadedmod['mapModifiers'] then
+        for id,mapMod in pairs(loadedmod['mapModifiers']) do
+          mapModifiers[id] = mapMod --level modifier changes will replace by default! (because they're functions, not tables, and so can't have an replace flag
         end --end content for
       end
       if loadedmod['projectiles'] then

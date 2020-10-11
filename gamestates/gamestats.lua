@@ -145,35 +145,34 @@ function gamestats:enter(previous)
   self.stats[6] = {id="follower_kills",header="Kills by Followers",label=(followerStats[1] and "Most Effective Follower: " .. ucfirst(possibleMonsters[followerStats[1].creat].name) .. " (" .. followerStats[1].kills .. " Average Kills per Follower)" or "Kills by Followers"),stats=followerStats,expand=true}
   
   
-  local levelStats = {}
-  if totalstats.level_reached then
-    for level,reached in pairs(totalstats.level_reached) do
-      if type(level) == "string" then
-        local id = #levelStats+1
-        levelStats[#levelStats+1] = {}
-        local beaten = (totalstats.level_beaten and totalstats.level_beaten[level] or 0)
-        local turns = (totalstats.turns_on_level and totalstats.turns_on_level[level] or 0)
-        levelStats[id].reached = reached
-        levelStats[id].beaten = beaten
-        levelStats[id].losses = (totalstats.losses_per_level and totalstats.losses_per_level[level] or 0)
-        levelStats[id].beatPercent = round((beaten/reached or 1)*100)
-        levelStats[id].turns = turns
-        levelStats[id].avgTurns = round(turns/(reached or 1))
-        levelStats[id].avgTurnsBeat = beaten > 0 and round(turns/beaten) or "N/A"
-        levelStats[id].name = (specialLevels[level] and (specialLevels[level].genericName or specialLevels[level].generateName()) or false)
-        levelStats[id].depth = (specialLevels[level] and specialLevels[level].depth or false)
-        if not levelStats[id].name then
-          local depth = string.sub(level,8)
-          levelStats[id].name = "Non-Special Level"
-          levelStats[id].depth = tonumber(depth)
+  local mapStats = {}
+  if totalstats.map_reached then
+    for map,reached in pairs(totalstats.map_reached) do
+      if type(map) == "string" then
+        local id = #mapStats+1
+        mapStats[#mapStats+1] = {}
+        local beaten = (totalstats.map_beaten and totalstats.map_beaten[map] or 0)
+        local turns = (totalstats.turns_on_map and totalstats.turns_on_map[map] or 0)
+        mapStats[id].reached = reached
+        mapStats[id].beaten = beaten
+        mapStats[id].losses = (totalstats.losses_per_map and totalstats.losses_per_map[map] or 0)
+        mapStats[id].beatPercent = round((beaten/reached or 1)*100)
+        mapStats[id].turns = turns
+        mapStats[id].avgTurns = round(turns/(reached or 1))
+        mapStats[id].avgTurnsBeat = beaten > 0 and round(turns/beaten) or "N/A"
+        mapStats[id].name = (mapTypes[map] and (mapTypes[map].genericName or mapTypes[map].generateName()) or false)
+        mapStats[id].depth = (mapTypes[map] and mapTypes[map].depth or false)
+        if not mapStats[id].name then
+          local depth = string.sub(map,8)
+          mapStats[id].name = "Non-Special Floor"
+          mapStats[id].depth = tonumber(depth)
         end
-        levelStats[id].sortBy = levelStats[id].depth
+        mapStats[id].sortBy = mapStats[id].depth
       end
     end
-    table.sort(levelStats,sortByLeast)
+    table.sort(mapStats,sortByLeast)
   end
-  self.stats[7] = {id="levels",label="Stats by Level",header="Stats by Level",stats=levelStats,expand=true}
-  
+  self.stats[7] = {id="maps",label="Stats by Floor",header="Stats by Floor",stats=mapStats,expand=true}
   self.stats[8] = {id="games",label="Total Games Started: " .. (totalstats.games or 0)}
   self.stats[9] = {id="wins",label="Games Won: " .. (totalstats.wins or 0)}
   self.stats[10] = {id="losses",label="Games Lost: " .. (totalstats.losses or 0)}
@@ -194,12 +193,12 @@ function gamestats:enter(previous)
       win.stats.ability_used['Repair Body'] = nil
       win.stats.favoriteAbilityTurns,win.stats.favoriteAbility = get_largest(win.stats.ability_used)
     end
-    if win.stats and win.stats.turns_on_level then
-        win.stats.favoriteLevelTurns,win.stats.favoriteLevelID = get_largest(win.stats.turns_on_level)
-        win.stats.favoriteLevel = (specialLevels[win.stats.favoriteLevelID] and specialLevels[win.stats.favoriteLevelID].generateName() or false)
-        if not win.stats.favoriteLevel then
-          local depth = (type(level) == "string" and string.sub(win.stats.favoriteLevelID,8) or win.stats.favoriteLevelID)
-          win.stats.favoriteLevel = "Generic Level " .. depth
+    if win.stats and win.stats.turns_on_map then
+        win.stats.favoriteMapTurns,win.stats.favoriteMapID = get_largest(win.stats.turns_on_map)
+        win.stats.favoriteMap = (mapTypes[win.stats.favoriteMapID] and mapTypes[win.stats.favoriteMapID].generateName() or false)
+        if not win.stats.favoriteMap then
+          local depth = (type(map) == "string" and string.sub(win.stats.favoriteMapID,8) or win.stats.favoriteMapID)
+          win.stats.favoriteMap = "Generic Floor " .. depth
         end
       end
     win.stats.killPossessionAverage = (win.stats.total_possessions and round((win.stats.kills or 0)/win.stats.total_possessions) or "N/A")
@@ -207,29 +206,31 @@ function gamestats:enter(previous)
   table.sort(self.wins,sortByDate)
   
   --Deal with Deaths:
-  for depth,level in pairs(graveyard) do
-    for _, grave in pairs(level) do
-      grave.saying = gravesayings[random(#gravesayings)]
-      grave.depth = depth
-      self.graveyard[#self.graveyard+1] = grave
-      if grave.stats and grave.stats.turns_as_creature then
-        grave.stats.turns_as_creature.ghost = nil
-        grave.stats.favoriteCreatTurns,grave.stats.favoriteCreat = get_largest(grave.stats.turns_as_creature)
-        if grave.stats.creature_possessions then grave.stats.favoriteCreatPossessions = grave.stats.creature_possessions[grave.stats.favoriteCreat] end
-      end
-      if grave.stats and grave.stats.ability_used then
-        grave.stats.ability_used.Possession = nil
-        grave.stats.favoriteAbilityTurns,grave.stats.favoriteAbility = get_largest(grave.stats.ability_used)
-      end
-      if grave.stats and grave.stats.turns_on_level then
-        grave.stats.favoriteLevelTurns,grave.stats.favoriteLevelID = get_largest(grave.stats.turns_on_level)
-        grave.stats.favoriteLevel = (specialLevels[grave.stats.favoriteLevelID] and specialLevels[grave.stats.favoriteLevelID].generateName() or false)
-        if not grave.stats.favoriteLevel then
-          local depth = (type(level) == "string" and string.sub(grave.stats.favoriteLevelID,8) or grave.stats.favoriteLevelID)
-          grave.stats.favoriteLevel = "Generic Level " .. depth
+  for depth,branch in pairs(graveyard) do
+    for _,floor in pairs(branch) do
+      for _, grave in pairs(floor) do
+        grave.saying = gravesayings[random(#gravesayings)]
+        grave.depth = depth
+        self.graveyard[#self.graveyard+1] = grave
+        if grave.stats and grave.stats.turns_as_creature then
+          grave.stats.turns_as_creature.ghost = nil
+          grave.stats.favoriteCreatTurns,grave.stats.favoriteCreat = get_largest(grave.stats.turns_as_creature)
+          if grave.stats.creature_possessions then grave.stats.favoriteCreatPossessions = grave.stats.creature_possessions[grave.stats.favoriteCreat] end
         end
+        if grave.stats and grave.stats.ability_used then
+          grave.stats.ability_used.Possession = nil
+          grave.stats.favoriteAbilityTurns,grave.stats.favoriteAbility = get_largest(grave.stats.ability_used)
+        end
+        if grave.stats and grave.stats.turns_on_map then
+          grave.stats.favoriteMapTurns,grave.stats.favoriteMapID = get_largest(grave.stats.turns_on_map)
+          grave.stats.favoriteMap = (mapTypes[grave.stats.favoriteMapID] and mapTypes[grave.stats.favoriteMapID].generateName() or false)
+          if not grave.stats.favoriteMap then
+            local depth = (type(map) == "string" and string.sub(grave.stats.favoriteMapID,8) or grave.stats.favoriteMapID)
+            grave.stats.favoriteMap = "Generic Floor " .. depth
+          end
+        end
+        grave.stats.killPossessionAverage = (grave.stats.total_possessions and round((grave.stats.kills or 0)/grave.stats.total_possessions) or "N/A")
       end
-      grave.stats.killPossessionAverage = (grave.stats.total_possessions and round((grave.stats.kills or 0)/grave.stats.total_possessions) or "N/A")
     end
   end
   table.sort(self.graveyard,sortByDate)
@@ -542,7 +543,7 @@ function gamestats:draw()
         end
         self.maxSideTransY = height-printY
         love.graphics.pop()
-      elseif stat.id == "levels" then
+      elseif stat.id == "maps" then
         if self.maxSideTransY < 0 then
           if self.cursorX == 2 then
             setColor(50,50,50,255)
@@ -555,7 +556,7 @@ function gamestats:draw()
         love.graphics.push()
         love.graphics.translate(0,self.sideTransY)
         local printY = 80+padding*3
-        for level,stat in ipairs(stat.stats) do
+        for map,stat in ipairs(stat.stats) do
           love.graphics.printf((stat.depth and "Depth " .. tostring(11-stat.depth) .. ": " or "") .. tostring(stat.name),sidebarX,printY,width-sidebarX,"center")
           printY=printY+fontSize
           love.graphics.print("Times Reached: " .. stat.reached,sidebarX+padding*2,printY)
@@ -564,11 +565,11 @@ function gamestats:draw()
           printY=printY+fontSize
           love.graphics.print("Beaten Ratio: " .. stat.beatPercent .. "%",sidebarX+padding*2,printY)
           printY=printY+fontSize
-          love.graphics.print("Total Turns on Level: " .. stat.turns,sidebarX+padding*2,printY)
+          love.graphics.print("Total Turns on Floor: " .. stat.turns,sidebarX+padding*2,printY)
           printY=printY+fontSize
-          love.graphics.print("Average Turns on Level: " .. stat.avgTurns,sidebarX+padding*2,printY)
+          love.graphics.print("Average Turns on Floor: " .. stat.avgTurns,sidebarX+padding*2,printY)
           printY=printY+fontSize
-          love.graphics.print("Average Turns to Beat Level: " .. stat.avgTurnsBeat,sidebarX+padding*2,printY)
+          love.graphics.print("Average Turns to Beat Floor: " .. stat.avgTurnsBeat,sidebarX+padding*2,printY)
           printY=printY+fontSize*2
         end
         self.maxSideTransY = height-printY
@@ -645,7 +646,7 @@ function gamestats:draw()
         printY = printY + fontSize
         love.graphics.print("Favorite Ability: " .. (win.stats.favoriteAbility and win.stats.favoriteAbility .. " (" .. win.stats.favoriteAbilityTurns .. " uses)" or "Unknown"),w2start+padding,printY)
         printY = printY + fontSize
-        love.graphics.print("Most Time Spent On: " .. (win.stats.favoriteLevel and win.stats.favoriteLevel .. " (" .. win.stats.favoriteLevelTurns .. " turns)" or "Unknown"),w2start+padding,printY)
+        love.graphics.print("Most Time Spent On: " .. (win.stats.favoriteMap and win.stats.favoriteMap .. " (" .. win.stats.favoriteMapTurns .. " turns)" or "Unknown"),w2start+padding,printY)
       end
     end
   elseif self.screen == "losses" then
@@ -707,7 +708,7 @@ function gamestats:draw()
       love.graphics.printf("at " .. os.date("%H:%M, %b %d, %Y",grave.date),w2start,printY,w2end-w2start,"center")
       _,lines = fonts.graveFontBig:getWrap("at " .. os.date("%H:%M, %b %d, %Y",grave.date),w2end-w2start+padding)
       printY = printY+math.floor(padding/3)*2*#lines
-      love.graphics.printf((grave.levelname and grave.levelname .. ", " or "") .. "Depth " .. grave.depth,w2start,printY,w2end-w2start,"center")
+      love.graphics.printf((grave.mapname and grave.mapname .. ", " or "") .. "Depth " .. grave.depth,w2start,printY,w2end-w2start,"center")
       printY = printY+padding
       if grave.stats then
         love.graphics.setFont(fonts.textFont)
@@ -725,7 +726,7 @@ function gamestats:draw()
         printY = printY + fontSize
         love.graphics.print("Favorite Ability: " .. (grave.stats.favoriteAbility and grave.stats.favoriteAbility .. " (" .. grave.stats.favoriteAbilityTurns .. " uses)" or "Unknown"),w2start+padding,printY)
         printY = printY + fontSize
-        love.graphics.print("Most Time Spent On: " .. (grave.stats.favoriteLevel and grave.stats.favoriteLevel .. " (" .. grave.stats.favoriteLevelTurns .. " turns)" or "Unknown"),w2start+padding,printY)
+        love.graphics.print("Most Time Spent On: " .. (grave.stats.favoriteMap and grave.stats.favoriteMap .. " (" .. grave.stats.favoriteMapTurns .. " turns)" or "Unknown"),w2start+padding,printY)
       end
     end
   end

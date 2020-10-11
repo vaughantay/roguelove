@@ -369,7 +369,7 @@ local holywater = {
 	itemType="throwable",
   throwable=true,
 	color={r=0,g=200,b=200,a=255},
-	--ranged_attack="holywater",
+	ranged_attack="holywater",
   stacks=true,
   tags={'liquid','holy'},
   value=5
@@ -384,7 +384,7 @@ local unholywater = {
 	itemType="throwable",
   throwable=true,
 	color={r=100,g=0,b=100,a=255},
-	--ranged_attack="holywater",
+	ranged_attack="unholywater",
   stacks=true,
   tags={'liquid','unholy'},
   value=5

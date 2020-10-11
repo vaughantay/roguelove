@@ -1,24 +1,22 @@
 ---@module gamelogic
 
----Starts a new game, and does all the bookkeeping necessary for that. Generates the first level, and puts the player on it.
+---Starts a new game, and does all the bookkeeping necessary for that. Generates the first map, and puts the player on it.
 --@param mapSeed Number. The seed to use to generate the world. (optional)
 --@param playTutorial Boolean. Whether or not to show tutorial messages this game. (optional)
 --@param cheats Table. A table listing all the cheats in use this game. (optional)
 --@param class String. What class to apply to the player character. (optional)
-function new_game(mapSeed,playTutorial,cheats,class)
+function new_game(mapSeed,playTutorial,cheats,class,branch)
 	maps = {}
+  branch = branch or gamesettings.default_starting_branch
   currGame = {startTime=os.date(),fileName=player.properName,playTutorial=playTutorial,tutorialsSeen={},missionFlags={},achievementDisqualifications={},cheats={},autoSave=prefs['autosaveTurns'],seed=mapSeed,stats={}}
   if cheats then currGame.cheats = cheats end
   update_stat('games')
-  currMap = nil
-  local forceLevel,forceDepth = parse_name_for_level(player.properName)
-	while (player.x == nil or player.y == nil) do
-		currMap = mapgen:generate_map(75,75,(forceDepth or 1),forceLevel)
-		player:moveTo(currMap.stairsDown.x,currMap.stairsDown.y)
-		currMap.creatures[player] = player
-    if class then player:apply_class(class) end
-	end
-	table.insert(maps,currMap)
+  currMap = mapgen:generate_map(75,75,branch,1)
+  player:moveTo(currMap.stairsUp.x,currMap.stairsUp.y)
+  currMap.creatures[player] = player
+  if class then player:apply_class(class) end
+  maps[currMap.branch] = {}
+	maps[currMap.branch][currMap.depth] = currMap
 	output:setCursor(0,0)
 	action = "moving"
 	actionResult = nil
@@ -27,10 +25,10 @@ function new_game(mapSeed,playTutorial,cheats,class)
   output.buffer = {}
   output.toDisp = {{1},{},{}}
   output:set_camera(player.x,player.y,true)
-  update_stat('level_reached',currMap.id)
+  update_stat('map_reached',currMap.id)
 end
 
----Figures out which level to load based on a given string. Used for level-skip cheats.
+---Figures out which level to load based on a given string. Used for level-skip cheats. TODO: Redo this for branches (probably just remove it entirely)
 --@param name String. The name of the level to load, or "level#" to load any level at a given depth, or "generic#" to load the generic level at the given depth.
 function parse_name_for_level(name)
   local depth = (string.sub(name,1,5) == "level" and tonumber(string.sub(name,6)) or (string.sub(name,1,7) == "generic") and tonumber(string.sub(name,8)))
@@ -62,7 +60,7 @@ function initialize_player()
 end
 
 function initialize_world()
-    --Generate stores and factions:
+    --Generate stores, factions, and dungeon branches:
   stores = {}
   for id,store in pairs(stores_static) do
     stores[id] = Store(store)
@@ -72,6 +70,10 @@ function initialize_world()
   for id,fac in pairs(possibleFactions) do
     factions[id] = Faction(fac)
     factions[id].id = id
+  end
+  branches = {}
+  for id,branch in pairs(dungeonBranches) do
+    branches[id] = mapgen:generate_branch(id)
   end
 end
 
@@ -138,7 +140,7 @@ function advance_turn()
     achievements:give_achievement('ghost_turns')
   end
   currGame.stats['turns_in_current_body'] = (currGame.stats['turns_in_current_body'] or 1) + 1
-  update_stat('turns_on_level',currMap.id)
+  update_stat('turns_on_map',currMap.id)
   
   player:advance()
   
@@ -230,59 +232,74 @@ function game_over()
 	Gamestate.switch(menu)
 end
 
----Advance to the next level of the dungeon.
---@param force Boolean. Whether to force the game to go to the next level, ignoring whether the boss is dead or not. (optional)
-function nextLevel(force)
+---Advance to the next floor of the dungeon.
+--@param depth Number. The depth of the new floor
+--@param branch Text. Which branch the new floor is on
+--@param force Boolean. Whether to force the game to go to the floor, ignoring whether the boss is dead or not. (optional)
+function goToFloor(depth,branch,force)
+  local oldBranch = currMap.branch
+  local oldDepth = currMap.depth
+  if not branch then branch = currMap.branch end
+  if not depth then
+    if oldBranch == branch then
+      depth = currMap.depth+1
+    else
+      depth = 1
+    end
+  end
+  
 	if (currMap.boss == nil and force ~= true) then
     generate_boss()
-	elseif (force or debugMode) or (currMap.boss == -1 or currMap.boss.hp < 1)  then
-    update_stat('level_beaten',currMap.id)
-    achievements:check('level_end')
-    --[[if currMap.depth == 3 then
-      win()
-      return false
-    end]]
+	elseif (force or debugMode) or (currMap.boss == -1 or currMap.boss.hp < 1) then
+    update_stat('map_beaten',currMap.id)
+    achievements:check('map_end')
     currMap.creatures[player] = nil
-		if (maps[currMap.depth+1] == nil) then
-			maps[currMap.depth+1] = mapgen:generate_map((currGame.cheats.largeMaps and 75 or 60), (currGame.cheats.largeMaps and 75 or 60),currMap.depth+1)
+    if not maps[branch] then maps[branch] = {} end
+		if (maps[branch][depth] == nil) then
+			maps[branch][depth] = mapgen:generate_map((currGame.cheats.largeMaps and 75 or 60), (currGame.cheats.largeMaps and 75 or 60),branch,depth)
 		end
 		currMap.contents[player.x][player.y][player] = nil
-		currMap=maps[currMap.depth+1]
-		player.x,player.y = currMap.stairsDown.x,currMap.stairsDown.y
-		currMap.contents[currMap.stairsDown.x][currMap.stairsDown.y][player]=player
+		currMap=maps[branch][depth]
+    local playerX,playerY = nil,nil
+    for _,exit in pairs(currMap.exits) do
+      if exit.branch == oldBranch and exit.depth == oldDepth then
+        playerX,playerY = exit.x,exit.y
+        break
+      end
+    end --end exit for
+    if not playerX or not playerY then
+      if branch == oldBranch then
+        if depth > oldDepth then
+          playerX,playerY = currMap.stairsDown.x,currMap.stairsDown.y
+        else
+          playerX,playerY = currMap.stairsUp.x,currMap.stairsUp.y
+        end
+      else
+        playerX,playerY = currMap.stairsUp.x,currMap.stairsUp.y
+      end
+    end --end if not playerX or playerY
+    player.x,player.y = playerX,playerY
+    currMap.contents[playerX][playerY][player]=player
     currMap.creatures[player] = player
     target = nil
-    -- Remove creatures near stairs
-    for x=currMap.stairsDown.x-1,currMap.stairsDown.x+1,1 do
-      for y= currMap.stairsDown.y-1,currMap.stairsDown.y+1,1 do
-        local creat = currMap:get_tile_creature(x,y)
-        if creat and creat ~= player then creat:remove() end
-      end
-    end
     if currGame.cheats.fullMap == true then currMap:reveal() end
-    game:show_level_description()
+    game:show_map_description()
     output:set_camera(player.x,player.y,true)
     --Handle music:
     output:play_playlist(currMap.playlist)
-    update_stat('level_reached',currMap.id)
+    update_stat('map_reached',currMap.id)
     currGame.autoSave=true
     player.sees = nil
     refresh_player_sight()
-    if currMap.depth == 2 then achievements:give_achievement('level_two')
-    elseif currMap.depth == 6 then achievements:give_achievement('level_five')
-    elseif currMap.depth == 11 then
-      achievements:give_achievement('surface')
-      achievements:check('game_end')
-    end
 	else
-		output:out("You can't go to the next level until you defeat " .. currMap.boss:get_name(nil,true) .. ".")
+		output:out("You can't leave until you defeat " .. currMap.boss:get_name(nil,true) .. ".")
 	end
 end
 
----Regenerates the current level.
-function regen_level()
+---Regenerates the current map.
+function regen_map()
   print('regening')
-  currMap = mapgen:generate_map((currGame.cheats.largeMaps and 75 or 60), (currGame.cheats.largeMaps and 75 or 60),currMap.depth,currMap.levelID or "generic")
+  currMap = mapgen:generate_map((currGame.cheats.largeMaps and 75 or 60), (currGame.cheats.largeMaps and 75 or 60),currMap.branch,currMap.depth,currMap.mapID or "generic")
   maps[currMap.depth] = currMap
   player.x,player.y = currMap.stairsDown.x,currMap.stairsDown.y
   currMap.contents[currMap.stairsDown.x][currMap.stairsDown.y][player]=player
@@ -297,9 +314,9 @@ function regen_level()
   end
   if game.blackAmt then
     Timer.cancel(game.blackOutTween)
-    game.blackOutTween = tween(2,game,{blackAmt=0},'linear',function() if game.blackOutTween then Timer.cancel(game.blackOutTween) game:show_level_description() end action = "moving" end)
+    game.blackOutTween = tween(2,game,{blackAmt=0},'linear',function() if game.blackOutTween then Timer.cancel(game.blackOutTween) game:show_map_description() end action = "moving" end)
   else
-    game:show_level_description()
+    game:show_map_description()
   end
   if currGame.cheats.fullMap == true then currMap:reveal() end
   
@@ -309,7 +326,7 @@ function regen_level()
   currGame.autoSave=true
 end
 
----Generates the boss for the level.
+---Generates the boss for the map.
 function generate_boss()
   achievements:check('boss')
   local alreadyThere = false
@@ -317,22 +334,23 @@ function generate_boss()
     alreadyThere = true
   else
     player.sees = nil
-    if currMap.levelID and specialLevels[currMap.levelID].generate_boss then --if the level has special boss code, run that
-      return specialLevels[currMap.levelID]:generate_boss()
-    elseif currMap.bossID then --if the level has a special boss set, use that as the boss
+    if currMap.mapID and mapTypes[currMap.mapID].generate_boss then --if the map has special boss code, run that
+      return mapTypes[currMap.mapID]:generate_boss()
+    elseif currMap.bossID then --if the map has a special boss set, use that as the boss
       currMap.boss = Creature(currMap.bossID,possibleMonsters[currMap.bossID].level)
     else --if none of those are true
       for id,c in pairs(possibleMonsters) do
-        if (c.level == currMap.depth and c.isBoss == true and not c.specialOnly) then
+        --TODO: Redo normal bosses for to account for branches
+        --[[if (c.level == currMap.depth and c.isBoss == true and not c.specialOnly) then
           currMap.boss = Creature(id,c.level)
           break
-        end -- end level if
+        end -- end level if]]
       end --end monster for
       if not currMap.boss then
         currMap.boss = -1
-        game:show_popup("Weird. There's no boss for this level. Might want to do something about that. For now though, just go up again.")
+        game:show_popup("Weird. There's no boss for this map. Might want to do something about that. For now though, just go up again.")
         return
-      end --if there's no boss for this level, just ingore it
+      end --if there's no boss for this map, just ingore it
     end --end bossID vs generic boss if
   end
   
@@ -580,7 +598,7 @@ function player_dies()
   if (player.killer and player.killer.baseType == "creature") then killername = ", courtesy of ".. player.killer:get_name() .. "."
   elseif (player.killer and player.killer.source and player.killer.source.baseType == "creature") then killername = ", courtesy of " .. player.killer.source:get_name() .. "." end
   output:out("You were killed" .. killername)  
-  if not currGame.cheats.regenLevelOnDeath then output:out("Press any key to continue...") end
+  if not currGame.cheats.regenMapOnDeath then output:out("Press any key to continue...") end
   action = "dying"
   player.speed=100
   tween(1,player.color,{a=0})
@@ -589,8 +607,8 @@ function player_dies()
   if currGame.playTutorial == true then
     show_tutorial('death')
   end
-  if not currGame.cheats.regenLevelOnDeath then
-    save_graveyard(player.properName,currMap.depth,player.killer,currMap.name,currGame.stats)
+  if not currGame.cheats.regenMapOnDeath then
+    save_graveyard(player.properName,currMap.depth,currMap.branch,player.killer,currMap.name,currGame.stats)
     update_stat('losses')
     delete_save(currGame.fileName,true)
   end

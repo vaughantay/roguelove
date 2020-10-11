@@ -8,7 +8,7 @@ Map = Class{}
 --@return Map. The map itself.
 function Map:init(width,height,gridOnly)
   if not gridOnly then
-    self.creatures,self.contents,self.effects,self.projectiles,self.seenMap,self.lightMap,self.lights,self.pathfinders,self.grids,self.collisionMaps={},{},{},{},{},{},{},{},{},{}
+    self.creatures,self.contents,self.effects,self.projectiles,self.seenMap,self.lightMap,self.lights,self.pathfinders,self.grids,self.collisionMaps,self.exits={},{},{},{},{},{},{},{},{},{},{}
     self.boss=nil
     self.stairsUp,self.stairsDown = {x=0,y=0},{x=0,y=0}
   end
@@ -232,8 +232,8 @@ function Map:get_tile_actions(x,y,user)
   local actions = {}
   for x2=x-1,x+1,1 do
     for y2=y-1,y+1,1 do
-      for id, entity in pairs(self.contents[x2][y2]) do
-        if (entity and entity.baseType == "feature" and entity.actions) then
+      for id, entity in pairs(self:get_tile_features(x2,y2)) do
+        if entity.actions then
           for id,act in pairs(entity.actions) do
             if not act.requires or act.requires(entity,user) then
               actions[#actions+1] = {id=id,entity=entity,text=act.text,description=act.description}
@@ -560,22 +560,6 @@ function Map:refresh_tile_image(x,y)
     else
       self.images[x][y] = self.tileset .. name
     end
-  --[[elseif love.filesystem.isFile("images/levels/" .. self.tileset .. "/" .. name .. ".png") then --if image isn't loaded, try to load it
-    if tileset.tilemap and name:find('wall') then
-      self.images[x][y] = {image=self.tileset .. name,direction=(directions == "" and "middle" or directions)}
-    else
-      self.images[x][y] = self.tileset .. name
-    end]]
-    --images[self.tileset .. name] = love.graphics.newImage("images/levels/" .. self.tileset .. "/" .. name .. ".png")
-  --[[else --if image doesn't exist, load generic wall if it's a wall, or set the image as nonexistant
-    if name:find('wall') and love.filesystem.isFile("images/levels/" .. self.tileset .. "/wall.png") then -- generic wall tile?
-      self.images[x][y] = self.tileset .. 'wall'
-      --if images[self.tileset .. 'wall'] == nil then images[self.tileset .. 'wall'] = love.graphics.newImage("images/levels/" .. self.tileset .. "/wall.png") end
-    else
-      --images[self.tileset .. name] = -1
-      self.images[x][y] = false
-    end
-  end --end loading images]]
   for _, feat in pairs(self.contents[x][y]) do
     if feat.baseType == "feature" then feat:refresh_image_name() end
   end

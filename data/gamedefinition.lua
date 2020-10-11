@@ -3,11 +3,10 @@ gamesettings = {
   id="rogueloveexample",
   author = "Weirdfellows LLC",
   version = "1",
-  levels=11,
-  force_special_levels = {},
-  force_generic_levels = {},
+  default_starting_branch="main",
   bosses=true,
   inventory=true,
   crafting=true,
-  leveling=true
+  leveling=true,
+  noBacktrack=false
 }

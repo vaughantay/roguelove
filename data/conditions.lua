@@ -1823,7 +1823,7 @@ lavabeastcold = Condition({
     name = "Cold",
     bonuses={damage=-10,aggression=-200,bravery=-200,possession_chance=25},
     ai = function(self,possessor)
-      if self.noLava then return true end --if there's no lava on the level, don't even worry about running the rest of this stuff
+      if self.noLava then return true end --if there's no lava on the map, don't even worry about running the rest of this stuff
       if not self.target or (self.target.id ~= "lava" and self.target.id ~= "ember") then
         local targetLava = nil
         local search=10

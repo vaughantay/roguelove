@@ -1,6 +1,6 @@
 require "mapgen"
 
-levelModifiers = {}
+mapModifiers = {}
 
 local surface = function(map)
 	for x = 1, map.width, 1 do
@@ -27,7 +27,7 @@ local surface = function(map)
 		end
 	end
 end
-levelModifiers['surface'] = surface
+mapModifiers['surface'] = surface
 
 local forest = function(map)
   local floodFill = mapgen:floodFill(map,"#",1,1) --gets all walls connected to the border of the map
@@ -109,12 +109,12 @@ local forest = function(map)
   local s = mapgen:addGenericStairs(map,map.width,map.height,map.depth)
   if s == false then print('failed to do stairs, regening') return false end
 end
-levelModifiers['forest'] = forest
+mapModifiers['forest'] = forest
 
-local cave = function(build)
+local cave = function(build,hazard)
   local width,height = build.width,build.height
   local hazardTypes = {"lava","chasm"}
-  local hazardType = hazardTypes[random(#hazardTypes)]
+  local hazardType = hazard or hazardTypes[random(#hazardTypes)]
   if hazardType == "lava" then
     build.description = build.description .. "\nThis area of the caverns feels much warmer than usual."
   elseif hazardType == "chasm" then
@@ -204,6 +204,7 @@ local cave = function(build)
       build:add_feature(Feature('campfire'),cx,cy)
       local creatID = nil
       for id,creat in pairs(possibleMonsters) do
+        --TODO: Make this work with branch creatures
         if creat.level == build.depth and not creat.isBoss and not creat.neverSpawn and not creat.specialOnly then
           creatID = id
           break
@@ -278,7 +279,7 @@ local cave = function(build)
     end --end eye count
   end --end lava if
 end
-levelModifiers['cave'] = cave
+mapModifiers['cave'] = cave
 
 local dungeon = function(build,rooms,hallways)
   local width,height = build.width,build.height
@@ -315,4 +316,4 @@ local dungeon = function(build,rooms,hallways)
     build:add_feature(torch,x,y)
   end
 end
-levelModifiers['dungeon'] = dungeon
+mapModifiers['dungeon'] = dungeon

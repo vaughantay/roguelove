@@ -35,9 +35,10 @@ possibleMonsters['rabidnerd'] = rabidnerd
 
 local imp = {
   name = "imp",
-  description = "A tiny demon with a pitchfork.",
+  description = "A tiny demon with wings and a pitchfork.",
   symbol = "i",
-  types={"demon","intelligent"},
+  types={"demon","intelligent","flyer"},
+  pathType = "flyer",
   nameType = "imp",
   ai_flags={"stalker","bully","stubborn"},
   factions={"chaos"},
@@ -60,7 +61,7 @@ local imp = {
   animation_time=0.3,
   image_max=3,
   reverseAnimation=true,
-  image_name = "rabidnerd1",
+  image_name = "imp1",
   image_varieties=3,
 }
 possibleMonsters['imp'] = imp

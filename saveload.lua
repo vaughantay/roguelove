@@ -11,10 +11,12 @@ end
 
 function save_game(screenshot,fileName)
   fileName = fileName or currGame.fileName
-	for i, m in pairs(maps) do
-		m:clear_all_pathfinders()
+	for _, branch in pairs(maps) do
+    for _, m in pairs(branch) do
+      m:clear_all_pathfinders()
+    end
 	end
-  maps = {} --comment this if you want to save all the maps in the saved game
+  --maps = {} --comment this if you want to save all the maps in the saved game
   local inf = love.filesystem.getInfo("saves")
   if not inf or inf.fileType ~= "directory" then
     love.filesystem.createDirectory("saves")
@@ -22,7 +24,7 @@ function save_game(screenshot,fileName)
   if screenshot then
     screenshot:encode('png', "saves/" .. fileName .. ".png");
   end
-  Lady.save_all("saves/" .. fileName .. ".sav", player, maps, currMap,currGame,gamesettings,stores,factions)
+  Lady.save_all("saves/" .. fileName .. ".sav", player, maps, currMap,currGame,gamesettings,stores,factions,branches)
 	output:out("Game Saved.")
 end
 
@@ -31,9 +33,9 @@ function load_game(fileName)
 		return false
 	end
   local saveData = {}
-  saveData.player, saveData.maps, saveData.currMap, saveData.currGame,saveData.gameDefinition,saveData.stores,saveData.factions = Lady.load_all(fileName)
-  if saveData.player and saveData.maps and saveData.currMap and saveData.currGame and saveData.stores and saveData.factions then
-    player,maps,currMap,currGame,stores,factions = saveData.player, saveData.maps, saveData.currMap, saveData.currGame, saveData.stores, saveData.factions
+  saveData.player, saveData.maps, saveData.currMap, saveData.currGame,saveData.gameDefinition,saveData.stores,saveData.factions,saveData.branches = Lady.load_all(fileName)
+  if saveData.player and saveData.maps and saveData.currMap and saveData.currGame and saveData.stores and saveData.factions and saveData.branches then
+    player,maps,currMap,currGame,stores,factions,branches = saveData.player, saveData.maps, saveData.currMap, saveData.currGame, saveData.stores, saveData.factions,saveData.branches
     currMap:clear_all_pathfinders()
     if not currGame.cheats then currGame.cheats = {} end --delet this eventually I guess
     currGame.fileName = string.sub(fileName,7,-5) --in case the file's name got changed
@@ -198,12 +200,15 @@ function load_prefs()
   end
 end
 
-function save_graveyard(name,level,killer,levelname,stats)
+function save_graveyard(name,depth,branch,killer,mapname,stats)
   require "lib.serialize"
   local graves = load_graveyard()
-  if name ~= nil and level ~= nil then
-    if graves[level] == nil then
-      graves[level] = {}
+  if name ~= nil and depth ~= nil then
+    if graves[branch] == nil then
+      graves[branch] = {}
+    end
+    if graves[branch][depth] == nil then
+      graves[branch][depth] = {}
     end
     if killer and killer.baseType == "creature" then
       if killer.properName then killer = killer.properName .. (vowel(killer.name) and ", an " or (", a ")) .. killer.name
@@ -211,7 +216,7 @@ function save_graveyard(name,level,killer,levelname,stats)
     else
       killer = "an unknown scary thing"
     end
-    graves[level][#graves[level]+1] = {name=name,date=os.time(),killer = killer,levelname=levelname,stats=stats}
+    graves[branch][depth][#graves[branch][depth]+1] = {name=name,date=os.time(),killer = killer,mapname=mapname,stats=stats}
     love.filesystem.write("graveyard.sav",serialize(graves))
   end
 end

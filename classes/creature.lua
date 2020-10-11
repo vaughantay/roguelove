@@ -945,7 +945,7 @@ function Creature:die(killer)
         update_stat('kills')
         update_stat('kills_as_creature',player.id)
         update_stat('creature_kills',self.id)
-        update_stat('level_kills',currMap.id)
+        update_stat('map_kills',currMap.id)
         currGame.stats['kills_in_current_body'] = (currGame.stats['kills_in_current_body'] or 0)+1
         achievements:check('kill')
       else

@@ -77,7 +77,7 @@ local randomPaths = function (map,width,height,orthogonal,paths,iterations)
 end
 layouts['randompaths'] = randomPaths
 
-local connectedNodes = function (map,width,height,orthogonal,nodeCount,iterations)
+local connectedNodes = function (map,width,height,orthogonal,nodeCount,iterations,noBomb)
   nodeCount = nodeCount or math.ceil(math.min(width,height)/10)
   iterations = iterations or 2
   
@@ -135,6 +135,10 @@ local connectedNodes = function (map,width,height,orthogonal,nodeCount,iteration
       end --end pathfinder node for
     end --end node for
   end --end iteration for
+  
+  if not noBomb then
+    mapgen:contourBomb(map)
+  end
 end
 layouts['connectednodes'] = connectedNodes
 
@@ -578,10 +582,8 @@ local caveMaze =  function(map,width,height,size,extraWallPercent)
       --Place stairs
       if map.stairsUp.x == tx and map.stairsUp.y == ty then
         map.stairsUp.x,map.stairsUp.y = midX,midY
-        map[midX][midY] = "<"
       elseif map.stairsDown.x == tx and map.stairsDown.y == ty then
         map.stairsDown.x,map.stairsDown.y = midX,midY
-        map[midX][midY] = ">"
       end
             
       

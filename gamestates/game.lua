@@ -37,7 +37,7 @@ function game:draw()
   setColor(0,0,0,100)
   love.graphics.rectangle('fill',0,0,width,16)
   setColor(255,255,255,255)
-  love.graphics.printf((currMap.depth < 11 and "Depth " .. (11-currMap.depth) .. ": " or "") .. currMap.name,0,0,width,"center")
+  love.graphics.printf(branches[currMap.branch].name .. " Floor " .. currMap.depth .. ": " .. currMap.name,0,0,width,"center")
   if action == "targeting" then
     local text = "Select Target"
     if actionResult and actionResult.name then
@@ -158,13 +158,7 @@ function game:print_cursor_game()
         end --end noDesc if
       end --end effect for
       
-      if (currMap[output.cursorX][output.cursorY] == "<") then
-        if (text ~= "") then text = text .. "\n----\n" end
-        text = text .. "Upward Stairs"
-      elseif (currMap[output.cursorX][output.cursorY] == ">") then
-        if (text ~= "") then text = text .. "\n----\n" end
-        text = text .. "Downward Stairs"
-      elseif (currMap[output.cursorX][output.cursorY].baseType == "feature" and not currMap[output.cursorX][output.cursorY].noDesc) then
+      if (currMap[output.cursorX][output.cursorY].baseType == "feature" and not currMap[output.cursorX][output.cursorY].noDesc) then
         if (text ~= "") then text = text .. "\n----\n" end
         text = text .. ucfirst(currMap[output.cursorX][output.cursorY]:get_description())
       end
@@ -394,17 +388,6 @@ function game:print_sidebar()
       end
       spellcount = spellcount + 1
     end
-  end
-  if currMap[player.x][player.y] == "<" then
-    spellcount = spellcount+1
-    local spellwidth = fonts.buttonFont:getWidth(keybindings.stairsUp .. ") Exit Level")
-    local minX,minY=printX+xPad-2,printY+yPad+(20*spellcount)
-    local maxX,maxY=minX+spellwidth+4,minY+16
-    self.spellButtons["nextLevel"] = output:button(minX,minY+2,(maxX-minX),true,nil,nil,true)
-    if self.spellButtons['nextLevel'].hover == true then
-      descBox = {desc="Try to go to the next level.",x=minX,y=minY}
-    end
-    love.graphics.print(keybindings.stairsUp .. ") Exit Level",printX+xPad,printY+yPad+(20*spellcount)-2+yBonus)
   end
   yPad = yPad+(20*spellcount)
   local items = currMap:get_tile_items(player.x,player.y,true)
@@ -1258,7 +1241,7 @@ function game:mousepressed(x,y,button)
   
   if self.moveBlocked then return false end --If something is preventing movement don't do anything
 	if (action == "dying") then
-    if player.perception == 0 and not currGame.cheats.regenLevelOnDeath then
+    if player.perception == 0 and not currGame.cheats.regenMapOnDeath then
       return game_over()
     end
     return
@@ -1319,8 +1302,6 @@ function game:mousepressed(x,y,button)
             if rangedAttacks[player.ranged_attack]:recharge(player) then
               advance_turn()
             end
-          elseif spell == "nextLevel" then
-            nextLevel()
           elseif spell == "pickup" then
             self:keypressed(keybindings.pickup)
           elseif spell == "inventory" then
@@ -1422,7 +1403,7 @@ function game:keypressed(key,scancode,isRepeat)
   if self.moveBlocked then return false end -- If something is preventing movement, don't do anything
   
 	if (action == "dying") then 
-    if player.perception == 0 and not currGame.cheats.regenLevelOnDeath then
+    if player.perception == 0 and not currGame.cheats.regenMapOnDeath then
       return game_over()
     end
     return false
@@ -1608,21 +1589,6 @@ function game:keypressed(key,scancode,isRepeat)
       self.contextualMenu = ContextualMenu(output.cursorX,output.cursorY)
       setTarget(output.cursorX,output.cursorY)
     end
-	elseif (key == keybindings.stairsDown and action=="moving" and currMap[player.x][player.y]==">") then
-		if (currMap.depth ~= 1) then
-			currMap.contents[player.x][player.y][player] = nil
-			currMap = maps[currMap.depth-1]
-			player.x,player.y = currMap.stairsUp.x,currMap.stairsUp.y
-			currMap.contents[currMap.stairsUp.x][currMap.stairsUp.y][player]=player
-			advance_turn()
-      currMap.creatures[player] = player
-		else
-			output:out("You can't go back down. The Nether Regions are that way. You have to keep moving forward and get to the surface.")
-		end
-	elseif (key == keybindings.stairsUp and action=="moving" and (currMap[player.x][player.y]=="<" or debugMode)) then
-		nextLevel()
-  elseif (key == "u" and action=="moving" and debugMode) then
-    nextLevel(true)
    elseif (key == "q" and action=="moving") then
     Gamestate.switch(factionscreen,"lightchurch")
   elseif (key == "s" and action=="moving") then
@@ -1728,8 +1694,8 @@ function game:blackOut(seconds,win)
         if self.deadTween then 
           --Timer.cancel(self.deadTween)
         end 
-        if currGame.cheats.regenLevelOnDeath then 
-          regen_level() 
+        if currGame.cheats.regenMapOnDeath then 
+          regen_map() 
         end 
       end
     end)
@@ -1952,11 +1918,10 @@ end
 --Popup stuff:
 local Popup = Class{}
 
-function game:show_level_description()
+function game:show_map_description()
   local _, count = string.gsub(currMap.description, "\n", "\n")
-  self.popup = Popup(currMap.description,"Depth " .. 11-currMap.depth .. "\n" .. currMap.name .. "\n" .. " ",4+count,true)
+  self.popup = Popup(currMap.description,branches[currMap.branch].name .. " Floor " .. currMap.depth .. "\n" .. currMap.name .. "\n" .. " ",4+count,true)
   output:sound('interface_bang')
-  --self.leveldesc = Leveldesc(11-currMap.depth,currMap.name,currMap.description)
 end
 
 function game:show_popup(text,header,extraLines,blackout,enterOnly,afterFunc,sound)
@@ -1991,45 +1956,3 @@ function Popup:draw()
     love.graphics.printf("Press any key or click to continue...",self.x,self.y+self.height-(prefs['noImages'] and 10 or 5),self.width,"center")
   end
 end
-
---[[local Leveldesc = Class{}
-function Leveldesc:init(depth,name,desc)
-  self.depth,self.name,self.desc=depth,name,desc
-  self.width = math.ceil(love.graphics.getWidth()/2)
-  local _,tlines = fonts.textFont:getWrap(desc,self.width)
-  self.height = (#tlines+5)*prefs['fontSize']
-  self.x,self.y=round(love.graphics.getWidth()/4),round(love.graphics.getHeight()/2-self.height/2)
-end
-
-function Leveldesc:draw()
-  love.graphics.setFont(fonts.textFont)
-  setColor(20,20,20,200)
-  love.graphics.rectangle("fill",self.x,self.y,self.width,self.height+32)
-  setColor(255,255,255,255)
-  if prefs['noImages'] ~= true then
-    for x=self.x,self.x+self.width-18,32 do
-      love.graphics.draw(images.borders.borderImg,images.borders.u,x,self.y-18)
-      love.graphics.draw(images.borders.borderImg,images.borders.d,x,self.y+self.height+16)
-    end
-    for y=self.y,self.y+self.height+8,32 do
-      love.graphics.draw(images.borders.borderImg,images.borders.l,self.x-18,y)
-      love.graphics.draw(images.borders.borderImg,images.borders.r,self.x+self.width-18,y)
-    end
-    love.graphics.draw(images.borders.borderImg,images.borders.l,self.x-18,self.y)
-    love.graphics.draw(images.borders.borderImg,images.borders.r,self.x+382,self.y)
-    love.graphics.draw(images.borders.borderImg,images.borders.l,self.x-18,self.y+32)
-    love.graphics.draw(images.borders.borderImg,images.borders.r,self.x+382,self.y+32)
-    love.graphics.draw(images.borders.borderImg,images.borders.ul,self.x-18,self.y-18)
-    love.graphics.draw(images.borders.borderImg,images.borders.ur,self.x+self.width-18,self.y-18)
-    love.graphics.draw(images.borders.borderImg,images.borders.l,self.x-18,self.y+self.height)
-    love.graphics.draw(images.borders.borderImg,images.borders.r,self.x+self.width-18,self.y+self.height)
-    love.graphics.draw(images.borders.borderImg,images.borders.ll,self.x-18,self.y+self.height+16)
-    love.graphics.draw(images.borders.borderImg,images.borders.lr,self.x+self.width-18,self.y+self.height+16)
-  else
-    love.graphics.rectangle("line",self.x,self.y,self.width,self.height+32) -- warning outline
-  end
-  love.graphics.printf("Depth " .. self.depth,self.x,self.y,self.width,"center")
-  love.graphics.printf(self.name,self.x,self.y+15,self.width,"center")
-  love.graphics.printf(self.desc,self.x+5,self.y+45,self.width-10,"left")
-  love.graphics.printf("Press any key or click to continue...",self.x,self.y+self.height,self.width,"center")
-end]]
