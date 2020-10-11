@@ -8,19 +8,19 @@ Features that have been added that weren't in Possession:
   * Players and NPCs can have, use, equip, and throw items.
   * Equipment can add stat bonuses, have callbacks when various things happen, and grant abilities.
   * Items can have "tags" attached to them, that can be used by various things throughout the game (so far, only stores look at items' tags to determine if they want to buy them).
-  * Item enchantments: Currently have effects for melee weapons and projectiles. All enchantments add prefixes and suffixes to item's name.
+  * Basic crafting is implemented.
+  * Item enchantments: Currently have effects for melee weapons and projectiles. Enchantments can add prefixes and suffixes to item's name.
     * Melee weapon enchantments: Can add hit and critical conditions to an attack, can modify a weapon's stats (damage, accuracy, etc.), can run code after either a hit or miss occurs. Can be permanent, or can last for a set number of either attacks or successful hits.
     * Projectile enchantments: Affects thrown items, or ammunition. Can add hit conditions to a projectile attack. Can modify damage done by a projectile. Can modify hit chance of a ranged attack (if applied to a thrown item only, not ammunition). Can run code after the projectile hits or misses. If a projectile leaves an item behind, the projectile's enchantments are carried over to the item left behind.
-    * Future Improvements: Enchantments that decrease their time left when a kill is made with the weapon. Other situations where code can be run by enchantments. Enchantments on other types of items.
+    * Future Improvements: Enchantments that decrease their time left when a kill is made with the weapon. Other situations where code can be run by enchantments. Enchantments on other types of items (ranged weapons, armor).
   * TODO: Getting NPCs to use items and change equipment.
   * TODO: Implement a scrollbar on the inventory screen if the item list gets too long.
   * TODO: Auto-comparing an item's stats to your current equipment.
-  * Future Improvements: Crafting
 * NPC factions
   * Factions can determine NPCs' hostility or friendliness to the player, to other faction members, and to specific creature types.
   * Players can gain or lose favor with factions from killing specific creatures or creature types. Factions can view the player as an ally or enemy depending on their favor level.
   * It's possible to join, learn spells from, and trade items with factions.
-  * TODO: Implementing faction missions (first, missions in general need to be implemented).
+  * TODO: Implementing faction missions.
 * Stores
   * Stores can have a variety of items, and can generate with infinite or limited numbers of that item.
   * Stores can sell and buy different lists of items.
@@ -34,6 +34,14 @@ Features that have been added that weren't in Possession:
   * Classes can also automatically grant certain abilities on level up.
   * Future improvements: Classes granting options to choose between abilities on level up, rather than automatically giving them.
     * Possible: Skill trees
+* Dungeon Branches
+  * Rather than all floors being in a linear progression, multiple "branches" can be defined in game.
+  * Each branch has its own defined number of floors which the player moves up/down along linearly.
+	* Each branch has a list of map types it uses to generate its floors, and can also force specific map types to spawn at a given depth, to recreate the old special levels functionality.
+	* Branches can exit to other branches.
+	* By default, you can return to previously-visited floors within a branch (unlike in Possession), but this can be turned off.
+	* Branches can be set to ensure each floor within the branch is a different map type, so it doesn't repeat.
+  * TODO: Let branches define creature/item spawns within them.
 * Miscellaneous:
   * Features can have "actions" attached to them. There's a new keybinding used to perform a feature's action. Features can have multiple actions attached to them.
 
