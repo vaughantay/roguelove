@@ -307,7 +307,7 @@ function namegen:generate_elf_name(noLast)
 end
 
 function namegen:generate_troll_name()
-  local troll = merge_arrays(self.lists.nastyThings,self.lists.troll)
+  local troll = merge_tables(self.lists.nastyThings,self.lists.troll)
   return ucfirst(troll[random(#troll)]) .. lcfirst(troll[random(#troll)])
 end
 
@@ -321,14 +321,14 @@ function namegen:generate_turtle_name()
 end
 
 function namegen:generate_goblin_name(creature)
-  local gobbo = merge_arrays(self.lists.nastyThings,self.lists.gob,self.lists.nobleAnimals)
+  local gobbo = merge_tables(self.lists.nastyThings,self.lists.gob,self.lists.nobleAnimals)
   
   return self:generate_first_name(creature) .. " " .. ucfirst(gobbo[random(#gobbo)]) .. lcfirst(gobbo[random(#gobbo)])
 end
 
 function namegen:generate_hippie_name()
   local n1 = self.lists.hippie[random(#self.lists.hippie)]
-  local secondlist = merge_arrays(self.lists.hippie,self.lists.hippiesuffixes)
+  local secondlist = merge_tables(self.lists.hippie,self.lists.hippiesuffixes)
   local n2 = secondlist[random(#secondlist)]
   while n2== n1 do
     n2 = secondlist[random(#secondlist)]
@@ -385,7 +385,7 @@ function namegen:generate_snail_name(creature)
 end
 
 function namegen:generate_ruler_name(gender)
-  local rulerTitles = merge_arrays(self.lists.rulerTitles,self.lists.rulerAdjectives,self.lists.nobleAnimals)
+  local rulerTitles = merge_tables(self.lists.rulerTitles,self.lists.rulerAdjectives,self.lists.nobleAnimals)
   local rulerAdj = (random(1,3) ~= 1 and self.lists.rulerAdjectives[random(#self.lists.rulerAdjectives)] or "")
   gender = gender or (random(1,2) == 1 and "male" or "female")
   local ruler = ucfirstall(gender == "male" and self.lists.rulerTypeMale[random(#self.lists.rulerTypeMale)] or self.lists.rulerTypeFemale[random(#self.lists.rulerTypeFemale)])
@@ -413,7 +413,7 @@ function namegen:generate_demon_name(creature,noApos,noTitle)
     name = name .. (random(1,5) == 1 and (noApos ~= true and "'" or "") or "") .. phonemes[num]
   end
   if not noTitle and random(1,3) == 1 then
-    local titles = merge_arrays(self.lists.evilTitles,self.lists.evilAdjectives)
+    local titles = merge_tables(self.lists.evilTitles,self.lists.evilAdjectives)
     name = name .. " the " .. titles[random(#titles)]
   end
   return name
@@ -447,14 +447,14 @@ function namegen:generate_knight_name(creature)
   elseif nameType == 4 then
     
   end
-  local titles = merge_arrays(self.lists.rulerTitles,self.lists.rulerAdjectives)
+  local titles = merge_tables(self.lists.rulerTitles,self.lists.rulerAdjectives)
   name = name .. " the " .. titles[random(#titles)]
   return name
 end
 
 function namegen:generate_evilknight_name(creature)
   local name = (random(1,2) == 1 and self:generate_demon_name(creature,false,true) or self:generate_first_name(creature))
-  local titles = merge_arrays(self.lists.evilTitles,self.lists.evilAdjectives)
+  local titles = merge_tables(self.lists.evilTitles,self.lists.evilAdjectives)
   name = name .. " the " .. titles[random(#titles)]
   return name
 end
@@ -515,7 +515,7 @@ function namegen:generate_title(creature)
   local adjectives = self.lists.adjectives
   local nouns = self.lists.nouns
   local concepts = self.lists.concepts
-  local entities = merge_arrays(self.lists.entities,(random(1,2) == 1 and self.lists.rulerTypeMale or self.lists.rulerTypeFemale))
+  local entities = merge_tables(self.lists.entities,(random(1,2) == 1 and self.lists.rulerTypeMale or self.lists.rulerTypeFemale))
 
   if creature then nouns[#nouns+1] = creature.name end
   
@@ -580,14 +580,14 @@ function namegen:generate_town_name(useType,noTypes)
   local nameType = random(1,2)
   local townBeginnings = {}
   if not useType then
-    townBeginnings = merge_arrays(self.lists.townFirst,self.lists.silly,self.lists.adjectives,self.lists.spartanFirst,self.lists.wizardFirst,self.lists.nastyThings,self.lists.hippie,self.lists.dwarf,self.lists.nobleAnimals)
+    townBeginnings = merge_tables(self.lists.townFirst,self.lists.silly,self.lists.adjectives,self.lists.spartanFirst,self.lists.wizardFirst,self.lists.nastyThings,self.lists.hippie,self.lists.dwarf,self.lists.nobleAnimals)
   else
     townBeginnings = self.lists[useType]
   end
   
   if nameType == 1 then --City of Buttersburgh
     return (not noTypes and self:get_from_list('townTypes').. " of " or "") .. (random(1,10) == 1 and "New " or "") .. ucfirst(townBeginnings[random(#townBeginnings)]) .. self:get_from_list('townSuffix')
-  elseif nameType == 2 then -- Village of Fumbleton
+  elseif nameType == 2 then -- Fumbleton Village
     return (random(1,10) == 1 and "New " or "") .. ucfirst(townBeginnings[random(#townBeginnings)]) .. self:get_from_list('townSuffix') .. (not noTypes and " " .. self:get_from_list('townTypes') or "")
   end
 end
@@ -609,7 +609,7 @@ local habits = {"accidentally starting fires", "afraid", "bragging about everyth
         d2 = descriptors[random(#descriptors)]
     end
 
-    return ucfirst(pN) .. " was " .. d1 .. ", and was also " .. d2 .. ". " .. ucfirst(pN) .. " liked " .. likes[random(#likes)] .. " and " .. likeActions[random(#likeActions)] .. ". " .. ucfirst(pN) .. " was always " .. habits[random(#habits)] .. "."
+    return "A simple villager. " .. ucfirst(pN) .. " is " .. d1 .. ". " .. ucfirst(pN) .. " is also " .. d2 .. ". " .. ucfirst(pN) .. " like " .. likes[random(#likes)] .. " and " .. likeActions[random(#likeActions)] .. ". " .. ucfirst(pN) .. " is always " .. habits[random(#habits)] .. "."
 
 end
 
@@ -682,8 +682,8 @@ end
 
 function namegen:generate_forest_name()
   local dnames = {"Woods","Forest","Trees","Jungle","Wilds","Timberlands","Wood","Woodland","Woodlands","Jungles","Overgrowth","Thicket","Fields","Growth","Grove","Nature","Garden"}
-  local concepts = merge_arrays(self.lists.mapConcepts,{"Nature","Growth","Unending Growth","Plants","Trees"})
-  local adjectives = merge_arrays(self.lists.mapAdjectives,{"Lush","Ever-Growing","Verdant"})
+  local concepts = merge_tables(self.lists.mapConcepts,{"Nature","Growth","Unending Growth","Plants","Trees"})
+  local adjectives = merge_tables(self.lists.mapAdjectives,{"Lush","Ever-Growing","Verdant"})
  
   local dtype = random(1,3)
   if (dtype == 1) then
@@ -773,7 +773,7 @@ end
 
 function namegen:generate_movie_title()
   local entities = {"Zombies","Sharks","Strangers","Spiders","Friends","Tomatoes","Babies","Monsters","Things","Dead","Neighbors","Demons","Angels","Snakes","Souls","Lovers","Killers","Weeds","Cultists","Police","Beasts","Cats","Frogs","Dogs","Puppies","Kittens","Dinosaurs","Pirates","Secret Agents","Spies","Satan","Aliens","Ants","Insects","Lizards","Werewolves","Vampires","Robots"}
-  local entitySingular = merge_arrays(self.lists.entities,(random(1,2) == 1 and self.lists.rulerTypeMale or self.lists.rulerTypeFemale))
+  local entitySingular = merge_tables(self.lists.entities,(random(1,2) == 1 and self.lists.rulerTypeMale or self.lists.rulerTypeFemale))
   local descriptors = {"Mysterious ","Spider-","Killer ","Anti-","Robot ","Forbidden ","Super-","Forgotten ","Horrible ","Adventure ","Angry ","Living ","Undead ","Zombie ","Dead ","Demon ","Stoned ","Rabid ","Secret ","Teenage ","Highly Trained ","Cave ","Foreign ","Communist ","God-","Dark ","Giant ","Alien","Godlike ","Holy ","Unholy ","Tiny ","Mad ","Monstrous "}
   local titletype = random(1,7)
   local movietitle = ""

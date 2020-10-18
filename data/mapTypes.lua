@@ -50,6 +50,34 @@ local lavacave = {
 }
 mapTypes['lavacave'] = lavacave
 
+local town = {
+  nameType = "town",
+  tileset = "village",
+  description = "A quaint village that for some reason has a staircase in the middle leading into an underground dungeon complex.",
+  width=25,
+  height=25,
+  noItems=true,
+  lit=true,
+  stores=5,
+  factions=5
+}
+function town.create(map,width,height)
+  width,height = map.width,map.height
+  mapgen:clear_map(map,true)
+  
+  --Add stairs in the middle:
+  local midX, midY = round(width/2),round(height/2)
+  local stairs = Feature('exit',"main",1)
+  map:change_tile(stairs,midX,midY)
+  map.stairsUp.x,map.stairsUp.y = midX,midY
+  map.stairsDown.x,map.stairsDown.y = midX,midY
+  
+  --Add factions:
+  
+  --Add stores:
+end
+mapTypes['town'] = town
+
 local demonruins = {
   playlist = "genericcave",
   bossPlaylist = "genericcaveboss",

@@ -37,7 +37,8 @@ function game:draw()
   setColor(0,0,0,100)
   love.graphics.rectangle('fill',0,0,width,16)
   setColor(255,255,255,255)
-  love.graphics.printf(branches[currMap.branch].name .. " Floor " .. currMap.depth .. ": " .. currMap.name,0,0,width,"center")
+  local branch = branches[currMap.branch]
+  love.graphics.printf((not branch.hideName and branch.name or "") .. (not branch.hideFloor and " " .. (branch.floorName or "Floor") .. " " .. currMap.depth or "") .. (currMap.name and (not branch.hideName or not branch.hideFloor) and ": " or "") .. (currMap.name or ""),0,0,width,"center")
   if action == "targeting" then
     local text = "Select Target"
     if actionResult and actionResult.name then
@@ -1920,7 +1921,8 @@ local Popup = Class{}
 
 function game:show_map_description()
   local _, count = string.gsub(currMap.description, "\n", "\n")
-  self.popup = Popup(currMap.description,branches[currMap.branch].name .. " Floor " .. currMap.depth .. "\n" .. currMap.name .. "\n" .. " ",4+count,true)
+  local branch = branches[currMap.branch]
+  self.popup = Popup(currMap.description,(not branch.hideName and branch.name or "") .. (not branch.hideFloor and " " .. (branch.floorName or "Floor") .. " " .. currMap.depth or "") .. (currMap.name and (not branch.hideName or not branch.hideFloor) and "\n" or "") .. (currMap.name or "") .. "\n" .. " ",4+count,true)
   output:sound('interface_bang')
 end
 

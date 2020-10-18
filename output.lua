@@ -1,5 +1,8 @@
+---@module output
 output = {text={},targetLine={},targetTiles={},potentialTargets={},cursorX=0,cursorY=0,mouseX=0,mouseY=0,buffer={},toDisp={{},{},{}},camera={x=1,y=1,xMod=0,yMod=0},shakeTimer=0,shakeDist=0}
 
+---Add text to the output buffer
+--@param txt String. The text to print
 function output:out(txt)
   if action ~= "dying" then
     local tid = #self.text+1
@@ -8,6 +11,13 @@ function output:out(txt)
   end
 end
 
+---Display an entity. This accounts for ASCII mode, or ASCII if there's no sprite for this entity.
+--@param entity Entity. The entity to display
+--@param x Number. The X-coordinate (in pixels, not tiles) where the entity should be drawn.
+--@param y Number. The Y-coordinate (in pixels, not tiles) where the entity should be drawn.
+--@param seen Boolean. Whether or not the entity is seen by the player.
+--@param ignoreDistMods Boolean. Whether to ignore the "xMod" and "yMod" pixel-coordinate modifiers applied to the entity. (optional)
+--@param scale Number. The scale at which to draw the entity. (optional)
 function output.display_entity(entity,x,y, seen,ignoreDistMods,scale)
   if entity.noDraw then return end
   scale = scale or 1
@@ -84,6 +94,10 @@ function output.display_entity(entity,x,y, seen,ignoreDistMods,scale)
   end
 end
 
+---Load an image from the images/ directory
+--The resulting image will be loaded into images[image_typename], for example images['creaturezombie']
+--@param name String. The name of the file.
+--@param image_type String. The type of Entity the image is for. This determines what subdirectory in images/ to look in, as well as what the final ID of the image will be when loaded into the game.
 function output:load_image(name,image_type)
   if images[(image_type or "") .. name] then return true end
   if love.filesystem.getInfo("images/" .. image_type .. "/" .. name .. ".png",'file') then
@@ -93,29 +107,19 @@ function output:load_image(name,image_type)
   end
 end
 
-function output:get_portrait(id)
-  --If portrait holding table not set up yet, set it up:
-  if images['portraits'] == nil then
-    images['portraits'] = {}
-    images['portraits']['unknown'] = love.graphics.newImage("images/portraits/unknown.png")
-  end
-  
-  --Load portrait if not already loaded
-  if images['portraits'][id] == nil then
-    if love.filesystem.getInfo("images/portraits/" .. id .. ".png",'file') then
-      images['portraits'][id] = love.graphics.newImage("images/portraits/" .. id .. ".png")
-    else --if file does not exist, default to question mark
-      images['portraits'][id] = images['portraits']['unknown']
-    end
-  end
-
-  return images['portraits'][id]
-end
-
+---Move the cursor to another tile.
+--@param mx Number The X-distance by which to move the cursor.
+--@param my Number. The Y-distance by which to move the cursor.
 function output:moveCursor(mx,my)
   return self:setCursor(self.cursorX+mx,self.cursorY+my)
 end
 
+---Set the cursor to a given tile.
+--This function handles snapping between possible targets, if targeting something with a limited number of possible targets on screen.
+--@param x Number. The X-coordinate of the new tile.
+--@param y Number. The Y-coordinate of the new tile.
+--@param force Boolean. If set to true, this will force the cursor to a certain location, even if it wouldn't normally be allowed.
+--@param allow_current_creature Boolean. If not set to true and the game is in targetting mode, will ignore the current target
 function output:setCursor(x,y,force,allow_current_creature)
   if (x == 0 or y == 0) then
     self.cursorX,self.cursorY = 0,0
@@ -195,6 +199,12 @@ function output:setCursor(x,y,force,allow_current_creature)
   end
 end
 
+---Get the pixel coordinates of a tile
+--@param x Number. The tile's x-coordinate.
+--@param y Number. The tile's y-coordinate.
+--@param noRound Boolean. If TRUE, will not round the resulting value up to the next pixel. Otherwise it will.
+--@return Number. The pixel's x-coordinate
+--@return Number. The pixel's y-coordinate
 function output:tile_to_coordinates(x,y,noRound)
   local mapWidth,mapHeight = self:get_map_dimensions()
   local tileSize = self:get_tile_size()
@@ -209,28 +219,10 @@ function output:tile_to_coordinates(x,y,noRound)
   local rx,ry = cMap.x,cMap.y
   rx,ry = (noRound and rx or math.ceil(rx)),(noRound and ry or math.ceil(ry))
   return rx,ry
-  
-  --[[local printY = mapHeight/2-((self.camera.y-y)*tileSize)+self.camera.yMod
-  local printX = mapWidth/2-((self.camera.x-x)*tileSize)+self.camera.xMod
-  if not noRound then
-    printX,printY = math.ceil(printX),math.ceil(printY)
-  end
-  return printX,printY]]
 end
 
---[[function output:tile_to_coordinates(x,y,noRound)
-  local mapWidth,mapHeight = self:get_map_dimensions()
-  local tileSize = self:get_tile_size()
-  
-  local printY = mapHeight/2-((self.camera.y-y)*tileSize)+self.camera.yMod
-  local printX = mapWidth/2-((self.camera.x-x)*tileSize)+self.camera.xMod
-  if noRound then
-    return printX,printY
-  else
-    return math.ceil(printX),math.ceil(printY)
-  end
-end]]
 
+---Refresh the stored map of pixel values for all the tiles in the map
 function output:refresh_coordinate_map()
   local mapWidth,mapHeight = self:get_map_dimensions()
   local tileSize = self:get_tile_size()
@@ -244,6 +236,11 @@ function output:refresh_coordinate_map()
   end
 end
 
+---Convert pixel coordinates to a tile's coordinates.
+--@param x Number. The x-coordinate of the pixel.
+--@param y Number. The y-coordinate of the pixel.
+--@return Number. The x-coordinate of the tile.
+--@return Number. The y-coordinate of the tile.
 function output:coordinates_to_tile(x,y)
   local mapWidth,mapHeight = self:get_map_dimensions()
   local tileSize = self:get_tile_size()
@@ -252,6 +249,8 @@ function output:coordinates_to_tile(x,y)
   return tileX,tileY
 end
 
+---Get the width (in pixels) used for the game map.
+--@return Number. The width (in pixels) of the game map.
 function output:get_map_width()
   if self.mapWidth then return self.mapWidth end
   local width = love.graphics:getWidth()
@@ -259,6 +258,8 @@ function output:get_map_width()
   return self.mapWidth
 end
 
+---Get the height (in pixels) used for the game map.
+--@return Number. The height (in pixels) of the game map.
 function output:get_map_height()
   if self.mapHeight then return self.mapHeight end
   local height = love.graphics:getHeight()
@@ -266,15 +267,21 @@ function output:get_map_height()
   return self.mapHeight
 end
 
+---Get the width and height(in pixels) used for the game map.
+--@return Number. The width (in pixels) of the game map.
+--@return Number. The height (in pixels) of the game map.
 function output:get_map_dimensions()
   if self.mapWidth and self.mapHeight then return self.mapWidth,self.mapHeight end
   return self:get_map_width(),self:get_map_height()
 end
 
+---Get the width/height in pixels of a map tile. The game assumes that all pixels are square, so the single number returned is assumed to be used for both.
+--@return Number. The size of a map tile.
 function output:get_tile_size()
   return math.floor((prefs['noImages'] and prefs['asciiSize'] or 32)*(currGame and currGame.zoom or 1))
 end
 
+---Load and initialize all UI-related images.
 function output:load_ui()
   images.borders = {borderImg=love.graphics.newImage("images/ui/borders.png"),ul = love.graphics.newQuad(0,0,32,32,96,96),ur = love.graphics.newQuad(64,0,32,32,96,96),ll = love.graphics.newQuad(0,64,32,32,96,96),lr = love.graphics.newQuad(64,64,32,32,96,96),u = love.graphics.newQuad(32,0,32,32,96,96),d = love.graphics.newQuad(32,64,32,32,96,96),l = love.graphics.newQuad(0,32,32,32,96,96),r = love.graphics.newQuad(64,32,32,32,96,96)}
   images.button = {image=love.graphics.newImage("images/ui/button.png"),hover=love.graphics.newImage("images/ui/buttonhover.png"),l=love.graphics.newQuad(0,0,32,32,128,32),middle=love.graphics.newQuad(32,0,32,32,128,32),r=love.graphics.newQuad(64,0,32,32,128,32),small=love.graphics.newQuad(96,0,32,32,128,32)}
@@ -285,6 +292,7 @@ function output:load_ui()
   --love.mouse.setCursor(images.cursors.main)
 end
 
+---Load all images in the images/ directory
 function output:load_all_images()
   local folders = love.filesystem.getDirectoryItems('images')
   for _,folderName in pairs(folders) do
@@ -314,6 +322,14 @@ function output:load_all_images()
   end
 end
 
+---Draw a bar
+--@param val Number. The value at which to draw the bar
+--@param max_val Number. The maximum value the bar could hold
+--@param x Number. The x-coordinate to start at for the bar
+--@param y Number. The Y-coordinate to start at for the bar
+--@param width Number. The width of the bar
+--@param height Number. The height of the bar
+--@param color Table.
 function output:draw_health_bar(val,max_val,x,y,width,height,color)
   setColor((color and color.r or 200),(color and color.r or 0),(color and color.r or 0),255)
   love.graphics.rectangle('line',x-1,y-1,width+2,height+2)
@@ -331,6 +347,10 @@ function output:draw_health_bar(val,max_val,x,y,width,height,color)
   setColor(255,255,255,255)
 end
 
+---Play a sound
+--@param soundName Text. The name of the sound file, excluding file extension
+--@param pitchDiff Number. The maximum % by which to randomly shift the pitch up or down. Optional, defaults to 10
+--@return Boolean. Whether or not the sound exists or not
 function output:sound(soundName,pitchDiff)
   if not pitchDiff then pitchDiff = 10 end
     
@@ -358,6 +378,9 @@ function output:sound(soundName,pitchDiff)
   end
 end
 
+---Make, but do not play, a music playlist
+--@param name Text. The name of the folder within music/ to make the playlist from, or alternatively, the name of the single track to play (excluding filename extension)
+--@return Table. A list of tracks for the playlist
 function output:make_playlist(name)
   --If there is only one track:
   if love.filesystem.getInfo('music/' .. name .. '.ogg','file') then
@@ -387,7 +410,10 @@ function output:make_playlist(name)
   end
 end
 
-function output:play_playlist(name,useGeneric)  
+---Play a misic playlist
+--@param name Text. The name of the folder within music/ to make the playlist from, or alternatively, the name of the single track to play (excluding filename extension). Or, "silence" to stop playing all music.
+--@param useGeneric Boolean. If true, if the said playlist can't be created, just play from the generic playlist
+function output:play_playlist(name,useGeneric)
   if name == "silence" then
     soundTags.music:stop()
     return
@@ -403,6 +429,13 @@ function output:play_playlist(name,useGeneric)
   end
 end
 
+---Draw a scrollbar on the screen
+--@param x Number. The x-coordinate of the scrollbar.
+--@param startY Number. The y-coordinate for the top of the scrollbar
+--@param endY Number. The y-coordinate for the bottom of the scrollbar
+--@param scrollPerc Number. The position on the scrollbar for the elevator
+--@param useScaling Boolean. Whether or not to take into account the game's UI scaling setting
+--@return Table. A table containing the sub-tables upArrow, downArrow, and elevator, each of whichhas startX, endX, startY, and endY values corresponding to that part of the scrollbar's coordinates
 function output:scrollbar(x,startY,endY,scrollPerc,useScaling)
   local mouseX,mouseY = love.mouse.getPosition()
   local uiScale = 1
@@ -445,6 +478,15 @@ function output:scrollbar(x,startY,endY,scrollPerc,useScaling)
   end
 end
 
+---Draw a button
+--@param x Number. The x-coordinate of the button
+--@param y Number. The y-coordinate of the button
+--@param width Number. The width of the button
+--@param small Boolean. Whether or not to draw it as a small button
+--@param special Text. The text of the style to force the button to use (eg. forcing hover, or forcing disabled). Optional
+--@param text Text. The text to display on the button. Optional
+--@param useScaling Boolean. Whether to take into account the game's UI scaling setting. Optional
+--@return Table. A table with the values minX, maxX, minY, and maxY, containing the corresponding coordinates of the button, and hover, a boolean saying if the button is being hovered over
 function output:button(x,y,width,small,special,text,useScaling)
   local mouseX,mouseY = love.mouse.getPosition()
   local uiScale = 1
@@ -497,6 +539,12 @@ function output:button(x,y,width,small,special,text,useScaling)
   end
 end
 
+---Draw a large button. I'm not entirely sure this actually works
+--@param x Number. The x-coordinate of the button
+--@param y Number. The y-coordinate of the button
+--@param width Number. The width of the button
+--@param special Text. The text of the style to force the button to use (eg. forcing hover, or forcing disabled). Optional
+--@return Table. A table with the values minX, maxX, minY, and maxY, containing the corresponding coordinates of the button, and hover, a boolean saying if the button is being hovered over
 function output:largebutton(x,y,width,special)
   local mouseX,mouseY = love.mouse.getPosition()
   local uiScale = 1
@@ -538,6 +586,12 @@ function output:largebutton(x,y,width,special)
   end
 end
 
+---Draw a close button
+--@param x Number. The x-coordinate of the button
+--@param y Number. The y-coordinate of the button
+--@param hover Boolean. Whether or not to draw the close button as if it's being hovered over. Optional
+--@param useScaling Boolean. Whether to take into account the game's UI scaling setting. Optional
+--@return Table. A table with the values minX, maxX, minY, and maxY, containing the corresponding coordinates of the button, and hover, a boolean saying if the button is being hovered over
 function output:closebutton(x,y,hover,useScaling)
   local mouseX,mouseY = love.mouse.getPosition()
   local uiScale = 1
@@ -570,6 +624,14 @@ function output:closebutton(x,y,hover,useScaling)
   end
 end
 
+---Draw a square button
+--@param x Number. The x-coordinate of the button
+--@param y Number. The y-coordinate of the button
+--@param small Boolean. Whether or not to draw it as a small button
+--@param hover Boolean. Whether to draw it as if it's being hovered over. Optional
+--@param text Text. The text to display on the button. Optional
+--@param useScaling Boolean. Whether to take into account the game's UI scaling setting. Optional
+--@return Table. A table with the values minX, maxX, minY, and maxY, containing the corresponding coordinates of the button, and hover, a boolean saying if the button is being hovered over
 function output:tinybutton(x,y,small,hover,text,useScaling)
   local mouseX,mouseY = love.mouse.getPosition()
   local uiScale = 1
@@ -612,6 +674,10 @@ function output:tinybutton(x,y,small,hover,text,useScaling)
   end
 end
 
+---Move the camera
+--@param xAmt Number. The number of tiles by which to move the camera, x-coordinate
+--@param yAmt Number. The number of tiles by which to move the camera, y-coordinate
+--@param noTween Boolean. If true, instantly snap the camera to the new location rather than smoothly moving it
 function output:move_camera(xAmt,yAmt,noTween)
   noTween = noTween or prefs['noSmoothCamera']
   if game.moveBlocked == true then return false end
@@ -635,16 +701,30 @@ function output:move_camera(xAmt,yAmt,noTween)
   --tween(.01,self.camera,{x=toX,y=toY})
 end
 
+---Set the camera to a coordinate.
+--@param x Number. The new X-coordinate.
+--@param y Number. The new Y-coordinate.
+--@param noTween Boolean. If true, instantly snap the camera to the new location rather than smoothly moving it
 function output:set_camera(x,y,noTween)
   local xMove,yMove = x-self.camera.x,y-self.camera.y
   return self:move_camera(xMove,yMove,noTween)
 end
 
+---Shake the screen.
+--@param distance Number. The maximum distance of the shake.
+--@param time Number. The amount of time (in seconds) to do the shaking.
 function output:shake(distance,time)
   self.shakeTimer = time
   self.shakeDist = distance
 end
 
+---Draw a bordered window.
+--@param startX Number. The X-coordinate of the upper left corner.
+--@param startY Number. The Y-coordinate of the upper left corner.
+--@param endX Number. The X-coordinate of the lower right corner.
+--@param endY Number. The Y-coordinate of the lower right corner.
+--@param color Table. A table, in the format {r=255,g=255,b=255,a=255}, to be applied to the window. The Alpha value is optional.
+--@return Table. A table with the indices startX, startY, maxX, maxY, corresponding to the pixel coordinates of the start and end of the window as above.
 function output:draw_window(startX,startY,endX,endY,color)
   color = color or prefs.windowColor
   setColor((color and color.r or 0),(color and color.g or 0),(color and color.b or 0),200)
@@ -689,6 +769,10 @@ function output:draw_window(startX,startY,endX,endY,color)
   return {minX=startX,minY=startY,maxX=endX,maxY=endY}
 end
 
+---Get the quad needed for a given spritesheet
+--@param framenum Number. The number of frames in the animation.
+--@param framecount Number. The frame in the animation to get
+--@return quad. The quad needed for the spritesheet animation
 function output:get_spritesheet_quad(framenum,framecount)
   if not quads.sprites[framecount] then --if a quad fitting this size of spritesheet doesn't exist yet, make it
     quads.sprites[framecount] = {}
@@ -700,14 +784,28 @@ function output:get_spritesheet_quad(framenum,framecount)
   return quads.sprites[framecount][framenum]
 end
 
+---Create a tweening process. Uses Timer from HUMP, see documentation at https://hump.readthedocs.io/en/latest/timer.html#Timer.tween for more info and examples.
+--@param duration Number. Duration of the tween in seconds.
+--@param subject Table. Object to be tweened.
+--@param target Table. Target values.
+--@param method Text. Tweening method, defaults to ‘linear’ (see here, optional).
+--@param after Function. Function to execute after the tween has finished (optional).
+--@param ... Anything. Additional arguments to the tweening function.
+--@return Timer. A timer handle.
 function output.tween(...)
   return Timer.tween(unpack({...}))
 end
 
+---Runs some code after a duration has passed Uses Timer from HUMP, see documentation at https://hump.readthedocs.io/en/latest/timer.html#Timer.after for more info and examples.
+--@param delay Number. Duration of the timer in seconds.
+--@param func Function. The function to run after the timer has expired.
+--@return Timer. A timer handle.
 function output.timer(...)
   return Timer.after(unpack({...}))
 end
 
+---Shows an achievement popup.
+--@param achievement Text. The ID of the achievement to show.
 function output:show_achievement_popup(achievement)
   self.popup = AchievementPopup(achievement)
 end

@@ -11,7 +11,7 @@ function new_game(mapSeed,playTutorial,cheats,class,branch)
   currGame = {startTime=os.date(),fileName=player.properName,playTutorial=playTutorial,tutorialsSeen={},missionFlags={},achievementDisqualifications={},cheats={},autoSave=prefs['autosaveTurns'],seed=mapSeed,stats={}}
   if cheats then currGame.cheats = cheats end
   update_stat('games')
-  currMap = mapgen:generate_map(75,75,branch,1)
+  currMap = mapgen:generate_map(branch,1)
   player:moveTo(currMap.stairsUp.x,currMap.stairsUp.y)
   currMap.creatures[player] = player
   if class then player:apply_class(class) end
@@ -60,6 +60,7 @@ function initialize_player()
 end
 
 function initialize_world()
+  currWorld = {stores={},factions={},branches={}}
     --Generate stores, factions, and dungeon branches:
   stores = {}
   for id,store in pairs(stores_static) do
@@ -249,14 +250,16 @@ function goToFloor(depth,branch,force)
   end
   
 	if (currMap.boss == nil and force ~= true) then
-    generate_boss()
+    if generate_boss() == false then
+      return goToFloor(depth,branch,force) --if the generate boss function returns false, rerun this function again
+    end
 	elseif (force or debugMode) or (currMap.boss == -1 or currMap.boss.hp < 1) then
     update_stat('map_beaten',currMap.id)
     achievements:check('map_end')
     currMap.creatures[player] = nil
     if not maps[branch] then maps[branch] = {} end
 		if (maps[branch][depth] == nil) then
-			maps[branch][depth] = mapgen:generate_map((currGame.cheats.largeMaps and 75 or 60), (currGame.cheats.largeMaps and 75 or 60),branch,depth)
+			maps[branch][depth] = mapgen:generate_map(branch,depth)
 		end
 		currMap.contents[player.x][player.y][player] = nil
 		currMap=maps[branch][depth]
@@ -290,6 +293,7 @@ function goToFloor(depth,branch,force)
     update_stat('map_reached',currMap.id)
     currGame.autoSave=true
     player.sees = nil
+    currMap:refresh_lightMap(true) -- refresh the lightmap, forcing it to refresh all lights
     refresh_player_sight()
 	else
 		output:out("You can't leave until you defeat " .. currMap.boss:get_name(nil,true) .. ".")
@@ -299,7 +303,7 @@ end
 ---Regenerates the current map.
 function regen_map()
   print('regening')
-  currMap = mapgen:generate_map((currGame.cheats.largeMaps and 75 or 60), (currGame.cheats.largeMaps and 75 or 60),currMap.branch,currMap.depth,currMap.mapID or "generic")
+  currMap = mapgen:generate_map(currMap.branch,currMap.depth,currMap.mapType)
   maps[currMap.depth] = currMap
   player.x,player.y = currMap.stairsDown.x,currMap.stairsDown.y
   currMap.contents[currMap.stairsDown.x][currMap.stairsDown.y][player]=player
@@ -348,8 +352,7 @@ function generate_boss()
       end --end monster for
       if not currMap.boss then
         currMap.boss = -1
-        game:show_popup("Weird. There's no boss for this map. Might want to do something about that. For now though, just go up again.")
-        return
+        return false
       end --if there's no boss for this map, just ingore it
     end --end bossID vs generic boss if
   end

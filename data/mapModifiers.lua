@@ -203,8 +203,8 @@ local cave = function(build,hazard)
       fires = fires-1
       build:add_feature(Feature('campfire'),cx,cy)
       local creatID = nil
-      for id,creat in pairs(possibleMonsters) do
-        --TODO: Make this work with branch creatures
+      local creats = mapgen:get_creature_list(build) or possibleMonsters
+      for id,creat in pairs(creats) do
         if creat.level == build.depth and not creat.isBoss and not creat.neverSpawn and not creat.specialOnly then
           creatID = id
           break

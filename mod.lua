@@ -184,7 +184,7 @@ function load_mod(mod,mediaOnly)
             list.replace = nil
             namegen.lists[id] = list
           else
-            namegen.lists[id] = merge_arrays(namegen.lists[id],list)
+            namegen.lists[id] = merge_tables(namegen.lists[id],list)
           end
         end --end content for
       end

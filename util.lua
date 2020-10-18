@@ -223,7 +223,7 @@ end
 ---Combines multiple tables into one and returns the result. Does not respect the values of the keys - the resulting table will have sequentially-numbered keys.
 --@param … Any number of tables.
 --@return Table. A new table with all the other tables merged together.
-function merge_arrays(...)
+function merge_tables(...)
   local new = {}
   for _,t in pairs({...}) do
     for _,i in pairs(t) do
@@ -255,7 +255,12 @@ function get_unit_vector(fromX,fromY,toX,toY)
   return x,y
 end
 
--- Calculate the angle between two points
+--- Calculate the angle between two points
+--@param fromX Number. The origin X-coordinate.
+--@param fromY Number. The origin Y-coordinate.
+--@Param toX Number. The destination X-coordinate.
+--@param toY Number. The destination Y-coordinate.
+--@return Number. The angle
 function calc_angle(fromX,fromY,toX,toY)
   local xDiff = toX-fromX
   local yDiff = toY-fromY
@@ -263,13 +268,13 @@ function calc_angle(fromX,fromY,toX,toY)
   return 2*math.pi+rad
 end
 
---Calculate area of triangle from three points
+--Calculate area of triangle from three points (don't think this is working)
 function calc_triangle_area(x1,y1,x2,y2,x3,y3)
   local area = math.abs((x1*(y2-y3) + x2*(y3-y1) + x3*(y1-y2))/2)
   return area
 end
 
---Determine if a point is inside a triangle
+--Determine if a point is inside a triangle (don't think this is working)
 function is_in_triangle(x1,y1,x2,y2,x3,y3,checkX,checkY)
   local full = calc_triangle_area(x1,y1,x2,y2,x3,y3)
   local a1,a2,a3 = calc_triangle_area(x1,y1,x2,y2,checkX,checkY),calc_triangle_area(x1,y1,x3,y3,checkX,checkY),calc_triangle_area(x2,y2,x3,y3,checkX,checkY)

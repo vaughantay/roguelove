@@ -588,8 +588,8 @@ function Map:refresh_lightMap(clear) --I have a feeling this is a HORRIBLE and i
   
   --First, clear all the lights and assume everywhere is dark
   if clear and (not self.lit or self.lightMap[2][2] == false) then
-    for x=2,currMap.width,1 do
-      for y=2,currMap.height,1 do
+    for x=1,currMap.width,1 do
+      for y=1,currMap.height,1 do
         self.lightMap[x][y] = (self.lit and true or false)
       end
     end

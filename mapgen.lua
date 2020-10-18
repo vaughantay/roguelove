@@ -1,5 +1,345 @@
+---@module mapgen
 mapgen = {}
 
+---Create and populate a map
+--@param branchID Text. The branch ID the map is part of
+--@param depth Number. What depth or floor of said branch the map occurs on
+--@param force Text. The ID of a mapType to force this map to be. Optional
+--@return Map. The fresh new map
+function mapgen:generate_map(branchID, depth,force)
+  --set the random generator to use the seeded generator
+  local mapRandom = love.math.newRandomGenerator(currGame.seed)
+  if currGame.seedState then mapRandom:setState(currGame.seedState) end
+  random = function(...) return mapRandom:random(...) end
+
+  local branch = branches[branchID]
+  local forceMapType = branch.forceMapTypes and branch.forceMapTypes[depth]
+  if not forceMapType and force then forceMapType = force end --game will default to the branch's forced maps. But if the game definition has no forced map, then you can potentially pass in a forced map instead
+  local whichMap = nil
+  local id = nil
+  if forceMapType then --If forced map creation, assign the ID as appropriate
+    if forceMapType and mapTypes[forceMapType] then -- if the branch is forcing us to use a specific map
+      id = forceMapType
+    end
+  else --Non-forced map generation:
+    local index = get_random_key(branch.mapTypes)
+    id = branch.mapTypes[index]
+    if branch.allMapsUnique then --if the branch doesn't allow repeated levels
+      table.remove(branch.mapTypes,index)
+    end
+  end
+  whichMap = mapTypes[id]
+
+  --Figure out width and height. Order of preference: 1) mapType's dimensions, 2) branch's map dimensions, 3) game's default map dimensions
+  local width,height = whichMap.width or branch.mapWidth or gamesettings.default_map_width, whichMap.height or branch.mapHeight or gamesettings.default_map_height
+  if whichMap.min_width and whichMap.max_width then --if the branch has random values, use those
+    width = random(whichMap.min_width,whichMap.max_width)
+  elseif not whichMap.width and branch.min_map_width and branch.max_map_width then --if the map doesn't definine a specific width, but the branch has a random map width, use the branch's min and max values
+    width = random(branch.min_map_width,branch.max_map_width)
+  end
+  if whichMap.min_height and whichMap.max_height then
+    width = random(whichMap.min_width,whichMap.max_width)
+  elseif not whichMap.height and branch.min_map_height and branch.max_map_height then --if the map doesn't definine a specific width, but the branch has a random map width, use the branch's min and max values
+    width = random(branch.min_map_height,branch.max_map_height)
+  end
+  
+  --Basic initialization of empty map
+  local build = Map(width,height)
+  build.depth = depth
+  build.branch = branchID
+  build.id = branchID .. depth --the ID for this individual map
+  build.mapType = id --the ID of the mapType used to create the map
+  --End initialization
+  --Pull over the mapType's info
+  build.name = whichMap.name or (whichMap.generateName and whichMap.generateName()) or (whichMap.nameType and namegen:generate_name(whichMap.nameType)) or false
+  build.description = whichMap.description or (whichMap.generateDesc and whichMap.generateDesc()) or (whichMap.descType and namegen:generate_description(whichMap.descType)) or false
+  build.bossID = whichMap.boss
+  build.tileset = whichMap.tileset
+  build.playlist = whichMap.playlist or id
+  build.bossPlaylist = whichMap.bossPlaylist or id .. "boss"
+  build.lit = whichMap.lit
+  build.noCreats = whichMap.noCreats
+  build.noItems = whichMap.noItems
+  --Generate the map itself:
+  local success = true
+  if whichMap.create then
+    success = whichMap.create(build,width,height)
+  else
+    local whichLayout = get_random_element(whichMap.layouts)
+    local whichModifier = whichMap.modifiers and get_random_element(whichMap.modifiers) or false
+    success = layouts[whichLayout](build,width,height)
+    if success ~= false and whichModifier then
+      local args = whichMap.modifier_arguments and whichMap.modifier_arguments[whichModifier] or {}
+      success = mapModifiers[whichModifier](build,unpack(args))
+    end
+  end
+  if success == false then
+    print('failed to do modifier, regening')
+    currGame.seedState = mapRandom:getState()
+    random = love.math.random
+    return mapgen:generate_map(branchID, depth,force)
+  end
+  --Add tombstones:
+  mapgen:addTombstones(build)
+  --Add the pathfinder:
+  build:refresh_pathfinder()
+  -- define where the stairs should do, if they're not already added
+  if (build.stairsUp.x == 0 or build.stairsUp.y == 0 or build.stairsDown.x == 0 or build.stairsDown.y == 0) then
+    --build.stairsUp = {x=5,y=5}
+    --build.stairsDown = {x=10,y=10}
+    print('making generic stairs! Why?',build.stairsUp.x,build.stairsUp.y,build.stairsDown.x,build.stairsDown.y)
+    local s = mapgen:addGenericStairs(build,width,height,depth)
+    if s == false then
+      currGame.seedState = mapRandom:getState()
+      random = love.math.random
+      return mapgen:generate_map(branchID, depth,force)
+    end
+  end --end if stairs already exist
+  
+  --Add exits:
+  if build.depth > 1 then
+    local upStairs = Feature('exit',build.branch,build.depth-1)
+    build:change_tile(upStairs,build.stairsUp.x,build.stairsUp.y)
+  end
+  if build.depth < branch.floors then
+    local downStairs = Feature('exit',build.branch,build.depth+1)
+    build:change_tile(downStairs,build.stairsDown.x,build.stairsDown.y)
+  end
+  if branch.exits then
+    for floor,branch in pairs(branch.exits) do
+      if floor == build.depth then
+        local whichX,whichY = random(2,build.width-1),random(2,build.height-1)
+        local branchStairs = Feature('exit',branch,1)
+        build:change_tile(branchStairs,whichX,whichY)
+      end
+    end
+  end
+	--Add creatures:
+	if not build.noCreats then
+    local highest = math.max(width,height)
+    local specialCreats = mapgen:get_creature_list(build)
+		for creat_amt=1,highest,1 do
+			local nc = mapgen:generate_creature(depth,specialCreats)
+      if nc == false then break end
+      local cx,cy = random(2,build.width-1),random(2,build.height-1)
+      local tries = 0
+      while (build:is_passable_for(cx,cy,nc.pathType) == false or build:tile_has_feature(cx,cy,'door') or build:tile_has_feature(cx,cy,'gate') or calc_distance(cx,cy,build.stairsDown.x,build.stairsDown.y) < 3) or build[cx][cy] == "<" do
+        cx,cy = random(2,build.width-1),random(2,build.height-1)
+        tries = tries+1
+        if tries > 100 then break end
+      end
+      if tries ~= 100 then 
+        if random(1,4) == 1 then nc:give_condition('asleep',random(10,100)) end
+        build:add_creature(nc,cx,cy)
+      end --end tries if
+		end --end creature while
+	end --end depth if
+  --Add items:
+  if not build.noItems then
+    for item_amt = 1,100,1 do
+      local ni = mapgen:generate_item(depth)
+      if ni == false then break end
+      local ix,iy = random(2,build.width-1),random(2,build.height-1)
+      local tries = 0
+      while (build:isClear(ix,iy) == false or build[ix][iy] == "<" or build[ix][iy] == ">") do
+        ix,iy = random(2,build.width-1),random(2,build.height-1)
+        tries = tries+1
+        if tries > 100 then break end
+      end
+      if tries ~= 100 then 
+        build:add_item(ni,ix,iy)
+      end --end tries if
+    end
+  end
+  --Add stores:
+  if not build.noStores then
+    --TODO: Forcing stores to occur, getting # of stores, chance a store occurs
+    local newStore = Feature('store')
+    local tries = 0
+    local ix,iy = random(2,build.width-1),random(2,build.height-1)
+    while (build:isClear(ix,iy) == false or build[ix][iy] == "<" or build[ix][iy] == ">") do
+      ix,iy = random(2,build.width-1),random(2,build.height-1)
+      tries = tries+1
+      if tries > 100 then break end
+    end
+    if tries ~= 100 then 
+      build:add_feature(newStore,ix,iy)
+      print(ix,iy)
+    end --end tries if
+  end
+  --TODO: Add faction HQs:
+  
+  currGame.seedState = mapRandom:getState()
+  random = love.math.random
+	return build
+end
+
+---Get a list of possible creatures to spawn on the given map
+--@param map Map. The map to check
+--@return Table or nil. Either a table of creature IDs, or nil if there are no special creatures
+function mapgen:get_creature_list(map)
+  local whichMap = mapTypes[map.mapType]
+  local branch = branches[map.branch]
+  local specialCreats = nil
+  local cTypes = nil
+  local cFactions = nil
+  local cTags = nil
+  
+  --Look at specific creatures first:
+  if whichMap.creatures then
+    if whichMap.noBranchCreatures or not branch.creatures then
+      specialCreats = whichMap.creatures
+    else
+      specialCreats =  merge_tables(whichMap.creatures,branch.creatures)
+    end
+  else --if the mapTypes doesn't have creatures, fall back to the branch's creatures
+    specialCreats = branch.creatures --if branch doesn't have creatures, this will set it to nil and just use regular creatures
+  end
+  
+  --Look at creature types, factions and tags next:
+  if whichMap.creatureTypes then
+    if whichMap.noBranchCreatures or not branch.creatureTypes then
+      cTypes = whichMap.creatureTypes
+    else
+      cTypes =  merge_tables(whichMap.creatureTypes,branch.creatureTypes)
+    end
+  else --if the mapTypes doesn't have creatureTypes, fall back to the branch's creatureTypes
+    cTypes = branch.creatureTypes --if branch doesn't have creatureTypes, this will keep it as nil
+  end
+  if whichMap.creatureFactions then
+    if whichMap.noBranchCreatures or not branch.creatureFactions then
+      cFactions = whichMap.creatureFactions
+    else
+      cFactions =  merge_tables(whichMap.creatureFactions,branch.creatureFactions)
+    end
+  else --if the mapTypes doesn't have creatureFactions, fall back to the branch's creatureFactions
+    cFactions = branch.creatureFactions --if branch doesn't have creatureFactions, this will keep it as nil
+  end
+  if whichMap.creatureTags then
+    if whichMap.noBranchCreatures or not branch.creatureTags then
+      cTags = whichMap.creatureTags
+    else
+      cTags =  merge_tables(whichMap.creatureTags,branch.creatureTags)
+    end
+  else --if the mapTypes doesn't have creatureFactions, fall back to the branch's creatureFactions
+    cTags = branch.creatureTags --if branch doesn't have creatureFactions, this will keep it as nil
+  end
+  
+  --Add the types and factions to the specialCreats list
+  for cid,creat in pairs(possibleMonsters) do
+    local done = false
+    if cTypes then
+      for _,cType in pairs(cTypes) do
+        if Creature.is_type(creat,cType) then
+          done = true
+          break
+        end
+        if done == true then break end
+      end --end cType for
+    end --end cType if
+    if cFactions and not done then
+      for _,cFac in pairs(cFactions) do
+        if Creature.is_faction_member(creat,cFac) then
+          done = true
+          break
+        end
+        if done == true then break end
+      end --end cFac for
+    end --end faction if
+    if cTags and not done then
+      for _,cTag in pairs(cTags) do
+        if Creature.has_tag(creat,cTag) then
+          done = true
+          break
+        end
+        if done == true then break end
+      end --end cFac for
+    end --end faction if
+    if done then
+      specialCreats[#specialCreats+1] = cid
+    end
+  end
+  return specialCreats
+end
+
+---Initializes and creates a new creature at the given level. The creature itself must then actually be added to a map using Map:add_creature()
+--@param level The level of the desired creature
+--@param list Table. A specific list of creatures to choose from. Optional
+--@param allowAll Boolean. If True, creatures with the specialOnly flag can still be chosen (but bosses or creatures with the neverSpawn flag set still cannot). Optional
+--@return Creature. The new creature
+function mapgen:generate_creature(level,list,allowAll)
+  --Prevent an infinite loop if there are no creatures of a given level:
+  if not list then
+    local noCreats = true
+    for _,creat in pairs(possibleMonsters) do
+      if creat.level == level then noCreats = false break end
+    end
+    if noCreats == true then return false end
+  end
+  
+	-- This selects a random creature from the table of possible creatures, and compares the desired creature level to this creature's level. If it's a match, continue, otherwise select another one
+	while (1 == 1) do -- endless loop, broken by the "return"
+		local n = (list and get_random_element(list) or get_random_key(possibleMonsters))
+		if (list or possibleMonsters[n].level == level) and possibleMonsters[n].isBoss ~= true and possibleMonsters[n].neverSpawn ~= true and (allowAll or list or possibleMonsters[n].specialOnly ~= true) then
+			return Creature(n,level)
+		end
+	end
+end
+
+---Initializes and creates a new creature at the given level. The creature itself must then actually be added to the map using Map:add_item() TODO: Doesn't actually check for item levels yet, enchantments are basically guaranteed to be applied
+--@param level Number. The level of the item
+--@return Item. The new item
+function mapgen:generate_item(level)
+	local newItem = nil
+	-- This selects a random item from the table of possible loot
+	while (newItem == nil) do
+		local n = get_random_key(possibleItems)
+		if not n.neverSpawn and random(1,100) >= (n.rarity or 0) then
+			newItem = n
+    end
+  end
+  -- Create the actual item:
+	local item = Item(newItem)
+  --Add enchantments: TODO: Make this not ridiculous
+  if random(1,1) == 1 then
+    local eid = get_random_key(enchantments)
+    if item:qualifies_for_enchantment(eid) then
+      item:apply_enchantment(eid,random(5,10))
+    end
+  end
+  return item
+end
+
+---Creates an instance of a branch, to be attached to a given playthrough. Called at the beginning of the game, shouldn't need to be called in game unless you wanted to re-create a branch for some reason.
+--@param branchID Text. The ID of the branch
+--@return Table. The information for the new branch
+function mapgen:generate_branch(branchID)
+  local newBranch = {}
+  local data = dungeonBranches[branchID]
+  for key, val in pairs(data) do
+		if type(val) ~= "function" then
+      newBranch[key] = data[key]
+    end
+	end
+  if data.nameGen then
+    newBranch.name = data:nameGen()
+  elseif data.nameType then
+    newBranch.name = namegen:generate_name(data.nameType)
+  end
+  if data.new then
+    data.new(newBranch)
+  end
+  self.id = branchID
+	return newBranch
+end
+
+---Perform a floodfill operation, getting all walls or floors that touch. Only works for walls and floors, not features.
+--@param map Map. The map to look at
+--@param lookFor String. Either "." or "#" although if your maps use other strings it could look for those too. Defaults to "."
+--@param startX Number. The X-coordinate to start at. Optional, will pick a randon tile if blank
+--@param startY Number. The Y-coordinate to start at. Optional, will pick a random tile if blank
+--@return Table. A table covering the whole map, in the format Table[x][y] = true or false, for whether the given tile matches lookFor
+--@return Number. The number of tiles found
 function mapgen:floodFill(map,lookFor,startX,startY)
 	local floodFill = {}
   local numTiles = 0
@@ -27,6 +367,17 @@ function mapgen:floodFill(map,lookFor,startX,startY)
 	return floodFill,numTiles
 end
 
+---Looks at the tiles next to a given tile, to see if they match. Used by the floodFill() function, probably shouldn't be used by itself.
+--@param map Map. The map to look at
+--@param x Number. The X-coordinate to look at
+--@param y Number. The Y-coordinate to look at
+--@param floodFill Table. The table of floodFill values.
+--@param lookFor String. Either "." or "#" although if your maps use other strings it could look for those too. Defaults to "."
+--@param numTiles Number. The number of tiles currently matching the floodfill criteria
+--@param check Table. A table full of values to be checked.
+--@return Table. A table covering the whole map, in the format Table[x][y] = true or false, for whether the given tile matches lookFor
+--@return Number. The number of tiles found
+--@return Table. A table full of values that still need to be checked
 function mapgen:floodTile(map, x,y,floodFill,lookFor,numTiles,check)
 	-- Cycles through a tile and its immediate neighbors. Sets clear spaces in floodFill to true, non-clear spaces to false.
 	for ix=x-1,x+1,1 do
@@ -45,6 +396,13 @@ function mapgen:floodTile(map, x,y,floodFill,lookFor,numTiles,check)
   return floodFill,numTiles,check
 end -- end function
 
+---Add a river to a map.
+--@param map Map. The map to add the river to
+--@param tile Feature. The feature to use to fill the river
+--@param noBridges Boolean. If set to True, don't make bridges over the river. Otherwise, make bridges. Optional
+--@param bridgeData Anything. Arguments to pass to the bridge's new() function. Optional
+--@param minDist Number. The minimum distance that must be between bridges. Optional, defaults to 5.
+--@return Table. A table of the tiles along the river's shore.
 function mapgen:addRiver(map, tile, noBridges,bridgeData,minDist,clearTiles)
   local shores = {}
   
@@ -164,6 +522,13 @@ function mapgen:addRiver(map, tile, noBridges,bridgeData,minDist,clearTiles)
   return shores
 end -- end function
 
+---Add a bridge
+--@param map Map. The map to add edges to.
+--@param fromX Number. The x-coordinate to start at
+--@param fromY Number. The y-coordinate to start at
+--@param toX Number. The x-coordinate to end at
+--@param toY Number. The y-coordinate to end at
+--@param data Anything. The data to pass to the bridge's new() function
 function mapgen:buildBridge(map,fromX,fromY,toX,toY,data)
   if fromX == toX and fromY ~= toY then --vertical bridge
     local yMod = 0
@@ -202,6 +567,11 @@ function mapgen:buildBridge(map,fromX,fromY,toX,toY,data)
   end
 end
 
+---Add jagged edges to the borders of the map, to make it more visually interesting than just flat walls.
+--@param map Map. The map to add edges to.
+--@param width Number. The width of the map.
+--@param height Number. The height of the map.
+--@param onlyFeature Text. If this is left blank, the new walls will be created no matter what. If it's the ID of a feature, the walls will only be created if the tile has that feature on it.
 function mapgen:makeEdges(map,width,height,onlyFeature)
   local topThick,bottomThick = 1,1
   for x=2,width-1,1 do
@@ -227,7 +597,11 @@ function mapgen:makeEdges(map,width,height,onlyFeature)
   end --end forx
 end
 
-function mapgen:addGenericStairs(build,width,height,depth)
+---Randomly add stairs to the map, generally on opposite sides.
+--@param build Map. The map to add the stairs to.
+--@param width Number. The width of the map
+--@param height Number. The height of the map
+function mapgen:addGenericStairs(build,width,height)
   local acceptable = false
   local count = 1
   while (acceptable == false) do
@@ -307,6 +681,8 @@ function mapgen:addGenericStairs(build,width,height,depth)
   end -- end while loop
 end
 
+---Add tombstones to the map of previous player characters who have died here. TODO: This probably doesn't work with branches!
+--@param map Map. The map to add the tombstones to.
 function mapgen:addTombstones(map)
   local graves = load_graveyard()
   if graves[map.depth] == nil then return false end
@@ -326,6 +702,9 @@ function mapgen:addTombstones(map)
   end
 end
 
+---Completely clear everything from a map.
+--@param map Map. The map to clear
+--@param open Boolean. If True, make the whole map open floor. Otherwise, fill it with walls. Optional
 function mapgen:clear_map(map,open)
   for x = 1, map.width, 1 do
 		for y = 1, map.height, 1 do
@@ -340,6 +719,14 @@ function mapgen:clear_map(map,open)
 	end
 end
 
+---Make a procedurally-generated blob on the map
+--@param map Map. The map to make the blob on
+--@param startX Number. The starting X coordinate
+--@param startY Number. The starting Y coordinate
+--@param feature Text. The ID of the feature to make the blob out of
+--@param decay Number. The % by which to decrease the chance that after a tile is made part of the blob, the next tiles will also be made part of the blob. Optional, defaults to 10
+--@param includeWalls Boolean. Whether or not walls will be absorbed by the blob. Optional, if blank, the blob will form around walls
+--@return Table. A table of tile coordinates that are part of the blob
 function mapgen:make_blob(map,startX,startY,feature,decay,includeWalls)
   decay = decay or 10
   local points = {{x=startX,y=startY,spreadChance=100}}
@@ -369,215 +756,12 @@ function mapgen:make_blob(map,startX,startY,feature,decay,includeWalls)
   return finalPoints
 end
 
-function mapgen:generate_map(width, height, branchID, depth,force)
-  --set the random generator to use the seeded generator
-  local mapRandom = love.math.newRandomGenerator(currGame.seed)
-  if currGame.seedState then mapRandom:setState(currGame.seedState) end
-  random = function(...) return mapRandom:random(...) end
-  
-  --Basic initialization of empty map
-  local build = Map(width,height)
-  build.depth = depth
-  build.branch = branchID
-  --End initialization
-
-  local branch = branches[branchID]
-  local specialCreats = nil
-  local forceMapType = branch.forceMapTypes and branch.forceMapTypes[depth]
-  if not forceMapType and force then forceMapType = force end --game will default to the branch's forced maps. But if the game definition has no forced map, then you can potentially pass in a forced map instead
-  local whichMap = nil
-  local id = nil
-  if forceMapType then --If forced map creation, assign the ID as appropriate
-    if forceMapType and mapTypes[forceMapType] then -- if the branch is forcing us to use a specific map
-      id = forceMapType
-    end
-  else --Non-forced map generation:
-    local index = get_random_key(branch.mapTypes)
-    id = branch.mapTypes[index]
-    if branch.allMapsUnique then --if the branch doesn't allow repeated levels
-      table.remove(branch.mapTypes,index)
-    end
-  end
-  whichMap = mapTypes[id]
-  build.id = branchID .. depth
-  build.mapID = id
-  --Pull over the map's info
-  build.name = whichMap.name or (whichMap.generateName and whichMap.generateName()) or (whichMap.nameType and namegen:generate_name(whichMap.nameType)) or false
-  build.description = whichMap.description or (whichMap.generateDesc and whichMap.generateDesc()) or (whichMap.descType and namegen:generate_description(whichMap.descType)) or false
-  specialCreats = whichMap.creatures
-  build.bossID = whichMap.boss
-  build.tileset = whichMap.tileset
-  build.playlist = whichMap.playlist or id
-  build.bossPlaylist = whichMap.bossPlaylist or id .. "boss"
-  build.lit = whichMap.lit
-  build.noCreats = whichMap.noCreats
-  --Generate the map itself:
-  local success = true
-  if whichMap.create then
-    success = whichMap.create(build,width,height)
-  else
-    local whichLayout = get_random_element(whichMap.layouts)
-    local whichModifier = whichMap.modifiers and get_random_element(whichMap.modifiers) or false
-    success = layouts[whichLayout](build,width,height)
-    if success ~= false and whichModifier then
-      local args = whichMap.modifier_arguments and whichMap.modifier_arguments[whichModifier] or {}
-      success = mapModifiers[whichModifier](build,unpack(args))
-    end
-  end
-  if success == false then
-    print('failed to do modifier, regening')
-    currGame.seedState = mapRandom:getState()
-    random = love.math.random
-    return mapgen:generate_map(width, height, branchID, depth,force)
-  end
-  --Add tombstones:
-  mapgen:addTombstones(build)
-  --Add the pathfinder:
-  build:refresh_pathfinder()
-  -- define where the stairs should do, if they're not already added
-  if (build.stairsUp.x == 0 or build.stairsUp.y == 0 or build.stairsDown.x == 0 or build.stairsDown.y == 0) then
-    --build.stairsUp = {x=5,y=5}
-    --build.stairsDown = {x=10,y=10}
-    print('making generic stairs! Why?',build.stairsUp.x,build.stairsUp.y,build.stairsDown.x,build.stairsDown.y)
-    local s = mapgen:addGenericStairs(build,width,height,depth)
-    if s == false then
-      currGame.seedState = mapRandom:getState()
-      random = love.math.random
-      return mapgen:generate_map(width, height, branchID, depth,force)
-    end
-  end --end if stairs already exist
-  
-  --Add exits:
-  if build.depth > 1 then
-    local upStairs = Feature('exit',build.branch,build.depth-1)
-    build:change_tile(upStairs,build.stairsUp.x,build.stairsUp.y)
-  end
-  if build.depth < branch.floors then
-    local downStairs = Feature('exit',build.branch,build.depth+1)
-    build:change_tile(downStairs,build.stairsDown.x,build.stairsDown.y)
-  end
-  for floor,branch in pairs(branch.exits) do
-    if floor == build.depth then
-      local whichX,whichY = random(2,build.width-1),random(2,build.height-1)
-      local branchStairs = Feature('exit',branch,1)
-      build:change_tile(branchStairs,whichX,whichY)
-    end
-  end
-	--Add creatures:
-	if not build.noCreats then
-    local highest = math.max(width,height)
-		for creat_amt=1,highest,1 do
-			local nc = mapgen:generate_creature(depth,specialCreats)
-      if nc == false then break end
-      local cx,cy = random(2,build.width-1),random(2,build.height-1)
-      local tries = 0
-      while (build:is_passable_for(cx,cy,nc.pathType) == false or build:tile_has_feature(cx,cy,'door') or build:tile_has_feature(cx,cy,'gate') or calc_distance(cx,cy,build.stairsDown.x,build.stairsDown.y) < 3) or build[cx][cy] == "<" do
-        cx,cy = random(2,build.width-1),random(2,build.height-1)
-        tries = tries+1
-        if tries > 100 then break end
-      end
-      if tries ~= 100 then 
-        if random(1,4) == 1 then nc:give_condition('asleep',random(10,100)) end
-        build:add_creature(nc,cx,cy)
-      end --end tries if
-		end --end creature while
-	end --end depth if
-  --Add items:
-  if not build.noItems then
-    for item_amt = 1,100,1 do
-      local ni = mapgen:generate_item(depth)
-      if ni == false then break end
-      local ix,iy = random(2,build.width-1),random(2,build.height-1)
-      local tries = 0
-      while (build:isClear(ix,iy) == false or build[ix][iy] == "<" or build[ix][iy] == ">") do
-        ix,iy = random(2,build.width-1),random(2,build.height-1)
-        tries = tries+1
-        if tries > 100 then break end
-      end
-      if tries ~= 100 then 
-        build:add_item(ni,ix,iy)
-      end --end tries if
-    end
-  end
-  --Add store:
-  local newStore = Feature('store')
-  local tries = 0
-  local ix,iy = random(2,build.width-1),random(2,build.height-1)
-  while (build:isClear(ix,iy) == false or build[ix][iy] == "<" or build[ix][iy] == ">") do
-    ix,iy = random(2,build.width-1),random(2,build.height-1)
-    tries = tries+1
-    if tries > 100 then break end
-  end
-  if tries ~= 100 then 
-    build:add_feature(newStore,ix,iy)
-    print(ix,iy)
-  end --end tries if
-  
-  currGame.seedState = mapRandom:getState()
-  random = love.math.random
-	return build
-end
-
--- This initializes and creates a new creature at the given level, applying a class if necessary and returning the creature object
-function mapgen:generate_creature(level,list,allowAll)
-  --Prevent an infinite loop if there are no creatures of a given level:
-  if not list then
-    local noCreats = true
-    for _,creat in pairs(possibleMonsters) do
-      if creat.level == level then noCreats = false break end
-    end
-    if noCreats == true then return false end
-  end
-  
-	-- This selects a random creature from the table of possible creatures, and compares the desired creature level to this creature's level. If it's a match, continue, otherwise select another one
-	while (1 == 1) do -- endless loop, broken by the "return"
-		local n = (list and get_random_element(list) or get_random_key(possibleMonsters))
-		if (list or possibleMonsters[n].level == level) and possibleMonsters[n].isBoss ~= true and possibleMonsters[n].neverSpawn ~= true and (allowAll or list or possibleMonsters[n].specialOnly ~= true) then
-			return Creature(n,level)
-		end
-	end
-end
-
-function mapgen:generate_item(level)
-	local newItem = nil
-	-- This selects a random item from the table of possible loot
-	while (newItem == nil) do
-		local n = get_random_key(possibleItems)
-		if not n.neverSpawn and random(1,100) >= (n.rarity or 0) then
-			newItem = n
-    end
-  end
-  -- Create the actual item:
-	local item = Item(newItem)
-  --Add enchantments: TODO: Make this not ridiculous
-  if random(1,1) == 1 then
-    local eid = get_random_key(enchantments)
-    if item:qualifies_for_enchantment(eid) then
-      item:apply_enchantment(eid,random(5,10))
-    end
-  end
-  return item
-end
-
-function mapgen:generate_branch(branchID)
-  local newBranch = {}
-  local data = dungeonBranches[branchID]
-  for key, val in pairs(data) do
-		if type(val) ~= "function" then
-      newBranch[key] = data[key]
-    end
-	end
-  if data.nameGen then
-    newBranch.name = data:nameGen()
-  end
-  if data.new then
-    data.new(newBranch)
-  end
-  self.id = branchID
-	return newBranch
-end
-
---Possible types: "wall": next to wall only, "noWalls": not next to wall, "wallsCorners": open walls and corners only, "corners": corners only
+---Determines if a tile is safe to block. Useful in map generators for placing decorations. TODO: Maybe this should be moved to the Map class?
+--@param map Map. The map on which we're operating
+--@param startX Number. The X-coordinate we're looking at
+--@param startY Number. The Y-coordinate we're looking at
+--@param safeType Text. Determines what counts as safe to block. "wall": next to wall only, "noWalls": not next to wall, "wallsCorners": open walls and corners only, "corners": corners only
+--@return Boolean. Whether the tile is safe to block or not.
 function mapgen:is_safe_to_block(map,startX,startY,safeType)
   local minX,minY,maxX,maxY=startX-1,startY-1,startX+1,startY+1
   local cardinals,corners = {},{}
@@ -680,6 +864,11 @@ function mapgen:is_safe_to_block(map,startX,startY,safeType)
   return false
 end
 
+---Gets all the "safe to block" tiles in a given room. Takes a list of tiles and runs mapgen:is_safe_to_block on them.
+--@param map Map. The map we're operating on
+--@param room Room. A room as returned by a roomGenerator. Can also pass in a custom table with a list of tiles in a subtable called floors.
+--@param openType Text. Determines what counts as "safe." "wall": next to wall only, "noWalls": not next to wall, "wallsCorners": open walls and corners only, "corners": corners only
+--@return Table. A table of tiles deemed safe to block.
 function mapgen:get_all_safe_to_block(map,room,openType)
   local safe = {}
   for _,floor in pairs(room.floors) do
@@ -690,6 +879,10 @@ function mapgen:get_all_safe_to_block(map,room,openType)
   return safe
 end
 
+---"Contour-bombs" open tiles, basically drawing open circles around tiles to make a more organic-looking space.
+--@param map Map. The map we're operating on.
+--@param tiles Table. A table of the tiles to look at. Optional, defaults to all tiles in the map
+--@param iterations The number of times to run the bombing. Optional, defaults to the count of the tiles multiplied by a number between 2 and 5.
 function mapgen:contourBomb(map,tiles,iterations)
   local newTiles = {}
   --First, get all open tiles, if a list isn't provided:
@@ -726,53 +919,4 @@ function mapgen:contourBomb(map,tiles,iterations)
       end --end fory
     end --end forx
   end --end adding circles
-end
-
---Unused Digger Shit
-digger={}
-digger.__index = digger
-
-function digger:new(x,y,direction)
-	newDigger = {x=x,y=y,direction=direction or random(1,4),line=random(3,10)}
-	setmetatable(newDigger,digger)
-	return newDigger
-end
-
-function digger:dig(map)
-	-- first of all, if a digger is stuck in the open, nowhere to dig, teleport it to some random place
-	while (map[self.x][self.y] == "." and map[self.x-1][self.y] == "." and map[self.x+1][self.y] == "." and map[self.x][self.y-1] == "." and map[self.x][self.y+1] == ".") do
-		self.x = random(2,map.width-1)
-		self.y = random(2,map.height-1)
-	end
-	
-	if (self.x > 1 and self.x < map.width and self.y > 1 and self.y < map.height and map[self.x][self.y] == "#") then --not on a border, and don't replace stairs or whatever
-		map[self.x][self.y] = "." -- dig!
-	end
-	self.line = self.line - 1
-	
-	while ((self.line == 0) or (self.x == 2 and self.direction == 4) or (self.x == map.width-1 and self.direction == 2) or (self.y == 2 and self.direction == 1) or (self.y == map.height-1 and self.direction == 3)) do
-		self:turn()
-	end
-	
-	--move!
-	if (self.direction == 1) then
-		self.y = self.y - 1
-	elseif (self.direction == 2) then
-		self.x = self.x + 1
-	elseif (self.direction == 3) then
-		self.y = self.y + 1
-	elseif (self.direction == 4) then
-		self.x = self.x - 1
-	end
-	
-	if (map[self.x][self.y] == ".") then
-		return false
-	end
-end
-
-function digger:turn()
-	self.direction = self.direction + random(-1,1) -- CLEVER?!
-	if (self.direction == 5) then self.direction = 1 end
-	if (self.direction == 0) then self.direction = 4 end
-	self.line = random(3,10)
 end

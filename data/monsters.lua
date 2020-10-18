@@ -95,13 +95,46 @@ local demonhunter = {
 }
 possibleMonsters['demonhunter'] = demonhunter
 
+local townsperson = {
+  name="townsperson",
+  description="A simple farmer, salt of the earth.",
+  types = {"intelligent","human"},
+  ai_flags={"passive"},
+  factions={"village"},
+  symbol = "p",
+  nameType = "human",
+  gender="either",
+  specialOnly=true,
+  level = 0,
+  strength = 1,
+  possession_chance = 80,
+  max_hp = 10,
+  melee = 1,
+  dodging = 1,
+  perception = 5,
+  aggression = 0,
+  notice_chance = 100,
+  bravery=0,
+  color={r=219,g=150,b=79,a=255},
+  animated=true,
+  spritesheet=true,
+  animation_time=0.5,
+  image_max=2,
+  image_name = "villager1",
+  image_varieties=3,
+  new = function(self)
+    self.soundgroup = "human_" .. self.gender .. "_medium"
+    self.description = namegen:generate_villager_description(self)
+  end
+}
+possibleMonsters['townsperson'] = townsperson
+
 local playerChar = {
   name = "hero",
   description = "A real human being, and a real hero.",
   symbol = "n",
   types={"human","intelligent"},
   nameType = "human",
-  possession_chance = 30,
   max_hp = 275,
   level = 8,
   melee = 25,

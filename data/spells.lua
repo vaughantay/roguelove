@@ -110,4 +110,14 @@ smite = Spell({
     end, --end use function
   }),
 
+recall = Spell({
+    name = "Homecoming",
+    description = "Teleport immediately to the town.",
+    target_type = "self",
+    cast = function(self,caster)
+      if caster == player then
+        goToFloor(1,"town",true)
+      end
+    end
+  }),
 }

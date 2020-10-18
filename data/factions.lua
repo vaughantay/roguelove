@@ -69,3 +69,13 @@ possibleFactions['chaos'] = {
   hidden = true,
   neverJoin = true
 }
+
+possibleFactions['village'] = {
+  name = "Village",
+  description = "The peaceful villagers.",
+  hidden = true,
+  neverJoin = true,
+  attackEnemyPlayerOnly = true,
+  hostileThreshold = -10, 
+  friendlyThreshold = 0
+}

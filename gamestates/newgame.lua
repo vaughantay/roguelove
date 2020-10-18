@@ -561,4 +561,6 @@ function newgame:startGame()
   output:setCursor(0,0)
   currGame.cheats = self.cheats
   if currGame.cheats.fullMap == true then currMap:reveal() end
+  currMap:refresh_lightMap(true) -- refresh the lightmap, forcing it to refresh all lights
+  refresh_player_sight()
 end    
