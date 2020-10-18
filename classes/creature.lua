@@ -2157,6 +2157,16 @@ function Creature:has_ai_flag(flag)
   return false
 end
 
+---Checks if an creature has a descriptive tag.
+--@param tag String. The tag to check for
+--@return Boolean. Whether or not it has the tag.
+function Creature:has_tag(tag)
+  if self.tags and in_table(tag,self.tags) then
+    return true
+  end
+  return false
+end
+
 ---Get all possible recipes the creature can craft
 --@return Table. A table with the IDs of all craftable recipes
 function Creature:get_all_possible_recipes()
@@ -2211,6 +2221,8 @@ end
 
 ---Craft a recipe
 --@param recipeID Text. The ID of the recipe to craft
+--@return Boolean. If the recipe was successfully created
+--@return Text. The result text of the recipe
 function Creature:craft_recipe(recipeID)
   local recipe = possibleRecipes[recipeID]
   for item,amt in pairs(recipe.ingredients) do
