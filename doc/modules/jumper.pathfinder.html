@@ -47,6 +47,8 @@
   <li><a href="../modules/jumper.grid.html">jumper.grid</a></li>
   <li><strong>jumper.pathfinder</strong></li>
   <li><a href="../modules/lib.serialize.html">lib.serialize</a></li>
+  <li><a href="../modules/mapgen.html">mapgen</a></li>
+  <li><a href="../modules/output.html">output</a></li>
   <li><a href="../modules/util.html">util</a></li>
 </ul>
 <h2>Scripts</h2>
@@ -232,13 +234,13 @@ end
          a `grid` object
         </li>
         <li><span class="parameter">finderName</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.3/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
          the name of the `finder` (search algorithm) to be used for further searches.
  Defaults to `ASTAR` when not given. Use <a href="../modules/jumper.pathfinder.html#getFinders">pathfinder:getFinders</a> to get the full list of available finders..
          (<em>optional</em>)
         </li>
         <li><span class="parameter">walkable</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.3/manual.html#6.4">string</a>, <span class="type">int</span> or <span class="type">function</span></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a>, <span class="type">int</span> or <span class="type">function</span></span>
          the value for walkable nodes on the passed-in map array.
  If this parameter is a function, it should be prototyped as `f(value)`, returning a boolean:
  `true` when value matches a *walkable* node, `false` otherwise.
@@ -309,7 +311,7 @@ end
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">walkable</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.3/manual.html#6.4">string</a>, <span class="type">int</span> or <span class="type">function</span></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a>, <span class="type">int</span> or <span class="type">function</span></span>
          the value for walkable nodes on the passed-in map array.
  If this parameter is a function, it should be prototyped as `f(value)`, returning a boolean:
  `true` when value matches a *walkable* node, `false` otherwise.
@@ -333,7 +335,7 @@ end
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.3/manual.html#6.4">string</a>, <span class="type">int</span> or <span class="type">function</span></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a>, <span class="type">int</span> or <span class="type">function</span></span>
         the `walkable` previously set
     </ol>
 
@@ -353,7 +355,7 @@ end
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">finderName</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.3/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
          the name of the finder to be used for further searches.
         </li>
     </ul>
@@ -379,7 +381,7 @@ end
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.3/manual.html#6.4">string</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
         the name of the finder to be used for further searches.
     </ol>
 
@@ -399,7 +401,7 @@ end
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.3/manual.html#6.4">{string,...}</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">{string,...}</a></span>
         array of finders names.
     </ol>
 
@@ -420,7 +422,7 @@ end
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">heuristic</span>
-            <span class="types"><span class="type">function</span> or <a class="type" href="https://www.lua.org/manual/5.3/manual.html#6.4">string</a></span>
+            <span class="types"><span class="type">function</span> or <a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
          a heuristic function, prototyped as `f(dx,dy)` or a string.
         </li>
     </ul>
@@ -466,7 +468,7 @@ end
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.3/manual.html#6.4">{string,...}</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">{string,...}</a></span>
         array of heuristic names.
     </ol>
 
@@ -488,7 +490,7 @@ end
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">mode</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.3/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
          the new search mode.
         </li>
     </ul>
@@ -514,7 +516,7 @@ end
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.3/manual.html#6.4">string</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
         the current search mode
     </ol>
 
@@ -534,7 +536,7 @@ end
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.3/manual.html#6.4">{string,...}</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">{string,...}</a></span>
         array of search modes.
     </ol>
 
@@ -554,10 +556,10 @@ end
     <h3>Returns:</h3>
     <ol>
         <li>
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.3/manual.html#6.4">string</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
         the version of the current implementation</li>
         <li>
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.3/manual.html#6.4">string</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
         the release of the current implementation</li>
     </ol>
 
@@ -638,7 +640,7 @@ end
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.4.6</a></i>
-<i style="float:right;">Last updated 2020-03-04 19:30:04 </i>
+<i style="float:right;">Last updated 2020-10-18 15:15:49 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

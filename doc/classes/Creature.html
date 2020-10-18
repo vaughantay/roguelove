@@ -61,6 +61,8 @@
   <li><a href="../modules/jumper.grid.html">jumper.grid</a></li>
   <li><a href="../modules/jumper.pathfinder.html">jumper.pathfinder</a></li>
   <li><a href="../modules/lib.serialize.html">lib.serialize</a></li>
+  <li><a href="../modules/mapgen.html">mapgen</a></li>
+  <li><a href="../modules/output.html">output</a></li>
   <li><a href="../modules/util.html">util</a></li>
 </ul>
 <h2>Scripts</h2>
@@ -220,7 +222,7 @@
 	<td class="summary">Remove an item from a creature's inventory</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#Creature:has_item">Creature:has_item (item)</a></td>
+	<td class="name" nowrap><a href="#Creature:has_item">Creature:has_item (item, enchantments)</a></td>
 	<td class="summary">Check if a creature has an instance of an item ID</td>
 	</tr>
 	<tr>
@@ -404,20 +406,40 @@
 	<td class="summary">Gets the creature's critical_chance stat value, including bonuses</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#Creature:get_spells">Creature:get_spells ()</a></td>
+	<td class="name" nowrap><a href="#Creature:get_spells">Creature:get_spells (noEquip)</a></td>
 	<td class="summary">Get all spells the creature has, including those granted by equipment</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:has_spell">Creature:has_spell (spellName, noEquip)</a></td>
+	<td class="summary">Checks if the creature possesses a certain spell</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:learn_spell">Creature:learn_spell (spellID)</a></td>
+	<td class="summary">Add a spell to a creature's spell list</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#Creature:get_ranged_attacks">Creature:get_ranged_attacks ()</a></td>
 	<td class="summary">Get all ranged attacks the creature has, including those granted by equipment</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#Creature:has_spell">Creature:has_spell (spellName)</a></td>
-	<td class="summary">Checks if the creature possesses a certain spell</td>
-	</tr>
-	<tr>
 	<td class="name" nowrap><a href="#Creature:has_ai_flag">Creature:has_ai_flag (spellName)</a></td>
 	<td class="summary">Checks if the creature possesses a certain AI flag</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:has_tag">Creature:has_tag (tag)</a></td>
+	<td class="summary">Checks if an creature has a descriptive tag.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:get_all_possible_recipes">Creature:get_all_possible_recipes ()</a></td>
+	<td class="summary">Get all possible recipes the creature can craft</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:can_craft_recipe">Creature:can_craft_recipe (recipeID)</a></td>
+	<td class="summary">Check if it's possible to craft a recipe</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:craft_recipe">Creature:craft_recipe (recipeID)</a></td>
+	<td class="summary">Craft a recipe</td>
 	</tr>
 </table>
 
@@ -1245,7 +1267,7 @@
 </dd>
     <dt>
     <a name = "Creature:has_item"></a>
-    <strong>Creature:has_item (item)</strong>
+    <strong>Creature:has_item (item, enchantments)</strong>
     </dt>
     <dd>
     Check if a creature has an instance of an item ID
@@ -1255,6 +1277,9 @@
     <ul>
         <li><span class="parameter">item</span>
          Item. The item ID to check for
+        </li>
+        <li><span class="parameter">enchantments</span>
+         Table. The table of echantments to match (optional)
         </li>
     </ul>
 
@@ -2287,18 +2312,72 @@
 </dd>
     <dt>
     <a name = "Creature:get_spells"></a>
-    <strong>Creature:get_spells ()</strong>
+    <strong>Creature:get_spells (noEquip)</strong>
     </dt>
     <dd>
     Get all spells the creature has, including those granted by equipment
 
 
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">noEquip</span>
+         Boolean. If true, ignore spells granted by equipment.
+        </li>
+    </ul>
 
     <h3>Returns:</h3>
     <ol>
 
         Table. A list of the creature's spells
     </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:has_spell"></a>
+    <strong>Creature:has_spell (spellName, noEquip)</strong>
+    </dt>
+    <dd>
+    Checks if the creature possesses a certain spell
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">spellName</span>
+         String. The name of the spell
+        </li>
+        <li><span class="parameter">noEquip</span>
+         Boolean. If true, ignore spells granted by equipment
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether the creature has the spell
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:learn_spell"></a>
+    <strong>Creature:learn_spell (spellID)</strong>
+    </dt>
+    <dd>
+    Add a spell to a creature's spell list
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">spellID</span>
+         Text. The ID of the spell to learn
+        </li>
+    </ul>
+
 
 
 
@@ -2317,31 +2396,6 @@
     <ol>
 
         Table. A list of the creature's ranged attacks
-    </ol>
-
-
-
-
-</dd>
-    <dt>
-    <a name = "Creature:has_spell"></a>
-    <strong>Creature:has_spell (spellName)</strong>
-    </dt>
-    <dd>
-    Checks if the creature possesses a certain spell
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">spellName</span>
-         String. The name of the spell
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-        Boolean. Whether the creature has the spell
     </ol>
 
 
@@ -2373,6 +2427,102 @@
 
 
 </dd>
+    <dt>
+    <a name = "Creature:has_tag"></a>
+    <strong>Creature:has_tag (tag)</strong>
+    </dt>
+    <dd>
+    Checks if an creature has a descriptive tag.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">tag</span>
+         String. The tag to check for
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether or not it has the tag.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:get_all_possible_recipes"></a>
+    <strong>Creature:get_all_possible_recipes ()</strong>
+    </dt>
+    <dd>
+    Get all possible recipes the creature can craft
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A table with the IDs of all craftable recipes
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:can_craft_recipe"></a>
+    <strong>Creature:can_craft_recipe (recipeID)</strong>
+    </dt>
+    <dd>
+    Check if it's possible to craft a recipe
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">recipeID</span>
+         String. The ID of the recipe
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether or not the recipe can be crafted
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:craft_recipe"></a>
+    <strong>Creature:craft_recipe (recipeID)</strong>
+    </dt>
+    <dd>
+    Craft a recipe
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">recipeID</span>
+         Text. The ID of the recipe to craft
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+        Boolean. If the recipe was successfully created</li>
+        <li>
+        Text. The result text of the recipe</li>
+    </ol>
+
+
+
+
+</dd>
 </dl>
 
 
@@ -2380,7 +2530,7 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.4.6</a></i>
-<i style="float:right;">Last updated 2020-03-04 19:30:04 </i>
+<i style="float:right;">Last updated 2020-10-18 15:15:49 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>
