@@ -3,16 +3,22 @@ newgame = {whiteAlpha=0,cheats = {}}
 function newgame:enter(previous)
   self.lineCountdown = 0.5
   self.lineOn = true
-  if not self.seed or previous == menu then self.seed = random(999999,2147483647) end
   self.blackAmt=nil
-  if not totalstats or not totalstats.games or totalstats.games == 0 then
-    self.tutorial = true
+  if previous ~= cheats then
+    if not self.seed or previous == menu then self.seed = random(999999,2147483647) end
+    if not totalstats or not totalstats.games or totalstats.games == 0 then
+      self.tutorial = true
+    end
+    self.class = nil
+    self.cursorY = 1
+    self.cursorX = 1
   end
-  self.class = nil
   self.afterClassIndex = 3
   self.classes = {}
-  self.cursorY = 1
-  self.cursorX = 1
+  for id,class in pairs(playerClasses) do
+    self.classes[#self.classes+1] = {classID=id,name=class.name}
+  end
+  sort_table(self.classes,"name")
 end
 
 function newgame:draw()
@@ -145,8 +151,9 @@ function newgame:draw()
   local printY = classBoxY
   local index = 3
   local whichClass = nil
-  self.classes = {}
-  for id,class in pairs(playerClasses) do
+  for i,c in ipairs(self.classes) do
+    local id = c.classID
+    local class = playerClasses[id]
     local moused = (mouseY >= printY and mouseY <= printY+fontSize and mouseX >= classBoxX and mouseX <= classBoxX+classBoxW)
     if self.class == id then
       setColor(100,100,100,255)
@@ -162,7 +169,7 @@ function newgame:draw()
     end
     setColor(255,255,255,255)
     love.graphics.print(class.name,classBoxX+2,printY)
-    self.classes[#self.classes+1] = {classID=id,minX=classBoxX,maxX=classBoxX+classBoxW,minY=printY,maxY=printY+fontSize}
+    self.classes[i] = {classID=id,minX=classBoxX,maxX=classBoxX+classBoxW,minY=printY,maxY=printY+fontSize}
     printY = printY+fontSize
     index = index + 1
   end
@@ -196,14 +203,15 @@ function newgame:draw()
       if (class.items and #class.items > 0) then
         for i,item in ipairs(class.items) do
           if i ~= 1 then desc = desc .. ", " end
-          desc = desc .. ucfirst(possibleItems[item].name)
+          local amount = item.amount or 1
+          desc = desc .. (amount > 1 and amount .. " " or "") .. ucfirst(item.displayName or (amount > 1 and possibleItems[item.item].pluralName or possibleItems[item.item].name))
           hasItems = true
         end
       end
       if (class.equipment and #class.equipment > 0) then
         for i,item in ipairs(class.equipment) do
           if i ~= 1 or hasItems then desc = desc .. ", " end
-          desc = desc .. ucfirst(possibleItems[item].name)
+          desc = desc .. ucfirst(item.displayName or possibleItems[item.item].name)
         end
       end
       desc = desc .. "\n"

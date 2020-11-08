@@ -67,7 +67,7 @@ function town.create(map,width,height)
   
   --Add stairs in the middle:
   local midX, midY = round(width/2),round(height/2)
-  local stairs = Feature('exit',"main",1)
+  local stairs = Feature('exit',{branch="main"})
   map:change_tile(stairs,midX,midY)
   map.stairsUp.x,map.stairsUp.y = midX,midY
   map.stairsDown.x,map.stairsDown.y = midX,midY

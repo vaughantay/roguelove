@@ -416,8 +416,8 @@ local soul = {
   name = "soul",
   description = "A glowing soul. Delicious to demons, you monster.",
   symbol = "*",
-  color={r=150,g=0,b=0,a=125},
-  time_per_tile = .02,
+  color={r=200,g=255,b=255,a=125},
+  time_per_tile = .5,
   miss_sound="holydamage",
   new = function(self)
     self.angle = random(0,math.ceil(2*math.pi))
@@ -425,7 +425,7 @@ local soul = {
   hits = function(self,target)
     local creat = currMap:get_tile_creature(target.x,target.y)
     if creat then
-      if creat:is_type('demon') and creat.id ~= "demonlord" then
+      if creat:is_type('demon') then
         if self.source and self.source.baseType == "creature" then
           creat:become_thrall(self.source)
           if player:can_sense_creature(creat) then
@@ -985,4 +985,4 @@ local unholywater = {
     end
   end
 }
-projectiles['holywater'] = holywater
+projectiles['unholywater'] = unholywater

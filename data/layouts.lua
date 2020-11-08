@@ -1065,7 +1065,7 @@ end
 
 --This is actually not too terrible at providing a basic open space that doesn't look totally square.
 --Just figure out how to put interesting stuff in the middle and you should be golden
-local growOut = function(map,width,height,depth)
+local growOut = function(map,width,height,floor)
   for x=2,width-1,1 do
     for y=2,height-1,1 do
       map[x][y] = "."

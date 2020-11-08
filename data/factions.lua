@@ -13,12 +13,16 @@ possibleFactions['lightchurch'] = {
   attackOwnFaction = false, --Whether or not members of this faction will attack each other
   alwaysAttackPlayer = false, --If set to true, this faction will always be hostile to the player regardless of faction membership or favor
   attackEnemyPlayerOnly = true, --If set to true, this faction is only hostile to the player if they're explicitly considered an enemy. If false, they'll be hostile to the player if they're not a friend
-  hostileThreshold = 0, --The amount of favor below which the player is treated as an enemy. If left blank, the player will always be considered an enemy unless something else marks them as a friend (like faction membership or favor meeting the friendlyThreshold)
+  hostileThreshold = -50, --The amount of favor below which the player is treated as an enemy. If left blank, the player will always be considered an enemy unless something else marks them as a friend (like faction membership or favor meeting the friendlyThreshold)
   friendlyThreshold = 100, --The amount of favor above which the player is treated as a friend. If left blank, this faction will never consider the player a friend based on favor alone (they'll still be treated as a friend due to faction membership, unless alwaysAttackPlayer is true)
   enterThreshold = 0, --The amount of favor below which you're not allowed to do business with the faction
   joinThreshold = 100, --The amount of favor you need to be eligible to join the faction
-  sells_items = {{item="holywater",favorCost=5,moneyCost=50}, {item="dagger",favorCost=250,amount=1,membersOnly=true}}, --items that this faction sells to friendly players
-  buys_items = {demonblood={favorCost=2}}, --items that this faction buys in return for favor
+  sells_items = {{item="holywater",favorCost=5,moneyCost=50}, {item="dagger",favorCost=250,amount=1,membersOnly=true}}, --pre-defined items that this faction sells to friendly players
+  markup=2, --Non-predefined items' values will be multiplied by this number to determine how much this shop will sell the items for
+  buys_items = {demonblood={favorCost=2}}, --pre-defined items that this faction buys in return for favor or money
+  buys_tags = {"magic","holy","unholy","demon"}, --Tags for non-predefined items that will be bought by the faction
+  moneyPerFavor = 10, --When buying non-predefined items, divide the item's value by this number to get the favor paid (rounded down)
+  onlyPaysFavor = true, --When buying non-predefined items, don't pay money for them, just favor
   teaches_spells = {{spell="demondamager",favorCost=100,moneyCost = 100}, {spell="summonangel",favorCost=100,membersOnly=true}}, --spells that this faction teaches to friendly players
   offers_services = {"healing","blessing"}, --services that this faction offers to friendly players
   offers_missions = {}, --missions that this faction offers to friendly players
@@ -76,6 +80,7 @@ possibleFactions['village'] = {
   hidden = true,
   neverJoin = true,
   attackEnemyPlayerOnly = true,
-  hostileThreshold = -10, 
-  friendlyThreshold = 0
+  hostileThreshold = 0,
+  friendlyThreshold = -1,
+  killFavor_factions = {village=-1}
 }

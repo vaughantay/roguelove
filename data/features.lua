@@ -2352,29 +2352,32 @@ possibleFeatures['store'] = store
 
 local exit = {
   name = "Exit",
-  description = "An exit to another floor.",
+  description = "An exit to another area.",
   symbol = ">",
   alwaysDisplay=true,
-  color={r=255,g=255,b=255,a=22},
+  color={r=255,g=255,b=255,a=255},
   actions={exit={text="Exit",description="Exit the current location."}},
 }
-function exit:new(branch,depth,locked)
-  self.branch = branch
-  self.depth = depth
-  self.locked = locked
+function exit:new(args)
+  self.branch = args.branch
+  self.depth = args.depth or 1
+  self.oneway = args.oneway
+  self.locked = args.locked
+  self.exitName = args.name or "Exit"
 end
 function exit:placed(map)
   local tileset = tilesets[map.tileset]
-  self.color = tileset.groundColor or tileset.textColor or self.color
+  self.color = tileset.floorColor or tileset.textColor or self.color
   local matches = (map.branch == self.branch)
-  self.name = (matches and "Stairs to Depth " .. self.depth or "Exit to " .. branches[self.branch].name)
+  self.name = (matches and self.exitName .. " to " .. (branches[self.branch].depthName or "Depth") .. " " .. self.depth or self.exitName .. " to " .. branches[self.branch].name)
   if matches and self.depth < map.depth then self.symbol = "<" end
   self.actions.exit.text = (matches and (self.depth < map.depth and "Go up" or "Go down") or "Go to " .. branches[self.branch].name)
   map.exits[#map.exits+1] = self
+  print('placed exit at ',self.x,self.y)
 end
 function exit:action(entity,action)
   if not self.locked then
-    goToFloor(self.depth,self.branch)
+    goToMap(self.depth,self.branch)
   end
 end
 possibleFeatures['exit'] = exit

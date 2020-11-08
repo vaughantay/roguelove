@@ -22,6 +22,7 @@ function Creature:init(creatureType,level,noItems)
 	self.level = level or self.level or currMap.depth
   self.max_hp = tweak(self.max_hp)
 	self.hp = self.max_hp
+  self.mp = self.max_mp
 	self.conditions = {}
 	self.spells = self.spells or {}
 	self.cooldowns = {}
@@ -194,6 +195,7 @@ end
 function Creature:apply_class(classID)
   local class = playerClasses[classID]
   self.class = classID
+  self.name = self.name .. " " .. class.name
   if class.favor then
     for faction,favor in pairs(class.favor) do
       self.favor[faction] = (self.favor[faction] or 0) + favor
@@ -214,20 +216,33 @@ function Creature:apply_class(classID)
     end
   end --end if spells
   if class.items then
-    for _,itemID in ipairs(class.items) do
-      self:give_item(Item(itemID))
+    for _,item in ipairs(class.items) do
+      local itemID = item.item
+      local count = item.amount or 1
+      for i=1,count,1 do
+        local it = self:give_item(Item(itemID,item.passed_info))
+        if item.enchantment then
+          it:apply_enchantment(item.enchantment,item.enchantment_turns or -1)
+        end
+      end
     end
   end --end if items
   if class.equipment then
-    for _,itemID in ipairs(class.equipment) do
-      local i = self:give_item(Item(itemID))
-      self:equip(i)
+    for _,item in ipairs(class.equipment) do
+      local itemID = item.item
+      local it = self:give_item(Item(itemID,item.passed_info))
+      self:equip(it)
+      if item.enchantment then
+        it:apply_enchantment(item.enchantment,item.enchantment_turns or -1)
+      end
     end
   end--end if equipment
   if class.stat_modifiers then
     for stat,mod in pairs(class.stat_modifiers) do
-      self.stat = (self.stat or 0) + mod
+      self[stat] = (self[stat] or 0) + mod
     end
+    self.hp = self.max_hp
+    self.mp = self.max_mp
   end --end if stat_modifiers
   if class.money then
     self.money = class.money
@@ -286,6 +301,12 @@ end
 --@return Number. the max HP
 function Creature:get_mhp()
 	return self.max_hp+self:get_bonus('mhp')
+end
+
+---Get the max magic points of a creature
+--@return Number. The max MP
+function Creature:get_max_mp()
+	return self.max_mp+self:get_bonus('max_mp')
 end
 
 ---Change the HP of a creature
@@ -954,9 +975,6 @@ function Creature:die(killer)
         update_stat('allied_creature_kills',self.killer.id)
         update_stat('creature_kills_by_ally',self.id)
       end
-      local hp = tweak(math.ceil(self.max_hp/4))
-      output:out(self:get_name() .. " dies! You absorb some of " .. self:get_pronoun('p') ..  " life force, and regain " .. hp .. " HP.")
-      player:updateHP(hp)
     elseif seen and not self:is_type('ghost') then
       output:out(self:get_name() .. " dies!")
     end --end playerally killer if
@@ -1999,7 +2017,7 @@ end
 ---How much XP do you need to level up?
 --@return Number. The XP required to level up
 function Creature:get_level_up_cost()
-  return self.level*100
+  return self.level*1
 end
 
 ---Level Up, granting skill points (for players), or randomly increasing skills (for NPCs)
@@ -2125,7 +2143,6 @@ end
 ---Add a spell to a creature's spell list
 --@param spellID Text. The ID of the spell to learn
 function Creature:learn_spell(spellID)
-  print('learn ' .. spellID)
   if not self:has_spell(spellID,true) then
     self.spells[#self.spells+1] = spellID
   end

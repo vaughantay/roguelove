@@ -331,12 +331,12 @@ end
 --@param height Number. The height of the bar
 --@param color Table.
 function output:draw_health_bar(val,max_val,x,y,width,height,color)
-  setColor((color and color.r or 200),(color and color.r or 0),(color and color.r or 0),255)
+  setColor((color and color.r or 200),(color and color.g or 0),(color and color.b or 0),255)
   love.graphics.rectangle('line',x-1,y-1,width+2,height+2)
   if val < 1 then return end
   local barWidth = math.max(math.ceil((val/max_val)*width),1)
   if prefs['noImages'] == true then
-    setColor((color and color.r or 255),(color and color.r or 255),(color and color.r or 255),255)
+    setColor((color and color.r or 255),(color and color.g or 255),(color and color.b or 255),255)
     love.graphics.rectangle('fill',x,y,barWidth,height)
   else
     for px=x,x+barWidth,2 do
@@ -514,7 +514,7 @@ function output:button(x,y,width,small,special,text,useScaling)
     end
     if text then
       love.graphics.setFont(fonts.buttonFont)
-      love.graphics.printf(text,math.floor(x),math.floor(y+4),width,"center")
+      love.graphics.printf(text,math.floor(x),math.floor(y-3),width,"center")
       love.graphics.setFont(fonts.textFont)
     end
     return {minX=x*uiScale,maxX=(x+math.max(width,64))*uiScale,minY=y*uiScale,maxY=(y+(small and 16 or 32))*uiScale,hover=hover}
@@ -649,7 +649,7 @@ function output:tinybutton(x,y,small,hover,text,useScaling)
     love.graphics.draw(image,images[buttonname].small,x,y)
     if text then
       love.graphics.setFont(fonts.buttonFont)
-      love.graphics.printf(text,math.floor(x),math.floor(y+4),32,"center")
+      love.graphics.printf(text,math.floor(x),math.floor(y-3),32,"center")
       love.graphics.setFont(fonts.textFont)
     end
     return {minX=x*uiScale,maxX=(x+32)*uiScale,minY=y*uiScale,maxY=(y+(small and 16 or 32))*uiScale,hover=hover}

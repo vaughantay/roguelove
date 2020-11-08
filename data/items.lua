@@ -152,10 +152,6 @@ function spellBook:use()
     output:out("You already know all the spells in this book.")
     return false,"You already know all the spells in this book."
   end
-	--[[output:out("You look at the spells in the book.")
-	for id, spellid in ipairs(self.spells) do
-		output:out(id .. ") " .. possibleSpells[spellid].name)
-	end]]
 end
 possibleItems['spellbook'] = spellBook
 
@@ -361,6 +357,34 @@ function dart:new()
 end
 possibleItems['dart'] = dart
 
+local soul = {
+  name = "soul",
+  pluralName = "souls",
+  description = "A bottle containing a wispy, glowing soul. Delicious to demons, but incredibly problematic from an ethical standpoint for you to just be carrying around.",
+  symbol="!",
+	itemType="throwable",
+  usable=true,
+  useVerb="consume",
+  throwable=true,
+	color={r=200,g=255,b=255,a=125},
+	ranged_attack="genericthrow",
+  projectile_name="soul",
+  stacks=true,
+  value=1,
+  tags={'holy','unholy','magic','soul'}
+}
+function soul:use(user)
+  if user:is_type('demon') then
+    output:out(user.name .. " consumes a soul and regains all their HP and MP!")
+    user:updateHP(user:get_mhp())
+    user:delete_item(self)
+  else
+    if user == player then output:out("You're not a demon. You can't consume souls.") end
+    return false
+  end
+end
+possibleItems['soul'] = soul
+
 local holywater = {
   name = "holy water",
   pluralName = "vials of holy water",
@@ -369,7 +393,8 @@ local holywater = {
 	itemType="throwable",
   throwable=true,
 	color={r=0,g=200,b=200,a=255},
-	ranged_attack="holywater",
+	ranged_attack="genericthrow",
+  projectile_name="holywater",
   stacks=true,
   tags={'liquid','holy'},
   value=5
@@ -384,7 +409,8 @@ local unholywater = {
 	itemType="throwable",
   throwable=true,
 	color={r=100,g=0,b=100,a=255},
-	ranged_attack="unholywater",
+	ranged_attack="genericthrow",
+  projectile_name="unholywater",
   stacks=true,
   tags={'liquid','unholy'},
   value=5
@@ -509,6 +535,7 @@ local crossbow = {
   charges = 0,
   max_charges=1,
   ranged_attack="crossbow",
+  ranged_accuracy=5,
   usesAmmo="bolt",
   color={r=150,g=150,b=150,a=255},
   tags={'wooden','ranged'},

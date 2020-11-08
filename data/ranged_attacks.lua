@@ -54,28 +54,12 @@ poisondart = ranged_attack:new({
     accuracy_decay = 10,
   }),
 
-holywater = ranged_attack:new({
-    name = "Holy Water",
-    description = "Throw a vial of holy water.",
+genericthrow = ranged_attack:new({
+    name = "Throw",
+    description = "Throw an item.",
     projectile=true,
-    cooldown = 5,
-    projectile_name="holywater",
-    recharge_turns = 5,
-    accuracy=75,
-    best_distance_min=3,
-    best_distance_max=5,
-    accuracy_decay = 10,
-  }),
-
-unholywater = ranged_attack:new({
-    name = "Unholy Water",
-    description = "Throw a vial of unholy water.",
-    projectile=true,
-    cooldown = 5,
-    projectile_name="unholywater",
-    recharge_turns = 5,
-    accuracy=75,
-    best_distance_min=3,
+    accuracy=60,
+    best_distance_min=2,
     best_distance_max=5,
     accuracy_decay = 10,
   }),

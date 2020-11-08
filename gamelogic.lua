@@ -45,8 +45,10 @@ function parse_name_for_level(name)
 end
 
 ---Creates the player character entity.
-function initialize_player()
-	player = Creature('player',0)
+--@param creatureID Text. The ID of the creature definition to use to create the player. Optional, defeaults to player_human
+function initialize_player(creatureID)
+  creatureID = creatureID or "player_human"
+	player = Creature(creatureID,1)
 	player.isPlayer = true
   player.playerAlly = true
 	if (random(1,2) == 1) then
@@ -59,23 +61,60 @@ function initialize_player()
   player.color={r=255,g=255,b=255,a=255}
 end
 
+---Generate stores, factions, and dungeon branches
 function initialize_world()
   currWorld = {stores={},factions={},branches={}}
-    --Generate stores, factions, and dungeon branches:
+  --Generate stores:
   stores = {}
   for id,store in pairs(stores_static) do
     stores[id] = Store(store)
     stores[id].id = id
   end
+  --Generate Factions:
   factions = {}
   for id,fac in pairs(possibleFactions) do
     factions[id] = Faction(fac)
     factions[id].id = id
   end
+  --Generate dungeon branches:
   branches = {}
   for id,branch in pairs(dungeonBranches) do
     branches[id] = mapgen:generate_branch(id)
   end
+  --Make sure branch connections are reciprocal:
+  for id,branch in pairs(branches) do
+    for depth,depthExits in pairs(branch.exits) do
+      for _,exit in ipairs(depthExits) do
+        if not exit.oneway then
+          local toBranch = exit.branch
+          local toDepth = exit.exit_depth
+          local exitExists = false
+          local upReplaced = false --We keep track of these in case we want to replace the up/down stairs later
+          local downReplaced = false
+          if branches[toBranch].exits[toDepth] then
+            for _,e in pairs(branches[toBranch].exits[toDepth]) do
+              if e.replace_upstairs then upReplaced = true end
+              if e.replace_downstairs then downReplaced = true end
+              if e.branch == id and e.exit_depth == depth then
+                exitExists = true
+                break
+              end --end if exit exists check
+            end --end target branch/depth for
+          end --end if this depth even has exits if
+          if not exitExists then
+            local newExit = {branch=id,exit_depth=depth}
+            if toDepth == 1 and not upReplaced then newExit.replace_upstairs=true
+            elseif toDepth == branches[toBranch].depth then newExit.replace_downstairs=true end
+            if not branches[toBranch].exits[toDepth] then branches[toBranch].exits[toDepth] = {} end
+            branches[toBranch].exits[toDepth][#branches[toBranch].exits[toDepth]+1] = newExit
+          end --end exit doesn't exist if
+        end --end oneway if
+      end --end exit for
+    end --end depthexit for
+  end --end branch for
+  currWorld.stores = stores
+  currWorld.factions = factions
+  currWorld.branches = branches --TODO: use currWorld elsewhere in the code
 end
 
 ---Calculates the chance of hitting an opponent.
@@ -233,11 +272,11 @@ function game_over()
 	Gamestate.switch(menu)
 end
 
----Advance to the next floor of the dungeon.
---@param depth Number. The depth of the new floor
---@param branch Text. Which branch the new floor is on
---@param force Boolean. Whether to force the game to go to the floor, ignoring whether the boss is dead or not. (optional)
-function goToFloor(depth,branch,force)
+---Move to another map
+--@param depth Number. The depth of the map you're trying to reach
+--@param branch Text. Which branch the map is on
+--@param force Boolean. Whether to force the game to go to the map, ignoring whether the boss is dead or not. (optional)
+function goToMap(depth,branch,force)
   local oldBranch = currMap.branch
   local oldDepth = currMap.depth
   if not branch then branch = currMap.branch end
@@ -251,7 +290,7 @@ function goToFloor(depth,branch,force)
   
 	if (currMap.boss == nil and force ~= true) then
     if generate_boss() == false then
-      return goToFloor(depth,branch,force) --if the generate boss function returns false, rerun this function again
+      return goToMap(depth,branch,force) --if the generate boss function returns false, rerun this function again
     end
 	elseif (force or debugMode) or (currMap.boss == -1 or currMap.boss.hp < 1) then
     update_stat('map_beaten',currMap.id)
@@ -272,7 +311,7 @@ function goToFloor(depth,branch,force)
     end --end exit for
     if not playerX or not playerY then
       if branch == oldBranch then
-        if depth > oldDepth then
+        if depth < oldDepth then
           playerX,playerY = currMap.stairsDown.x,currMap.stairsDown.y
         else
           playerX,playerY = currMap.stairsUp.x,currMap.stairsUp.y
@@ -422,24 +461,24 @@ end
 --@param direction String. The keycode of the pressed key.
 function perform_move(direction)
 	local xMod, yMod = 0,0
-	if (direction == "left" or direction==keybindings.west) then
+	if (direction == "west") then
     xMod = -1
-	elseif (direction == "right" or direction==keybindings.east) then
+	elseif (direction == "east") then
 		xMod = 1
-	elseif (direction == "up" or direction==keybindings.north) then
+	elseif (direction == "north") then
 		yMod = -1
-	elseif (direction == "down" or direction==keybindings.south) then
+	elseif (direction == "south") then
 		yMod = 1
-	elseif (direction==keybindings.northwest) then
+	elseif (direction=="northwest") then
 		xMod = -1
 		yMod = -1
-	elseif (direction==keybindings.northeast) then
+	elseif (direction=="northeast") then
 		xMod = 1
     yMod = -1
-	elseif (direction==keybindings.southeast) then
+	elseif (direction=="southeast") then
 		xMod = 1
     yMod = 1
-	elseif (direction==keybindings.southwest) then
+	elseif (direction=="southwest") then
 		xMod = -1
     yMod = 1
 	end

@@ -233,12 +233,20 @@ function merge_tables(...)
   return new
 end
 
-function loop_through_tiles(minX,maxX,minY,maxY)
-  local tiles = {}
-  for x=minX,maxX,1 do
-    for y=minY,maxY,1 do
-      
-    end
+---Sorts a table
+--@param t Table. The table to sort
+--@param key Anything. The key to use to compare, if the table t contains subtables. Optional, if blank compares the values directly
+function sort_table(t,key)
+  local basicSort = function(a,b)
+    return a < b
+  end
+  local subSort = function(a,b)
+    return a[key] < b[key]
+  end
+  if not key then
+    table.sort(t,basicSort)
+  else
+    table.sort(t,subSort)
   end
 end
 

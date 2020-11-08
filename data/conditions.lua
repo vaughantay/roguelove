@@ -1043,12 +1043,12 @@ recitingpoetry = Condition({
     name = "Reciting Poetry",
     bonuses={stealth=-100,notice_chance=-5},
     advance = function(self,possessor)
-      if possessor.magic < 1 then
+      if possessor.mp < 1 then
         if player:can_see_tile(possessor.x,possessor.y) then output:out(posessor:get_name() .. " runs out of inspiration and stops reciting poetry.") end
         possessor:cure_condition('recitingpoetry')
         return false
       end
-      possessor.magic = possessor.magic - 1
+      possessor.mp = possessor.mp - 1
       currMap:add_effect(Effect('soundwavemaker',{r=240,g=120,b=255}),possessor.x,possessor.y)
       local drunk = ((possessor:has_condition('drunk') or possessor:has_condition('wasted')) and 2 or 1)
       
@@ -1656,7 +1656,7 @@ moneyshield = Condition({
     name = "Economic Bubble",
     bonuses={bravery=20,possession_chance=-1000},
     damaged = function(self,possessor,attacker,dmg,dtype)
-      if possessor.magic > math.ceil(dmg/2) then
+      if possessor.mp > math.ceil(dmg/2) then
         local absorb = math.ceil(dmg/2)
         if player:can_see_tile(possessor.x,possessor.y) then
           output:out(possessor:get_name() .. "'s economic bubble absorbs " .. absorb .. " damage.")
@@ -1671,18 +1671,18 @@ moneyshield = Condition({
             end --end fory
           end --end forx
         end
-        possessor.magic = possessor.magic - (dmg-absorb)
+        possessor.mp = possessor.mp - (dmg-absorb)
         return (dmg-absorb)
       else
         if player:can_see_tile(possessor.x,possessor.y) then output:out(possessor:get_name() .. "'s economic bubble bursts!") end
-        possessor.magic = 0
+        possessor.mp = 0
         possessor:cure_condition('moneyshield')
         return true
       end
     end, --end damaged code
     advance = function(self,possessor)
-      possessor.magic = possessor.magic - 1
-      if possessor.magic < 1 then
+      possessor.mp = possessor.mp - 1
+      if possessor.mp < 1 then
         if player:can_see_tile(possessor.x,possessor.y) then output:out(possessor:get_name() .. " runs out of money to invest in the economic bubble, so it collapses.") end
         possessor:cure_condition('moneyshield')
       end
@@ -1816,44 +1816,6 @@ illusorydouble = Condition({
     end,
     cured = function(self,possessor)
       possessor:die()
-    end
-  }),
-
-lavabeastcold = Condition({
-    name = "Cold",
-    bonuses={damage=-10,aggression=-200,bravery=-200,possession_chance=25},
-    ai = function(self,possessor)
-      if self.noLava then return true end --if there's no lava on the map, don't even worry about running the rest of this stuff
-      if not self.target or (self.target.id ~= "lava" and self.target.id ~= "ember") then
-        local targetLava = nil
-        local search=10
-        while targetLava == nil and search < math.max(currMap.width,currMap.height) do
-          local targetDist = nil
-          for x=possessor.x-search,possessor.x+search,1 do
-            for y=possessor.y-search,possessor.y+search,1 do
-              local lava = currMap:tile_has_feature(x,y,'lava')
-              if lava then
-                local dist = calc_distance_squared(x,y,possessor.x,possessor.y)
-                if targetDist == nil or targetDist > dist then
-                  targetDist = dist
-                  targetLava = lava
-                end
-              end --end if lava
-            end --end fory
-          end --end forx
-          search = search + 1
-        end --end while
-        if targetLava == nil then
-          self.noLava = true
-        end
-        self.target = targetLava
-      end --end if not targeting lava
-      return true --normal AI
-    end,
-    advance = function(self,possessor)
-      if possessor.magic > 0 then
-        possessor:cure_condition('lavabeastcold')
-      end
     end
   }),
 

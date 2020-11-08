@@ -32,6 +32,17 @@ local poisoned = {
 }
 enchantments['poisoned'] = poisoned
 
+local fireweapon = {
+  name = "Enflamed",
+  prefix = "enflamed",
+  description = "Does extra fire damage.",
+  extra_damage = {damage_type="fire",damage_percent=50,safe_creature_types={"fireImmune"}},
+  removal_type="hit",
+  tags={"fire","magic"},
+  itemType="weapon"
+}
+enchantments['fireweapon'] = fireweapon
+
 local accurate = {
   name = "Accurate",
   suffix = "of Accuracy",
@@ -46,7 +57,7 @@ local blessed = {
   name = "Blessed",
   prefix = "blessed",
   description = "Does extra holy damage to demons and the undead.",
-  extra_damage = {},
+  extra_damage = {damage_type="holy",damage_percent=50,only_creature_types={"demon","undead"}},
   removal_type="kill",
   tags={"holy"},
   itemType="weapon"

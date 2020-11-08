@@ -24,7 +24,7 @@ function Spell:get_description(no_reqtext)
     if req == false then reqtext = "\n\nYou can't use this ability right now."
     else reqtext = "" end
   end
-    return self.description .. (self.cost and "\nCost: " .. self.cost .. " " .. player.magicName or "") .. (no_reqtext and "" or reqtext)
+    return self.description .. (self.cost and "\nCost: " .. self.cost .. " MP" or "") .. (no_reqtext and "" or reqtext)
 end
 
 ---Start targeting a spell (unless it's a self-only spell, in which case it just goes ahead and casts it).
@@ -72,8 +72,8 @@ function Spell:use(target, caster, ignoreCooldowns)
   elseif req == false then
     if (caster == player) then output:out((reqtext or "You can't use that ability right now.")) end
     return false
-  elseif caster.magic and self.cost and self.cost > caster.magic then
-    if (caster == player) then output:out("You don't have enough " .. (caster.magicName or "magic") .. " to use that ability.") end
+  elseif caster.mp and self.cost and self.cost > caster.mp then
+    if (caster == player) then output:out("You don't have enough magic points to use that ability.") end
 		return false
 	else
 		local r = self:cast(target,caster)
@@ -83,8 +83,8 @@ function Spell:use(target, caster, ignoreCooldowns)
       if self.cooldown and self.cooldown > 0 and not ignoreCooldowns then 
         caster.cooldowns[self.name] = (caster ~= player and self.AIcooldown or self.cooldown)
       end
-      if caster.magic and self.cost then
-        caster.magic = caster.magic - self.cost
+      if caster.mp and self.cost then
+        caster.mp = caster.mp - self.cost
       end
     end --end false/nil if
 		return (r == nil and true or r) -- this looks weird, but it's so that spells can return false

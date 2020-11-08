@@ -137,6 +137,14 @@ function love.wheelmoved(x,y)
   Gamestate.wheelmoved(x,y)
 end
 
+function love.gamepadaxis(joystick,axis,value)
+  Gamestate.gamepadaxis(joystick,axis,value)
+end
+
+function love.gamepadpressed(joystick,button)
+  Gamestate.gamepadpressed(joystick,button)
+end
+
 function love.quit()
   if (player ~= nil and currGame ~= nil) then save_game() end
   --save_scores()
@@ -187,10 +195,10 @@ function gen_quads()
   return qs
 end
 
-function test_maps(depth)
+function test_maps(branch,depth)
   for i=1,50,1 do
     local pTime = os.clock()
-    local build = mapgen:generate_map(100,100,depth)
+    local build = mapgen:generate_map(branch,depth)
       --layout(build,50,50,(depth or 1))
       print("Try " .. i ..": Success (Time: " .. tostring(os.clock() - pTime) .. ")")
       --build:refresh_pathfinder()
@@ -250,6 +258,7 @@ end
 
 function load_engine()
   require "achievement"
+  require "input"
   require "mapgen"
   require "mod"
   require "namegen"

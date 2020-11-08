@@ -5,7 +5,9 @@ function characterscreen:enter()
   tween(0.2,self,{yModPerc=0})
   output:sound('stoneslideshort',2)
   self.skillButtons = {}
+  self.learnButtons = {}
   self.cursorY = 0
+  self:refresh_spell_purchase_list()
 end
 
 function characterscreen:draw()
@@ -25,15 +27,25 @@ function characterscreen:draw()
   local printY = padding
 	love.graphics.printf(player.properName,padding,padding,math.floor(width/uiScale)-44,"center")
   printY = printY + fontSize
-	love.graphics.printf("Level " .. player.level .. " " .. player.name,padding,printY,math.floor(width/uiScale)-44,"center")
+	love.graphics.printf("Level " .. player.level .. " " .. player.name .. " (" .. player.xp .. "/" .. player:get_level_up_cost() .. " XP to level up)",padding,printY,math.floor(width/uiScale)-44,"center")
   printY = printY + 25
   if skillPoints > 0 then love.graphics.printf(skillPoints .. " skill points remaining",padding,printY,math.floor(width/uiScale)-44,"center") end
   printY = printY + 25
 	love.graphics.print("Max HP: " .. player.max_hp,padding,printY)
+  if skillPoints > 0 then
+    self.skillButtons[buttonY] = output:tinybutton(padding,printY,true,self.cursorY==buttonY,"+",true)
+    self.skillButtons[buttonY].skill = "max_hp"
+    buttonY = buttonY+1
+  end
   printY = printY + fontSize
-	love.graphics.print("Sight Radius: " .. player.perception,padding,printY)
+  love.graphics.print("Max MP: " .. player.max_mp,padding,printY)
+  if skillPoints > 0 then
+    self.skillButtons[buttonY] = output:tinybutton(padding,printY,true,self.cursorY==buttonY,"+",true)
+    self.skillButtons[buttonY].skill = "max_mp"
+    buttonY = buttonY+1
+  end
   printY = printY + fontSize
-  love.graphics.print("Damage: " .. player.strength,printX,printY)
+  love.graphics.print("Strength: " .. player.strength,printX,printY)
   if skillPoints > 0 then
     self.skillButtons[buttonY] = output:tinybutton(padding,printY,true,self.cursorY==buttonY,"+",true)
     self.skillButtons[buttonY].skill = "strength"
@@ -44,6 +56,20 @@ function characterscreen:draw()
   if skillPoints > 0 then
     self.skillButtons[buttonY] = output:tinybutton(padding,printY,true,self.cursorY==buttonY,"+",true)
     self.skillButtons[buttonY].skill = "melee"
+    buttonY = buttonY+1
+  end
+  printY = printY + fontSize
+  love.graphics.print("Ranged Skill: " .. player.ranged .. " (" .. math.ceil(math.min(math.max(70 + (player.melee - player.level*5-5),25),95)) .. "% chance to hit average level " .. player.level .. " creature)",printX,printY)
+  if skillPoints > 0 then
+    self.skillButtons[buttonY] = output:tinybutton(padding,printY,true,self.cursorY==buttonY,"+",true)
+    self.skillButtons[buttonY].skill = "ranged"
+    buttonY = buttonY+1
+  end
+  printY = printY + fontSize
+  love.graphics.print("Magic Skill: " .. player.magic,printX,printY)
+  if skillPoints > 0 then
+    self.skillButtons[buttonY] = output:tinybutton(padding,printY,true,self.cursorY==buttonY,"+",true)
+    self.skillButtons[buttonY].skill = "magic"
     buttonY = buttonY+1
   end
   printY = printY + fontSize
@@ -76,14 +102,6 @@ function characterscreen:draw()
     printY = printY + fontSize
   end --end resistances
   
-  if (player.ranged_attack) then
-    printY = printY + 50
-    local attack = rangedAttacks[player.ranged_attack]
-    love.graphics.print("Ranged Attack: " .. attack:get_name(), padding,printY)
-    printY = printY + fontSize
-    love.graphics.printf(attack:get_description(),padding,printY,math.floor(width/uiScale)-padding)
-  end
-	
   printY = printY + 50
 	love.graphics.printf("Special Abilities:",padding,printY,math.floor(width/uiScale)-padding,"center")
   printY=printY+fontSize*2
@@ -97,6 +115,25 @@ function characterscreen:draw()
 	love.graphics.printf(abilities,padding,printY,math.floor(width/uiScale)-padding,"left")
   local _, wrappedtext = fonts.textFont:getWrap(abilities, math.floor(width/uiScale))
   printY=printY+#wrappedtext*fontSize
+  
+  --TODO: Add "choose-between" abilities:
+  if #self.spell_purchases > 0 then
+    printY = printY + 50
+    love.graphics.printf("Abilities Available to Learn:",padding,printY,math.floor(width/uiScale)-padding,"center")
+    printY = printY+fontSize*2
+    for _,info in ipairs(self.spell_purchases) do
+      if not player:has_spell(info.spell) then
+        local spell = possibleSpells[info.spell]
+        self.learnButtons[buttonY] = output:button(padding,printY,60,true,(self.cursorY == buttonY and "hover" or false),"Learn",true)
+        self.learnButtons[buttonY].info = info
+        local text = spell.name .. (spell.target_type == "passive" and " (Passive)" or "") .. " - " .. spell.description .. " (" .. info.cost .. " Skill Points)"
+        love.graphics.printf(text,padding+65,printY,math.floor(width/uiScale)-padding,"left")
+        local _, wrappedtext = fonts.textFont:getWrap(text, math.floor(width/uiScale))
+        printY=printY+math.ceil(#wrappedtext*fontSize*1.25)
+        buttonY = buttonY+1
+      end --end player having spell
+    end --end if 
+  end --end if spell.purchases
   
   if player.hit_conditions then
     printY = printY + 50
@@ -115,31 +152,8 @@ function characterscreen:draw()
   printY = printY + 50
 	love.graphics.print("Turns played this game: " .. (currGame.stats.turns or 0),padding,printY)
   printY = printY + fontSize
-	love.graphics.print("Turns in current body: " .. (currGame.stats.turns_in_current_body or 1),padding,printY)
-  printY = printY + fontSize
-  love.graphics.print("Turns as " .. player.name  .. ", this game: " .. ((currGame.stats.turns_as_creature and currGame.stats.turns_as_creature[player.id]) or 0),padding,printY)
-  printY = printY + fontSize
-	love.graphics.print("Turns as " .. player.name  .. ", all games: " .. ((totalstats.turns_as_creature and totalstats.turns_as_creature[player.id]) or 0),padding,printY)
-  printY = printY + fontSize
 	love.graphics.print("Kills this game: " .. (currGame.stats.kills or 0),padding,printY)
   printY = printY + fontSize
-	love.graphics.print("Kills in current body: " .. (currGame.stats.kills_in_current_body or 0),padding,printY)
-  printY = printY + fontSize
-  love.graphics.print("Kills as " .. player.name  .. ", this game: " .. ((currGame.stats.kills_as_creature and currGame.stats.kills_as_creature[player.id]) or 0),padding,printY)
-  printY = printY + fontSize
-	love.graphics.print("Kills as " .. player.name  .. ", all games: " .. ((totalstats.kills_as_creature and totalstats.kills_as_creature[player.id]) or 0),padding,printY)
-  printY = printY + fontSize
-	love.graphics.print("Total possessions, this game: " .. (currGame.stats.total_possessions or 0),padding,printY)
-  printY = printY + fontSize
-	love.graphics.print(ucfirst(player.name) .. " possessions, this game: " .. ((currGame.stats.creature_possessions and currGame.stats.creature_possessions[player.id]) or 0),padding,printY)
-  printY = printY + fontSize
-	love.graphics.print(ucfirst(player.name) .. " possessions, all games: " .. ((totalstats.creature_possessions and totalstats.creature_possessions[player.id]) or 0),padding,printY)
-  printY = printY + fontSize
-	love.graphics.print("Bodies exploded, this game: " .. (currGame.stats.explosions or 0),padding,printY)
-  printY = printY + fontSize
-	love.graphics.print(ucfirst(player.name) .. " explosions, this game: " .. ((currGame.stats.exploded_creatures and currGame.stats.exploded_creatures[player.id]) or 0),padding,printY)
-  printY = printY + fontSize
-	love.graphics.print(ucfirst(player.name) .. " explosions, all games: " .. ((totalstats.exploded_creatures and totalstats.exploded_creatures[player.id]) or 0),padding,printY)
   self.closebutton = output:closebutton(24,24,nil,true)
   love.graphics.pop()
 end
@@ -150,12 +164,14 @@ function characterscreen:keypressed(key)
       self.cursorY = self.cursorY - 1
     end
   elseif key == "down" then
-    if self.cursorY < #self.skillButtons then
+    if self.cursorY < #self.skillButtons+count(self.learnButtons) then
       self.cursorY = self.cursorY + 1
     end
   elseif key == "return" or key == "kpenter" then
     if self.skillButtons[self.cursorY] then
-      self:use_skillbutton(self.skillButtons[self.cursorY].skill)
+      self:use_skillButton(self.skillButtons[self.cursorY].skill)
+    elseif self.learnButtons[self.cursorY] then
+      self:use_learnButton(self.learnButtons[self.cursorY].info)
     end
   elseif key == "escape" then
     self:switchBack()
@@ -165,21 +181,51 @@ end
 function characterscreen:mousepressed(x,y,button)
   local uiScale = (prefs['uiScale'] or 1)
   if button == 2 or (x/uiScale > self.closebutton.minX and x/uiScale < self.closebutton.maxX and y/uiScale > self.closebutton.minY and y/uiScale < self.closebutton.maxY) then
-    self:switchBack()
+    return self:switchBack()
   end
   for id,button in ipairs(self.skillButtons) do
     if x > button.minX and x < button.maxX and y > button.minY and y < button.maxY then
-      self:use_skillbutton(button.skill)
+      return self:use_skillButton(button.skill)
+    end
+  end
+  for id,button in ipairs(self.learnButtons) do
+    if x > button.minX and x < button.maxX and y > button.minY and y < button.maxY then
+      self:use_learnButton(button.info)
     end
   end
 end
 
-function characterscreen:use_skillbutton(skill)
+function characterscreen:use_skillButton(skill)
   player.skillPoints = player.skillPoints - 1
-  player[skill] = player[skill]+1
+  if skill == "max_hp" or skill == "max_mp" then
+    player[skill] = player[skill]+2
+  else
+    player[skill] = player[skill]+1
+    if skill == "magic" and player.max_mp == 0 then --If putting points into magic, get some free MP. Presumably this would only be happening if the player is putting their first skill point into magic
+      player.max_mp = 10
+    end
+  end
   if player.skillPoints < 1 then
     self.skillButtons = {}
   end
+end
+
+function characterscreen:use_learnButton(info)
+  if player.skillPoints and player.skillPoints >= info.cost then
+    player:learn_spell(info.spell)
+    player.skillPoints = player.skillPoints - info.cost
+  end
+end
+
+function characterscreen:refresh_spell_purchase_list()
+  self.spell_purchases = {}
+  if playerClasses[player.class].spell_purchases then
+    for _,info in ipairs(playerClasses[player.class].spell_purchases) do
+      if not info.level or info.level <= player.level then
+        self.spell_purchases[#self.spell_purchases+1] = info
+      end --end level check if
+    end --end spell purchase list for
+  end --end if player class has spell purchases
 end
 
 function characterscreen:update(dt)

@@ -129,22 +129,21 @@ local townsperson = {
 }
 possibleMonsters['townsperson'] = townsperson
 
-local playerChar = {
-  name = "hero",
+local humanHero = {
+  name = "human",
   description = "A real human being, and a real hero.",
   symbol = "n",
   types={"human","intelligent"},
   nameType = "human",
-  max_hp = 275,
-  level = 8,
-  melee = 25,
-  dodging = 45,
-  strength = 11,
-  perception = 5,
-  notice_chance = 75,
-  aggression = 1,
-  bravery = 1,
-  min_distance = 3,
+  max_hp = 50,
+  max_mp = 0,
+  level = 1,
+  melee = 5,
+  dodging = 5,
+  strength = 5,
+  ranged = 5,
+  magic = 0,
+  perception = 8,
   color={r=255,g=255,b=255,a=255},
   gender="male",
   animated=true,
@@ -152,7 +151,7 @@ local playerChar = {
   animation_time=0.3,
   image_max=3,
   reverseAnimation=true,
-  image_name = "rabidnerd1",
+  image_name = "hero1",
   image_varieties=3,
 }
-possibleMonsters['player'] = playerChar
+possibleMonsters['player_human'] = humanHero

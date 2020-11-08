@@ -103,20 +103,15 @@ function ranged_attack:calc_hit_chance(attacker,target,item)
     return 0
   end
   local min,max = self.best_distance_min,self.best_distance_max
-  local bonus = attacker:get_bonus('ranged_chance') - target:get_bonus('dodge_chance')
-  local hitMod = 5
+  local hitMod = self.accuracy + attacker.ranged + attacker:get_bonus('ranged_chance') - (target.dodging or 0) - target:get_bonus('dodge_chance')
   if min and max then
-    if dist >= min and dist <= max then --if within acceptable distance, return base accuracy
-      return self.accuracy
-    else
+    if dist < min or dist > max then --if within acceptable distance, return base accuracy
       local diff = (dist < min and min-dist or dist-max)
       local mod = (self.accuracy_decay or (self.accuracy/10))
-      hitMod = self.accuracy - math.ceil(mod*diff) + bonus
+      hitMod = hitMod - math.ceil(mod*diff)
     end
-  else --if no min/max distance, accuracy is flat
-    hitMod = self.accuracy + bonus
   end
-  if item then hitMod = hitMod + item:get_enchantment_bonus('ranged_accuracy') end
+  if item then hitMod = hitMod + item:get_ranged_accuracy() end
   if (hitMod > 95) then hitMod = 95 elseif (hitMod < 10) then hitMod = 10 end
   return hitMod
 end

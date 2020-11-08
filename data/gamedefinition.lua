@@ -8,7 +8,7 @@ gamesettings = {
   inventory=true,
   crafting=true,
   leveling=true,
-  noBacktrack=false,
+  player_tombstones=true,
   default_map_width=60,
   default_map_height=60
 }

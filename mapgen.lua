@@ -3,7 +3,7 @@ mapgen = {}
 
 ---Create and populate a map
 --@param branchID Text. The branch ID the map is part of
---@param depth Number. What depth or floor of said branch the map occurs on
+--@param depth Number. At what depth of said branch the map occurs on
 --@param force Text. The ID of a mapType to force this map to be. Optional
 --@return Map. The fresh new map
 function mapgen:generate_map(branchID, depth,force)
@@ -51,7 +51,7 @@ function mapgen:generate_map(branchID, depth,force)
   build.mapType = id --the ID of the mapType used to create the map
   --End initialization
   --Pull over the mapType's info
-  build.name = whichMap.name or (whichMap.generateName and whichMap.generateName()) or (whichMap.nameType and namegen:generate_name(whichMap.nameType)) or false
+  if not branch.noMapNames then build.name = whichMap.name or (whichMap.generateName and whichMap.generateName()) or (whichMap.nameType and namegen:generate_name(whichMap.nameType)) or false end
   build.description = whichMap.description or (whichMap.generateDesc and whichMap.generateDesc()) or (whichMap.descType and namegen:generate_description(whichMap.descType)) or false
   build.bossID = whichMap.boss
   build.tileset = whichMap.tileset
@@ -80,7 +80,7 @@ function mapgen:generate_map(branchID, depth,force)
     return mapgen:generate_map(branchID, depth,force)
   end
   --Add tombstones:
-  mapgen:addTombstones(build)
+  if gamesettings.player_tombstones then mapgen:addTombstones(build) end
   --Add the pathfinder:
   build:refresh_pathfinder()
   -- define where the stairs should do, if they're not already added
@@ -97,23 +97,33 @@ function mapgen:generate_map(branchID, depth,force)
   end --end if stairs already exist
   
   --Add exits:
+  --Do generic up and down stairs first, although they may be replaced by other exits later:
   if build.depth > 1 then
-    local upStairs = Feature('exit',build.branch,build.depth-1)
+    local upStairs = Feature('exit',{branch=build.branch,depth=build.depth-1})
     build:change_tile(upStairs,build.stairsUp.x,build.stairsUp.y)
   end
-  if build.depth < branch.floors then
-    local downStairs = Feature('exit',build.branch,build.depth+1)
+  if build.depth < branch.max_depth then
+    local downStairs = Feature('exit',{branch=build.branch,depth=build.depth+1})
     build:change_tile(downStairs,build.stairsDown.x,build.stairsDown.y)
   end
-  if branch.exits then
-    for floor,branch in pairs(branch.exits) do
-      if floor == build.depth then
-        local whichX,whichY = random(2,build.width-1),random(2,build.height-1)
-        local branchStairs = Feature('exit',branch,1)
-        build:change_tile(branchStairs,whichX,whichY)
+  if branch.exits[build.depth] then
+    for depth,exit in pairs(branch.exits[build.depth]) do
+      local whichX,whichY = nil,nil
+      if exit.replace_upstairs then
+        whichX,whichY = build.stairsUp.x,build.stairsUp.y
+      elseif exit.replace_downstairs then
+        whichX,whichY = build.stairsDown.x,build.stairsDown.y
       end
+      if not whichX or not whichY then
+        whichX,whichY = self:get_stair_location(build)
+      end
+      local branchStairs = Feature('exit',{branch=exit.branch,depth=exit.exit_depth or 1,oneway=exit.oneway,name=exit.name})
+      build:change_tile(branchStairs,whichX,whichY)
+      --TODO: make sure non-oneway exits are reciprocal
     end
+    --TODO: Scramble where the exits are, for fun
   end
+  
 	--Add creatures:
 	if not build.noCreats then
     local highest = math.max(width,height)
@@ -329,11 +339,23 @@ function mapgen:generate_branch(branchID)
   if data.new then
     data.new(newBranch)
   end
-  self.id = branchID
+  --Add exits:
+  newBranch.exits = {}
+  if newBranch.possibleExits then
+    for _,exit in pairs(data.possibleExits) do
+      if not exit.chance or random(1,100) <= exit.chance then
+        local depth = exit.depth or random(exit.min_depth,exit.max_depth)
+        if not newBranch.exits[depth] then newBranch.exits[depth] = {} end
+        newBranch.exits[depth][#newBranch.exits[depth]+1] = {branch=exit.branch,replace_upstairs=exit.replace_upstairs,replace_downstairs=exit.replace_downstairs,oneway=exit.oneway,exit_depth=exit.exit_depth or 1}
+      end -- end if exit chance
+    end --enf possibleExits for
+    newBranch.possibleExits = nil
+  end --end if possibleExits exist
+  newBranch.id = branchID
 	return newBranch
 end
 
----Perform a floodfill operation, getting all walls or floors that touch. Only works for walls and floors, not features.
+---Perform a floodfill operation, getting all walls or floor that touch. Only works for walls and floor, not features.
 --@param map Map. The map to look at
 --@param lookFor String. Either "." or "#" although if your maps use other strings it could look for those too. Defaults to "."
 --@param startX Number. The X-coordinate to start at. Optional, will pick a randon tile if blank
@@ -679,6 +701,35 @@ function mapgen:addGenericStairs(build,width,height)
       return false
     end
   end -- end while loop
+end
+
+---Get coordinates for a
+--@param map Map. The map to look at to build stairs
+function mapgen:get_stair_location(map)
+  local tries = 0
+  local done = false
+  local x,y = random(2,map.width),random(2,map.height)
+  while (tries < 50 and done == false) or not map:isEmpty(x,y) do
+    tries = tries + 1
+    x,y = random(2,map.width),random(2,map.height)
+    local minDist,maxDist = nil,nil
+    local reachable = true
+    for _,exit in ipairs(map.exits) do --loop through all the exits, and determine if it's reachable and how far away it is
+      local dist = calc_distance_squared(exit.x,exit.y,x,y)
+      if not maxDist or dist > maxDist then maxDist = dist end
+      if not minDist or dist < minDist then minDist = dist end
+      local p = map:findPath(exit.x,exit.y,x,y) --check to make sure the new exit can reach all the other exits
+      if p ~= false then
+        reachable = false
+        break
+      end
+    end --end exit for
+    if not minDist or not maxDist or (minDist*1.5 >= maxDist) then
+      done = true
+      break
+    end
+  end --end tries while
+  return x,y
 end
 
 ---Add tombstones to the map of previous player characters who have died here. TODO: This probably doesn't work with branches!

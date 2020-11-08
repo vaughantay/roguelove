@@ -205,8 +205,13 @@ function Faction:get_buy_list(creat)
   for id,item in ipairs(creat.inventory) do
     if self.buys_items and self.buys_items[item.id] then
       buying[#buying+1]={item=item,moneyCost=self.buys_items[item.id].moneyCost,favorCost=self.buys_items[item.id].favorCost}
+    elseif self.buys_tags and item.value then
+      for _,tag in ipairs(self.buys_tags) do
+        if item:has_tag(tag) then
+          buying[#buying+1]={item=item,favorCost=math.floor(item.value/(self.moneyPerFavor or 10)),moneyCost=(not self.onlyPaysFavor and item.value or nil)}
+        end
+      end
     end
-    --TODO: Test for dynamic selling:
   end
   return buying
 end

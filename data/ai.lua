@@ -1,5 +1,11 @@
 ai = {}
   
+--TODO: Use an item (probably split them up based on healing vs attacking)
+--TODO: Notice items, move towards them and pick them up
+--TODO: Handle pack animal behavior
+--TODO: Dedicated decision-making for healing
+--TODO: Swapping equipment if you find something better
+  
 --Possible arguments: "noRunning", "forceStupid", "noRanged", "forceWander"
 ai['basic'] = function(self,args)
   args = args or {}
@@ -43,7 +49,7 @@ ai['basic'] = function(self,args)
   end
   
   --Ranged attacks/spells: If you have a ranged attack, and are able/willing to attack them
-  if not args.noRanged and self.ranged_chance and random(0,100) <= self.ranged_chance and (args.forceStupid or not self:is_type('intelligent') or currMap:is_passable_for(self.x,self.y,self.pathType,true)) then
+  if not args.noRanged and self.ranged_chance and random(0,100) <= self.ranged_chance and (args.forceStupid or not self:is_type('intelligent') or currMap:is_passable_for(self.x,self.y,self.pathType,true)) then --I always get confused what this last clause is doing: Basically, don't use a ranged attack if you're standing in a hazardous area, unless you're too stupid to care
     local finished = ai.rangedAttack(self,args)
     if finished == true then return true end
   end --end ranged chance if

@@ -164,7 +164,7 @@ function gamestats:enter(previous)
         mapStats[id].depth = (mapTypes[map] and mapTypes[map].depth or false)
         if not mapStats[id].name then
           local depth = string.sub(map,8)
-          mapStats[id].name = "Non-Special Floor"
+          mapStats[id].name = "Non-Special Map"
           mapStats[id].depth = tonumber(depth)
         end
         mapStats[id].sortBy = mapStats[id].depth
@@ -207,8 +207,8 @@ function gamestats:enter(previous)
   
   --Deal with Deaths:
   for depth,branch in pairs(graveyard) do
-    for _,floor in pairs(branch) do
-      for _, grave in pairs(floor) do
+    for _,depth in pairs(branch) do
+      for _, grave in pairs(depth) do
         grave.saying = gravesayings[random(#gravesayings)]
         grave.depth = depth
         self.graveyard[#self.graveyard+1] = grave
@@ -226,7 +226,7 @@ function gamestats:enter(previous)
           grave.stats.favoriteMap = (mapTypes[grave.stats.favoriteMapID] and mapTypes[grave.stats.favoriteMapID].generateName() or false)
           if not grave.stats.favoriteMap then
             local depth = (type(map) == "string" and string.sub(grave.stats.favoriteMapID,8) or grave.stats.favoriteMapID)
-            grave.stats.favoriteMap = "Generic Floor " .. depth
+            grave.stats.favoriteMap = "Generic Map " .. depth
           end
         end
         grave.stats.killPossessionAverage = (grave.stats.total_possessions and round((grave.stats.kills or 0)/grave.stats.total_possessions) or "N/A")

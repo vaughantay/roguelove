@@ -1385,7 +1385,7 @@ function coinAttractor:advance()
     self.coins:delete()
     creat.target = nil
     if creat.id == "goblinbanker" then
-      creat.magic = creat.magic+1
+      creat.mp = creat.mp+1
       if creat == player then
         local p = Effect('dmgpopup',creat.x,creat.y)
         p.color = {r=255,g=255,b=0,a=255}

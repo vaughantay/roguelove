@@ -38,7 +38,7 @@ function game:draw()
   love.graphics.rectangle('fill',0,0,width,16)
   setColor(255,255,255,255)
   local branch = branches[currMap.branch]
-  love.graphics.printf((not branch.hideName and branch.name or "") .. (not branch.hideFloor and " " .. (branch.floorName or "Floor") .. " " .. currMap.depth or "") .. (currMap.name and (not branch.hideName or not branch.hideFloor) and ": " or "") .. (currMap.name or ""),0,0,width,"center")
+  love.graphics.printf((not branch.hideName and branch.name or "") .. (not branch.hideDepth and " " .. (branch.depthName or "Depth") .. " " .. currMap.depth or "") .. (currMap.name and (not branch.hideName or not branch.hideDepth) and ": " or "") .. (currMap.name or ""),0,0,width,"center")
   if action == "targeting" then
     local text = "Select Target"
     if actionResult and actionResult.name then
@@ -251,35 +251,42 @@ function game:print_sidebar()
 	love.graphics.printf(player.properName,printX,printY-4+yBonus,335,"center")
   local skillPoints = ""
   if player.skillPoints and player.skillPoints > 0 then skillPoints = " (+)" end
-  local buttonWidth = fonts.buttonFont:getWidth(keybindings.charScreen .. ") Level " .. player.level .. " " .. (player.class and playerClasses[player.class].name or player.name) .. skillPoints)
+  local buttonWidth = fonts.buttonFont:getWidth(keybindings.charScreen .. ") Level " .. player.level .. " " .. player.name .. skillPoints)
 
   local middleX = round(printX+335/2)
   self.characterButton = output:button(round(middleX-buttonWidth/2)-8,printY+15,buttonWidth+16,true,nil,nil,true)
 	if skillPoints ~= "" then setColor(255,255,0,255) end
-  love.graphics.printf(keybindings.charScreen .. ") Level " .. player.level .. " " .. (player.class and playerClasses[player.class].name or player.name) .. skillPoints,printX,printY+12+yBonus,335,"center")
+  love.graphics.printf(keybindings.charScreen .. ") Level " .. player.level .. " " .. player.name .. skillPoints,printX,printY+12+yBonus,335,"center")
   setColor(255,255,255,255) 
   if output.shakeTimer > 0 then
     love.graphics.push()
     local shakeDist = output.shakeDist*output.shakeTimer*2
     love.graphics.translate(random(-shakeDist,shakeDist),random(-shakeDist,shakeDist))
   end
-	output:draw_health_bar(self.hp,player:get_mhp(),printX+xPad,printY+35,325,16)
+  local ratio = self.hp/player:get_mhp()
+  local hpR = 200-(200*ratio)
+  local hpG = 200*ratio
+	output:draw_health_bar(self.hp,player:get_mhp(),printX+xPad,printY+35,325,16,{r=hpR,g=hpG,b=0,a=255})
  love.graphics.printf("Health: " .. math.ceil(self.hp) .. "/" .. player:get_mhp(),printX,printY+33+yBonus,332,"center")
   if output.shakeTimer > 0 then
     love.graphics.pop()
   end
   
   local yPad = 60
-  if (player.magicName) then
-    love.graphics.print(player.magicName .. ": " .. player.magic .. (player.maxMagic and "/" .. player.maxMagic or ""),printX+xPad,printY+yPad)
-    yPad = yPad+15
+  local mhp = player:get_max_mp()
+  if (mhp > 0) then
+    output:draw_health_bar(player.mp,player:get_max_mp(),printX+xPad,printY+60,325,16,{r=100,g=0,b=100,a=255})
+    love.graphics.printf("Magic: " .. player.mp .. "/" .. mhp,printX+xPad,printY+58+yBonus,332,"center")
+    yPad = yPad+30
   end
   
   if prefs.statsOnSidebar then
     love.graphics.print("Base Damage: " .. player.strength,printX+xPad,printY+yPad)
     love.graphics.print("Melee Skill: " .. player.melee,printX+xPad,printY+yPad+15)
-    love.graphics.print("Dodge Skill: " .. player.dodging,printX+xPad,printY+yPad+30)
-    yPad = yPad+50
+    love.graphics.print("Ranged Skill: " .. player.melee,printX+xPad,printY+yPad+30)
+    love.graphics.print("Dodge Skill: " .. player.dodging,printX+xPad,printY+yPad+45)
+    love.graphics.print("Magic Skill: " .. player.melee,printX+xPad,printY+yPad+60)
+    yPad = yPad+75
   end
  
   self.spellButtons = {}
@@ -668,8 +675,8 @@ function game:display_map(map)
                   setColor(50,50,50,255)
                 elseif map[x][y] == "<" then
                   setColor(255,255,0,255)
-                elseif map.tileset and map[x][y] == "." and tilesets[map.tileset].groundColor then
-                  local tc = tilesets[map.tileset].groundColor
+                elseif map.tileset and map[x][y] == "." and tilesets[map.tileset].floorColor then
+                  local tc = tilesets[map.tileset].floorColor
                   setColor(tc.r,tc.g,tc.b,tc.a)
                 elseif map.tileset and map[x][y] == "#" and tilesets[map.tileset].wallColor then
                   local tc = tilesets[map.tileset].wallColor
@@ -989,9 +996,9 @@ function game:display_minimap(map)
           elseif map[x][y] == "#" then
             if seen then setColor(100,100,100,math.ceil(255*(mouseOver and 0.25 or 1))) else setColor(50,50,50,math.ceil(255*(mouseOver and 0.25 or 1))) end
             love.graphics.print("#",printX,printY)
-          elseif map[x][y] == "<" then
+          elseif map:tile_has_feature(x,y,'exit') then
             setColor(255,255,0,math.ceil(255*(mouseOver and 0.25 or 1)))
-            love.graphics.print("<",printX,printY)
+            love.graphics.print(">",printX,printY)
           elseif currMap:get_tile_creature(x,y) and seen then
             setColor(255,0,0,math.ceil(255*(mouseOver and 0.25 or 1)))
             love.graphics.print("x",printX,printY)
@@ -1388,9 +1395,10 @@ function game:wheelmoved(x,y)
 end
 
 function game:keypressed(key,scancode,isRepeat)
+  key,scancode,isRepeat = input:parse_key(key,scancode,isRepeat)
   --Pie:keypressed(key)
   if self.popup then
-    if not self.popup.enterOnly or (key == "return" or key == "kpenter") then
+    if not self.popup.enterOnly or key == "return" then
       if self.popup.afterFunc then self.popup.afterFunc() end
       self.popup = nil
       if self.blackAmt and action ~= "winning" and not self.blackOutTween then
@@ -1412,7 +1420,7 @@ function game:keypressed(key,scancode,isRepeat)
 		player.path = nil
 		action = "moving"
   elseif self.warning then
-    if (key == "y") then
+    if key == "y" or key == "return" then
       if self.warning.possession then
         player.possessTarget = self.warning.danger
         possibleSpells['possession']:cast(self.warning.danger,player)
@@ -1420,38 +1428,38 @@ function game:keypressed(key,scancode,isRepeat)
         move_player(self.warning.tile.x,self.warning.tile.y,true)
       end
       self.warning = nil
-    elseif (key == "n" or key == "escape") then
+    elseif key == "n" or key == "escape" then
       self.warning = nil
     end
-	elseif (prefs['arrowKeys'] and (key == "left" or key == "right" or key == "up" or key == "down")) or (key == keybindings.north or key == keybindings.northeast or key == keybindings.east or key == keybindings.southeast or key == keybindings.south or key == keybindings.southwest or key == keybindings.west or key == keybindings.northwest) then
+	elseif key == "north" or key == "south" or key == "east" or key == "west" or key == "northwest" or key == "northeast" or key == "southwest" or key == "southeast" then--(prefs['arrowKeys'] and (key == "left" or key == "right" or key == "up" or key == "down")) or (key == keybindings.north or key == keybindings.northeast or key == keybindings.east or key == keybindings.southeast or key == keybindings.south or key == keybindings.southwest or key == keybindings.west or key == keybindings.northwest) then
     if self.contextualMenu then
-      if key == "up" or key == keybindings.north then
+      if key == "north" then
         self.contextualMenu:scrollUp()
-      elseif key == "down" or key == keybindings.south then
+      elseif key == "south" then
         self.contextualMenu:scrollDown()
       end
     else
       perform_move(key)
     end
-	elseif ((prefs['arrowKeys'] and key == "space") or key == keybindings.wait) and action=="moving" then
+	elseif (key == "wait") and action=="moving" then
     output:sound('wait',0)
 		advance_turn()
     local enter = currMap:enter(player.x,player.y,player,player.x,player.y) --run the "enter" code for a feature, f'rex, lava burning you even if you don't move
-	elseif (key == keybindings.spell) then
+	elseif (key == "spell") then
 		Gamestate.switch(spellscreen)
-  elseif (key == keybindings.inventory) then
+  elseif (key == "inventory") then
 		Gamestate.switch(inventory)
-  elseif (key == keybindings.throw) then
+  elseif (key == "throw") then
 		Gamestate.switch(inventory,"throwable")
-  elseif (key == keybindings.use) then
+  elseif (key == "use") then
 		Gamestate.switch(inventory,"usable")
-  elseif (key == keybindings.equip) then
+  elseif (key == "equip") then
 		Gamestate.switch(inventory,"equippable")
-  elseif (key == keybindings.crafting) then
+  elseif (key == "crafting") then
 		Gamestate.switch(crafting)
-	elseif (key == keybindings.examine) then
+	elseif (key == "examine") then
 		action="targeting"
-  elseif (key == keybindings.nextTarget) then
+  elseif (key == "nextTarget") then
     if action == "targeting" and #output.potentialTargets > 0 then
       local targetID = nil
       if output.cursorX ~=0 and output.cursorY ~=0 then
@@ -1487,7 +1495,7 @@ function game:keypressed(key,scancode,isRepeat)
         end
       end
     end
-  elseif (key == keybindings.ranged and count(player:get_ranged_attacks()) > 0) then
+  elseif (key == "ranged" and count(player:get_ranged_attacks()) > 0) then
     local ranged_attacks = player:get_ranged_attacks()
     local anyAvailable = false
     for i, attack in ipairs(ranged_attacks) do
@@ -1550,7 +1558,7 @@ function game:keypressed(key,scancode,isRepeat)
          advance_turn()
       end
     end
-  elseif key == keybindings.recharge then
+  elseif key == "recharge" then
     local recharge = false
     for i, attack_instance in ipairs(player:get_ranged_attacks()) do
       local attack = rangedAttacks[attack_instance.attack]
@@ -1574,9 +1582,9 @@ function game:keypressed(key,scancode,isRepeat)
 		else
 			Gamestate.switch(pausemenu)
 		end
-	elseif (key == keybindings.messages) then
+	elseif key == "messages" then
 		Gamestate.switch(messages)
-	elseif (key == "return") or key == "kpenter" then
+	elseif key == "return" then
     if self.contextualMenu and self.contextualMenu.selectedItem then
       self.contextualMenu:click()
     elseif (action == "targeting") then
@@ -1590,28 +1598,22 @@ function game:keypressed(key,scancode,isRepeat)
       self.contextualMenu = ContextualMenu(output.cursorX,output.cursorY)
       setTarget(output.cursorX,output.cursorY)
     end
-   elseif (key == "q" and action=="moving") then
+   elseif (key == "q" and action=="moving") then --TODO: Take this out, it's a test
     Gamestate.switch(factionscreen,"lightchurch")
-  elseif (key == "s" and action=="moving") then
+  elseif (key == "s" and action=="moving") then --TODO: Take this out, it's a test
     Gamestate.switch(storescreen,"healthstore")
-	elseif (key == keybindings.charScreen) then
+	elseif key == "charScreen" then
 		Gamestate.switch(characterscreen)
-	elseif (key == keybindings.save) then
+	elseif key == "save" then
 		save_game()
 		output:out("Game saved.")
-	elseif (key == keybindings.load) then
-		load_game()
-  elseif key == keybindings.heal then
-    if player.id ~= "ghost" then
-      possibleSpells['repairBody']:use(player,player)
-    end
-  elseif key == keybindings.zoomIn then
+  elseif key == "zoomIn" then
     currGame.zoom = math.min((currGame.zoom or 1)+0.1,2)
     output:refresh_coordinate_map()
-  elseif key == keybindings.zoomOut then
+  elseif key == "zoomOut" then
     currGame.zoom = math.max((currGame.zoom or 1)-0.1,0.5)
     output:refresh_coordinate_map()
-  elseif key == keybindings.pickup then
+  elseif key == "pickup" then
     local items = currMap:get_tile_items(player.x,player.y,true)
     if #items == 1 then
       if player:pickup(items[1]) ~= false then
@@ -1620,7 +1622,7 @@ function game:keypressed(key,scancode,isRepeat)
     elseif #items > 1 then
       Gamestate.switch(multipickup)
     end
-  elseif key == keybindings.action then
+  elseif key == "action" then
     local actions = currMap:get_tile_actions(player.x,player.y)
     if #actions == 1 then
       if actions[1].entity:action(player,actions[1].id) ~= false then
@@ -1922,7 +1924,7 @@ local Popup = Class{}
 function game:show_map_description()
   local _, count = string.gsub(currMap.description, "\n", "\n")
   local branch = branches[currMap.branch]
-  self.popup = Popup(currMap.description,(not branch.hideName and branch.name or "") .. (not branch.hideFloor and " " .. (branch.floorName or "Floor") .. " " .. currMap.depth or "") .. (currMap.name and (not branch.hideName or not branch.hideFloor) and "\n" or "") .. (currMap.name or "") .. "\n" .. " ",4+count,true)
+  self.popup = Popup(currMap.description,(not branch.hideName and branch.name or "") .. (not branch.hideDepth and " " .. (branch.depthName or "Depth") .. " " .. currMap.depth or "") .. (currMap.name and (not branch.hideName or not branch.hideDepth) and "\n" or "") .. (currMap.name or "") .. "\n" .. " ",4+count,true)
   output:sound('interface_bang')
 end
 

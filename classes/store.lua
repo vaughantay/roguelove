@@ -22,23 +22,25 @@ end
 ---Generates the store's inventory
 function Store:generate_items()
   --Generate items from list:
-  for _,info in pairs(self.sells_items) do
-    local itemID = info.item
-    local item = Item(itemID,info.passed_info,(info.amount or -1))
-    if not item.amount then item.amount = (info.amount or -1) end --This is here because non-stackable items don't generate with amounts
-    local makeNew = true
-    if item.sortBy then
-      local index = self:get_inventory_index(item)
-      if index then
-        self.inventory[index].item.amount = self.inventory[index].item.amount+item.amount
-        makeNew = false
+  if self.sells_items then
+    for _,info in pairs(self.sells_items) do
+      local itemID = info.item
+      local item = Item(itemID,info.passed_info,(info.amount or -1))
+      if not item.amount then item.amount = (info.amount or -1) end --This is here because non-stackable items don't generate with amounts
+      local makeNew = true
+      if item.sortBy then
+        local index = self:get_inventory_index(item)
+        if index then
+          self.inventory[index].item.amount = self.inventory[index].item.amount+item.amount
+          makeNew = false
+        end
       end
-    end
-    if makeNew == true then
-      local id = #self.inventory+1
-      self.inventory[id] = {item=item,cost=info.cost,id=id}
-    end
-  end
+      if makeNew == true then
+        local id = #self.inventory+1
+        self.inventory[id] = {item=item,cost=info.cost,id=id}
+      end
+    end --end sells_items for
+  end --end if self.sells_items
   --TODO: Generate dynamic inventory:
 end
 

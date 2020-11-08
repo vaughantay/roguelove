@@ -37,15 +37,18 @@ Features that have been added that weren't in Possession:
 * Dungeon Branches
   * Rather than all floors being in a linear progression, multiple "branches" can be defined in game.
   * Each branch has its own defined number of floors which the player moves up/down along linearly.
-	* Each branch has a list of map types it uses to generate its floors, and can also force specific map types to spawn at a given depth, to recreate the old special levels functionality.
-	* Branches can exit to other branches.
-	* By default, you can return to previously-visited floors within a branch (unlike in Possession), but this can be turned off.
-	* Branches can be set to ensure each floor within the branch is a different map type, so it doesn't repeat.
-  * TODO: Let branches define creature/item spawns within them.
+  * Each branch has a list of map types it uses to generate its floors, and can also force specific map types to spawn at a given depth, to recreate the old special levels functionality.
+  * Branches can exit to other branches.
+  * By default, you can return to previously-visited floors within a branch (unlike in Possession), but this can be turned off.
+  * Branches can be set to ensure each floor within the branch is a different map type, so it doesn't repeat.
+  * Branches and MapTypes can define the specific creatures that will spawn in them, or list creature types, factions, and tags they'll pull creatures from.
+  * TODO: Let branches define item spawns within them.
 * Miscellaneous:
   * Features can have "actions" attached to them. There's a new keybinding used to perform a feature's action. Features can have multiple actions attached to them.
 
 [Incomplete guide to using the Roguelove engine](https://docs.google.com/document/d/1bJmuokbK8Xtd2P9K8KRQRSeGdHd78HGKuOKaZltCoE4/edit?usp=sharing)
+
+[Trello board I'm using to keep track of tasks](https://trello.com/b/ByyPFT00/roguelove)
 
 Incomplete documentation of the code is available in the doc/ directory.
 

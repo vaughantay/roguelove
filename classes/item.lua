@@ -83,9 +83,9 @@ function Item:get_info()
   end
   if self.projectile_name then
     local projectile = projectiles[self.projectile_name]
-    uses = uses .. "\nShoots Projectile: " .. ucfirst(projectile.name)
+    uses = uses .. "\nProjectile: " .. ucfirst(projectile.name)
     uses = uses .. "\n" .. projectile.description
-    uses = uses .. "\nDamage: " .. projectile.damage .. (projectile.damage_type and " (" .. projectile.damage_type .. ")" or "")
+    if projectile.damage then uses = uses .. "\nDamage: " .. projectile.damage .. (projectile.damage_type and " (" .. projectile.damage_type .. ")" or "") end
   end
   if self.info then
     uses = uses .. "\n" .. self.info
@@ -171,6 +171,46 @@ function Item:get_damage(target,wielder)
   return (self.damage or 0) + self:get_enchantment_bonus('damage') + (wielder.strength or 0)
 end
 
+---Find out how much extra damage an item will deal due to enchantments
+--@param target Entity. The target of the item's attack.
+--@param wielder Creature. The creature using the item.
+--@param dmg Number. The base damage being done to the target
+--@return Table. A table with values of the extra damage the item will deal.
+function Item:get_extra_damage(target,wielder,dmg)
+  local extradmg = {}
+  
+  for e,_ in pairs(self:get_enchantments()) do
+    local ench = enchantments[e]
+    if ench.extra_damage then
+      local ed = ench.extra_damage
+      local apply = true
+      if ed.only_creature_types then
+        apply = false
+        for _,ctype in ipairs(ed.only_creature_types) do
+          if target:is_type(ctype) then
+            apply = true
+            break
+          end
+        end --end creature type for
+      end --end if only creature types
+      if ed.safe_creature_types and apply then
+        for _,ctype in ipairs(ed.safe_creature_types) do
+          if target:is_type(ctype) then
+            apply = false
+            break
+          end
+        end --end creature type for
+      end --end if safe creature types
+      if apply == true then
+        local dmg = tweak((ed.damage or 0)+math.ceil((ed.damage_percent or 0)/100*dmg))
+        dmg = target:damage(dmg,wielder,ed.damage_type)
+        extradmg[ed.damage_type] = extradmg[ed.damage_type] or 0 + dmg
+      end
+    end --end if it has an extra damage flag
+  end --end enchantment for
+  return extradmg
+end
+
 ---Attack another entity.
 --@param target Entity. The creature (or feature) they're attacking
 --@param wielder Creature. The creature attacking with the item.
@@ -216,10 +256,38 @@ function Item:attack(target,wielder,forceHit,ignore_callbacks,forceBasic)
           enchantments[ench]:after_miss(self,wielder,target,dmg)
         end
       end --end enchantment after_miss for
-		else
+		else --if it's a hit
       if not forceBasic and possibleItems[self.id].attack_hits then
-        return possibleItems[self.id].attack_hits(self,target,wielder,dmg,result)
-        --[[TODO: Run enchantment hit code]]
+        local ret = possibleItems[self.id].attack_hits(self,target,wielder,dmg,result)
+        if ret ~= false then
+          --TODO: Test if extra daamge and after_damage work for items with custom attack_hits code
+          --Add extra damage
+          local txt = nil
+          local loopcount = 1
+          local dtypes = self:get_extra_damage(target,wielder,dmg)
+          local dcount = count(dtypes)
+          for dtype,amt in pairs(dtypes) do
+            if loopcount == 1 and dcount == 1 then
+              txt = ucfirst(self:get_name()) .. " deals "
+            elseif loopcount == dcount then
+              txt = txt .. ", and "
+            else
+              txt = txt .. ", "
+            end
+            txt = txt .. amt .. " " .. dtype .. " damage"
+          end
+          txt = txt .. " to " .. target:get_name() .. "."
+          output:out(txt)
+          if possibleItems[self.id].after_damage then
+            possibleItems[self.id].after_damage(self,target,wielder,dmg)
+          end
+          for ench,_ in pairs(self:get_enchantments()) do
+            if enchantments[ench].after_damage then
+              enchantments[ench]:after_damage(self,wielder,target,dmg)
+            end
+          end --end enchantment after_damage for
+        end
+        return ret
       end
 			if (result == "critical") then txt = txt .. "CRITICAL HIT! " end
       local bool,ret = wielder:callbacks('calc_damage',target,dmg)
@@ -232,8 +300,26 @@ function Item:attack(target,wielder,forceHit,ignore_callbacks,forceBasic)
         if count > 0 then dmg = math.ceil(amt/count) end --final damage is average of all returned damage values
       end
 			dmg = target:damage(dmg,wielder,self.damage_type,self:get_armor_piercing(wielder))
-			if dmg > 0 then txt = txt .. ucfirst(wielder:get_pronoun('n')) .. " hits " .. target:get_pronoun('o') .. " for " .. dmg .. (self.damage_type and " " .. self.damage_type or "") .. " damage."
-      else txt = txt .. ucfirst(wielder:get_pronoun('n')) .. " hits " .. target:get_pronoun('o') .. " for no damage." end
+			if dmg > 0 then
+        txt = txt .. ucfirst(wielder:get_pronoun('n')) .. " hits " .. target:get_pronoun('o') .. " for " .. dmg .. (self.damage_type and " " .. self.damage_type or "") .. " damage"
+        --Add extra damage
+        local loopcount = 1
+        local dtypes = self:get_extra_damage(target,wielder,dmg)
+        local dcount = count(dtypes)
+        for dtype,amt in pairs(dtypes) do
+          if loopcount == 1 and dcount == 1 then
+            txt = txt .. " and "
+          elseif loopcount == dcount then
+            txt = txt .. ", and "
+          else
+            txt = txt .. ", "
+          end
+          txt = txt .. amt .. " " .. dtype .. " damage"
+        end
+        txt = txt .. "."
+      else
+        txt = txt .. ucfirst(wielder:get_pronoun('n')) .. " hits " .. target:get_pronoun('o') .. " for no damage."
+      end
       local xMod,yMod = get_unit_vector(wielder.x,wielder.y,target.x,target.y)
       target.xMod,target.yMod = target.xMod+(xMod*5),target.yMod+(yMod*5)
       if target.moveTween then
@@ -485,6 +571,12 @@ end
 --@return Number. The accuracy of the weapon.
 function Item:get_accuracy()
   return (self.accuracy or 0)+self:get_enchantment_bonus('hit_chance')
+end
+
+---Returns the ranged accuracy (modifier to the hit roll) of a weapon.
+--@return Number. The accuracy of the weapon.
+function Item:get_ranged_accuracy()
+  return (self.ranged_accuracy or 0)+self:get_enchantment_bonus('ranged_accuracy')
 end
 
 ---Checks the critical chance of a weapon.
