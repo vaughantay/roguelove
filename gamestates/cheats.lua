@@ -13,15 +13,24 @@ end
 function cheats:make_controls()
   local width = love.graphics:getWidth()
   local startX=math.floor(width/3)
+  local padding = (prefs['noImages'] and 16 or 32)
+  local fontSize = prefs['fontSize']
   self.labels = {}
-  self.labels[1] = Setting('twoHitGhost',"Ghost dies in two hits instead of one",startX,200,(newgame.cheats['twoHitGhost'] and true or false),true,startX)
-  self.labels[2] = Setting('easierPossession',"Easier possessions",startX,225,(newgame.cheats['easierPossession'] and true or false),true,startX)
-  self.labels[3] = Setting('quickPossessionCooldown',"Half-length cooldowns for Possession",startX,250,(newgame.cheats['quickPossessionCooldown'] and true or false),true,startX)
-  self.labels[4] = Setting('noPossessionCooldown',"No cooldowns for Possession",startX,275,(newgame.cheats['noPossessionCooldown'] and true or false),true,startX)
-  self.labels[5] = Setting('regenMapOnDeath',"Regenerate map on death, instead of Game Over",startX,400,(newgame.cheats['regenMapOnDeath'] and true or false),true,startX)
-  self.labels[6] = Setting('fullMap',"Reveal entire map layout",startX,500,(newgame.cheats['fullMap'] and true or false),true,startX) 
-  self.labels[7] = Setting('seeAll',"See everything, all the time",startX,525,(newgame.cheats['seeAll'] and true or false),true,startX)
-  self.labels[8] = Setting('largeMaps',"Larger maps",startX,650,(newgame.cheats['largeMaps'] and true or false),true,startX)
+  local _, tlines = fonts.textFont:getWrap("These cheats make the game a bit easier without changing too much:",math.ceil(width/2)-padding)
+  local settingY = 145+(#tlines+1)*fontSize
+  self.labels[1] = Setting('twoHitGhost',"Ghost dies in two hits instead of one",startX,settingY,(newgame.cheats['twoHitGhost'] and true or false),true,startX)
+  self.labels[2] = Setting('easierPossession',"Easier possessions",startX,settingY+25,(newgame.cheats['easierPossession'] and true or false),true,startX)
+  self.labels[3] = Setting('quickPossessionCooldown',"Half-length cooldowns for Possession",startX,settingY+50,(newgame.cheats['quickPossessionCooldown'] and true or false),true,startX)
+  self.labels[4] = Setting('noPossessionCooldown',"No cooldowns for Possession",startX,settingY+75,(newgame.cheats['noPossessionCooldown'] and true or false),true,startX)
+  local _, tlines = fonts.textFont:getWrap("The game is meant to be played with permadeath, but this will change it so when you die, the map you're on will regenerate instead:",math.ceil(width/2)-padding)
+  local settingY = 345+(#tlines+1)*fontSize
+  self.labels[5] = Setting('regenMapOnDeath',"Regenerate map on death, instead of Game Over",startX,settingY,(newgame.cheats['regenMapOnDeath'] and true or false),true,startX)
+  local _, tlines = fonts.textFont:getWrap("You really should only use these if you're testing something:",math.ceil(width/2)-padding)
+  local settingY = 500+(#tlines+1)*fontSize
+  self.labels[6] = Setting('fullMap',"Reveal entire map layout",startX,settingY,(newgame.cheats['fullMap'] and true or false),true,startX) 
+  self.labels[7] = Setting('seeAll',"See everything, all the time",startX,settingY+25,(newgame.cheats['seeAll'] and true or false),true,startX)
+  local _, tlines = fonts.textFont:getWrap("The game originally launched with maps that were 75 x 75 tiles, but the maps seemed too big, so they were changed to 60 x 60. But the option's here if you prefered the larger size:",math.ceil(width/2)-padding)
+  self.labels[8] = Setting('largeMaps',"Larger maps",startX,650+(#tlines+1)*fontSize,(newgame.cheats['largeMaps'] and true or false),true,startX)
 end
 
 function cheats:draw()
@@ -37,11 +46,11 @@ function cheats:draw()
   output:draw_window(math.ceil(width/4),padding,math.ceil(width/4+width/2),height-padding*2)
   
   love.graphics.setFont(fonts.textFont)
-  love.graphics.printf("Some of these change the game from its intended difficulty and length.\nBut if you find the game too difficult, or if you're testing something, here you go!",math.ceil(width/4)+padding,padding*2,math.ceil(width/2)-padding,"center")
-  love.graphics.printf("These cheats make the game a bit easier without changing too much:",math.ceil(width/4)+padding,165,math.ceil(width/2)-padding,"center")
-  love.graphics.printf("The game is meant to be played with permadeath, but if you absolutely hate it, you can turn it off:",math.ceil(width/4)+padding,365,math.ceil(width/2)-padding,"center")
-  love.graphics.printf("You really should only use these if you're testing something:",math.ceil(width/4)+padding,475,math.ceil(width/2)-padding,"center")
-  love.graphics.printf("The game originally launched with maps that were 75 x 75 tiles, but the maps seemed too big, so they were changed to 60 x 60. But the option's here if you prefered the larger size:",math.ceil(width/4)+padding,600,math.ceil(width/2)-padding,"center")
+  love.graphics.printf("Some of these change the game from its intended difficulty and length.",math.ceil(width/4)+padding,padding*2,math.ceil(width/2)-padding,"center")
+  love.graphics.printf("These cheats make the game a bit easier without changing too much:",math.ceil(width/4)+padding,145,math.ceil(width/2)-padding,"center")
+  love.graphics.printf("The game is meant to be played with permadeath, but this will change it so when you die, the map you're on will regenerate instead:",math.ceil(width/4)+padding,345,math.ceil(width/2)-padding,"center")
+  love.graphics.printf("You really should only use these if you're testing something:",math.ceil(width/4)+padding,500,math.ceil(width/2)-padding,"center")
+  love.graphics.printf("The game originally launched with maps that were 75 x 75 tiles, but the maps seemed too big, so they were changed to 60 x 60. But the option's here if you prefered the larger size:",math.ceil(width/4)+padding,650,math.ceil(width/2)-padding,"center")
 
   --Draw a border around currently selected cheat:
   if self.labels[self.cursorY] then

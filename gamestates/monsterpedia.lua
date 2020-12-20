@@ -5,7 +5,7 @@ function monsterpedia:enter(previous,selectMonster)
   monsterpedia.list = {}
   monsterpedia.positions = {}
   monsterpedia.scroll = 0
-  output.cursorY = 2
+  self.cursorY = 2
   totalstats.creature_possessions = totalstats.creature_possessions or {}
   
   for i=0,10,1 do
@@ -13,7 +13,7 @@ function monsterpedia:enter(previous,selectMonster)
   end
   --for monster,_ in pairs(totalstats.creature_possessions) do
   for monster,m in pairs(possibleMonsters) do
-    if totalstats.creature_possessions[monster] or (m.isBoss and totalstats.creatuer_kills and totalstats.creature_kills[monster]) or monster == "ghost" then
+    --if totalstats.creature_possessions[monster] or (m.isBoss and totalstats.creature_kills and totalstats.creature_kills[monster]) or monster == "ghost" then
       local creat = possibleMonsters[monster]
       if creat then
         monsterpedia.list[creat.level] = (monsterpedia.list[creat.level] or {})
@@ -21,7 +21,7 @@ function monsterpedia:enter(previous,selectMonster)
           monsterpedia.list[creat.level][#monsterpedia.list[creat.level]+1] = monster
         end
       end
-    end
+    --end
   end --end possessions for
   for i,v in pairs(monsterpedia.list) do --remove empty level labels
     if count(v) == 0 then
@@ -35,9 +35,9 @@ function monsterpedia:enter(previous,selectMonster)
     for _, id in pairs (monsters) do --loop through monsters within levels
       monsterpedia.positions[#monsterpedia.positions+1] = id
       if selectMonster == id then
-        output.cursorY = #monsterpedia.positions
+        self.cursorY = #monsterpedia.positions
         local screenMax = math.floor(love.graphics:getHeight()/(output:get_tile_size()+2)) --if you scroll past the edge of the screen, scroll down
-        while output.cursorY > screenMax-1 do
+        while self.cursorY > screenMax-1 do
           monsterpedia:scrollDown()
         end
       end
@@ -101,14 +101,15 @@ function monsterpedia:draw()
     love.graphics.rectangle("line",14,14,400,height-30)
     love.graphics.rectangle("line",450,14,width-465,height-30)
   end
-	love.graphics.printf("Monsterpedia (Press escape to exit)",14,24,400,"center")
+	love.graphics.printf("Monsterpedia",14,24,400,"center")
   
+  local lineSize = math.max(tileSize,prefs['fontSize'],prefs['asciiSize'])
   for level, monsters in pairs(monsterpedia.list) do
     line = line + 1
-    if (line-monsterpedia.scroll)*tileSize > height-32 then break end --don't display if you'll go off the screen
-    if (line-1 > monsterpedia.scroll) and ((line-monsterpedia.scroll)*tileSize < height-64) then love.graphics.printf("Level " .. level,14,(line-monsterpedia.scroll)*tileSize-(prefs['noImages'] and -2 or 17),400,"center") end --only display if it hasn't been upscrolled
+    if (line-monsterpedia.scroll)*lineSize > height-32 then break end --don't display if you'll go off the screen
+    if (line-1 > monsterpedia.scroll) and ((line-monsterpedia.scroll)*lineSize < height-64) then love.graphics.printf("Level " .. level,14,(line-monsterpedia.scroll)*lineSize-(prefs['noImages'] and -2 or 17),400,"center") end --only display if it hasn't been upscrolled
     for _,id in pairs(monsters) do
-      local printY = (line-monsterpedia.scroll)*tileSize+16
+      local printY = (line-monsterpedia.scroll)*lineSize+16
       local creat = possibleMonsters[id]
       creat.image_frame = 1
       if creat then
@@ -116,10 +117,10 @@ function monsterpedia:draw()
         if creat.id == nil then creat.id = id end
         creat.baseType = 'creature'
         if printY > 32 then --only display if it hasn't been upscrolled
-          if id == monsterpedia.positions[output.cursorY+monsterpedia.scroll] then --if it's the selected creature
+          if id == monsterpedia.positions[self.cursorY+monsterpedia.scroll] then --if it's the selected creature
             setColor(100,100,100,255)
-            if prefs['noImages'] == true then love.graphics.rectangle("fill",15,printY,373,2+tileSize)
-            else love.graphics.rectangle("fill",18,printY,364,2+tileSize) end
+            if prefs['noImages'] == true then love.graphics.rectangle("fill",15,printY,373,2+lineSize)
+            else love.graphics.rectangle("fill",18,printY,364,2+lineSize) end
             setColor(255,255,255,255)
           end
           output.display_entity(creat,20,printY,"force")
@@ -135,7 +136,7 @@ function monsterpedia:draw()
     end --end monster for
 	end --end levelgroup for
   local totalMonsters = count(monsterpedia.positions)
-  local maxSeen = math.floor(love.graphics:getHeight()/(output:get_tile_size()+2))
+  local maxSeen = math.floor(love.graphics:getHeight()/(lineSize+2))
   if totalMonsters > maxSeen then
     local maxScroll = totalMonsters-maxSeen
     local scrollAmt = monsterpedia.scroll/maxScroll
@@ -144,27 +145,30 @@ function monsterpedia:draw()
   end
   
   -- Display the selected monster:
-  local pos = monsterpedia.positions[output.cursorY+monsterpedia.scroll]
+  local pos = monsterpedia.positions[self.cursorY+monsterpedia.scroll]
 	if (pos ~= nil and pos ~= -1) then
-    local id = monsterpedia.positions[output.cursorY+monsterpedia.scroll]
+    local id = monsterpedia.positions[self.cursorY+monsterpedia.scroll]
 		local creat = possibleMonsters[id]
+    local fontSize = prefs['fontSize']
+    local start = 24
 		setColor(255,255,255,255)
-		love.graphics.printf(ucfirst(creat.name),450,24,(width-460),"center")
-		love.graphics.printf("Level " .. creat.level,450,40,(width-460),"center")
+		love.graphics.printf(ucfirst(creat.name),450,start,(width-460),"center")
+		love.graphics.printf("Level " .. creat.level,450,start+fontSize,(width-460),"center")
     local types = ""
     for _,ctype in pairs((creat.types or {})) do
       if types ~= "" then types = types .. ", " .. ucfirst(ctype)
       else types = ucfirst(ctype) end
     end
-    love.graphics.printf(types,450,56,(width-460),"center")
-		love.graphics.printf(creat.description,455,75,(width-475),"left")
-		love.graphics.print("Damage: " .. creat.strength .. " (" .. (creat.critical_damage and (creat.strength+creat.critical_damage) or math.ceil(creat.strength * 1.5)) .. " damage on critical hit, " .. (creat.critical_chance or 1) .. "% chance)",455,200)
-		love.graphics.print("Max HP: " .. creat.max_hp,455,215)
-		love.graphics.print("Sight Radius: " .. creat.perception,455,230)
-		love.graphics.print("Melee Skill: " .. creat.melee .. " (" .. math.ceil(math.min(math.max(70 + (creat.melee - creat.level*5-5),25),95)) .. "% chance to hit average level " .. creat.level .. " creature)",455,245)
-		love.graphics.print("Dodge Skill: " .. creat.dodging .. " (" .. math.ceil(math.min(math.max(70 + (5+creat.level*5 - creat.dodging),25),95)) .. "% chance to be hit by average level " .. creat.level .. " creature)",455,260)
-    local printY = 275
-    if creat.armor then love.graphics.print("Damage Absorption: " .. creat.armor,455,275) printY = printY+15 end
+    love.graphics.printf(types,450,start+fontSize*2,(width-460),"center")
+		love.graphics.printf(creat.description,455,start+fontSize*3,(width-475),"left")
+    local statStart = math.max(200,start+fontSize*5)
+		love.graphics.print("Damage: " .. creat.strength .. " (" .. (creat.critical_damage and (creat.strength+creat.critical_damage) or math.ceil(creat.strength * 1.5)) .. " damage on critical hit, " .. (creat.critical_chance or 1) .. "% chance)",455,statStart)
+		love.graphics.print("Max HP: " .. creat.max_hp,455,statStart+fontSize)
+		love.graphics.print("Sight Radius: " .. creat.perception,455,statStart+fontSize*2)
+		love.graphics.print("Melee Skill: " .. creat.melee .. " (" .. math.ceil(math.min(math.max(70 + (creat.melee - creat.level*5-5),25),95)) .. "% chance to hit average level " .. creat.level .. " creature)",455,statStart+fontSize*3)
+		love.graphics.print("Dodge Skill: " .. creat.dodging .. " (" .. math.ceil(math.min(math.max(70 + (5+creat.level*5 - creat.dodging),25),95)) .. "% chance to be hit by average level " .. creat.level .. " creature)",455,statStart+fontSize*4)
+    local printY = math.max(275,statStart+fontSize*5)
+    if creat.armor then love.graphics.print("Damage Absorption: " .. creat.armor,455,statStart+fontSize*2) printY = printY+fontSize end
     if creat.weaknesses then
       local weakstring = "Weaknesses: "
       local first = true
@@ -173,7 +177,7 @@ function monsterpedia:draw()
         first = false
       end
       love.graphics.print(weakstring,455,printY)
-      printY = printY+15
+      printY = printY+fontSize
     end --end weaknesses
     if creat.resistances then
       local resiststring = "Resistances: "
@@ -183,35 +187,35 @@ function monsterpedia:draw()
         first = false
       end
       love.graphics.print(resiststring,455,printY)
-      printY = printY+15
+      printY = printY+fontSize
     end --end weaknesses
     if creat.ranged_attack then
       local rangedstring = "Ranged Attack: " .. rangedAttacks[creat.ranged_attack].name
       love.graphics.print(rangedstring,455,printY)
     end
       
-	
-		love.graphics.printf("Special Abilities:",450,350,(width-460),"center")
+    printY=math.max(350,printY+fontSize*2)
+		love.graphics.printf("Special Abilities:",450,printY,(width-460),"center")
+    printY=printY+fontSize
 		local abilities = ""
-    local sideBarY = 350
-		if (creat:get_spells()) then
+		if (creat.get_spells) then
       local i = 1
       for id, ability in pairs(creat:get_spells()) do
         if (i > 1) then abilities = abilities .. "\n" end
         abilities = abilities .. possibleSpells[ability].name .. (possibleSpells[ability].target_type == "passive" and " (Passive)" or "") .. " - " .. possibleSpells[ability].description
         i = i + 1
       end
-      sideBarY = sideBarY+15*i
-      love.graphics.printf(abilities,455,365,(width-475),"left")
+      love.graphics.printf(abilities,455,printY,(width-475),"left")
+      printY = printY+fontSize*i
 		else
 			abilities = "None"
-      love.graphics.printf(abilities,450,365,(width-460),"center")
+      love.graphics.printf(abilities,450,printY,(width-460),"center")
 		end
 		
     
     if creat.hit_conditions or creat.crit_conditions then
-      sideBarY=sideBarY+45
-      love.graphics.printf("Hit Conditions:",450,sideBarY,(width-460),"center")
+      printY=printY+45
+      love.graphics.printf("Hit Conditions:",450,printY,(width-460),"center")
       local context = ""
       local i = 1
       if creat.hit_conditions then
@@ -228,22 +232,22 @@ function monsterpedia:draw()
           i = i + 1
         end
       end
-      sideBarY=sideBarY+15
-      love.graphics.printf(context,450,sideBarY,(width-460),"center")
+      printY=printY+fontSize
+      love.graphics.printf(context,450,printY,(width-460),"center")
 		end
     
-    sideBarY=sideBarY+45
-    if totalstats.creature_possessions and totalstats.creature_possessions[id] then love.graphics.print(ucfirst(creat.name) .. " possessions: " .. totalstats.creature_possessions[id],455,sideBarY+15) end
-    if totalstats.exploded_creatures and totalstats.exploded_creatures[id] then love.graphics.print(ucfirst(creat.name) .. " explosions: " .. totalstats.exploded_creatures[id],455,sideBarY+30) end
-    if totalstats.creature_kills and totalstats.creature_kills[id] then love.graphics.print(ucfirst(creat.name) .. "s killed: " .. totalstats.creature_kills[id],455,sideBarY+45) end
-    if totalstats.creature_kills_by_ally and totalstats.creature_kills_by_ally[id] then love.graphics.print(ucfirst(creat.name) .. "s killed by allies: " .. totalstats.creature_kills_by_ally[id],455,sideBarY+60) end
-    if totalstats.turns_as_creature and totalstats.turns_as_creature[id] then love.graphics.print("Turns as " .. creat.name .. ": " .. totalstats.turns_as_creature[id],455,sideBarY+75) end
-    if totalstats.kills_as_creature and totalstats.kills_as_creature[id] then love.graphics.print("Kills as " .. creat.name .. ": " .. totalstats.kills_as_creature[id],455,sideBarY+90) end
-    if totalstats.deaths_as_creature and totalstats.deaths_as_creature[id] then love.graphics.print("Deaths as " .. creat.name .. ": " .. totalstats.deaths_as_creature[id],455,sideBarY+105) end
-    if totalstats.ally_kills_as_creature and totalstats.ally_kills_as_creature[id] then love.graphics.print("Kills made by allies as " .. creat.name .. ": " .. totalstats.ally_kills_as_creature[id],455,sideBarY+120) end
-    if totalstats.allied_creature_kills and totalstats.allied_creature_kills[id] then love.graphics.print("Kills made by allied " .. creat.name .. "s: " .. totalstats.allied_creature_kills[id],455,sideBarY+135) end
-    if totalstats.creature_ally_deaths and totalstats.creature_ally_deaths[id] then love.graphics.print('Allied ' .. creat.name .. " deaths: " .. totalstats.creature_ally_deaths[id],455,sideBarY+150) end
-    if totalstats.ally_deaths_as_creature and totalstats.ally_deaths_as_creature[id] then love.graphics.print('Ally deaths as ' .. creat.name .. ": " .. totalstats.ally_deaths_as_creature[id],455,sideBarY+165) end
+    printY=printY+fontSize*3
+    if totalstats.creature_possessions and totalstats.creature_possessions[id] then love.graphics.print(ucfirst(creat.name) .. " possessions: " .. totalstats.creature_possessions[id],455,printY+fontSize) end
+    if totalstats.exploded_creatures and totalstats.exploded_creatures[id] then love.graphics.print(ucfirst(creat.name) .. " explosions: " .. totalstats.exploded_creatures[id],455,printY+fontSize*2) end
+    if totalstats.creature_kills and totalstats.creature_kills[id] then love.graphics.print(ucfirst(creat.name) .. "s killed: " .. totalstats.creature_kills[id],455,printY+fontSize*3) end
+    if totalstats.creature_kills_by_ally and totalstats.creature_kills_by_ally[id] then love.graphics.print(ucfirst(creat.name) .. "s killed by allies: " .. totalstats.creature_kills_by_ally[id],455,printY+fontSize*4) end
+    if totalstats.turns_as_creature and totalstats.turns_as_creature[id] then love.graphics.print("Turns as " .. creat.name .. ": " .. totalstats.turns_as_creature[id],455,printY+fontSize*5) end
+    if totalstats.kills_as_creature and totalstats.kills_as_creature[id] then love.graphics.print("Kills as " .. creat.name .. ": " .. totalstats.kills_as_creature[id],455,printY+fontSize*6) end
+    if totalstats.deaths_as_creature and totalstats.deaths_as_creature[id] then love.graphics.print("Deaths as " .. creat.name .. ": " .. totalstats.deaths_as_creature[id],455,printY+fontSize*7) end
+    if totalstats.ally_kills_as_creature and totalstats.ally_kills_as_creature[id] then love.graphics.print("Kills made by allies as " .. creat.name .. ": " .. totalstats.ally_kills_as_creature[id],455,printY+fontSize*8) end
+    if totalstats.allied_creature_kills and totalstats.allied_creature_kills[id] then love.graphics.print("Kills made by allied " .. creat.name .. "s: " .. totalstats.allied_creature_kills[id],455,printY+fontSize*9) end
+    if totalstats.creature_ally_deaths and totalstats.creature_ally_deaths[id] then love.graphics.print('Allied ' .. creat.name .. " deaths: " .. totalstats.creature_ally_deaths[id],455,printY+fontSize*10) end
+    if totalstats.ally_deaths_as_creature and totalstats.ally_deaths_as_creature[id] then love.graphics.print('Ally deaths as ' .. creat.name .. ": " .. totalstats.ally_deaths_as_creature[id],455,printY+fontSize*11) end
 	end
   self.closebutton = output:closebutton(24,24)
   love.graphics.pop()
@@ -251,21 +255,21 @@ end
 
 function monsterpedia:keypressed(key)
   if (key == "up") then
-    output.cursorY = output.cursorY - 1
-    if monsterpedia.positions[output.cursorY+monsterpedia.scroll] == -1 then --if you're on a label
-      output.cursorY = output.cursorY - 1 --just go to the next place
+    self.cursorY = self.cursorY - 1
+    if monsterpedia.positions[self.cursorY+monsterpedia.scroll] == -1 then --if you're on a label
+      self.cursorY = self.cursorY - 1 --just go to the next place
     end
-    while output.cursorY < 1 and monsterpedia.scroll>0 do --if you select past the top of the screen and have scrolled down, scroll back up
+    while self.cursorY < 1 and monsterpedia.scroll>0 do --if you select past the top of the screen and have scrolled down, scroll back up
       monsterpedia:scrollUp()
     end
-    if output.cursorY < 1 then output.cursorY = 1 end --if, after all that, the cursor is offscreen, move it back down
+    if self.cursorY < 1 then self.cursorY = 1 end --if, after all that, the cursor is offscreen, move it back down
   elseif (key == "down") then
-    if monsterpedia.positions[output.cursorY+monsterpedia.scroll+1] then output.cursorY = output.cursorY + 1 end
-    if monsterpedia.positions[output.cursorY+monsterpedia.scroll] == -1 then --if you're on a label
-      output.cursorY = output.cursorY + 1 --just go to the next place
+    if monsterpedia.positions[self.cursorY+monsterpedia.scroll+1] then self.cursorY = self.cursorY + 1 end
+    if monsterpedia.positions[self.cursorY+monsterpedia.scroll] == -1 then --if you're on a label
+      self.cursorY = self.cursorY + 1 --just go to the next place
     end
     local screenMax = math.floor(love.graphics:getHeight()/(output:get_tile_size()+2)) --if you scroll past the edge of the screen, scroll down
-    while output.cursorY > screenMax-1 do
+    while self.cursorY > screenMax-1 do
       monsterpedia:scrollDown()
     end
   elseif (key == "escape") then
@@ -283,40 +287,29 @@ function monsterpedia:update(dt)
   end
   local x,y = love.mouse.getPosition()
   local tileSize = output:get_tile_size()
+  local lineSize = math.max(tileSize,prefs['fontSize'],prefs['asciiSize'])
   if x~=output.mouseX or y~=output.mouseY then
     output.mouseX = x
 		output.mouseY = y
     local listY = 0
     if prefs['noImages'] ~= true then
       if x>32 and x<388 then
-        listY = (y-16)/(tileSize)
+        listY = (y-16)/(lineSize)
       end --end x if
     else --end images if
       if (x < 435 and x > 14) then
-        listY = (y-48)/14
+        listY = (y-14-lineSize*2)/lineSize
       end
     end --end images if
     if listY ~= 0 then 
-      output.cursorY=math.floor(listY)
-      if monsterpedia.positions[monsterpedia.scroll+output.cursorY] == -1 then
+      self.cursorY=math.floor(listY)
+      if monsterpedia.positions[monsterpedia.scroll+self.cursorY] == -1 then
         local _, dec = math.modf(listY)
-        if dec < 0.5 then output.cursorY = output.cursorY-1
-        else output.cursorY = output.cursorY+1 end
+        if dec < 0.5 then self.cursorY = self.cursorY-1
+        else self.cursorY = self.cursorY+1 end
       end --end on label if
     end
   end
-  --[[--Mouse movement is fuxxored right now
-  local x,y = love.mouse.getPosition()
-	if (x ~= mouseX or y ~= mouseY) then -- only do this if the mouse has moved
-		mouseX = x
-		mouseY = y
-		if (x < 435 and x > 14) then
-			local listY = math.floor(y/14)
-			if (monsterpedia.positions[listY-1] ~= nil) then
-				output.cursorY=listY-1
-			end
-		end
-	end]]
   
   --Handle scrolling:
   if (love.mouse.isDown(1) and monsterpedia.scrollPositions) then
@@ -334,22 +327,22 @@ function monsterpedia:update(dt)
   end
   
   --Put the cursor back where it belongs:
-  while (#monsterpedia.positions ~= 0 and output.cursorY+monsterpedia.scroll > #monsterpedia.positions) do --if you're scrolled too far, scroll up
-    output.cursorY = output.cursorY-1
+  while (#monsterpedia.positions ~= 0 and self.cursorY+monsterpedia.scroll > #monsterpedia.positions) do --if you're scrolled too far, scroll up
+    self.cursorY = self.cursorY-1
   end
-  if output.cursorY == 1 and monsterpedia.scroll == 0 then output.cursorY = 2 end
+  if self.cursorY == 1 and monsterpedia.scroll == 0 then self.cursorY = 2 end
   
-  if output.cursorY < 1 then
-    output.cursorY = output.cursorY+1
-    if monsterpedia.positions[output.cursorY+monsterpedia.scroll] == -1 then --if you're on a label
-      output.cursorY = output.cursorY + 1 --just go to the next place
+  if self.cursorY < 1 then
+    self.cursorY = self.cursorY+1
+    if monsterpedia.positions[self.cursorY+monsterpedia.scroll] == -1 then --if you're on a label
+      self.cursorY = self.cursorY + 1 --just go to the next place
     end
   end
   local screenMax = math.floor((love.graphics:getHeight())/(output:get_tile_size()+(prefs['noImages'] and 1 or 2)))
-  if output.cursorY > screenMax-1 then
-    output.cursorY = output.cursorY-1
-    if monsterpedia.positions[output.cursorY+monsterpedia.scroll] == -1 then --if you're on a label
-      output.cursorY = output.cursorY - 1 --just go to the next place
+  if self.cursorY > screenMax-1 then
+    self.cursorY = self.cursorY-1
+    if monsterpedia.positions[self.cursorY+monsterpedia.scroll] == -1 then --if you're on a label
+      self.cursorY = self.cursorY - 1 --just go to the next place
     end
   end
 end
@@ -365,7 +358,7 @@ end
 function monsterpedia:scrollUp()
   if monsterpedia.scroll > 0 then
     monsterpedia.scroll = monsterpedia.scroll - 1
-    output.cursorY = output.cursorY+1
+    self.cursorY = self.cursorY+1
   end
 end
 
@@ -373,7 +366,7 @@ function monsterpedia:scrollDown()
   local screenMax = math.floor((love.graphics:getHeight())/(output:get_tile_size()+2))
   if #monsterpedia.positions ~= 0 and screenMax+monsterpedia.scroll-1 < #monsterpedia.positions then
     monsterpedia.scroll = monsterpedia.scroll + 1
-    output.cursorY = output.cursorY-1
+    self.cursorY = self.cursorY-1
   end
 end
 

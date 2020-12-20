@@ -21,14 +21,15 @@ function mapgen:generate_map(branchID, depth,force)
     if forceMapType and mapTypes[forceMapType] then -- if the branch is forcing us to use a specific map
       id = forceMapType
     end
+    whichMap = mapTypes[id]
   else --Non-forced map generation:
     local index = get_random_key(branch.mapTypes)
     id = branch.mapTypes[index]
+    whichMap = mapTypes[id]
     if branch.allMapsUnique then --if the branch doesn't allow repeated levels
       table.remove(branch.mapTypes,index)
     end
   end
-  whichMap = mapTypes[id]
 
   --Figure out width and height. Order of preference: 1) mapType's dimensions, 2) branch's map dimensions, 3) game's default map dimensions
   local width,height = whichMap.width or branch.mapWidth or gamesettings.default_map_width, whichMap.height or branch.mapHeight or gamesettings.default_map_height
@@ -126,9 +127,10 @@ function mapgen:generate_map(branchID, depth,force)
   
 	--Add creatures:
 	if not build.noCreats then
-    local highest = math.max(width,height)
+    local density = whichMap.creature_density or branch.creature_density or gamesettings.creature_density
+    local creatTotal = math.ceil((width*height)*(density/100))
     local specialCreats = mapgen:get_creature_list(build)
-		for creat_amt=1,highest,1 do
+		for creat_amt=1,creatTotal,1 do
 			local nc = mapgen:generate_creature(depth,specialCreats)
       if nc == false then break end
       local cx,cy = random(2,build.width-1),random(2,build.height-1)
@@ -142,11 +144,13 @@ function mapgen:generate_map(branchID, depth,force)
         if random(1,4) == 1 then nc:give_condition('asleep',random(10,100)) end
         build:add_creature(nc,cx,cy)
       end --end tries if
-		end --end creature while
-	end --end depth if
+		end --end creature for
+	end --end if not nocreats
   --Add items:
   if not build.noItems then
-    for item_amt = 1,100,1 do
+    local density = whichMap.item_density or branch.item_density or gamesettings.item_density
+    local itemTotal = math.ceil((width*height)*(density/100))
+    for item_amt = 1,itemTotal,1 do
       local ni = mapgen:generate_item(depth)
       if ni == false then break end
       local ix,iy = random(2,build.width-1),random(2,build.height-1)
@@ -266,6 +270,7 @@ function mapgen:get_creature_list(map)
       end --end cFac for
     end --end faction if
     if done then
+      if not specialCreats then specialCreats = {} end
       specialCreats[#specialCreats+1] = cid
     end
   end
@@ -279,10 +284,11 @@ end
 --@return Creature. The new creature
 function mapgen:generate_creature(level,list,allowAll)
   --Prevent an infinite loop if there are no creatures of a given level:
+  level = math.max(0,tweak(level))
   if not list then
     local noCreats = true
     for _,creat in pairs(possibleMonsters) do
-      if creat.level == level then noCreats = false break end
+      if creat.level == level or (creat.maxLevel or 0) <= level then noCreats = false break end
     end
     if noCreats == true then return false end
   end
@@ -290,7 +296,7 @@ function mapgen:generate_creature(level,list,allowAll)
 	-- This selects a random creature from the table of possible creatures, and compares the desired creature level to this creature's level. If it's a match, continue, otherwise select another one
 	while (1 == 1) do -- endless loop, broken by the "return"
 		local n = (list and get_random_element(list) or get_random_key(possibleMonsters))
-		if (list or possibleMonsters[n].level == level) and possibleMonsters[n].isBoss ~= true and possibleMonsters[n].neverSpawn ~= true and (allowAll or list or possibleMonsters[n].specialOnly ~= true) then
+		if (list or possibleMonsters[n].level == level or (possibleMonsters[n].maxLevel or 0) <= level) and possibleMonsters[n].isBoss ~= true and possibleMonsters[n].neverSpawn ~= true and (allowAll or list or possibleMonsters[n].specialOnly ~= true) then
 			return Creature(n,level)
 		end
 	end

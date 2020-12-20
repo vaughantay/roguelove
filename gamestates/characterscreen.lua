@@ -226,6 +226,13 @@ function characterscreen:refresh_spell_purchase_list()
       end --end level check if
     end --end spell purchase list for
   end --end if player class has spell purchases
+  if possibleMonsters[player.id].spell_purchases then
+    for _,info in ipairs(possibleMonsters[player.id].spell_purchases) do
+      if not info.level or info.level <= player.level then
+        self.spell_purchases[#self.spell_purchases+1] = info
+      end --end level check if
+    end --end spell purchase list for
+  end --end if player definition has spell purchases
 end
 
 function characterscreen:update(dt)

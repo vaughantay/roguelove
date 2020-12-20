@@ -1,10 +1,11 @@
 messages = {}
 
 function messages:enter()
-  output.cursorY = 0
+  self.cursorY = 0
   self.yModPerc = 100
   tween(0.2,self,{yModPerc=0})
   output:sound('stoneslideshort',2)
+  self.smallestY=0
 end
 
 function messages:draw()
@@ -15,50 +16,38 @@ function messages:draw()
   love.graphics.scale(uiScale,uiScale)
   love.graphics.translate(0,height*(self.yModPerc/100))
   love.graphics.setFont(fonts.textFont)
-  if (prefs['noImages'] ~= true) then
-    --Borders for select:
-    for x=32,math.floor(width/uiScale)-48,32 do
-      love.graphics.draw(images.borders.borderImg,images.borders.u,x,0)
-      love.graphics.draw(images.borders.borderImg,images.borders.d,x,math.floor(height/uiScale)-32)
-    end
-    love.graphics.draw(images.borders.borderImg,images.borders.u,math.floor(width/uiScale)-64,0)
-    love.graphics.draw(images.borders.borderImg,images.borders.d,math.floor(width/uiScale)-64,math.floor(height/uiScale)-32)
-    for y=32,math.floor(height/uiScale)-48,32 do
-      love.graphics.draw(images.borders.borderImg,images.borders.l,0,y)
-      love.graphics.draw(images.borders.borderImg,images.borders.r,math.floor(width/uiScale)-32,y)
-    end
-    love.graphics.draw(images.borders.borderImg,images.borders.l,0,math.floor(height/uiScale)-64)
-    love.graphics.draw(images.borders.borderImg,images.borders.r,math.floor(width/uiScale)-32,math.floor(height/uiScale)-64)
-    love.graphics.draw(images.borders.borderImg,images.borders.ul,0,0)
-    love.graphics.draw(images.borders.borderImg,images.borders.ur,math.floor(width/uiScale)-32,0)
-    love.graphics.draw(images.borders.borderImg,images.borders.ll,0,math.floor(height/uiScale)-32)
-    love.graphics.draw(images.borders.borderImg,images.borders.lr,math.floor(width/uiScale)-32,math.floor(height/uiScale)-32)
-    --Draw inner coloring:
-    setColor(20,20,20,225)
-    love.graphics.rectangle("fill",18,18,math.floor(width/uiScale)-32,math.floor(height/uiScale)-36)
-    setColor(255,255,255,255)
-  else --no images
-    setColor(255,255,255,255)
-    love.graphics.rectangle("line",6,6,math.floor(width/uiScale)-12,math.floor(height/uiScale)-12)
-    setColor(0,0,0,225)
-    love.graphics.rectangle("fill",7,7,math.floor(width/uiScale)-13,math.floor(height/uiScale)-13)
-    setColor(255,255,255,255)
+  local startX,startY,windowW,windowH
+  if prefs['noImages'] then
+    startX,startY,windowW,windowH = 1,1,width-12,height-12
+  else
+    startX,startY,windowW,windowH = 1,1,width-32,height-32
   end
-	local cursor = math.floor(height/uiScale)-33
-  local start = #output.text+output.cursorY
-	for i = start, start-(math.floor(height/uiScale)/14*uiScale-2),-1 do
-    if cursor < 14*uiScale then break end
-		if (output.text[i] ~= nil) then
-			love.graphics.print(ucfirst(output.text[i]),15,cursor)
-			cursor = cursor - 14
-		end
+  output:draw_window(startX,startY,windowW,windowH)
+  local fontSize = prefs['fontSize']
+	local cursor = math.floor(height/uiScale)-fontSize
+  local textWidth = math.floor(width/uiScale)-84
+  
+  --Drawing the text:
+  love.graphics.push()
+  --Create a "stencil" that stops 
+  local function stencilFunc()
+    love.graphics.rectangle("fill",startX+math.min(8,fontSize),startY+math.min(8,fontSize),width-math.min(16,fontSize*2),height-math.min(16,fontSize*2))
+  end
+  love.graphics.stencil(stencilFunc,"replace",1)
+  love.graphics.setStencilTest("greater",0)
+  love.graphics.translate(0,-self.cursorY)
+	for i = #output.text,1,-1 do
+    local _, tlines = fonts.textFont:getWrap(ucfirst(output.text[i]),textWidth)
+    cursor = cursor - math.floor(#tlines*(fontSize*1.25))
+    love.graphics.printf(ucfirst(output.text[i]),15,cursor,textWidth,"left")
 	end
-  local maxLines = math.floor(((height-33)/14)/uiScale)
-  if #output.text > maxLines then
-    local maxScroll = #output.text-maxLines
-    local scrollAmt = (maxScroll+output.cursorY)/maxScroll
-    print(scrollAmt)
-    messages.scrollPositions = output:scrollbar(math.floor(width/uiScale)-48,16,math.floor(height/uiScale)-(prefs['noImages'] and 24 or 16),scrollAmt,true)
+  love.graphics.setStencilTest()
+  love.graphics.pop()
+  
+  self.smallestY = cursor-math.floor(fontSize/2)
+  if self.smallestY < 1 then
+    local scrollAmt = (self.smallestY-self.cursorY)/self.smallestY
+    self.scrollPositions = output:scrollbar(math.floor(width/uiScale)-48,16,math.floor(height/uiScale)-(prefs['noImages'] and 24 or 16),scrollAmt,true)
   end
   self.closebutton = output:closebutton(24,24,nil,true)
   love.graphics.pop()
@@ -76,14 +65,13 @@ end
 
 function messages:scrollUp()
   local uiScale = (prefs['uiScale'] or 1)
-  local maxLines = math.floor(((love.graphics:getHeight()-33)/14)/uiScale)
-  if #output.text + output.cursorY > maxLines then
-    output.cursorY = output.cursorY - 1
+  if self.cursorY > self.smallestY then
+    self.cursorY = self.cursorY - prefs.fontSize
   end
 end
 
 function messages:scrollDown()
-  if output.cursorY < 0 then output.cursorY = output.cursorY+1 end
+  if self.cursorY < 0 then self.cursorY = self.cursorY+prefs.fontSize end
 end
 
 function messages:mousepressed(x,y,button)

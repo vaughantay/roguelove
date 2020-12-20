@@ -10,5 +10,10 @@ gamesettings = {
   leveling=true,
   player_tombstones=true,
   default_map_width=60,
-  default_map_height=60
+  default_map_height=60,
+  creature_density=5,
+  item_density=.1,
+  no_player_species=false,
+  no_player_classes=false,
+  default_player="player_human"
 }

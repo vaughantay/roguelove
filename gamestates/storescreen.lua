@@ -67,8 +67,10 @@ function storescreen:draw()
   if not self.store.noBuy then
     printY=printY+fontSize
     local padX = 8
-    local buybuttonW = fonts.textFont:getWidth("Buying")+padding
-    local sellbuttonW = fonts.textFont:getWidth("Selling")+padding
+    local buybuttonW = fonts.buttonFont:getWidth("Buying")+padding
+    local sellbuttonW = fonts.buttonFont:getWidth("Selling")+padding
+    local biggestButton = math.max(buybuttonW,sellbuttonW)
+    buybuttonW,sellbuttonW = biggestButton,biggestButton
     local startX = windowX+math.floor(windowWidth/2)
     if self.screen == "Buy" then setColor(150,150,150,255) end
     self.buyButton = output:button(startX-math.floor(buybuttonW/2)-padX,printY,buybuttonW+padX,false,((self.cursorX == 1 and self.cursorY == 1) and "hover" or nil),"Buying")
@@ -85,7 +87,7 @@ function storescreen:draw()
   --Draw the screens:
   local mouseX,mouseY = love.mouse.getPosition()
   if self.screen == "Buy" then
-    local buybuttonW = fonts.textFont:getWidth("Buy")+padding
+    local buybuttonW = fonts.buttonFont:getWidth("Buy")+padding
     local nameX = windowX+padding
     local costX = 0
     local amountX = 0

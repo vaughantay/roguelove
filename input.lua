@@ -16,35 +16,14 @@ function input:parse_key(key,scancode,isrepeat)
     return "east",scancode,isrepeat
   elseif ((prefs['arrowKeys'] and key == "left") or key == keybindings.west) then
     return "west",scancode,isrepeat
-  elseif key == keybindings.northwest then
-    return "northwest",scancode,isrepeat
-  elseif key == keybindings.northeast then
-    return "northeast",scancode,isrepeat
-  elseif key == keybindings.southwest then
-    return "southwest",scancode,isrepeat
-  elseif key == keybindings.southeast then
-    return "southeast",scancode,isrepeat
   elseif ((prefs['arrowKeys'] and key == "space") or key == keybindings.wait) then
     return "wait",scancode,isrepeat
-  elseif (key == keybindings.spell) then
-		return "spell",scancode,isrepeat
-  elseif (key == keybindings.inventory) then
-		return "inventory",scancode,isrepeat
-  elseif (key == keybindings.throw) then
-		return "throw",scancode,isrepeat
-  elseif (key == keybindings.use) then
-		return "use",scancode,isrepeat
-  elseif (key == keybindings.equip) then
-		return "equip",scancode,isrepeat
-  elseif (key == keybindings.crafting) then
-		return "crafting",scancode,isrepeat
-	elseif (key == keybindings.examine) then
-		return "examine",scancode,isrepeat
-  elseif (key == keybindings.nextTarget) then
-    return "nextTarget",scancode,isrepeat
-  elseif (key == keybindings.action) then
-    return "action",scancode,isrepeat
   else
+    for command,commandkey in pairs(keybindings) do
+      if commandkey == key then
+        return command,scancode,isrepeat
+      end
+    end
     return key,scancode,isrepeat
   end
 end

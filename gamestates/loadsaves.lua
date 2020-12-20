@@ -33,16 +33,17 @@ function loadsaves:draw()
   local needsScroll = (count(self.saves) > self.screenMax)
   local mouseX,mouseY = love.mouse.getPosition()
   for _,save in ipairs(self.saves) do
-    local printY = (line*2-self.scroll*2+4)*prefs['fontSize']
+    local printY = math.ceil((line*2-self.scroll*2+4)*prefs['fontSize'])
     if printY > padding*2 and printY < height-padding then
       local dateWidth = fonts.textFont:getWidth(os.date("%H:%M, %b %d, %Y",save.date))
+      local _,textLines = fonts.textFont:getWrap(save.fileName,sidebarX-32-dateWidth-(needsScroll and padding or 0))
       if line == self.cursorY then
         setColor(100,100,100,255)
-        love.graphics.rectangle("fill",printX,printY,sidebarX-padding-(needsScroll and padding*2 or padding),2+prefs['fontSize'])
+        love.graphics.rectangle("fill",printX,printY,sidebarX-padding-(needsScroll and padding*2 or padding),4+prefs['fontSize']*#textLines)
         setColor(255,255,255,255)
-      elseif mouseX > padding and mouseX < sidebarX-(needsScroll and padding*2 or padding) and mouseY > printY and mouseY < printY+prefs['fontSize'] and self.deletewarning == false then
+      elseif mouseX > padding and mouseX < sidebarX-(needsScroll and padding*2 or padding) and mouseY > printY and mouseY < printY+prefs['fontSize']*#textLines and self.deletewarning == false then
         setColor(100,100,100,125)
-        love.graphics.rectangle("fill",printX,printY,sidebarX-padding-(needsScroll and padding*2 or padding),2+prefs['fontSize'])
+        love.graphics.rectangle("fill",printX,printY,sidebarX-padding-(needsScroll and padding*2 or padding),4+prefs['fontSize']*#textLines)
         setColor(255,255,255,255)
       end
       love.graphics.printf(save.fileName,printX,printY,sidebarX-32-dateWidth-(needsScroll and padding or 0))
@@ -53,7 +54,7 @@ function loadsaves:draw()
   
   if needsScroll then
     local maxScroll = #self.saves-self.screenMax
-    local scrollAmt = self.scroll/(maxScroll+2)
+    local scrollAmt = self.scroll/maxScroll
     self.scrollPositions = output:scrollbar(round(sidebarX-padding*1.75),padding*2,height-padding,scrollAmt)
   end
   
@@ -77,11 +78,13 @@ function loadsaves:draw()
           love.graphics.rectangle("line",sidebarX+padding,padding,endX-sidebarX-padding,ssheight)
           printY=round(printY+ssheight+prefs['fontSize'])
         end
+        local _,nameLines = fonts.textFont:getWrap(save.player.properName,endX-sidebarX-padding)
         love.graphics.printf(save.player.properName,sidebarX+padding,printY,endX-sidebarX-padding,"center")
         save.currGame.stats = save.currGame.stats or {}
-        printY = printY+padY
+        printY = printY+padY*#nameLines
+        local _,depthLines = fonts.textFont:getWrap("Depth " .. 11-save.currMap.depth .. ": " .. save.currMap.name,endX-sidebarX-padding)
         love.graphics.printf("Depth " .. 11-save.currMap.depth .. ": " .. save.currMap.name,sidebarX+padding,printY,endX-sidebarX-padding,"center")
-        printY = printY+padY
+        printY = printY+padY*#depthLines
         love.graphics.printf("Current Body: " .. ucfirst(save.player.name),sidebarX+padding,printY,endX-sidebarX-padding,"center")
         printY = printY+padY*2
         love.graphics.printf("Turns: " .. (save.currGame.stats.turns or 0),sidebarX+padding,printY,endX-sidebarX-padding,"center")
@@ -276,7 +279,7 @@ function loadsaves:mousepressed(x,y,button)
       self.deletewarning = true
       self.cursorX = 2
     else
-      local line = round(((y/prefs['fontSize'])-4)/2+self.scroll)
+      local line = math.floor(((y/prefs['fontSize'])-4)/2+self.scroll)
       local padding = (prefs['noImages'] and 16 or 32)
       local sidebarX = round(love.graphics.getWidth()/3)*2+padding
       local needsScroll = (count(self.saves) > self.screenMax)

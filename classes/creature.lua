@@ -32,7 +32,7 @@ function Creature:init(creatureType,level,noItems)
   self.equipment = {}
   self.money = self.money or 0
   self.xp = 0
-  self.favor = {}
+  self.favor = self.favor or {}
   self.factions = self.factions or {}
   self.hands = self.hands or (self.noEquip and 0 or 2)
   if self.equipslots then
@@ -134,7 +134,7 @@ function Creature:generate_inventory(source)
   if source.possible_inventory then
     for _,def in ipairs(source.possible_inventory) do
       if not def.chance or random(1,100) <= def.chance then
-        local amt = (def.max_amt and random((def.min_amt or 1),def.max_amt) or 1)
+        local amt = def.amount or random((def.min_amt or 1),(def.max_amt or 1))
         for i=1,amt,1 do
           self:give_item(Item(def.item))
         end
@@ -2021,22 +2021,42 @@ function Creature:get_level_up_cost()
 end
 
 ---Level Up, granting skill points (for players), or randomly increasing skills (for NPCs)
-function Creature:level_up()
+--@param force Boolean. Whether or not to ignore XP costs
+function Creature:level_up(force)
   local cost = self:get_level_up_cost()
-  if self.xp < cost then return false end
-  self.xp = self.xp - cost
+  if not force then 
+    if self.xp < cost then return false end
+    self.xp = self.xp - cost
+  end
   self.level = self.level + 1
   if self == player and not prefs.autoLevel then
     self.skillPoints = (self.skillPoints or 0) + 5
   else
-    for i=1,5,1 do
-      local stats = {'strength','dodging','melee'}
-      local stat = get_random_element(stats)
-      self[stat] = self[stat] + 1
+    local points = 5
+    local hpInc = random(2,6)
+    self.max_hp = self.max_hp + hpInc
+    self.hp = self.hp + hpInc
+    self.strength = self.strength + random(1,2)
+    self.dodging = self.dodging + random(1,2)
+    self.melee = self.melee + random(1,2)
+    if self.magic and self.magic > 0 then self.magic = self.magic + random(1,2) end
+    if self.ranged and self.ranged > 0 then self.ranged = self.ranged + random(1,2) end
+    if self.stealth and self.stealth > 0 then self.stealth = self.stealth + 1 end
+    if self.max_mp and self.max_mp > 0 then
+      local mpInc = random(2,6)
+      self.max_mp = self.max_mp + mpInc
+      self.mp = self.mp + mpInc
     end
   end
   if self.class and playerClasses[self.class].learns_spells then
     for _,spell in ipairs(playerClasses[self.class].learns_spells) do
+      if spell.level == self.level then
+        self:learn_spell(spell.spell)
+      end
+    end
+  end
+  if possibleMonsters[self.id].learns_spells then
+    for _,spell in ipairs(possibleMonsters[self.id].learns_spells) do
       if spell.level == self.level then
         self:learn_spell(spell.spell)
       end
@@ -2110,6 +2130,13 @@ end
 --@return Number. The stat value
 function Creature:get_critical_chance()
   return (self.critical_chance or 1)+self:get_bonus('critical_chance')
+end
+
+---A generic function for getting a stat and its bonus
+--@param stat Text. The stat to get
+--@return Number. The stat value
+function Creature:get_stat(stat)
+  return (self[stat] or 0)+self:get_bonus(stat)
 end
 
 ---Get all spells the creature has, including those granted by equipment

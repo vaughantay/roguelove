@@ -4,8 +4,8 @@
 --@param mapSeed Number. The seed to use to generate the world. (optional)
 --@param playTutorial Boolean. Whether or not to show tutorial messages this game. (optional)
 --@param cheats Table. A table listing all the cheats in use this game. (optional)
---@param class String. What class to apply to the player character. (optional)
-function new_game(mapSeed,playTutorial,cheats,class,branch)
+--@param branch String. The ID of the branch to start on. (optional)
+function new_game(mapSeed,playTutorial,cheats,branch)
 	maps = {}
   branch = branch or gamesettings.default_starting_branch
   currGame = {startTime=os.date(),fileName=player.properName,playTutorial=playTutorial,tutorialsSeen={},missionFlags={},achievementDisqualifications={},cheats={},autoSave=prefs['autosaveTurns'],seed=mapSeed,stats={}}
@@ -14,7 +14,6 @@ function new_game(mapSeed,playTutorial,cheats,class,branch)
   currMap = mapgen:generate_map(branch,1)
   player:moveTo(currMap.stairsUp.x,currMap.stairsUp.y)
   currMap.creatures[player] = player
-  if class then player:apply_class(class) end
   maps[currMap.branch] = {}
 	maps[currMap.branch][currMap.depth] = currMap
 	output:setCursor(0,0)
@@ -45,18 +44,21 @@ function parse_name_for_level(name)
 end
 
 ---Creates the player character entity.
---@param creatureID Text. The ID of the creature definition to use to create the player. Optional, defeaults to player_human
-function initialize_player(creatureID)
-  creatureID = creatureID or "player_human"
+--@param creatureID String. The ID of the creature definition to use to create the player. Optional, defeaults to player_human
+--@param class String. The ID of the playerclass to apply to the player entity. Optional
+--@param name String. The name of the new player character. Optional, f blank, will be randomized.
+--@param gender String. Either "male", "female", "neuter", "other", or "custom". Optional, if blank, will be set to "other" and use they/them pronouns.
+--@param pronouns Table. A table of custom pronouns. Optional, only needed if using "custom" gender.
+function initialize_player(creatureID,class,name,gender,pronouns)
+  creatureID = creatureID or gamesettings.default_player
 	player = Creature(creatureID,1)
+  if class then player:apply_class(class) end
 	player.isPlayer = true
   player.playerAlly = true
-	if (random(1,2) == 1) then
-		player.gender = "male"
-	else
-		player.gender = "female"
-	end
-	player.properName=namegen:generate_human_name(player)
+	if gender then player.gender = gender end
+  if name ~= nil then
+    player.properName=name
+  end
   player.symbol = "@"
   player.color={r=255,g=255,b=255,a=255}
 end

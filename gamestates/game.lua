@@ -186,9 +186,8 @@ function game:print_messages()
     for i=#disp,1,-1 do
       if (output.text[disp[i]] ~= nil and length<=10) then
         local _, tlines = fonts.textFont:getWrap(output.text[disp[i]],width)
-        cursor = cursor - 15*#tlines
+        cursor = cursor - math.floor((prefs['fontSize']*1.25)*#tlines)
         setColor(0,0,0,255)
-        --text[id] = text[id] .. "\n" .. ucfirst(output.text[disp[i]])
         love.graphics.printf(ucfirst(output.text[disp[i]]),15+2,cursor+1,width,"left")   --Print a shadow to make messages more readable: 
         setColor(255,255,255,255/((id < 3 and id) or id+1))
         love.graphics.printf(ucfirst(output.text[disp[i]]),15,cursor,width,"left")
@@ -208,11 +207,16 @@ function game:print_sidebar()
   local sidebarW = 319
   local maxX = printX+sidebarW
   local printY = 48/uiScale
-  local maxY = printY+85
-  maxY = maxY + (player.magicName and 15 or 0)
-  maxY = maxY + (#player:get_ranged_attacks() > 0 and 40 or 0)
-  maxY = maxY + math.max((#player:get_spells()-2)*15,15)
-  maxY = maxY + ((next(player.conditions) == nil and 0 or 60))
+  local xPad = 5
+  local yBonus = 0
+  local whichFont = (prefs.plainFonts and fonts.textFont or fonts.buttonFont)
+  local fontSize = (prefs.plainFonts and prefs['fontSize'] or fonts.buttonFont:getHeight())
+  local fontPad = fontSize+2
+  local smallButtons = (not prefs['bigButtons'] and (not prefs.plainFonts or fontSize<16))
+  if not prefs.plainFonts then
+    love.graphics.setFont(fonts.buttonFont)
+    yBonus = 0
+  end
   --Draw shaded background:
   setColor(20,20,20,200)
   love.graphics.rectangle("fill",printX,printY,maxX-printX+14,height-32-printY)
@@ -240,23 +244,16 @@ function game:print_sidebar()
     setColor(255,255,255,255)
     love.graphics.rectangle("line",printX-7,printY-7,maxX-printX+32,height-48) -- sidebar
   end
-  --love.graphics.rectangle("line",printX,printY+35,128,160)
-  --love.graphics.draw(output:get_portrait(player.id),printX,printY+35)
-  local xPad = 5
-  local yBonus = 3
-  if not prefs.plainFonts then
-    love.graphics.setFont(fonts.buttonFont)
-    yBonus = 0
-  end
 	love.graphics.printf(player.properName,printX,printY-4+yBonus,335,"center")
   local skillPoints = ""
   if player.skillPoints and player.skillPoints > 0 then skillPoints = " (+)" end
-  local buttonWidth = fonts.buttonFont:getWidth(keybindings.charScreen .. ") Level " .. player.level .. " " .. player.name .. skillPoints)
+  local buttonWidth = whichFont:getWidth(keybindings.charScreen .. ") Level " .. player.level .. " " .. player.name .. skillPoints)
 
   local middleX = round(printX+335/2)
-  self.characterButton = output:button(round(middleX-buttonWidth/2)-8,printY+15,buttonWidth+16,true,nil,nil,true)
+  printY=printY+fontPad
+  self.characterButton = output:button(round(middleX-buttonWidth/2)-8,printY,buttonWidth+16,smallButtons,nil,nil,true)
 	if skillPoints ~= "" then setColor(255,255,0,255) end
-  love.graphics.printf(keybindings.charScreen .. ") Level " .. player.level .. " " .. player.name .. skillPoints,printX,printY+12+yBonus,335,"center")
+  love.graphics.printf(keybindings.charScreen .. ") Level " .. player.level .. " " .. player.name .. skillPoints,printX,printY+yBonus,335,"center")
   setColor(255,255,255,255) 
   if output.shakeTimer > 0 then
     love.graphics.push()
@@ -266,53 +263,56 @@ function game:print_sidebar()
   local ratio = self.hp/player:get_mhp()
   local hpR = 200-(200*ratio)
   local hpG = 200*ratio
-	output:draw_health_bar(self.hp,player:get_mhp(),printX+xPad,printY+35,325,16,{r=hpR,g=hpG,b=0,a=255})
- love.graphics.printf("Health: " .. math.ceil(self.hp) .. "/" .. player:get_mhp(),printX,printY+33+yBonus,332,"center")
+  printY=printY+math.max(math.floor(fontPad*1.5),24)
+	output:draw_health_bar(self.hp,player:get_mhp(),printX+xPad,printY,325,math.max(fontPad,16),{r=hpR,g=hpG,b=0,a=255})
+ love.graphics.printf("Health: " .. math.ceil(self.hp) .. "/" .. player:get_mhp(),printX,printY+yBonus,332,"center")
   if output.shakeTimer > 0 then
     love.graphics.pop()
   end
   
-  local yPad = 60
+  printY=printY+math.max(math.floor(fontPad*1.5),24)
   local mhp = player:get_max_mp()
   if (mhp > 0) then
-    output:draw_health_bar(player.mp,player:get_max_mp(),printX+xPad,printY+60,325,16,{r=100,g=0,b=100,a=255})
-    love.graphics.printf("Magic: " .. player.mp .. "/" .. mhp,printX+xPad,printY+58+yBonus,332,"center")
-    yPad = yPad+30
+    output:draw_health_bar(player.mp,player:get_max_mp(),printX+xPad,printY,325,math.max(fontPad,16),{r=100,g=0,b=100,a=255})
+    love.graphics.printf("Magic: " .. player.mp .. "/" .. mhp,printX+xPad,printY+yBonus,332,"center")
+    printY = printY+fontPad*2
   end
   
+  setColor(255,255,255,255)
   if prefs.statsOnSidebar then
-    love.graphics.print("Base Damage: " .. player.strength,printX+xPad,printY+yPad)
-    love.graphics.print("Melee Skill: " .. player.melee,printX+xPad,printY+yPad+15)
-    love.graphics.print("Ranged Skill: " .. player.melee,printX+xPad,printY+yPad+30)
-    love.graphics.print("Dodge Skill: " .. player.dodging,printX+xPad,printY+yPad+45)
-    love.graphics.print("Magic Skill: " .. player.melee,printX+xPad,printY+yPad+60)
-    yPad = yPad+75
+    love.graphics.print("Base Damage: " .. player.strength,printX+xPad,printY)
+    love.graphics.print("Melee Skill: " .. player.melee,printX+xPad,printY+fontPad)
+    love.graphics.print("Ranged Skill: " .. player.melee,printX+xPad,printY+fontPad*2)
+    love.graphics.print("Dodge Skill: " .. player.dodging,printX+xPad,printY+fontPad*3)
+    love.graphics.print("Magic Skill: " .. player.melee,printX+xPad,printY+fontPad*4)
+    printY = printY+fontPad*5
   end
  
   self.spellButtons = {}
   local descBox = false
+  local buttonPadding = (smallButtons and 20 or 36)
   --Button for inventory:
   if gamesettings.inventory then
-    local invWidth = fonts.buttonFont:getWidth(keybindings.inventory .. ") Inventory")
-    local minX,minY=printX+xPad-2,printY+yPad
-    local maxX,maxY=minX+invWidth+4,minY+16
-    self.spellButtons["inventory"] = output:button(minX,minY+2,(maxX-minX),true,nil,nil,true)
+    local invWidth = whichFont:getWidth(keybindings.inventory .. ") Inventory")
+    local minX,minY=printX+xPad-2,printY
+    local maxX,maxY=minX+invWidth+4,minY+(smallButtons and 16 or 32)
+    self.spellButtons["inventory"] = output:button(minX,minY+2,(maxX-minX),smallButtons,nil,nil,true)
     if self.spellButtons["inventory"].hover == true then
       descBox = {desc="View and use items and equipment.",x=minX,y=minY}
     end
-    love.graphics.print(keybindings.inventory .. ") Inventory",printX+xPad,printY+yPad-2+yBonus)
-    yPad = yPad+20
+    love.graphics.print(keybindings.inventory .. ") Inventory",printX+xPad,printY-2+yBonus)
+    printY = printY+buttonPadding
   end
   if gamesettings.crafting then
-    local invWidth = fonts.buttonFont:getWidth(keybindings.crafting .. ") Crafting")
-    local minX,minY=printX+xPad-2,printY+yPad
+    local invWidth = whichFont:getWidth(keybindings.crafting .. ") Crafting")
+    local minX,minY=printX+xPad-2,printY
     local maxX,maxY=minX+invWidth+4,minY+16
-    self.spellButtons["crafting"] = output:button(minX,minY+2,(maxX-minX),true,nil,nil,true)
+    self.spellButtons["crafting"] = output:button(minX,minY+2,(maxX-minX),smallButtons,nil,nil,true)
     if self.spellButtons["crafting"].hover == true then
       descBox = {desc="Make new items.",x=minX,y=minY}
     end
-    love.graphics.print(keybindings.crafting .. ") Crafting",printX+xPad,printY+yPad-2+yBonus)
-    yPad = yPad+20
+    love.graphics.print(keybindings.crafting .. ") Crafting",printX+xPad,printY-2+yBonus)
+    printY = printY+buttonPadding
   end
   
  --Buttons for ranged attacks:
@@ -330,11 +330,11 @@ function game:print_sidebar()
       if i < #ranged_attacks then ranged_text = ranged_text .. ", " end
       ranged_description_box = ranged_description_box .. (i > 1 and "\n\n" or "") .. attack.name .. "\n" .. attack.description
     end --end ranged attack for
-    local rangedWidth = fonts.buttonFont:getWidth(ranged_text)
-    local minX,minY=printX+xPad-2,printY+yPad
-    local maxX,maxY=minX+rangedWidth+4,minY+16
+    local rangedWidth = whichFont:getWidth(ranged_text)
+    local minX,minY=printX+xPad-2,printY
+    local maxX,maxY=minX+rangedWidth+4,minY+(smallButtons and 16 or 32)
     local buttonType = (player.ranged_recharge_countdown and "disabled" or (actionResult and actionResult == attack and "hover" or nil))
-    self.spellButtons["ranged"] = output:button(minX,minY+2,(maxX-minX),true,buttonType,nil,true)
+    self.spellButtons["ranged"] = output:button(minX,minY+2,(maxX-minX),smallButtons,buttonType,nil,true)
     if player.ranged_recharge_countdown then
       ranged_text = ranged_text .. " \n(" .. player.ranged_recharge_countdown .. " turns to recharge)"
     end
@@ -361,7 +361,33 @@ function game:print_sidebar()
       self.spellButtons["recharge"] = output:button(minX,minY+22,(maxX-minX),true,nil,nil,true)
       love.graphics.print(keybindings.recharge .. ") Recharge/Reload",printX+xPad,printY+yPad-2+yBonus)
     end]]
-    yPad = yPad+40
+    printY = printY+buttonPadding
+  end
+  local featureActions = currMap:get_tile_actions(player.x,player.y,true)
+  if #featureActions > 0 then
+    local picktext = keybindings.action .. ") " .. (#featureActions > 1 and "Nearby Actions" or featureActions[1].text)
+    local spellwidth = whichFont:getWidth(picktext)
+    local minX,minY=printX+xPad-2,printY
+    local maxX,maxY=minX+spellwidth+4,minY+16
+    self.spellButtons["action"] = output:button(minX,minY+2,(maxX-minX),smallButtons,nil,nil,true)
+    if self.spellButtons['action'].hover == true then
+      descBox = {desc=(#featureActions > 1 and "Select a nearby action to perform." or featureActions[1].description),x=minX,y=minY}
+    end
+    love.graphics.print(picktext,printX+xPad,printY-2+yBonus)
+  end
+  printY = printY+buttonPadding
+  local items = currMap:get_tile_items(player.x,player.y,true)
+  if #items > 0 then
+    local picktext = keybindings.pickup .. ") Pick Up " .. (#items > 1 and "Items" or items[1]:get_name())
+    local spellwidth = whichFont:getWidth(picktext)
+    local minX,minY=printX+xPad-2,printY
+    local maxX,maxY=minX+spellwidth+4,minY+16
+    self.spellButtons["pickup"] = output:button(minX,minY+2,(maxX-minX),smallButtons,nil,nil,true)
+    if self.spellButtons['pickup'].hover == true then
+      descBox = {desc=(#items > 1 and "Pick up items in the area." or items[1]:get_description()),x=minX,y=minY}
+    end
+    love.graphics.print(picktext,printX+xPad,printY-2+yBonus)
+    printY = printY+buttonPadding
   end
   
   local spellcount = 1
@@ -369,67 +395,33 @@ function game:print_sidebar()
     local spell = possibleSpells[spellID]
     if spell.innate ~= true and spell.target_type ~= "passive" then
       if spellcount == 1 then
-        local buttonWidth = fonts.buttonFont:getWidth(keybindings.spell .. ") Abilities:")
+        local buttonWidth = whichFont:getWidth(keybindings.spell .. ") Abilities:")
         local middleX = round(printX+335/2)
-        self.allSpellsButton = output:button(round(middleX-buttonWidth/2)-8,printY+yPad,buttonWidth+16,true,nil,nil,true)
-        love.graphics.printf(keybindings.spell .. ") Abilities:",printX,printY+yPad-4+yBonus,335,"center")
+        self.allSpellsButton = output:button(round(middleX-buttonWidth/2)-8,printY,buttonWidth+16,smallButtons,nil,nil,true)
+        love.graphics.printf(keybindings.spell .. ") Abilities:",printX,printY-4+yBonus,335,"center")
       end
-      local spellwidth = fonts.buttonFont:getWidth((prefs['spellShortcuts'] and spellcount .. ") " or "") .. spell.name)
-      local minX,minY=printX+xPad-2,printY+yPad+(20*spellcount)
-      local maxX,maxY=minX+spellwidth+4,minY+16
+      local spellwidth = whichFont:getWidth((prefs['spellShortcuts'] and spellcount .. ") " or "") .. spell.name)
+      local minX,minY=printX+xPad-2,printY+(buttonPadding*spellcount)
+      local maxX,maxY=minX+spellwidth+4,minY+(smallButtons and 16 or 32)
       local buttonType = ((player.cooldowns[spell.name] or spell:requires(player) == false) and "disabled" or (actionResult and actionResult.name == spell.name and "hover" or nil))
-      self.spellButtons[spellID] = output:button(minX,minY+2,(maxX-minX),true,buttonType,nil,true)
+      self.spellButtons[spellID] = output:button(minX,minY+2,(maxX-minX),smallButtons,buttonType,nil,true)
       if self.spellButtons[spellID].hover == true then
         descBox = {desc=spell.name .. "\n" .. spell:get_description(),x=minX,y=minY}
       end
-      --[[if actionResult and actionResult.name == spell.name or (output.mouseX >= minX and output.mouseY >= minY and output.mouseX <= maxX and output.mouseY <= maxY and not player.cooldowns[spell.name]) then
-        setColor(100,100,100,255)
-        love.graphics.rectangle('fill',minX,minY,spellwidth+4,16)
-        setColor(255,255,255,255)
-      end]]
       if player.cooldowns[spell.name] or spell:requires(player) == false then
         setColor(100,100,100,255)
       end
-      love.graphics.print((prefs['spellShortcuts'] and spellcount .. ") " or "") .. spell.name .. (player.cooldowns[spell.name] and " (" .. player.cooldowns[spell.name] .. " turns to recharge)" or ""),printX+xPad,printY+yPad+(20*spellcount)-2+yBonus)
+      love.graphics.print((prefs['spellShortcuts'] and spellcount .. ") " or "") .. spell.name .. (player.cooldowns[spell.name] and " (" .. player.cooldowns[spell.name] .. " turns to recharge)" or ""),printX+xPad,printY+(buttonPadding*spellcount)-2+yBonus)
       if player.cooldowns[spell.name] or spell:requires(player) == false then
         setColor(255,255,255,255)
       end
       spellcount = spellcount + 1
     end
   end
-  yPad = yPad+(20*spellcount)
-  local items = currMap:get_tile_items(player.x,player.y,true)
-  if #items > 0 then
-    spellcount = spellcount+1
-    local picktext = keybindings.pickup .. ") Pick Up " .. (#items > 1 and "Items" or items[1]:get_name())
-    local spellwidth = fonts.buttonFont:getWidth(picktext)
-    local minX,minY=printX+xPad-2,printY+yPad
-    local maxX,maxY=minX+spellwidth+4,minY+16
-    self.spellButtons["pickup"] = output:button(minX,minY+2,(maxX-minX),true,nil,nil,true)
-    if self.spellButtons['pickup'].hover == true then
-      descBox = {desc=(#items > 1 and "Pick up items in the area." or items[1]:get_description()),x=minX,y=minY}
-    end
-    love.graphics.print(picktext,printX+xPad,printY+yPad-2+yBonus)
-  end
-  yPad = yPad+15
-  local featureActions = currMap:get_tile_actions(player.x,player.y,true)
-  if #featureActions > 0 then
-    spellcount = spellcount+1
-    local picktext = keybindings.action .. ") " .. (#featureActions > 1 and "Nearby Actions" or featureActions[1].text)
-    local spellwidth = fonts.buttonFont:getWidth(picktext)
-    local minX,minY=printX+xPad-2,printY+yPad
-    local maxX,maxY=minX+spellwidth+4,minY+16
-    self.spellButtons["action"] = output:button(minX,minY+2,(maxX-minX),true,nil,nil,true)
-    if self.spellButtons['action'].hover == true then
-      descBox = {desc=(#featureActions > 1 and "Use a nearby feature." or featureActions[1].description),x=minX,y=minY}
-    end
-    love.graphics.print(picktext,printX+xPad,printY+yPad-2+yBonus)
-  end
-  yPad = yPad+15
-  
+  printY = printY+(buttonPadding*spellcount)
 	
 	if (next(player.conditions) ~= nil) then
-    love.graphics.printf("Conditions:",printX,printY+yPad,335,"center")
+    love.graphics.printf("Conditions:",printX,printY,335,"center")
 		local conText = ""
 		local count = 1
 		for condition, turns in pairs(player.conditions) do
@@ -439,21 +431,22 @@ function game:print_sidebar()
 				count = count + 1
 			end
 		end
-		love.graphics.printf(conText,printX+xPad,printY+yPad+15,335)
+		love.graphics.printf(conText,printX+xPad,printY+15,335)
     local currFont = love.graphics.getFont()
     local _,wrapText = currFont:getWrap(conText,335)
-    yPad = yPad+15+(15*#wrapText)
+    printY = printY+15+(fontSize*#wrapText)
 	end
 	
+  local yPad=0
 	love.graphics.printf("You can see:",printX+5,printY+yPad,335,"center")
 	local alreadyPrinted = {}
-  local tileSize = 34 --prefs['noImages'] and 15 or 34 --15 without images, 34 with
-  yPad = yPad+(prefs['noImages'] and tileSize or math.ceil(tileSize/2))+8
+  local tileSize = 34
+  yPad = yPad+(prefs['noImages'] and tileSize or math.max(fontSize,math.ceil(tileSize/2)))+8
   self.sidebarCreats = {}
   if player.sees ~= nil then
     for id, thing in ipairs(player.sees) do
       if (printY+yPad < (player.target and height-240 or height-64) and thing ~= player and in_table(thing,alreadyPrinted) == false and player:does_notice(thing)) then
-        local minY,maxY,minX,maxX = printY+yPad-4,printY+yPad+32,printX+5,printX+5+sidebarW
+        local minY,maxY,minX,maxX = printY+yPad-4,printY+yPad+tileSize,printX+5,printX+5+sidebarW
         self.sidebarCreats[thing] = {minX=minX*uiScale,maxX=maxX*uiScale,minY=minY*uiScale,maxY=maxY*uiScale}
         local trueHover = Gamestate.current() == game and (mouseX > minX and mouseX < maxX and mouseY > minY and mouseY < maxY)
         if (thing == self.hoveringCreat or trueHover) and not self.contextualMenu then
@@ -499,7 +492,7 @@ function game:print_sidebar()
           local width, tlines = currFont:getWrap(text,300)
           love.graphics.printf(text,printX+42,printY+(#tlines == 1 and 0 or -8)+yPad,300,"left")
         end
-        yPad = yPad + tileSize+4
+        yPad = yPad + tileSize+math.ceil(fontSize/2)
         table.insert(alreadyPrinted,thing)
       end
     end
@@ -520,60 +513,39 @@ function game:print_target_sidebar()
     local maxY = ((next(target.conditions) == nil and printY+65 or printY+95))
     local xPad = 5
     local yBonus = 2
+    local fontPadding = 15
     if not prefs.plainFonts then
       love.graphics.setFont(fonts.buttonFont)
       yBonus = 0
-    end
-    --[[if prefs['noImages'] ~= true then
-      for x=printX,maxX-16,32 do
-      love.graphics.draw(images.borders.borderImg,images.borders.u,x,printY-18)
-      love.graphics.draw(images.borders.borderImg,images.borders.d,x,maxY)
-    end
-    for y=printY,maxY-16,32 do
-      love.graphics.draw(images.borders.borderImg,images.borders.l,printX-18,y)
-      love.graphics.draw(images.borders.borderImg,images.borders.r,maxX,y)
-    end
-    love.graphics.draw(images.borders.borderImg,images.borders.ul,printX-18,printY-18)
-    love.graphics.draw(images.borders.borderImg,images.borders.ur,maxX,printY-18)
-    love.graphics.draw(images.borders.borderImg,images.borders.ll,printX-18,maxY)
-    love.graphics.draw(images.borders.borderImg,images.borders.lr,maxX,maxY)
-    love.graphics.rectangle("fill",printX,printY,maxX-printX+14,maxY-printY+14)
-    setColor(255,255,255,255)
     else
-      setColor(0,0,0,150)
-      love.graphics.rectangle("fill",printX,printY,335,100) --sidebar background
-      setColor(255,255,255,255)
-      love.graphics.rectangle("line",printX,printY,335,100) -- sidebar
-      setColor(255,255,255,255)
-    end]]
-    --love.graphics.rectangle("line",printX,printY+20,128,160)
-    --love.graphics.draw(output:get_portrait(target.id),printX,printY+20)
+      fontPadding = prefs['fontSize']+2
+    end
 		if (target.properName ~= nil) then
 			love.graphics.printf(target.properName,printX,printY,335,"center")
-			printY = printY+15
+			printY = printY+fontPadding
 		end
-		love.graphics.printf(ucfirst(target.name),printX,printY,335,"center")
+		love.graphics.printf("Level " .. target.level .. " " .. ucfirst(target.name),printX,printY,335,"center")
     if target.master then 
-      printY = printY+15
+      printY = printY+fontPadding
       love.graphics.printf("Master: " .. target.master:get_name(false,true),printX,printY,335,"center")
     end
-    output:draw_health_bar(self.targetHP,target:get_mhp(),printX+xPad,printY+20,325,16)
-    love.graphics.printf("Health: " .. math.ceil(self.targetHP) .. "/" .. target:get_mhp(),printX+xPad,printY+18+yBonus,335,"center")
+    output:draw_health_bar(self.targetHP,target:get_mhp(),printX+xPad,printY+fontPadding+5,325,16)
+    love.graphics.printf("Health: " .. math.ceil(self.targetHP) .. "/" .. target:get_mhp(),printX+xPad,printY+fontPadding+2+yBonus,335,"center")
     
     --Melee attack hit chance:
     local weapons = player:get_equipped_in_slot('weapon')
     local weapCount = count(weapons)
-    printY = printY+45
+    printY = printY+fontPadding*3
     if weapCount == 0 then
       love.graphics.print("Hit chance: " .. calc_hit_chance(player,target) .. "%",printX+xPad,printY)
-      printY = printY+15
+      printY = printY+fontPadding
     elseif weapCount == 1 then
       love.graphics.print(weapons[1]:get_name(true) .. " hit chance: " .. calc_hit_chance(player,target,player.equipment.weapon[1]) .. "%",printX+xPad,printY)
-      printY = printY+15
+      printY = printY+fontPadding
     else
       for _,weap in pairs(weapons) do
         love.graphics.printf(weap:get_name(true) .. " hit chance" .. (weap.ranged_attack and " (melee)" or "") .. ": " .. calc_hit_chance(player,target,weap) .. "%",printX+xPad,printY,335,"left")
-        printY = printY+15
+        printY = printY+fontPadding
       end
     end --end weapon count if
     
@@ -590,14 +562,14 @@ function game:print_target_sidebar()
         else
           rangedText = rangedText .. hit_chance .. "%"
         end
-        love.graphics.printf(rangedText,printX+xPad,printY+(i-1)*15,335)
+        love.graphics.printf(rangedText,printX+xPad,printY+(i-1)*fontPadding,335)
       end --end ranged attack for
     end --end if #ranged_attacks> 0
 
-    local yPadNow = 15*#ranged_attacks
+    local yPadNow = fontPadding*#ranged_attacks
     love.graphics.print("Chance to Be Hit: " .. calc_hit_chance(target,player) .. "%",printX+xPad,printY+yPadNow)
 		if (next(target.conditions) ~= nil) then
-      love.graphics.printf("Conditions:",printX,printY+30+yPadNow,335,"center")
+      love.graphics.printf("Conditions:",printX,printY+fontPadding*2+yPadNow,335,"center")
       local conText = ""
       local count = 1
       for condition, turns in pairs(target.conditions) do
@@ -607,7 +579,7 @@ function game:print_target_sidebar()
           count = count + 1
         end
       end
-      love.graphics.printf(conText,printX+5,printY+45+yPadNow,335)
+      love.graphics.printf(conText,printX+5,printY+fontPadding*3+yPadNow,335)
     end
 	end
 end
@@ -1662,9 +1634,10 @@ end -- end function
 
 function game:description_box(text,x,y)
   if Gamestate.current() == game then
+    local oldFont = love.graphics.getFont()
     love.graphics.setFont(fonts.descFont)
     local width, tlines = fonts.descFont:getWrap(text,300)
-    local height = #tlines*(prefs['descFontSize']+2)+5
+    local height = #tlines*(prefs['descFontSize']+3)+math.ceil(prefs['fontSize']/2)
     x,y = round(x),round(y)
     if (y+20+height < love.graphics.getHeight()) then
       setColor(255,255,255,185)
@@ -1681,7 +1654,7 @@ function game:description_box(text,x,y)
       setColor(255,255,255,255)
       love.graphics.printf(ucfirst(text),x+24,y+22-height,300)
     end
-    love.graphics.setFont(fonts.mapFont)
+    love.graphics.setFont(oldFont)
   end
 end
 
@@ -1705,7 +1678,7 @@ function game:blackOut(seconds,win)
 end
 
 
--- Contextual menu bullshit:
+-- Contextual menu:
 ContextualMenu = Class{}
 
 function ContextualMenu:init(x,y,printX,printY)
@@ -1715,45 +1688,48 @@ function ContextualMenu:init(x,y,printX,printY)
   if self.creature and not player:does_notice(self.creature) then self.creature=false end
   self.target = {x=x,y=y}
   self.x,self.y=(printX and printX or self.x)+22,(printY and printY or self.y)+20
-  self.maxX = self.x+300
+  self.width = math.max(300,fonts.descFont:getWidth(self.creature and self.creature:get_name(true) or ""))
+  self.maxX=self.x+self.width
+  local fontPadding = prefs['descFontSize']+2
   -- Make the box:
   self.items = {}
   local spellY = self.y
   if self.creature then
-    self.items[1] = {name="Set as Target",y=spellY+15,action="target"}
-    spellY = spellY+30
+    self.items[1] = {name="Set as Target",y=spellY+fontPadding,action="target"}
+    spellY = spellY+fontPadding*2
     if player.ranged_attack then
       local attack = rangedAttacks[player.ranged_attack]
       self.items[2] = {name=attack:get_name(),y=spellY,action=attack,cooldown=player.ranged_recharge_countdown}
-      spellY = spellY+15
+      spellY = spellY+fontPadding
       if attack.active_recharge then
         self.items[3] = {name="Recharge/Reload",y=spellY,action="recharge"}
-        spellY=spellY+15
+        spellY=spellY+fontPadding
       end
     end
   else
     self.items[1] = {name="Move To",y=spellY,action="moveto"}
-    spellY = spellY+15
+    spellY = spellY+fontPadding
   end
   for _,spellID in pairs(player:get_spells()) do
     local spell = possibleSpells[spellID]
     if spell.target_type == "square" or spell.target_type == "self" or (spell.target_type == "creature" and self.creature) then
       self.items[#self.items+1] = {name=spell.name,y = spellY,action=spell,cooldown=player.cooldowns[spell.name]}
-      spellY = spellY+15
+      spellY = spellY+fontPadding
     end
   end
   if self.creature and totalstats.creature_possessions and totalstats.creature_possessions[self.creature.id] then
     self.items[#self.items+1] = {name="View in Monsterpedia",y=spellY,action="monsterpedia"}
-    spellY = spellY+15
+    spellY = spellY+fontPadding
   end
   self.maxY = spellY
   self.height = spellY-self.y
 end
 
 function ContextualMenu:mouseSelect(mouseX,mouseY)
+  local fontPadding = prefs['descFontSize']
   if mouseX>=self.x and mouseX<=self.maxX and mouseY>=self.y and mouseY<=self.maxY then
     for iid,item in ipairs(self.items) do
-      if mouseY>item.y-1 and mouseY<item.y+14 then
+      if mouseY>item.y-1 and mouseY<item.y+fontPadding then
         self.selectedItem = iid
         break
       end
@@ -1763,20 +1739,21 @@ end
 
 function ContextualMenu:draw()
   love.graphics.setFont(fonts.descFont)
+  local fontPadding = prefs['descFontSize']+2
   setColor(0,0,0,185)
-  love.graphics.rectangle("fill",self.x,self.y,301,self.height-1)
+  love.graphics.rectangle("fill",self.x,self.y,self.width+1,self.height-1)
   setColor(255,255,255,255)
-  love.graphics.rectangle("line",self.x,self.y,302,self.height)
+  love.graphics.rectangle("line",self.x,self.y,self.width+2,self.height)
   
   if self.selectedItem then
     setColor(100,100,100,185)
-    love.graphics.rectangle("fill",self.x,self.items[self.selectedItem].y,301,15)
+    love.graphics.rectangle("fill",self.x,self.items[self.selectedItem].y,self.width+1,fontPadding)
     setColor(255,255,255,255)
   end
   
   if self.creature then
     love.graphics.print(self.creature:get_name(true),self.x,self.y)
-    love.graphics.line(self.x,self.y+15,self.x+301,self.y+15)
+    love.graphics.line(self.x,self.y+fontPadding,self.x+self.width+1,self.y+fontPadding)
   end
   for _,item in ipairs(self.items) do
     if item.cooldown then
@@ -1791,12 +1768,13 @@ function ContextualMenu:draw()
 end
 
 function ContextualMenu:click(x,y)
+  local fontPadding = prefs['descFontSize']
   local useItem = nil
   if self.selectedItem then
     useItem = self.items[self.selectedItem]
   else  
     for _,item in ipairs(self.items) do
-      if y>item.y-1 and y<item.y+14 then
+      if y>item.y-1 and y<item.y+fontPadding then
         useItem = item
         break
       end

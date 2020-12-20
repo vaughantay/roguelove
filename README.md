@@ -10,7 +10,7 @@ Features that have been added that weren't in Possession:
   * Items can have "tags" attached to them, that can be used by various things throughout the game (so far, only stores look at items' tags to determine if they want to buy them).
   * Basic crafting is implemented.
   * Item enchantments: Currently have effects for melee weapons and projectiles. Enchantments can add prefixes and suffixes to item's name.
-    * Melee weapon enchantments: Can add hit and critical conditions to an attack, can modify a weapon's stats (damage, accuracy, etc.), can run code after either a hit or miss occurs. Can be permanent, or can last for a set number of either attacks or successful hits.
+    * Melee weapon enchantments: Can add hit and critical conditions to an attack, can modify a weapon's stats (damage, accuracy, etc.), can run code after either a hit or miss occurs. Can add extra elemental damage, and only apply that damage to certain creature types if desired. Can be permanent, or can last for a set number of either attacks or successful hits.
     * Projectile enchantments: Affects thrown items, or ammunition. Can add hit conditions to a projectile attack. Can modify damage done by a projectile. Can modify hit chance of a ranged attack (if applied to a thrown item only, not ammunition). Can run code after the projectile hits or misses. If a projectile leaves an item behind, the projectile's enchantments are carried over to the item left behind.
     * Future Improvements: Enchantments that decrease their time left when a kill is made with the weapon. Other situations where code can be run by enchantments. Enchantments on other types of items (ranged weapons, armor).
   * TODO: Getting NPCs to use items and change equipment.
@@ -31,7 +31,8 @@ Features that have been added that weren't in Possession:
   * Future improvements: Different instances of the same store (eg. a weapon store shows up every level, but has different items every time)
 * Player classes and class selection on the newgame screen.
   * Classes can modify stats, give starting items, spells, faction membership and favor, money, and damage weaknesses/resistances.
-  * Classes can also automatically grant certain abilities on level up.
+  * Classes can automatically grant certain abilities on level up.
+  * Classes can also give you the option to buy a new ability for skill points.
   * Future improvements: Classes granting options to choose between abilities on level up, rather than automatically giving them.
     * Possible: Skill trees
 * Dungeon Branches

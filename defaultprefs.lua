@@ -19,10 +19,12 @@ prefs={
   noSmoothCamera=false,
   statsOnSidebar=false,
   plainFonts=false,
+  bigButtons=false,
   minimap=true,
   lastMods={},
   uiScale=1,
-  vsync=true
+  vsync=true,
+  autoLevel=false
 }
 
 require "keybindings"

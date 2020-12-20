@@ -18,7 +18,7 @@ playerClasses = {
   beefcake = {
     name="Beefcake",
     description="A super-tough warrior.",
-    items={{item="healthpotionminor"}}, --These items will be granted on game start
+    items={{item="healthpotionminor"},{item="dagger",amount=100}}, --These items will be granted on game start
     equipment={{item="greatsword"}}, --These items will be equipped on game start
     learns_spells={}, --These spells will be automatically granted once a certain level is reached
     spell_purchases={}, --These spells will show up as options to learn (requiring spending points on them)
@@ -56,7 +56,7 @@ playerClasses = {
     favor={lightchurch=-10}, --List of favor scores the character starts with
     items={}, --These items will be granted on game start
     spells={"smallfireball"},
-    --spells={"smallfireball","ignite","explodingfireball","flameline","flameshield","flameimmunity","firebrand"}, --These are spells the character will start with
+    --spells={"ignite","explodingfireball","flameline","flameshield","flameimmunity","firebrand"}, --These are spells the character will start with
     learns_spells={}, --These spells will be automatically granted once a certain level is reached
     spell_purchases={}, --These spells will show up as options to learn (requiring spending points on them)
     spell_choices={}, --These spells will show up as options when you reach their level, and you can choose one of them

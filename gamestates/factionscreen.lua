@@ -69,6 +69,8 @@ function factionscreen:draw()
     relationship = "This faction is neutral towards you."
   end
   love.graphics.printf(relationship,printX,printY,windowWidth,"center")
+  local _, wrappedtext = fonts.textFont:getWrap(relationship, windowWidth)
+  printY=printY+(#wrappedtext)*fontSize
   
   if not self.playerMember then
     --Join text:
@@ -79,8 +81,9 @@ function factionscreen:draw()
     else
       joinText = "You're not eligible to join this faction" .. (reason and " for the following reasons: " or ".")
     end
-    printY=printY+fontSize
     love.graphics.printf(joinText,printX,printY,windowWidth,"center")
+    local _, wrappedtext = fonts.textFont:getWrap(joinText, windowWidth)
+    printY=printY+(#wrappedtext)*fontSize
     if reason then
       printY = printY+fontSize
       local _, wrappedtext = fonts.textFont:getWrap(reason, windowWidth)
@@ -124,7 +127,9 @@ function factionscreen:draw()
     if self.screen == "Missions" then setColor(255,255,255,255) end
     printY = printY+padX
   else
-    love.graphics.printf("You need at least " .. faction.enterThreshold .. " favor to do business with this faction.",printX,printY,windowWidth,"center")
+    local _, wrappedtext = fonts.textFont:getWrap("You need more than " .. faction.enterThreshold .. " favor to do business with this faction.", windowWidth)
+    love.graphics.printf("You need more than " .. faction.enterThreshold .. " favor to do business with this faction.",printX,printY,windowWidth,"center")
+    printY=printY+(#wrappedtext)*fontSize-math.ceil(padding/2)
   end
   printY=printY+padding
   love.graphics.line(printX,printY,printX+windowWidth,printY)
@@ -622,15 +627,15 @@ function factionscreen:mousepressed(x,y,button)
   end --end if item screen
   
   --Navbuttons:
-  if x > self.infoButton.minX and x < self.infoButton.maxX and y > self.infoButton.minY and y < self.infoButton.maxY then
+  if self.infoButton and x > self.infoButton.minX and x < self.infoButton.maxX and y > self.infoButton.minY and y < self.infoButton.maxY then
     self.screen = "Info"
-  elseif x > self.shopButton.minX and x < self.shopButton.maxX and y > self.shopButton.minY and y < self.shopButton.maxY then
+  elseif self.shopButton and x > self.shopButton.minX and x < self.shopButton.maxX and y > self.shopButton.minY and y < self.shopButton.maxY then
     self.screen = "Items"
-  elseif x > self.spellsButton.minX and x < self.spellsButton.maxX and y > self.spellsButton.minY and y < self.spellsButton.maxY then
+  elseif self.spellsButton and x > self.spellsButton.minX and x < self.spellsButton.maxX and y > self.spellsButton.minY and y < self.spellsButton.maxY then
     self.screen = "Spells"
-  elseif x > self.serviceButton.minX and x < self.serviceButton.maxX and y > self.serviceButton.minY and y < self.serviceButton.maxY then
+  elseif self.serviceButton and x > self.serviceButton.minX and x < self.serviceButton.maxX and y > self.serviceButton.minY and y < self.serviceButton.maxY then
     self.screen = "Services"
-  elseif x > self.missionButton.minX and x < self.missionButton.maxX and y > self.missionButton.minY and y < self.missionButton.maxY then
+  elseif self.missioNButton and x > self.missionButton.minX and x < self.missionButton.maxX and y > self.missionButton.minY and y < self.missionButton.maxY then
     self.screen = "Missions"
   end
 end --end mousepressed

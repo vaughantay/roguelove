@@ -115,7 +115,7 @@ function Faction:can_join(creature)
     return false,"This faction does not accept new members."
   end
   if (creature.favor[self.id] or 0) < self.joinThreshold then
-    reasons = (reasons and reasons .. " " or "") .. "You need at least " .. self.joinThreshold .. " favor to join."
+    reasons = (reasons and reasons .. " " or "") .. "You need more than " .. self.joinThreshold .. " favor to join."
     canJoin = false
   end
   for _,enemy in ipairs(self.enemyFactions) do
@@ -171,7 +171,6 @@ function Faction:generate_items()
   if not self.sells_items then return end
   for _,info in pairs(self.sells_items) do
     local itemID = info.item
-    print(itemID)
     local item = Item(itemID,info.passed_info,(info.amount or -1))
     if not item.amount then item.amount = (info.amount or -1) end --This is here because non-stackable items don't generate with amounts
     local makeNew = true

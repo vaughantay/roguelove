@@ -59,7 +59,8 @@ local town = {
   noItems=true,
   lit=true,
   stores=5,
-  factions=5
+  factions=5,
+  creature_density=10
 }
 function town.create(map,width,height)
   width,height = map.width,map.height
@@ -475,3 +476,46 @@ function demonruins.create(map,width,height)
   map.bossRoom = bossRoom
 end --end function
 mapTypes['demonruins'] = demonruins
+
+local swamp = {
+  tileset = "swamp",
+  description="Swamps are generally disgusting and dangerous places. Underground swamps, doubly so."
+}
+function swamp.create(map,width,height)
+  layouts['caves'](map,width,height,40)
+  local seed = random(0,10000)
+  local xMod,yMod = random(1,20000),random(1,20000)
+  for x=2,map.width-1,1 do
+    for y=2,map.height-1,1 do
+      --Add random trees:
+      if (map[x][y] == "." and next(map.contents[x][y])== nil) then
+        if(random(1,10) == 1) then
+          map:add_feature((random(1,2) == 1 and Feature('tree') or Feature('mushroom')),x,y)
+        end
+      end --end check for empty space
+      --Add swmap water:
+      if map[x][y] == "." and love.math.noise((x+xMod)*.10,(y+yMod)*.10,seed) > .5 then
+        map:change_tile(Feature('swampwater',nil,x,y),x,y)
+      end
+    end --end fory
+  end --end forx
+  
+  --Add torches
+  local torches = 10
+  for i = 1,torches,1 do
+    local tx,ty = random(2,width-1),random(2,height-1)
+    local tries = 0
+    while tries < 100 and not map:isClear(tx,ty) do
+      tx,ty = random(2,width-1),random(2,height-1)
+      tries = tries + 1
+    end
+    map:add_feature(Feature('plantedtorch'),tx,ty)
+  end
+end --end swamp generate
+function swamp.generateName()
+  local adjectives = {"Dark","Forbidden","Deadly","Depressing","Smelly","Forboding","Lush","Overgrown","Forgotten","Fragrant"}
+  local swampnames = {"Swamp","Mire","Sludge","Murk","Quagmire","Bog","Marsh","Swampland","Heart","Mud","Stench","Stink","Slime"}
+  local titles = {"Horror","Darkness","Madness","Torment","Sadness","Disease","Magic","Death","The Lost","The Grave","Decay","Love","Happiness"}
+  return "The " .. (random(1,2) == 1 and (adjectives[random(#adjectives)] .. " " .. swampnames[random(#swampnames)]) or (swampnames[random(#swampnames)] .. " of " .. titles[random(#titles)]))
+end
+mapTypes['swamp'] = swamp

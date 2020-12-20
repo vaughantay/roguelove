@@ -4,6 +4,7 @@ function inventory:enter(previous,whichType)
   self.cursorY = 0
   self.cursorX = 1
   self.scroll=0
+  self.biggestY=0
   self.selectedItem=nil
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
   local uiScale = (prefs['uiScale'] or 1)
@@ -58,7 +59,7 @@ function inventory:sort()
 
   --Then, sort for the page:
   self.inventory = {}
-  local itemPrintY = 100
+  local itemPrintY = fontSize*6
   for _,iType in ipairs(sorted) do
     for i,item in ipairs(iType) do
       if i == 1 then
@@ -125,18 +126,10 @@ function inventory:draw()
   
   local printX = (prefs['noImages'] and 14 or 32)
   
-  --[[if prefs['noImages'] then
-      if self.disabled then setColor(150,150,150,255) end
-      love.graphics.print((self.checkbox and "(Y)" or "(N)"),self.x,self.y)
-      if self.disabled then setColor(255,255,255,255) end
-    else
-      love.graphics.draw((self.checkbox and images.uicheckboxchecked or images.uicheckbox),self.x,self.y)
-    end]]
-  
   --Filter buttons:
   self.filterButtons = {}
   local boxpadding = (prefs['noImages'] and fontSize or 32)
-  local filterY = 65
+  local filterY = fontSize*4
   local xAdd = math.floor((sidebarX-padding*2)/4)
   --All Items Option:
   local optionX = padding
@@ -200,15 +193,23 @@ function inventory:draw()
   self.filterButtons[#self.filterButtons+1] = {filter="equippable",minX = optionX, maxX = optionX+boxpadding+optionW,minY=filterY-4,maxY=filterY+fontSize+10}
   love.graphics.line(padding,filterY+fontSize+14,sidebarX-padding,filterY+fontSize+14)
 
+  love.graphics.push()
+  local function stencilFunc()
+    local startY = self.inventory[1].y
+    love.graphics.rectangle("fill",0,startY,width,height-startY)
+  end
+  love.graphics.stencil(stencilFunc,"replace",1)
+  love.graphics.setStencilTest("greater",0)
+  love.graphics.translate(0,-self.scroll)
 	for i, line in ipairs(self.inventory) do
     local printY = line.y
     if line.item == self.selectedItem then
       setColor(100,100,100,255)
-      love.graphics.rectangle("fill",printX-8,printY,sidebarX-printX-padding,16)
+      love.graphics.rectangle("fill",printX-8,printY,sidebarX-printX-padding,fontSize+4)
       setColor(255,255,255,255)
-    elseif line.item and ((self.cursorY == i and self.cursorX == 1) or (mouseX > printX and mouseX < sidebarX and mouseY > printY and mouseY < printY+16)) then
+    elseif line.item and ((self.cursorY == i and self.cursorX == 1) or (mouseX > printX and mouseX < sidebarX and mouseY+self.scroll > printY and mouseY+self.scroll < printY+fontSize)) then
       setColor(100,100,100,125)
-      love.graphics.rectangle("fill",printX-8,printY,sidebarX-printX-padding,16)
+      love.graphics.rectangle("fill",printX-8,printY,sidebarX-printX-padding,fontSize+4)
       setColor(255,255,255,255)
     end
     if line.item == false then
@@ -216,7 +217,16 @@ function inventory:draw()
     else
       love.graphics.print(line.text,printX,printY)
     end
+    self.biggestY = printY
 	end
+  love.graphics.setStencilTest()
+  love.graphics.pop()
+  
+  if self.biggestY > height then
+    local endY = self.biggestY-self.inventory[1].y
+    local scrollAmt = self.scroll/endY
+    self.scrollPositions = output:scrollbar(sidebarX-padX*2,self.inventory[1].y,math.floor(height/uiScale)-(prefs['noImages'] and 24 or 16),scrollAmt,true)
+  end
   
   --Draw equipment info:
   local equipCutoff=250
@@ -240,17 +250,6 @@ function inventory:draw()
     end
     love.graphics.print((equip.item and equip.item:get_name(true) or ""),equipPrintX+slotWidth+3,equip.y)
   end
-
-  --[[for slot,equipment in pairs(player.equipment) do
-    local slotName = (slot.name or ucfirst(slot))
-    local slotWidth = fonts.textFont:getWidth(slotName .. ":")
-    love.graphics.print(slotName .. ":",equipPrintX,equipPrintY)
-    for id,equip in ipairs(equipment) do
-      if id ~= 1 then equipPrintY=equipPrintY+15 end
-      love.graphics.print(equip:get_name(true),equipPrintX+slotWidth+3,equipPrintY)
-    end
-    equipPrintY=equipPrintY+15
-  end]]
   
   love.graphics.line(sidebarX,equipCutoff,width,equipCutoff)
   
@@ -507,7 +506,7 @@ function inventory:mousepressed(x,y,button)
   
   if x > padding and x < sidebarX then
     for i,item in ipairs(self.inventory) do
-      if item.item and y > item.y and y < item.y+fontSize then
+      if item.item and y+self.scroll > item.y and y+self.scroll < item.y+fontSize then
         self.selectedItem = item.item
         self.xHold = 1
         self.cursorX = 3
@@ -577,14 +576,10 @@ end
 
 function inventory:wheelmoved(x,y)
   if y > 0 then
-		if (self.cursorY and player.inventory[self.cursorY-1] ~= nil) then
-			self.cursorY = self.cursorY - 1
-		end
+    self.scroll = math.max(self.scroll - prefs['fontSize'],0)
 	elseif y < 0 then
-    self.cursorY = self.cursorY or 0
-		if (player.inventory[self.cursorY+1] ~= nil) then
-			self.cursorY = self.cursorY + 1
-		end
+    self.scroll = self.scroll or 0
+    self.scroll = math.min(self.scroll + prefs['fontSize'],(self.biggestY-self.inventory[1].y))
   end
 end
 

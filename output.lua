@@ -608,7 +608,8 @@ function output:closebutton(x,y,hover,useScaling)
     love.graphics.draw(image,x,y)
     return {minX=x,maxX=x+16,minY=y,maxY=y+16,hover=hover}
   else --imageless buttons
-    if (mouseX > x and mouseX < x+16 and mouseY>y and mouseY<y+16) or special == "hover" then
+    local fontSize = prefs['fontSize']
+    if (mouseX > x and mouseX < x+fontSize+2 and mouseY>y and mouseY<y+fontSize+2) or hover then
       hover = true
     end
     if hover then
@@ -616,11 +617,11 @@ function output:closebutton(x,y,hover,useScaling)
     else
       setColor(33,33,33,255)
     end
-    love.graphics.rectangle('fill',x,y,16,16)
+    love.graphics.rectangle('fill',x,y,fontSize+2,fontSize+2)
     setColor(255,255,255,255)
-    love.graphics.rectangle('line',x,y,16,16)
-    love.graphics.printf("X",x,y,16,"center")
-    return {minX=x*uiScale,maxX=(x+16)*uiScale,minY=y*uiScale,maxY=(y+16)*uiScale,hover=hover}
+    love.graphics.rectangle('line',x,y,fontSize+2,fontSize+2)
+    love.graphics.printf("X",x,y,fontSize,"center")
+    return {minX=x*uiScale,maxX=(x+fontSize+2)*uiScale,minY=y*uiScale,maxY=(y+fontSize+2)*uiScale,hover=hover}
   end
 end
 

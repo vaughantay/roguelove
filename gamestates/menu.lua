@@ -37,8 +37,8 @@ function menu:draw()
   love.graphics.printf("Quit",14,printY,width-28,"center")
 	setColor(255,255,255)
 	love.graphics.setFont(fonts.textFont)
-  love.graphics.printf("Version " .. gamesettings.version,16,height-42,width-14,"center")
-  love.graphics.printf("Copyright 2019-2020 Weirdfellows LLC, http://weirdfellows.com",16,height-28,width-14,"center")
+  love.graphics.printf("Version " .. gamesettings.version,16,height-prefs['fontSize']*3,width-14,"center")
+  love.graphics.printf("Copyright 2019-2020 Weirdfellows LLC, http://weirdfellows.com",16,height-prefs['fontSize']*2,width-14,"center")
   local weirdwidth = fonts.textFont:getWidth("Copyright 2019-2020 Weirdfellows LLC, http://weirdfellows.com")
   local weirdtextwidth = fonts.textFont:getWidth("Copyright 2019-2020 Weirdfellows LLC, ")
   local URLwidth = fonts.textFont:getWidth("http://weirdfellows.com")
@@ -55,7 +55,7 @@ end
 function menu:keypressed(key)
   key = input:parse_key(key)
 	if key == "escape" then
-      output:setCursor(0,0)
+    self.cursorY = 0
 	elseif key == "north" then
 		self.cursorY = self.cursorY-1
     if self.cursorY < 1 then self.cursorY = 8 end
@@ -64,7 +64,6 @@ function menu:keypressed(key)
     if self.cursorY > 8 then self.cursorY = 1 end
 	elseif key == "return" or key == "wait" then
 		if (self.cursorY == 1) then
-      initialize_player()
       initialize_world()
       Gamestate.switch(newgame)
       self.cursorY = 1

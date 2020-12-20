@@ -55,7 +55,6 @@ function love.load(arg)
   sounds = {}
   music = {}
   Gamestate.switch(loading)
-  --highscores = load_scores()
   totalstats = load_stats()
  	load_prefs()
   quads = gen_quads()
@@ -67,7 +66,7 @@ function love.load(arg)
     mapFont = love.graphics.newFont("VeraMono.ttf",prefs['asciiSize']),
     --mapFontDys = love.graphics.newFont("OpenDyslexic-Regular.otf",prefs['asciiSize']),
     mapFontWithImages = love.graphics.newFont("VeraMono.ttf",24),
-    textFont = love.graphics.newFont(14),
+    textFont = love.graphics.newFont(prefs['fontSize']),
     descFont = love.graphics.newFont(prefs['descFontSize']),
     menuFont = love.graphics.newFont(24),
     --dysFont = love.graphics.newFont("OpenDyslexic-Regular.otf",14)
@@ -83,7 +82,6 @@ function love.load(arg)
   soundTags.music.volume = prefs['musicVolume']/100
   output.mouseX = love.mouse.getX()
 	output.mouseY = love.mouse.getY()
-  --load_all_mods()
 	action = "moving"
   love.graphics.setDefaultFilter('nearest','nearest')
   random = love.math.random

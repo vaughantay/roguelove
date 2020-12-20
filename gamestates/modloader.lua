@@ -32,14 +32,14 @@ function modloader:draw()
   output:draw_window(1,1,sidebarX-padding,height-padding)
   output:draw_window(sidebarX,1,width-padding,height-padding)
   
-  love.graphics.printf("Weirdfellows LLC is not responsible for the content, stability, or actions of any mods.",padding,round(padding*.75),sidebarX-padding*2,"center")
+  love.graphics.printf("Weirdfellows LLC is not responsible for the behavior of any mods.",padding,round(padding*.75),sidebarX-padding*2,"center")
   love.graphics.printf("Select Mods to Load:",padding,round(padding*.75)+prefs['fontSize'],sidebarX-padding*2,"center")
   --Draw buttons:
   local midX = math.floor((sidebarX-padding*2)/2)
   local printY = prefs['fontSize']*4
-  local loadModButtonW = fonts.textFont:getWidth("Start With Selected Mods")+padding
-  local noModButtonW = fonts.textFont:getWidth("Start Without Mods")+padding
-  local selectAllButtonW = fonts.textFont:getWidth("Select All Mods")+padding
+  local loadModButtonW = fonts.buttonFont:getWidth("Start With Selected Mods")+padding
+  local noModButtonW = fonts.buttonFont:getWidth("Start Without Mods")+padding
+  local selectAllButtonW = fonts.buttonFont:getWidth("Select All Mods")+padding
   self.selectAllButton = output:button(midX-selectAllButtonW-loadModButtonW/2-padding,printY,selectAllButtonW,false,((self.cursorX == 1 and self.cursorY == 0) and "hover" or nil),(self.allSelected and "Deselect All Mods" or "Select All Mods"))
   --love.graphics.print((self.allSelected and "Deselect All Mods" or "Select All Mods"),math.floor(midX-selectAllButtonW-loadModButtonW/2),printY+math.floor(padding/2))
   self.loadModsButton = output:button(math.floor(midX-loadModButtonW/2),printY,loadModButtonW,false,((self.cursorX == 2 and self.cursorY == 0) and "hover" or nil),"Start With Selected Mods")

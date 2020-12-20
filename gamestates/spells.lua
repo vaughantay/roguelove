@@ -14,7 +14,7 @@ function spellscreen:enter()
   else
     padX,padY=20,20
   end
-  descY = y+padY+(count(player:get_spells())+2)*16
+  descY = y+padY+(count(player:get_spells())+2)*(prefs['fontSize']+2)
   self.descY = descY
   self.padX,self.padY = padX,padY
   self.yModPerc = 100
@@ -34,7 +34,7 @@ function spellscreen:draw()
   local padX,padY = self.padX,self.padY
   local descY = self.descY
   local x,y=self.x,self.y
-	
+  
   if prefs['noImages'] == true then
     setColor(20,20,20,200)
     love.graphics.rectangle("fill",x,y,boxW,boxH)
@@ -63,12 +63,13 @@ function spellscreen:draw()
   end
   
   love.graphics.setFont(fonts.textFont)
+  local fontSize = prefs['fontSize']
   
   local playerSpells = player:get_spells()
   if (playerSpells[self.cursorY] ~= nil) then
-    local printY = y+padY+((self.cursorY+1)*14)
+    local printY = y+padY+((self.cursorY+1)*fontSize)
     setColor(100,100,100,255)
-    love.graphics.rectangle("fill",x+padX,printY,boxW-8,16)
+    love.graphics.rectangle("fill",x+padX,printY,boxW-8,fontSize+2)
     setColor(255,255,255,255)
 	end
   
@@ -86,7 +87,7 @@ function spellscreen:draw()
         setColor(100,100,100,255)
       end --end color if
     end --end cooldowns if
-		love.graphics.print(letter .. ") " .. name .. (player.cooldowns[name] and " (" .. player.cooldowns[name] .. " turns to recharge)" or "") .. (target_type == "passive" and " (Passive)" or ""),x+padX,y+padY+((line-1)*14))
+		love.graphics.print(letter .. ") " .. name .. (player.cooldowns[name] and " (" .. player.cooldowns[name] .. " turns to recharge)" or "") .. (target_type == "passive" and " (Passive)" or ""),x+padX,y+padY+((line-1)*fontSize))
     if player.cooldowns[name] or possibleSpells[spellID]:requires(player) == false then
       setColor(255,255,255,255)
     end
@@ -109,7 +110,7 @@ function spellscreen:draw()
     end
     
     love.graphics.print(targetText,x+padX,descY+8)
-    love.graphics.printf(spell:get_description(),x+padX,descY+32,boxW-16,"left")
+    love.graphics.printf(spell:get_description(),x+padX,descY+fontSize*2,boxW-16,"left")
   end
   self.closebutton = output:closebutton(self.x+(prefs['noImages'] and 8 or 20),self.y+(prefs['noImages'] and 8 or 20),nil,true)
   love.graphics.pop()
@@ -187,11 +188,10 @@ function spellscreen:update(dt)
 	if (x ~= output.mouseX or y ~= output.mouseY) then -- only do this if the mouse has moved
     output.mouseX,output.mouseY = x,y
 		if (x > self.x and x < self.x+self.boxW and y > self.y and y < self.descY) then --if inside spell box
-      local mouseY = y-(self.y-self.padY)
-			local listY = math.floor(mouseY/14)
-      local yMod = (prefs['noImages'] and 2 or 4)
-			if (playerSpells[listY-yMod] ~= nil) then
-				self.cursorY=listY-yMod
+      local mouseY = y-(self.y-self.padY)-(prefs['noImages'] and 2 or 3)*prefs['fontSize']
+			local listY = math.floor(mouseY/prefs['fontSize'])
+			if (playerSpells[listY] ~= nil) then
+				self.cursorY=listY
       else
         self.cursorY=nil
 			end

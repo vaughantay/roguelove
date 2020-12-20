@@ -30,7 +30,9 @@ possibleFactions['lightchurch'] = {
   hidden = false, --If set to true, this faction won't appear on the faction list page
   neverJoin = false, --If set to true, this faction cannot be joined
   join_requirements = function(self,creature)
-    return false,"You haven't killed enough demons."
+    if creature:is_type('demon') or creature:is_type('undead') then
+      return false,"You are an unholy creature."
+    end
   end
 }
 
