@@ -64,7 +64,7 @@ end
 function Item:get_info()
 	local uses = ""
   if self.charges and not self.hide_charges then
-    uses = uses .. (self.charge_name and ucfirst(self.charge_name) or "Charges") .. (" (" .. self.ammo_name .. ")" or "") .. ": " .. self.charges
+    uses = uses .. (self.charge_name and ucfirst(self.charge_name) or "Charges") .. (self.ammo_name and " (" .. self.ammo_name .. ")" or "") .. ": " .. self.charges
   end
 	if (self.itemType == "weapon") then
 		if self.damage then uses = uses .. "Melee Damage: " .. self.damage .. (self.damage_type and " (" .. self.damage_type .. ")" or "") end

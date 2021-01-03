@@ -39,6 +39,7 @@
 <h2>Modules</h2>
 <ul class="nowrap">
   <li><strong>gamelogic</strong></li>
+  <li><a href="../modules/input.html">input</a></li>
   <li><a href="../modules/jumper.core.bheap.html">jumper.core.bheap</a></li>
   <li><a href="../modules/jumper.core.heuristics.html">jumper.core.heuristics</a></li>
   <li><a href="../modules/jumper.core.node.html">jumper.core.node</a></li>
@@ -86,7 +87,7 @@
 <h2><a href="#Functions">Functions</a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#new_game">new_game (mapSeed, playTutorial, cheats, class)</a></td>
+	<td class="name" nowrap><a href="#new_game">new_game (mapSeed, playTutorial, cheats, branch)</a></td>
 	<td class="summary">Starts a new game, and does all the bookkeeping necessary for that.</td>
 	</tr>
 	<tr>
@@ -94,8 +95,12 @@
 	<td class="summary">Figures out which level to load based on a given string.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#initialize_player">initialize_player ()</a></td>
+	<td class="name" nowrap><a href="#initialize_player">initialize_player (creatureID, class, name, gender, pronouns)</a></td>
 	<td class="summary">Creates the player character entity.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#initialize_world">initialize_world ()</a></td>
+	<td class="summary">Generate stores, factions, and dungeon branches</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#calc_hit_chance">calc_hit_chance (attacker, target, item)</a></td>
@@ -118,8 +123,8 @@
 	<td class="summary">This function is called when you lose.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#goToFloor">goToFloor (depth, branch, force)</a></td>
-	<td class="summary">Advance to the next floor of the dungeon.</td>
+	<td class="name" nowrap><a href="#goToMap">goToMap (depth, branch, force)</a></td>
+	<td class="summary">Move to another map</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#regen_map">regen_map ()</a></td>
@@ -158,6 +163,10 @@
 	<td class="summary">Called when the player dies.</td>
 	</tr>
 	<tr>
+	<td class="name" nowrap><a href="#downtime">downtime ()</a></td>
+	<td class="summary">Function that causes things to happen during "downtime." What that means and when that happens is up to you.</td>
+	</tr>
+	<tr>
 	<td class="name" nowrap><a href="#refresh_player_sight">refresh_player_sight ()</a></td>
 	<td class="summary">Refreshes the player's sightmap.</td>
 	</tr>
@@ -188,7 +197,7 @@
     <dl class="function">
     <dt>
     <a name = "new_game"></a>
-    <strong>new_game (mapSeed, playTutorial, cheats, class)</strong>
+    <strong>new_game (mapSeed, playTutorial, cheats, branch)</strong>
     </dt>
     <dd>
     Starts a new game, and does all the bookkeeping necessary for that.  Generates the first map, and puts the player on it.
@@ -205,8 +214,8 @@
         <li><span class="parameter">cheats</span>
          Table. A table listing all the cheats in use this game. (optional)
         </li>
-        <li><span class="parameter">class</span>
-         String. What class to apply to the player character. (optional)
+        <li><span class="parameter">branch</span>
+         String. The ID of the branch to start on. (optional)
         </li>
     </ul>
 
@@ -237,10 +246,42 @@
 </dd>
     <dt>
     <a name = "initialize_player"></a>
-    <strong>initialize_player ()</strong>
+    <strong>initialize_player (creatureID, class, name, gender, pronouns)</strong>
     </dt>
     <dd>
     Creates the player character entity.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">creatureID</span>
+         String. The ID of the creature definition to use to create the player. Optional, defeaults to player_human
+        </li>
+        <li><span class="parameter">class</span>
+         String. The ID of the playerclass to apply to the player entity. Optional
+        </li>
+        <li><span class="parameter">name</span>
+         String. The name of the new player character. Optional, f blank, will be randomized.
+        </li>
+        <li><span class="parameter">gender</span>
+         String. Either "male", "female", "neuter", "other", or "custom". Optional, if blank, will be set to "other" and use they/them pronouns.
+        </li>
+        <li><span class="parameter">pronouns</span>
+         Table. A table of custom pronouns. Optional, only needed if using "custom" gender.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "initialize_world"></a>
+    <strong>initialize_world ()</strong>
+    </dt>
+    <dd>
+    Generate stores, factions, and dungeon branches
 
 
 
@@ -354,23 +395,23 @@
 
 </dd>
     <dt>
-    <a name = "goToFloor"></a>
-    <strong>goToFloor (depth, branch, force)</strong>
+    <a name = "goToMap"></a>
+    <strong>goToMap (depth, branch, force)</strong>
     </dt>
     <dd>
-    Advance to the next floor of the dungeon.
+    Move to another map
 
 
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">depth</span>
-         Number. The depth of the new floor
+         Number. The depth of the map you're trying to reach
         </li>
         <li><span class="parameter">branch</span>
-         Text. Which branch the new floor is on
+         Text. Which branch the map is on
         </li>
         <li><span class="parameter">force</span>
-         Boolean. Whether to force the game to go to the floor, ignoring whether the boss is dead or not. (optional)
+         Boolean. Whether to force the game to go to the map, ignoring whether the boss is dead or not. (optional)
         </li>
     </ul>
 
@@ -568,6 +609,20 @@
 
 </dd>
     <dt>
+    <a name = "downtime"></a>
+    <strong>downtime ()</strong>
+    </dt>
+    <dd>
+    Function that causes things to happen during "downtime." What that means and when that happens is up to you.
+
+
+
+
+
+
+
+</dd>
+    <dt>
     <a name = "refresh_player_sight"></a>
     <strong>refresh_player_sight ()</strong>
     </dt>
@@ -679,7 +734,7 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.4.6</a></i>
-<i style="float:right;">Last updated 2020-10-18 15:15:49 </i>
+<i style="float:right;">Last updated 2021-01-03 15:57:37 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

@@ -13,7 +13,8 @@ playerClasses = {
     weaknesses={}, --These will be added to the characters' base weaknesses
     resistances={holy=25}, --These will be added the the characters' base resistances
     stat_modifiers={strength=5,melee=5,ranged=5,dodging=2,magic=2,max_mp=10}, --These values will be added to the characters' base stats
-    money=100 --Amount of money the character starts with
+    money=100, --Amount of money the character starts with
+    forbid_species_tags = {"undead","demon","evil"} --This class will be unavailable if the player's species has a tag or type listed in this table
   },
   beefcake = {
     name="Beefcake",
@@ -24,7 +25,8 @@ playerClasses = {
     spell_purchases={}, --These spells will show up as options to learn (requiring spending points on them)
     spell_choices={}, --These spells will show up as options when you reach their level, and you can choose one of them
     stat_modifiers={strength=10,melee=7,ranged=2,max_hp=25,armor=1}, --These values will be added to the characters' base stats
-    money=100 --Amount of money the character starts with
+    money=100, --Amount of money the character starts with
+    require_species={"player_human"} --This class will only be available if the player's species is listed in this table (or their species has tags or types in the require_species_tags table)
   },
   demonologist = {
     name="Demonologist",
@@ -61,7 +63,8 @@ playerClasses = {
     spell_purchases={}, --These spells will show up as options to learn (requiring spending points on them)
     spell_choices={}, --These spells will show up as options when you reach their level, and you can choose one of them
     stat_modifiers={strength=3,melee=3,ranged=5,magic=10,max_mp=25}, --These values will be added to the characters' base stats
-    money=0 --Amount of money the character starts with
+    money=0, --Amount of money the character starts with
+    forbid_species = {"player_vampire"}, --This class will be unavailable if the player's species is listed in this table
   },
   necromancer = {
     name="Necromancer",
@@ -74,6 +77,7 @@ playerClasses = {
     spell_purchases={}, --These spells will show up as options to learn (requiring spending points on them)
     spell_choices={}, --These spells will show up as options when you reach their level, and you can choose one of them
     stat_modifiers={strength=2,melee=2,ranged=3,magic=15,max_mp=30}, --These values will be added to the characters' base stats
-    money=0 --Amount of money the character starts with
+    money=0, --Amount of money the character starts with
+    require_species_tags={"undead"} --This class will only be available if the player's species has tags or types listed in this table (or their species itself is listed in the require_species table)
   }
 }

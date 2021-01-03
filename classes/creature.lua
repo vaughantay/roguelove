@@ -961,36 +961,38 @@ function Creature:die(killer)
       update_stat('ally_deaths_as_creature',player.id)
       update_stat('creature_ally_deaths',self.id)
     end
-    if (self.killer and self.killer.playerAlly == true) then
-      if self.killer == player then
-        update_stat('kills')
-        update_stat('kills_as_creature',player.id)
-        update_stat('creature_kills',self.id)
-        update_stat('map_kills',currMap.id)
-        currGame.stats['kills_in_current_body'] = (currGame.stats['kills_in_current_body'] or 0)+1
-        achievements:check('kill')
-      else
-        update_stat('ally_kills')
-        update_stat('ally_kills_as_creature',player.id)
-        update_stat('allied_creature_kills',self.killer.id)
-        update_stat('creature_kills_by_ally',self.id)
-      end
-    elseif seen and not self:is_type('ghost') then
-      output:out(self:get_name() .. " dies!")
-    end --end playerally killer if
-    
     if (self.killer and self.killer.baseType == "creature") then
-      local xp = 10-(self.level-self.killer.level)
+      local xp = math.max(0,10-(self.level-self.killer.level))
       self.killer:give_xp(xp)
       local favor = self:get_kill_favor()
-      local killer = self.killer or self.killer.master
+      if (self.killer.playerAlly == true) then
+        if self.killer == player then
+          update_stat('kills')
+          update_stat('kills_as_creature',player.id)
+          update_stat('creature_kills',self.id)
+          update_stat('map_kills',currMap.id)
+          currGame.stats['kills_in_current_body'] = (currGame.stats['kills_in_current_body'] or 0)+1
+          achievements:check('kill')
+          output:out("You kill " .. self:get_name() .. "!" .. (xp > 0 and " You gain " .. xp .. " XP!" or ""))
+        else
+          update_stat('ally_kills')
+          update_stat('ally_kills_as_creature',player.id)
+          update_stat('allied_creature_kills',self.killer.id)
+          update_stat('creature_kills_by_ally',self.id)
+          output:out(self.killer:get_name() .. " kills " .. self:get_name() .. "!" .. (xp > 0 and " You gain " .. xp .. " XP!" or ""))
+        end
+      else --killed by a non-player ally
+        if player:can_sense_creature(self) then output:out(self.killer:get_name() .. " kills " .. self:get_name() .. "!") end
+      end
       for fac,favor in pairs(favor) do
-        killer.favor[fac] = (killer.favor[fac] or 0) + favor
-        if killer == player and favor ~= 0 then
-          output:out("You " .. (favor > 0 and "gain " or "lose ") .. math.abs(favor) .. " favor with " .. factions[fac].name .. " for killing " .. self:get_name() .. ".")
+        self.killer.favor[fac] = (self.killer.favor[fac] or 0) + favor
+        if self.killer.playerAlly == true and favor ~= 0 then
+          output:out("You " .. (favor > 0 and "gain " or "lose ") .. math.abs(favor) .. " favor with " .. factions[fac].name .. ".")
         end
       end --end faction for
-    end --end if killer is a creature
+    elseif seen and not self:is_type('ghost') then --killed by something other than a creature
+      output:out(self:get_name() .. " dies!")
+    end --end playerally killer if
     
     --Free Thralls:
     self:free_thralls()

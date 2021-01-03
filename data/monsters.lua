@@ -91,7 +91,7 @@ local imp = {
   image_max=3,
   reverseAnimation=true,
   image_name = "imp1",
-  image_varieties=3,
+  image_varieties=3
 }
 possibleMonsters['imp'] = imp
 

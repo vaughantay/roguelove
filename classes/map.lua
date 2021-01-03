@@ -33,6 +33,38 @@ function Map:init(width,height,gridOnly)
   return self
 end
 
+---Completely clear everything from a map.
+--@param open Boolean. If True, make the whole map open floor. Otherwise, fill it with walls. Optional
+--@param clearAll Boolean. If True, also clear out the various sub-tables of the map
+function Map:clear(open,clearAll)
+  for x = 1, self.width, 1 do
+		for y = 1, self.height, 1 do
+			self.seenMap[x][y] = false
+			self:clear_tile(x,y)
+      if open and x ~= 1 and x ~= self.width and y ~= 1 and y ~= self.height then
+        self[x][y] = "."
+      else
+        self[x][y] = "#"
+      end
+		end
+	end
+  if clearAll then
+    self.creatures,self.contents,self.effects,self.projectiles,self.seenMap,self.lightMap,self.lights,self.pathfinders,self.grids,self.collisionMaps,self.exits={},{},{},{},{},{},{},{},{},{},{}
+    self.boss=nil
+    self.stairsUp,self.stairsDown = {x=0,y=0},{x=0,y=0}
+    for x = 1, self.width, 1 do
+      self.contents[x] = {}
+      self.seenMap[x] = {}
+      self.lightMap[x] = {}
+    end
+    for y = 1, self.height, 1 do
+      self.seenMap[x][y] = false
+      self.contents[x][y] = {}
+      self.lightMap[x][y] = false
+    end
+  end
+end
+
 ---Checks whether a map tile is clear
 --@param x Number. The x-coordinate to check
 --@param y Number. The y-coordinate to check
@@ -662,4 +694,85 @@ function Map:reveal()
       self.seenMap[x][y] = true
     end
   end
+end
+
+---Randomly add creatures to the map
+--@param creatTotal Number. The number of creatures to add. Optional, if blank will generate enough to meet the necessary density
+--@param forceGeneric Boolean. Whether to ignore any special populate_creatures() code in the map's mapType. Optional
+function Map:populate_creatures(creatTotal,forceGeneric)
+  local mapTypeID,branchID = self.mapType,self.branch
+  local mapType,branch = mapTypes[mapTypeID],branches[branchID]
+  
+  --If creatTotal is blank, set creatTotal based on the desired density
+  if not creatTotal then
+    local density = mapType.creature_density or branch.creature_density or gamesettings.creature_density
+    local creatMax = math.ceil((self.width*self.height)*(density/100))
+    creatTotal = creatMax-count(self.creatures)
+  end
+  
+  --Do special code if the mapType has it:
+  if mapType.populate_creatures and not forceGeneric then
+    return mapType:populate_creatures(creatTotal)
+  end
+  
+  if not self.noCreats and creatTotal > 0 then
+    local newCreats = {}
+    local specialCreats = mapgen:get_creature_list(self)
+		for creat_amt=1,creatTotal,1 do
+			local nc = mapgen:generate_creature(self.depth,specialCreats)
+      if nc == false then break end
+      local cx,cy = random(2,self.width-1),random(2,self.height-1)
+      local tries = 0
+      while (self:is_passable_for(cx,cy,nc.pathType) == false or self:tile_has_feature(cx,cy,'door') or self:tile_has_feature(cx,cy,'gate') or calc_distance(cx,cy,self.stairsDown.x,self.stairsDown.y) < 3) or self[cx][cy] == "<" do
+        cx,cy = random(2,self.width-1),random(2,self.height-1)
+        tries = tries+1
+        if tries > 100 then break end
+      end
+      if tries ~= 100 then 
+        if random(1,4) == 1 then nc:give_condition('asleep',random(10,100)) end
+        newCreats[#newCreats+1] = self:add_creature(nc,cx,cy)
+      end --end tries if
+		end --end creature for
+    return newCreats
+	end --end if not nocreats
+  return false
+end
+
+---Randomly add items to the map
+--@param itemTotal Number. The number of items to add. Optional, if blank will generate enough to meet the necessary density
+--@param forceGeneric Boolean. Whether to ignore any special populate_items() code in the map's mapType. Optional
+function Map:populate_items(itemTotal,forceGeneric)
+  local mapTypeID,branchID = self.mapType,self.branch
+  local mapType,branch = mapTypes[mapTypeID],branches[branchID]
+  
+  --If itemTotal is blank, set itemTotal based on the desired density
+  if not itemTotal then
+    local density = mapType.item_density or branch.item_density or gamesettings.item_density
+    local itemMax = math.ceil((self.width*self.height)*(density/100))
+    itemTotal = itemMax --TODO: 
+  end
+  
+  --Do special code if the mapType has it:
+  if mapType.populate_items and not forceGeneric then
+    return mapType:populate_items(itemTotal)
+  end
+  
+  if not self.noItems and itemTotal > 0 then
+    for item_amt = 1,itemTotal,1 do
+      local ni = mapgen:generate_item(self.depth)
+      if ni == false then break end
+      local ix,iy = random(2,self.width-1),random(2,self.height-1)
+      local tries = 0
+      while (self:isClear(ix,iy) == false or self[ix][iy] == "<" or self[ix][iy] == ">") do
+        ix,iy = random(2,self.width-1),random(2,self.height-1)
+        tries = tries+1
+        if tries > 100 then break end
+      end
+      if tries ~= 100 then 
+        self:add_item(ni,ix,iy)
+      end --end tries if
+    end
+    return true
+	end --end if not noItems
+  return false
 end

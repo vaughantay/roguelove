@@ -2339,16 +2339,45 @@ local store = {
   symbol="^",
   alwaysDisplay=true,
   color={r=0,g=0,b=255,a=255},
-  new = function(self)
-    local whichStore = get_random_element(stores)
+  new = function(self,whichStore)
+    if type(whichStore) == "string" then
+      whichStore = stores[whichStore]
+    end
+    if not whichStore then
+      whichStore = get_random_element(stores)
+    end
     self.store = whichStore
     self.name = whichStore.name
+    if whichStore.map_description then self.description = whichStore.map_description end
   end,
   enter = function(self,creature)
     if creature == player then Gamestate.switch(storescreen,self.store.id) end
   end
 }
 possibleFeatures['store'] = store
+
+local factionHQ = {
+  name="Faction HQ",
+  description = "The HQ of a faction.",
+  symbol="^",
+  alwaysDisplay=true,
+  color={r=0,g=0,b=255,a=255},
+  new = function(self,whichFac)
+    if type(whichFac) == "string" then
+      whichFac = possibleFactions[whichFac]
+    end
+    if not whichFac then
+      whichFac = get_random_element(possibleFactions)
+    end
+    self.faction = whichFac
+    self.name = whichFac.name
+    if whichFac.map_description then self.description = whichFac.map_description end
+  end,
+  enter = function(self,creature)
+    if creature == player then Gamestate.switch(factionscreen,self.faction.id) end
+  end
+}
+possibleFeatures['factionHQ'] = factionHQ
 
 local exit = {
   name = "Exit",
@@ -2373,7 +2402,7 @@ function exit:placed(map)
   if matches and self.depth < map.depth then self.symbol = "<" end
   self.actions.exit.text = (matches and (self.depth < map.depth and "Go up" or "Go down") or "Go to " .. branches[self.branch].name)
   map.exits[#map.exits+1] = self
-  print('placed exit at ',self.x,self.y)
+  print('placed exit to ' .. self.branch .. ' ' .. self.depth .. ' at ',self.x,self.y)
 end
 function exit:action(entity,action)
   if not self.locked then

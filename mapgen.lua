@@ -125,46 +125,10 @@ function mapgen:generate_map(branchID, depth,force)
     --TODO: Scramble where the exits are, for fun
   end
   
-	--Add creatures:
-	if not build.noCreats then
-    local density = whichMap.creature_density or branch.creature_density or gamesettings.creature_density
-    local creatTotal = math.ceil((width*height)*(density/100))
-    local specialCreats = mapgen:get_creature_list(build)
-		for creat_amt=1,creatTotal,1 do
-			local nc = mapgen:generate_creature(depth,specialCreats)
-      if nc == false then break end
-      local cx,cy = random(2,build.width-1),random(2,build.height-1)
-      local tries = 0
-      while (build:is_passable_for(cx,cy,nc.pathType) == false or build:tile_has_feature(cx,cy,'door') or build:tile_has_feature(cx,cy,'gate') or calc_distance(cx,cy,build.stairsDown.x,build.stairsDown.y) < 3) or build[cx][cy] == "<" do
-        cx,cy = random(2,build.width-1),random(2,build.height-1)
-        tries = tries+1
-        if tries > 100 then break end
-      end
-      if tries ~= 100 then 
-        if random(1,4) == 1 then nc:give_condition('asleep',random(10,100)) end
-        build:add_creature(nc,cx,cy)
-      end --end tries if
-		end --end creature for
-	end --end if not nocreats
-  --Add items:
-  if not build.noItems then
-    local density = whichMap.item_density or branch.item_density or gamesettings.item_density
-    local itemTotal = math.ceil((width*height)*(density/100))
-    for item_amt = 1,itemTotal,1 do
-      local ni = mapgen:generate_item(depth)
-      if ni == false then break end
-      local ix,iy = random(2,build.width-1),random(2,build.height-1)
-      local tries = 0
-      while (build:isClear(ix,iy) == false or build[ix][iy] == "<" or build[ix][iy] == ">") do
-        ix,iy = random(2,build.width-1),random(2,build.height-1)
-        tries = tries+1
-        if tries > 100 then break end
-      end
-      if tries ~= 100 then 
-        build:add_item(ni,ix,iy)
-      end --end tries if
-    end
-  end
+	--Add creatures & items:
+  build:populate_creatures()
+  build:populate_items()
+
   --Add stores:
   if not build.noStores then
     --TODO: Forcing stores to occur, getting # of stores, chance a store occurs
@@ -178,7 +142,6 @@ function mapgen:generate_map(branchID, depth,force)
     end
     if tries ~= 100 then 
       build:add_feature(newStore,ix,iy)
-      print(ix,iy)
     end --end tries if
   end
   --TODO: Add faction HQs:
@@ -296,7 +259,7 @@ function mapgen:generate_creature(level,list,allowAll)
 	-- This selects a random creature from the table of possible creatures, and compares the desired creature level to this creature's level. If it's a match, continue, otherwise select another one
 	while (1 == 1) do -- endless loop, broken by the "return"
 		local n = (list and get_random_element(list) or get_random_key(possibleMonsters))
-		if (list or possibleMonsters[n].level == level or (possibleMonsters[n].maxLevel or 0) <= level) and possibleMonsters[n].isBoss ~= true and possibleMonsters[n].neverSpawn ~= true and (allowAll or list or possibleMonsters[n].specialOnly ~= true) then
+		if (list or possibleMonsters[n].level == level or (possibleMonsters[n].maxLevel or 0) <= level) and possibleMonsters[n].isBoss ~= true and possibleMonsters[n].neverSpawn ~= true and (allowAll or list or possibleMonsters[n].specialOnly ~= true) and (random(1,100) >= (possibleMonsters[n].rarity or 0)) then
 			return Creature(n,level)
 		end
 	end
@@ -757,23 +720,6 @@ function mapgen:addTombstones(map)
     end
     if tries < 100 then map:add_feature(Feature('gravestone',text),x,y) end
   end
-end
-
----Completely clear everything from a map.
---@param map Map. The map to clear
---@param open Boolean. If True, make the whole map open floor. Otherwise, fill it with walls. Optional
-function mapgen:clear_map(map,open)
-  for x = 1, map.width, 1 do
-		for y = 1, map.height, 1 do
-			map.seenMap[x][y] = false
-			map:clear_tile(x,y)
-      if open and x ~= 1 and x ~= map.width and y ~= 1 and y ~= map.height then
-        map[x][y] = "."
-      else
-        map[x][y] = "#"
-      end
-		end
-	end
 end
 
 ---Make a procedurally-generated blob on the map

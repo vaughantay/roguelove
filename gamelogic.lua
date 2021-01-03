@@ -658,6 +658,27 @@ function player_dies()
   end
 end
 
+---Function that causes things to happen during "downtime." What that means and when that happens is up to you.
+function downtime()
+  --Max out HP and MP
+  player.hp = player.max_hp
+  player.mp = player.max_mp
+  --Remove all non-permanent conditions:
+  for condition,turns in pairs(player.conditions) do
+    if turns ~= -1 then
+      player:cure_condition(condition)
+    end
+  end
+  --Repopulate dungeons:
+  for _, branch in pairs(maps) do
+    for _, m in pairs(branch) do
+      m:populate_creatures()
+    end
+  end
+  --TODO: Refresh store inventories
+end
+
+
 ---Refreshes the player's sightmap. Called every turn, may need to be called if something changes visibility for some reason (new lights or something that blocks sight showing up)
 function refresh_player_sight()
   if not currMap then return end

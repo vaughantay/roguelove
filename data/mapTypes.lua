@@ -64,7 +64,7 @@ local town = {
 }
 function town.create(map,width,height)
   width,height = map.width,map.height
-  mapgen:clear_map(map,true)
+  map:clear(true)
   
   --Add stairs in the middle:
   local midX, midY = round(width/2),round(height/2)
@@ -74,8 +74,36 @@ function town.create(map,width,height)
   map.stairsDown.x,map.stairsDown.y = midX,midY
   
   --Add factions:
+  for _,fac in pairs(possibleFactions) do
+    if not fac.hidden and not fac.noHQ then
+      local hq = Feature('factionHQ',fac)
+      local tries = 0
+      local ix,iy = random(2,map.width-1),random(2,map.height-1)
+      while (map:isClear(ix,iy) == false or map[ix][iy] == "<" or map[ix][iy] == ">") do
+        ix,iy = random(2,map.width-1),random(2,map.height-1)
+        tries = tries+1
+        if tries > 100 then break end
+      end
+      if tries ~= 100 then 
+        map:add_feature(hq,ix,iy)
+      end --end tries if
+    end
+  end
   
   --Add stores:
+  for _,store in pairs(stores) do
+    local s = Feature('store',store)
+    local tries = 0
+    local ix,iy = random(2,map.width-1),random(2,map.height-1)
+    while (map:isClear(ix,iy) == false or map[ix][iy] == "<" or map[ix][iy] == ">") do
+      ix,iy = random(2,map.width-1),random(2,map.height-1)
+      tries = tries+1
+      if tries > 100 then break end
+    end
+    if tries ~= 100 then 
+      map:add_feature(s,ix,iy)
+    end --end tries if
+  end
 end
 mapTypes['town'] = town
 
@@ -112,7 +140,7 @@ function demonruins.create(map,width,height)
     end
   end --end room for
   --If no bossroom, regen map
-  if not biggestRoom then mapgen:clear_map(map) return demonruins.create(map,width,height) end
+  if not biggestRoom then map:clear() return demonruins.create(map,width,height) end
   
   local bossRoom = rooms[biggestRoom]
   

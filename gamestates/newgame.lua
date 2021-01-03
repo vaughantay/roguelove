@@ -20,17 +20,13 @@ function newgame:enter(previous)
     self.classScrollY = 0
     self.player = {name=nil,species=nil,class=nil,gender="other",pronouns=nil}
   end
-  self.classes = {}
-  for id,class in pairs(playerClasses) do
-    self.classes[#self.classes+1] = {classID=id,name=class.name}
-  end
+  self:refresh_class_list()
   self.species = {}
   for id,creature in pairs(possibleMonsters) do
     if creature.playerSpecies then
       self.species[#self.species+1] = {creatureID=id,name=ucfirst(creature.name)}
     end
   end
-  sort_table(self.classes,"name")
   sort_table(self.species,"name")
 end
 
@@ -636,6 +632,7 @@ function newgame:keypressed(key)
         self.player.species = self.species[self.cursorY].creatureID
         self.cursorY = 1
         self:randomize_player_name()
+        self:refresh_class_list()
       end
     else
       if self.cursorY == 0 then -- not selecting anyting
@@ -758,6 +755,7 @@ function newgame:mousepressed(x,y,button)
           self.player.species = self.species[i].creatureID
           self.cursorY = 1
           self:randomize_player_name()
+          self:refresh_class_list()
         end
       end
     end --end class if
@@ -920,4 +918,45 @@ function newgame:classScrollDown()
   if self.classScrollPositions and self.cursorY-self.classScrollY <= 0 then
     self.cursorY = self.cursorY+1
   end
+end
+
+function newgame:refresh_class_list()
+  self.classes = {}
+  for id,class in pairs(playerClasses) do
+    local classOK = true --classes all default to being available
+    if self.player.species then --don't bother checking the player's species if they don't have one yet
+      local creat = possibleMonsters[self.player.species]
+      if class.require_species or class.require_species_tags then --First, check if the species requirements are met
+        classOK = false --If there are species requirements, default the class to being unavailable
+        if class.require_species and in_table(self.player.species,class.require_species) then --check if the species ID matches the requirement
+          classOK = true
+        end --end require_species if
+        if classOK == false and class.require_species_tags then --check if the species tags matches the requirements
+          for _,tag in pairs(class.require_species_tags) do
+            if (creat.tags and in_table(tag,creat.tags)) or (creat.types and in_table(tag,creat.types)) then
+              classOK = true
+              break
+            end
+          end --end require_species_tags for
+        end --end require_species_tags if
+      end --end require_species if
+      if classOK == true and (class.forbid_species or class.forbid_species_tags) then --only check forbidden species if we're still OK after checking species requirements
+        if class.forbid_species and in_table(self.player.species,class.forbid_species) then --check if the species ID matches the requirement
+          classOK = false
+        end --end forbid_species if
+        if classOK == true and class.forbid_species_tags then
+          for _,tag in pairs(class.forbid_species_tags) do
+            if (creat.tags and in_table(tag,creat.tags)) or (creat.types and in_table(tag,creat.types)) then
+              classOK = false
+              break
+            end
+          end --end forbid_species_tags for
+        end
+      end --end forbid_species if
+    end
+    if classOK then
+      self.classes[#self.classes+1] = {classID=id,name=class.name}
+    end
+  end
+  sort_table(self.classes,"name")
 end

@@ -14,7 +14,6 @@ Features that have been added that weren't in Possession:
     * Projectile enchantments: Affects thrown items, or ammunition. Can add hit conditions to a projectile attack. Can modify damage done by a projectile. Can modify hit chance of a ranged attack (if applied to a thrown item only, not ammunition). Can run code after the projectile hits or misses. If a projectile leaves an item behind, the projectile's enchantments are carried over to the item left behind.
     * Future Improvements: Enchantments that decrease their time left when a kill is made with the weapon. Other situations where code can be run by enchantments. Enchantments on other types of items (ranged weapons, armor).
   * TODO: Getting NPCs to use items and change equipment.
-  * TODO: Implement a scrollbar on the inventory screen if the item list gets too long.
   * TODO: Auto-comparing an item's stats to your current equipment.
 * NPC factions
   * Factions can determine NPCs' hostility or friendliness to the player, to other faction members, and to specific creature types.
@@ -27,12 +26,14 @@ Features that have been added that weren't in Possession:
   * A "Store" feature generates during mapgen, with a store definition attached to it, and moving onto it lets you interact with the store.
   * Stores can be defined with a list of tags they'll buy. You can sell items to the store matching these tags rather than having to pre-define every single item the store will buy. The stores will use that item's defined Value attribute as the amount they'll pay for it.
   * Stores can use an item as a currency rather than money.
-  * Future improvements: Stores dynamically generating their inventory rather than it being pre-defined.
+  * Stores can dynamically generate their inventory from a list of tags rather than it being pre-defined.
   * Future improvements: Different instances of the same store (eg. a weapon store shows up every level, but has different items every time)
-* Player classes and class selection on the newgame screen.
+* Player species and class selection on the newgame screen.
+  * "Species" determines what creature definition to use for the player
   * Classes can modify stats, give starting items, spells, faction membership and favor, money, and damage weaknesses/resistances.
   * Classes can automatically grant certain abilities on level up.
   * Classes can also give you the option to buy a new ability for skill points.
+  * Classes can limit which player species are allowed to choose them, either by explicitly requiring/forbidding them, or by using tags.
   * Future improvements: Classes granting options to choose between abilities on level up, rather than automatically giving them.
     * Possible: Skill trees
 * Dungeon Branches

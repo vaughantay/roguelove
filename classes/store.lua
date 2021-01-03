@@ -42,6 +42,38 @@ function Store:generate_items()
     end --end sells_items for
   end --end if self.sells_items
   --TODO: Generate dynamic inventory:
+  if self.random_item_amount then
+    local possibles = {}
+    for id,item in pairs(possibleItems) do
+      local done = false
+      for _,tag in ipairs(self.sells_tags) do
+        if item.value and not item.neverSpawn and (in_table(tag,item) or item.itemType == tag) then
+          possibles[#possibles+1] = id
+          done = true
+          break
+        end
+      end
+    end
+    if count(possibles) > 0 then
+      for i=1,self.random_item_amount,1 do
+        local itemID = possibles[random(#possibles)]
+        local item = Item(itemID)
+        if not item.amount then item.amount = 1 end --This is here because non-stackable items don't generate with amounts
+        local makeNew = true
+        if item.sortBy then
+          local index = self:get_inventory_index(item)
+          if index then
+            self.inventory[index].item.amount = self.inventory[index].item.amount+item.amount
+            makeNew = false
+          end
+        end
+        if makeNew == true then
+          local id = #self.inventory+1
+          self.inventory[id] = {item=item,cost=item.value*(self.markup or 1),id=id}
+        end
+      end --end random_item_amount for
+    end --end possibles count if
+  end --end random items if
 end
 
 ---Gets a list of the items the store is selling
@@ -61,7 +93,7 @@ function Store:get_buy_list(creat)
       buying[#buying+1]={item=item,cost=self.buys_items[item.id]}
     elseif self.buys_tags and item.value then
       for _,tag in ipairs(self.buys_tags) do
-        if item:has_tag(tag) then
+        if item:has_tag(tag) or item.itemType == tag then
           buying[#buying+1]={item=item,cost=item.value}
         end
       end
