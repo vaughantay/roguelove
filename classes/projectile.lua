@@ -150,13 +150,30 @@ function Projectile:hits(target,force_generic)
   local dmg = false
   local playersees = player:can_see_tile(target.x,target.y)
   if target and ((target.baseType == "creature" and not target:is_type('ghost')) or (target.baseType == "feature" and (target.attackable or target.damage))) then
-    dmg = target:damage(tweak(self:get_damage()),self.source,self.damage_type)
+    dmg = target:damage(tweak(self:get_damage()),self.source,self.damage_type,self.armor_piercing,nil,self.source_item)
     if playersees then
-      if dmg and (type(dmg) ~= "number" or dmg > 0) then
-        output:out("The " .. self.name .. " hits " .. target:get_name() .. " for " .. dmg .. (self.damage_type and " " .. self.damage_type or "") .. " damage.")
-      else
-        output:out("The " .. self.name .. " hits " .. target:get_name() .. ".")
+      local txt = (type(self.miss_item) == "table" and self.miss_item:get_name() or "The " .. self.name) .. " hits " .. target:get_name()
+      if dmg and dmg > 0 then
+        txt = txt .. " for " .. dmg .. (self.damage_type and " " .. self.damage_type or "") .. " damage"
       end --end dmg/nodmg if
+      --Add extra damage
+      local loopcount = 1
+      local dtypes = self:get_extra_damage(target,dmg)
+      local dcount = count(dtypes)
+      for dtype,amt in pairs(dtypes) do
+        if (not dmg or dmg < 1) and loopcount == 1 then
+          txt = txt .. ", dealing "
+        elseif loopcount == 1 and dcount == 1 then
+          txt = txt .. " and "
+        elseif loopcount == dcount then
+          txt = txt .. ", and "
+        else
+          txt = txt .. ", "
+        end
+        txt = txt .. amt .. " " .. dtype .. " damage"
+      end
+      txt = txt .. "."
+      output:out(txt)
     end --end playersees if
     local hitCons = self:get_hit_conditions()
     if hitCons and target.baseType == "creature" then
@@ -167,22 +184,28 @@ function Projectile:hits(target,force_generic)
 				end -- end condition chance
 			end	-- end condition forloop
     end
-  elseif self.miss_item and (not self.miss_item_chance or random(10,100) <= self.miss_item_chance) and currMap:isClear(target.x,target.y,nil,true,true) then
+  end
+  
+  --Handle creating an item if necessary:
+  if self.miss_item and (self.miss_item_on_hit or not dmg) and (not self.miss_item_chance or random(1,100) <= self.miss_item_chance) and currMap:isClear(target.x,target.y,nil,true,true) then
     local it = nil
     if type(self.miss_item) == "string" then
       it = currMap:add_item(Item(self.miss_item),target.x,target.y,true)
     else
       it = currMap:add_item(self.miss_item,target.x,target.y,true)
     end
-    if self.enchantments then
-      for ench,t in pairs(self.enchantments) do
-        if enchantments[ench].itemType == "projectile" then
-          if not it.enchantments then it.enchantments = {} end
-          it.enchantments[ench] = t
+    if self.enchantments and type(self.miss_item) == "string" then --Only apply enchantments if you're creating a new item. Otherwise we'll assume that the created item already has all the enchantments it needs
+      for ench,turns in pairs(self.enchantments) do
+        if turns ~= 0 then
+          it:apply_enchantment(ench,turns)
         end
-      end
+      end --end permanent check if
+      it:decrease_all_enchantments('attack')
+    end --end miss item == string
+    if dmg then
+      it:decrease_all_enchantments('hit')
     end
-  end -- end target if
+  end -- end miss_item if
   
   --Catch stuff on fire if you deal fire damage
   if self.damage_type == "fire" then
@@ -260,6 +283,8 @@ function Projectile:get_damage()
   if self.extra_damage_per_level and self.source and self.source.baseType == "creature" then
     damage = damage + math.floor(self.extra_damage_per_level*self.source.level)
   end
+  local bonus = .01*self:get_enchantment_bonus('damage_percent')
+  damage = damage * math.ceil(bonus > 0 and bonus or 1)
   damage = damage + self:get_enchantment_bonus('damage')
   return damage
 end
@@ -276,4 +301,59 @@ function Projectile:get_enchantment_bonus(bonusType)
     end --end if it has the right bonus
   end --end enchantment for
   return total
+end
+
+---Find out how much extra damage an item will deal due to enchantments
+--@param target Entity. The target of the item's attack.
+--@param dmg Number. The base damage being done to the target
+--@return Table. A table with values of the extra damage the item will deal.
+function Projectile:get_extra_damage(target,dmg)
+  local extradmg = {}
+  
+  for e,_ in pairs(self:get_enchantments()) do
+    local ench = enchantments[e]
+    if ench.extra_damage then
+      local ed = ench.extra_damage
+      local apply = true
+      if ed.only_creature_types then
+        apply = false
+        for _,ctype in ipairs(ed.only_creature_types) do
+          if target:is_type(ctype) then
+            apply = true
+            break
+          end
+        end --end creature type for
+      end --end if only creature types
+      if ed.safe_creature_types and apply then
+        for _,ctype in ipairs(ed.safe_creature_types) do
+          if target:is_type(ctype) then
+            apply = false
+            break
+          end
+        end --end creature type for
+      end --end if safe creature types
+      if apply == true then
+        local dmg = tweak((ed.damage or 0)+math.ceil((ed.damage_percent or 0)/100*dmg))
+        dmg = target:damage(dmg,self.source,ed.damage_type,ed.armor_piercing,nil,self.source_item)
+        extradmg[ed.damage_type] = extradmg[ed.damage_type] or 0 + dmg
+      end
+    end --end if it has an extra damage flag
+  end --end enchantment for
+  return extradmg
+end
+
+---Apply an enchantment to an projectile
+--@param enchantment Text. The enchantment ID
+--@param turns Number. The number of turns to apply the enchantment, if applicable. Generally only matters for projectiles if it misses and leaves an item behind. Use -1 to force this enchantment to be permanent. Use 0 to force the enchantment to not be applied to the item left behind.
+function Projectile:apply_enchantment(enchantment,turns)
+  turns = turns or 1
+  if not self.enchantments then self.enchantments = {} end
+  local currEnch = self.enchantments[enchantment]
+  if currEnch == -1 or turns == -1 then --permanent enchantments are always permanent
+    self.enchantments[enchantment] = -1
+  elseif currEnch then --if you currently have this enchantment, add turns
+    self.enchantments[enchantment] = currEnch+turns
+  else --if you don't currently have this enchantment, set it to the passed turns value
+    self.enchantments[enchantment] = turns
+  end
 end

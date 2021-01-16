@@ -75,7 +75,7 @@ function Spell:use(target, caster, ignoreCooldowns)
   elseif caster.mp and self.cost and self.cost > caster.mp then
     if (caster == player) then output:out("You don't have enough magic points to use that ability.") end
 		return false
-	else
+	elseif self.cast then
 		local r = self:cast(target,caster)
     if r ~= false or r == nil then
       if self.sound and player:can_see_tile(caster.x,caster.y) then output:sound(self.sound) end

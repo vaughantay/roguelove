@@ -83,6 +83,20 @@ local dart = {
 }
 projectiles['dart'] = dart
 
+local dagger = {
+  name = "dagger",
+  description = "A dagger.",
+  symbol = "/",
+  angled = true,
+  color={r=50,g=50,b=50,a=255},
+  damage = 3,
+  time_per_tile = .01,
+  hit_sound = 'hit_stab',
+  miss_item="dagger", --This should be replaced by the actual dagger when it's thrown though
+  miss_item_on_hit=true
+}
+projectiles['dagger'] = dagger
+
 local bomb = {
   name = "bomb",
   description = "A bomb!",
@@ -541,6 +555,7 @@ local crossbowbolt = {
   damage = 4,
   color={r=255,g=255,b=255,a=255},
   time_per_tile = .01,
+  miss_item="bolt",
   hit_sound = 'hit_stab'
 }
 projectiles['crossbowbolt'] = crossbowbolt

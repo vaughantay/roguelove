@@ -5,7 +5,9 @@ local vampiric = {
   prefix = "vampiric",
   description = "Drains health from your enemies and gives it to you.",
   tags={"unholy"},
-  itemType="weapon"
+  requires_tags={"sharp"},
+  itemType="weapon",
+  subType="melee"
 }
 function vampiric:after_damage(item,possessor,target,damage)
   if (random(1,2) == 1 and not target:is_type('bloodless')) or target:has_condition('bleeding') then
@@ -28,7 +30,8 @@ local poisoned = {
   hit_conditions={{condition='poisoned',chance=25,minTurns=2,maxTurns=4}},
   crit_conditions={{condition="poisoned",turns=5,chance=100}},
   itemType="weapon",
-  requires_tags={"sharp"}
+  requires_tags={"sharp"},
+  apply_to_projectile="poisoned_projectile" --If this enchantment is applied to a ranged weapon, either set this to TRUE to copy this enchantment to the projectile, or set it to the ID of another enchantment to apply that enchantment instead
 }
 enchantments['poisoned'] = poisoned
 
@@ -39,7 +42,7 @@ local fireweapon = {
   extra_damage = {damage_type="fire",damage_percent=50,safe_creature_types={"fireImmune"}},
   removal_type="hit",
   tags={"fire","magic"},
-  itemType="weapon"
+  itemTypes={"weapon","ammo","throwable"}
 }
 enchantments['fireweapon'] = fireweapon
 
@@ -56,12 +59,13 @@ enchantments['accurate'] = accurate
 local blessed = {
   name = "Blessed",
   prefix = "blessed",
-  description = "Does extra holy damage to demons and the undead.",
-  extra_damage = {damage_type="holy",damage_percent=50,only_creature_types={"demon","undead"}},
+  description = "Does extra holy damage to unholy creatures.",
+  extra_damage = {damage_type="holy",damage_percent=50,armor_piercing=true,only_creature_types={"demon","undead","abomination","unholy"}},
   removal_type="kill",
   tags={"holy"},
-  itemType="weapon"
+  itemTypes={"weapon","ammo","throwable"}
 }
+enchantments['blessed'] = blessed
 
 local sharpened = {
   name = "Sharpened",
@@ -69,6 +73,7 @@ local sharpened = {
   description = "Wickedly sharp and ready to draw blood.",
   removal_type="hit",
   itemType="weapon",
+  subType="melee",
   requires_tags={"sharp"},
   hit_conditions={{condition="bleeding",minTurns=2,maxTurns=5,chance=100}},
   crit_conditions={{condition="bleeding",turns=5,chance=100}}
@@ -78,9 +83,42 @@ enchantments['sharpened'] = sharpened
 local poisonedProjectile = {
   name = "Poisoned",
   prefix = "poisoned",
+  removal_type="hit",
   description = "Poisons the target on a successful hit.",
   hit_conditions={{condition='poisoned',chance=100,minTurns=2,maxTurns=4}},
-  itemType="projectile",
+  itemTypes={"thrown","ammo"},
   requires_tags={"sharp"}
 }
 enchantments['poisoned_projectile'] = poisonedProjectile
+
+local damaging = {
+  name = "Damaging",
+  prefix = "Damaging",
+  bonuses={damage=5},
+  description = "Does more damage to the target.",
+  itemTypes={"weapon","ammo","throwable"}
+}
+enchantments['damaging'] = damaging
+
+local armorInvincible = {
+  name = "Invicibility",
+  suffix = "of Invincibility",
+  bonuses = {armor=1000},
+  description = "Makes you immune to damage.",
+  itemType="armor",
+  removal_type="damaged",
+  damaged = function(item,possessor,attacker)
+    possessor:give_condition('fireaura',random(5,10),attacker)
+    conditions['fireaura']:advance(possessor)
+	end,
+}
+enchantments['armor_invincible'] = armorInvincible
+
+local armorDamaging = {
+  name = "Killing",
+  suffix = "of Killing",
+  bonuses = {critical_chance=1000},
+  description = "Makes you very deadly.",
+  itemType="armor"
+}
+enchantments['armor_damaging'] = armorDamaging

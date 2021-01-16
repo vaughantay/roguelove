@@ -6,7 +6,7 @@ playerClasses = {
     factions={"lightchurch"}, --List of factions the character begins as a member of
     spells={"demondamager"}, --These are spells the character will start with
     items={{item="holywater",amount=2}}, --These items will be granted on game start
-    equipment={{item="holydagger"}}, --These items will be equipped on game start
+    equipment={{item="dagger",enchantment="blessed",enchantment_turns=5,displayName="Blessed Dagger"}}, --These items will be equipped on game start
     learns_spells={{spell="smite",level=2}}, --These spells will be automatically granted once a certain level is reached
     spell_purchases={{spell="summonangel",level=1,cost=5}, {spell="smite",level=1,cost=5}, {spell="demondamager2",level=1,cost=1,requires="demondamager",replaces="demondamager"}}, --These spells will show up as options to learn (requiring spending points on them)
     spell_choices={}, --These spells will show up as options when you reach their level, and you can choose one of them
@@ -19,7 +19,7 @@ playerClasses = {
   beefcake = {
     name="Beefcake",
     description="A super-tough warrior.",
-    items={{item="healthpotionminor"},{item="dagger",amount=100}}, --These items will be granted on game start
+    items={{item="healthpotionminor"},{item="dagger",amount=100},{item="breastplate"},{item="helmet"},{item="weaponpoison"}}, --These items will be granted on game start
     equipment={{item="greatsword"}}, --These items will be equipped on game start
     learns_spells={}, --These spells will be automatically granted once a certain level is reached
     spell_purchases={}, --These spells will show up as options to learn (requiring spending points on them)
@@ -46,7 +46,7 @@ playerClasses = {
   wimp = {
     name="Total Wimp",
     description="A scrawny nerd.",
-    items={{item="healthpotionminor",amount=5},{item="scroll",amount=3,displayName="Random Scrolls"},{item="scroll",passed_info="blink",displayName = "Scroll of Blink"},{item="scroll",passed_info="homecoming",displayName = "Scroll of Homecoming"}}, --These items will be granted on game start
+    items={{item="healthpotionminor",amount=5},{item="scroll",amount=3,displayName="Random Scrolls"},{item="scroll",passed_info="blink",displayName = "Scroll of Blink"},{item="scroll",passed_info="homecoming",displayName = "Scroll of Homecoming"},{item="crossbow"},{item="bolt",amount=1},{item="weaponpoison",amount=2}}, --These items will be granted on game start
     stat_modifiers={strength=1,melee=1,ranged=5,magic=5,max_hp=-25,max_mp=5}, --These values will be added to the characters' base stats
     spells={"scrawny"}, --These are spells the character will start with
     money=100 --Amount of money the character starts with

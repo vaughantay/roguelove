@@ -176,8 +176,8 @@ function weaponPoison:use()
         if item.itemType == "weapon" then
           item:apply_enchantment('poisoned',tweak(5))
         elseif item.itemType == "ammo" or item.itemType == "throwable" then
-          output:out("Poison projectile")
-          item:apply_enchantment('poisoned_projectile',tweak(5))
+          output:out(player:get_name() .. " applies poison to " .. item:get_name() .. ".")
+          item:apply_enchantment('poisoned_projectile',2)
         end
         player:delete_item(self)
         advance_turn()
@@ -200,6 +200,7 @@ local greatsword = {
 	description="A really big sword.",
 	symbol="†",
 	itemType="weapon",
+  subType="melee",
   equippable=true,
   equipSlot="weapon",
   hands=2,
@@ -219,8 +220,10 @@ local dagger = {
 	description="A short-bladed dagger, wickedly sharp.",
 	symbol="†",
 	itemType="weapon",
+  subType="melee",
   equippable=true,
   throwable=true,
+  preserve_on_throw=true,
   equipSlot="weapon",
   hands=1,
 	color={r=200,g=200,b=200,a=255},
@@ -230,7 +233,8 @@ local dagger = {
 	level = 1,
 	strmod=5,
   tags={'sharp'},
-  value=5
+  value=5,
+  ranged_attack="dagger"
 }
 possibleItems['dagger'] = dagger
 
@@ -240,6 +244,7 @@ local selfharmdagger = {
   into = "Also deals damage to the attacker.",
 	symbol="†",
 	itemType="weapon",
+  subType="melee",
   equippable=true,
   throwable=true,
   equipSlot="weapon",
@@ -265,6 +270,7 @@ local firedagger = {
 	description="A short-bladed dagger, wickedly sharp, and on fire.",
 	symbol="†",
 	itemType="weapon",
+  subType="melee",
   equippable=true,
   throwable=true,
   equipSlot="weapon",
@@ -288,6 +294,7 @@ local holydagger = {
 	description="A short-bladed dagger, wickedly sharp, and blessed with righteousness.",
 	symbol="†",
 	itemType="weapon",
+  subType="melee",
   equippable=true,
   throwable=true,
   equipSlot="weapon",
@@ -308,6 +315,7 @@ local cattleprod = {
 	description="A cattle prod. Deals no damage, but stuns.",
 	symbol="†",
 	itemType="weapon",
+  subType="melee",
   equippable=true,
   equipSlot="weapon",
   hands=1,
@@ -371,7 +379,8 @@ local soul = {
   projectile_name="soul",
   stacks=true,
   value=1,
-  tags={'holy','unholy','magic','soul'}
+  tags={'holy','unholy','magic','soul'},
+  noEnchantments=true
 }
 function soul:use(user)
   if user:is_type('demon') then
@@ -391,14 +400,37 @@ local holywater = {
   description = "A small vial filled with a slightly glowing liquid.",
   symbol="!",
 	itemType="throwable",
+  usable=true,
   throwable=true,
 	color={r=0,g=200,b=200,a=255},
 	ranged_attack="genericthrow",
   projectile_name="holywater",
   stacks=true,
   tags={'liquid','holy'},
+  noEnchantments=true,
   value=5
 }
+function holywater:use()
+  local list = {}
+  for i,item in ipairs(player.inventory) do
+    if item:qualifies_for_enchantment('blessed') then
+      local afterFunc = function()
+        output:out(player:get_name() .. " applies holy water to " .. item:get_name() .. ".")
+        item:apply_enchantment('blessed',tweak(5))
+        player:delete_item(self)
+        advance_turn()
+      end
+      list[#list+1] = {text=item:get_name(true),description=item:get_description(),selectFunction=afterFunc,selectArgs={}}
+    end
+  end
+  if #list > 0 then
+    Gamestate.switch(multiselect,list,"Bless a Weapon",true,true)
+    return false
+  else
+    output:out("You can't apply holy water to any of your weapons.")
+    return false,"You can't apply holy water to any of your weapons."
+  end
+end
 possibleItems['holywater'] = holywater
 
 local unholywater = {
@@ -413,7 +445,8 @@ local unholywater = {
   projectile_name="unholywater",
   stacks=true,
   tags={'liquid','unholy'},
-  value=5
+  value=5,
+  noEnchantments=true
 }
 possibleItems['unholywater'] = unholywater
 
@@ -450,7 +483,8 @@ local breastplate = {
   name="iron breasplate",
 	description="An iron breastplate.",
 	symbol="]",
-	itemType="armor_torso",
+	itemType="armor",
+  subType="torso",
   equippable=true,
   equipSlot="torso",
   equipText = "You put on the iron breastplate. It's heavy.",
@@ -464,6 +498,22 @@ local breastplate = {
   end
 }
 possibleItems['breastplate'] = breastplate
+
+local helmet = {
+  name="iron helmet",
+	description="An iron helmet.",
+	symbol="]",
+	itemType="armor",
+  subType="head",
+  equippable=true,
+  equipSlot="head",
+  equipText = "You put on the iron helmet. It makes your neck hurt.",
+  unequipText = "You take off the iron helmet.",
+	color={r=150,g=150,b=150,a=255},
+  tags={'iron'},
+  value=25
+}
+possibleItems['helmet'] = helmet
 
 local sexyring = {
   name="ring of +1000 sexiness",
@@ -529,6 +579,7 @@ local crossbow = {
   description="",
   symbol="]",
   itemType="weapon",
+  subType="ranged",
   equippable=true,
   equipSlot="weapon",
   hands=1,
@@ -548,6 +599,7 @@ local revolver = {
   description="A trusty six shooter.",
   symbol="]",
   itemType="weapon",
+  subType="ranged",
   equippable=true,
   equipSlot="weapon",
   hands=1,
@@ -590,6 +642,7 @@ local bullet = {
   equippable=true,
   equipSlot="ammo",
   ammoType = "bullet",
+  tags={"sharp"},
   stacks=true,
   color={r=33,g=33,b=33,a=33},
   value=1
@@ -632,7 +685,8 @@ local explosivebolt = {
   projectile_name="bomb",
   stacks=true,
   color={r=255,g=255,b=150,a=255},
-  value=1
+  value=1,
+  noEnchantments=true
 }
 function explosivebolt:new()
   self.amount = tweak(100)

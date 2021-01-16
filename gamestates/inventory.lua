@@ -22,6 +22,7 @@ function inventory:enter(previous,whichType)
   self.yHold = 1
   self.xHold = 1
   self.filter = whichType
+  self.text = ""
   self:sort()
 end
 
@@ -34,26 +35,27 @@ function inventory:sort()
     if not player:is_equipped(item) then
       if (self.filter == nil) or (item[self.filter] == true) then
         local iType = item.itemType or "other"
-        if not sorted[iType] then
-          sorted[iType] = {text=iType}
+        local subType = item.subType or ""
+        if not sorted[iType .. subType] then
+          sorted[iType .. subType] = {text=iType .. (subType ~= "" and " (" .. ucfirst(subType) .. ")" or "")}
         end
-        sorted[iType][#sorted[iType]+1] = item
+        sorted[iType .. subType][#sorted[iType .. subType]+1] = item
       end --end filter if
     end --end equiiped if
   end --end inventory for
   
   --Put them in the order you'd like to see them:
-  local order = {'usable','throwable','weapon','offhand','armor_head','armor_torso','armor_hands','armor_legs','armor_feet','accessory','ammo','other'}
+  local order = {'usable','throwable','weapon','offhand','armorhead','armortorso','armorhands','armorlegs','armorfeet','accessory','ammo','other'}
   for _,iType in ipairs(order) do
     if sorted[iType] then
       sorted[#sorted+1] = sorted[iType]
       sorted[iType] = nil
     end
   end --end itype for
-  for i,iType in pairs(order) do
+  for i,iType in pairs(sorted) do
     if type(i) ~= "number" then
-      sorted[#sorted+1] = sorted[iType]
-      sorted[iType] = nil
+      sorted[#sorted+1] = sorted[i]
+      sorted[i] = nil
     end --end if number
   end --end itype for
 

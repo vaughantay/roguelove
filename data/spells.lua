@@ -176,7 +176,7 @@ firebrand = Spell({
 	target_type = "self",
 	flags = {aggressive=true},
 	cast = function (self,target,caster)
-    local weapons = self:get_equipped_in_slot('weapon')
+    local weapons = caster:get_equipped_in_slot('weapon')
     if #weapons > 0 then
       local done = false
       for _,weapon in pairs(weapons) do
@@ -354,9 +354,9 @@ undeadlegion = Spell({
 		while (deadheads > 1) do
 			local x,y = random(caster.x-5,caster.x+5),random(caster.y-5,caster.y+5)
 			if (x>1 and y>1 and x< currMap.width and y< currMap.height and currMap:isClear(x,y)) then
-				local deadite = (random(1,2) == 1 and Creature('zombie') or Creature('skeleton'))
+				--[[local deadite = (random(1,2) == 1 and Creature('zombie') or Creature('skeleton'))
 				currMap:add_creature(deadite,x,y)
-        deadite:become_thrall(caster)
+        deadite:become_thrall(caster)]]
 			end
 			deadheads = deadheads - 1
 		end
@@ -1007,21 +1007,6 @@ bodyslam = Spell({
 	end
 }),
 
-offropes = Spell({
-	name = "Off the Rope",
-	description = "Launch yourself off of the ropes (or wall, whatever) behind you to deliver a powerful blow to your enemy!",
-	cooldown = 10,
-	range = 1,
-	flags = {aggressive=true},
-	target_type = "creature",
-	cast = function (self,target,caster)
-    local xMod,yMod = get_unit_vector(target.x,target.y,caster.x,caster.y)
-    if currMap[xMod][yMod] ~= "#" then
-      output:out("You don't have anything behind you to launch off of.")
-    end
-	end
-}),
-
 flyingkick = Spell({
     name = "Flying Dropkick",
     description = "Jump towards a nearby enemy and kick them in the face! You'll need a bit of space to get up to speed.",
@@ -1336,9 +1321,9 @@ golem = Spell({
 		while (done == false) do
 			local x,y = random(caster.x-3,caster.x+3),random(caster.y-3,caster.y+3)
 			if (currMap:isClear(x,y)) then
-				local g = Creature('golem')
+				--[[local g = Creature('golem')
 				currMap:add_creature(g,x,y)
-        g:become_thrall(caster)
+        g:become_thrall(caster)]]
 			end
 			done = true
 		end
@@ -1366,7 +1351,7 @@ petrify = Spell({
   sound = "stonemagic",
 	cast = function (self,target,caster)
 		if player:can_sense_creature(target) then output:out(target:get_name() .. " turns to stone!") end
-		target:give_condition('petrified',tweak(15))
+		--target:give_condition('petrified',tweak(15))
 	end
 }),
 
@@ -2502,7 +2487,7 @@ frogcurse = Spell({
       for _, creat in pairs(caster:get_seen_creatures()) do
         if creat.id ~= "ghost" and creat:is_enemy(caster) then
           if caster:touching(creat) and creat.id ~= "witch" then nearest = creat break end
-          local dist = get_distance(caster.x,caster.y,creat.x,creat.y)
+          local dist = calc_distance(caster.x,caster.y,creat.x,creat.y)
           if creat.id ~= "witch" and creat ~= caster and (nearest == nil or nearestDist < dist) then
             nearest = creat
             nearestDist = dist
@@ -2738,7 +2723,7 @@ directedscream = Spell({
     sound="scream_directed",
     cast = function(self,target,caster)
       local wave = Projectile('soundwave',{x=caster.x,y=caster.y},{x=target.x,y=target.y},{r=150,g=66,b=66})
-      local dmg = creat:damage(random(10,20),caster,"unholy")
+      local dmg = target:damage(random(10,20),caster,"unholy")
       if player:can_see_tile(caster.x,caster.y) then output:out(caster:get_name() .. " screams with " .. caster:get_pronoun('p') .. " sound and "  .. caster:get_pronoun('p') .. " fury at " .. target:get_name() .. ", dealing " .. dmg .. " damage.") end
       target:give_condition('stunned',random(2,4))
       target.fear = target.fear + tweak(50)
@@ -4137,7 +4122,7 @@ illusorydouble = Spell({
     if player:can_see_tile(caster.x,caster.y) then output:out(caster:get_name() .. " summons a bunch of illusory doubles!") end
 		local ills = random(2,4)
     local tries = 15
-		while (ills > 1) and tries > 0 do
+		--[[while (ills > 1) and tries > 0 do
 			local x,y = random(caster.x-3,caster.x+3),random(caster.y-3,caster.y+3)
 			if (x>1 and y>1 and x< currMap.width and y< currMap.height and currMap:isClear(x,y)) then
 				local illusion = Creature('illusion')
@@ -4151,7 +4136,7 @@ illusorydouble = Spell({
       else
         tries = tries-1
 			end
-		end
+		end]]
   end
 }),
 

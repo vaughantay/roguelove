@@ -138,7 +138,7 @@ end
 function calc_attack(attacker,target,forceHit,item)
 	local dmg = (item and item:get_damage(target,attacker) or attacker:get_damage())
   local dbonus = .01*attacker:get_bonus('damage_percent',true)
-  dmg = dmg * (dbonus ~= 0 and dbonus or 1)
+  dmg = dmg * math.ceil(dbonus > 0 and dbonus or 1)
 	local critChance = attacker:get_critical_chance() + (item and item:get_critical_chance() or 0)
 	local hitMod = calc_hit_chance(attacker,target,item)
   local result = "miss"
@@ -227,7 +227,6 @@ function advance_turn()
     player.checked = {}
     player:get_seen_creatures()
   end
-  --print("Time to run turn: " .. tostring(os.clock()-pTime))
   
   local px,py = output:tile_to_coordinates(player.x,player.y)
   if action ~= "dying" and (px < 1 or py < 1 or px > love.graphics.getWidth() or py > love.graphics.getHeight()) then
@@ -252,6 +251,7 @@ function advance_turn()
     currGame.autoSave = prefs['autosaveTurns']
   end
   refresh_player_sight()
+  --print("Time to run turn: " .. tostring(os.clock()-pTime))
 end --end advance_turn
 
 ---This function is called when you win. It saves the win for posterity, and blacks out the screen.

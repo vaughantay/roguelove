@@ -335,8 +335,9 @@ end
 --@param damage_type String. The damage type of the attack. (optional)
 --@param armor_piercing True/False, or Number. If set to true, it ignores all armor. If set to a number, ignores that much armor. (optional)
 --@param noSound Boolean. If set to true, no damage type sound will be played. (optional)
+--@param item Item. The weapon used to do the damage. (optional)
 --@return Number. The final damage done.
-function Creature:damage(amt,attacker,damage_type,armor_piercing,noSound)
+function Creature:damage(amt,attacker,damage_type,armor_piercing,noSound,item)
   amt = math.ceil(amt) --just in case! to prevent fractional damage
   require "data.damage_types"
   damage_type = damage_type or "physical"
@@ -391,7 +392,12 @@ function Creature:damage(amt,attacker,damage_type,armor_piercing,noSound)
       end --end self == player if
     end --end if attacker if
     --Set the "lastattacker" value to be who attacked you, for death purposes
-    if attacker and attacker.baseType == "creature" then self.lastAttacker = attacker end
+    if attacker and attacker.baseType == "creature" then
+      self.lastAttacker = attacker
+      self.lastAttackerWeapon = item
+    else
+      self.lastAttackerWeapon = nil --This is done so if you hit someone, then they die from a non-attack, we'll still call you the killer. But not your weapon
+    end
     if (self.hp < 1) then
       if damage_type == "explosive" then
         self.explosiveDeath = true
@@ -405,6 +411,11 @@ function Creature:damage(amt,attacker,damage_type,armor_piercing,noSound)
     end
     if self == player and self.hp > 0 then
       output:shake(math.max(math.min((amt/self.hp)*25,25),2),.5)
+    end
+    for _,slot in pairs(self.equipment) do
+      for _,item in ipairs(slot) do
+        item:decrease_all_enchantments('damaged')
+      end
     end
 		return amt
 	else
@@ -501,10 +512,17 @@ function Creature:callbacks(callback_type,...)
   for _, equipslot in pairs(self.equipment) do
     for _, equip in ipairs(equipslot) do
       if type(possibleItems[equip.id][callback_type]) == "function" then
-      local r = possibleItems[equip.id][callback_type](equip,self,unpack({...}))
-      if (r == false) then return false end
-      if r ~= nil and type(r) ~= "boolean" then table.insert(ret,r) end
-      end
+        local r = possibleItems[equip.id][callback_type](equip,self,unpack({...}))
+        if (r == false) then return false end
+        if r ~= nil and type(r) ~= "boolean" then table.insert(ret,r) end
+      end --end function exists if
+      for ench,_ in pairs(equip:get_enchantments()) do --TODO: This might be a potential slowdown spot
+        if type(enchantments[ench][callback_type]) == "function" then
+          local r = enchantments[ench][callback_type](equip,self,unpack({...}))
+          if (r == false) then return false end
+          if r ~= nil and type(r) ~= "boolean" then table.insert(ret,r) end
+        end --end function exists if
+      end --end enchantment for
     end
 	end
 	return true,ret
@@ -602,7 +620,7 @@ function Creature:get_bonus(bonusType,average)
       end
 		end
 	end
-  for _, equipslot in pairs(self.equipment) do
+  for whichSlot, equipslot in pairs(self.equipment) do
     for _, equip in ipairs(equipslot) do
       if equip.bonuses ~= nil then
         local b = equip.bonuses[bonusType]
@@ -611,6 +629,14 @@ function Creature:get_bonus(bonusType,average)
           bcount = bcount + 1
         end
       end --end bonuses if
+      --Get bonuses from equipment enchantment:
+      if whichSlot ~= "weapon" then --Don't apply any enchantment bonuses from weapons. We have to assume those bonuses are intended only for attacks done with the weapon
+        local b = equip:get_enchantment_bonus(bonusType)
+        if b ~= 0 then
+          bonus = bonus + b
+          bcount = bcount + 1
+        end
+      end
     end --end equipment for
 	end --end equipslot for
   if average and bcount > 0 then bonus = math.ceil(bonus/bcount) end
@@ -938,11 +964,13 @@ function Creature:touching(target)
 end
 
 ---Kill a creature.
---@param killer Entity. Whodunnit?
+--@param killer Entity. Whodunnit? By default, nothing actually passes in a killer, but it's here just in case
 function Creature:die(killer)
   if self.isDead then return self:remove() end
   if killer then self.killer = killer end
-  if killer == nil and self.lastAttacker then self.killer = self.lastAttacker end
+  if killer == nil and self.lastAttacker then
+    self.killer = self.lastAttacker
+  end
   if self:callbacks('dies',self.killer) and (not self.killer or (self.killer.callbacks and self.killer:callbacks('kills',self))) then
     self.isDead = true
     if self.killer and self.killer.master and self.killer.master.hp > 0 and self.killer.master.callbacks then
@@ -996,6 +1024,13 @@ function Creature:die(killer)
     
     --Free Thralls:
     self:free_thralls()
+    
+    --Carve a notch into the killer's weapon:
+    local weap = self.lastAttackerWeapon 
+    if self.lastAttackerWeapon then
+      weap.kills = (weap.kills or 0)+1
+      weap:decrease_all_enchantments('kill') --decrease the turns left for any enchantments that decrease on kill
+    end
     
     --Corpse time:
     if self.explosiveDeath then
@@ -1793,7 +1828,7 @@ function Creature:update(dt) --for charging, and other special effects
     
     if (self.x == self.zoomTo.x and self.y == self.zoomTo.y) or (self:can_move_to(self.zoomTo.x,self.zoomTo.y) == false and (self:touching(self.zoomTo) or #self.zoomLine < 1 or not self.zoomLine)) then
       local dist = math.floor(calc_distance(self.zoomFrom.x,self.zoomFrom.y,self.zoomTo.x,self.zoomTo.y))
-      if (self.zoomResult) then
+      if (self.zoomResult and self.zoomResult.use) then
         self.zoomResult:use(self.zoomTo,self) --if you're charging, do whatever is at the end of the charge
       else --if you're not charging, get hurt and hurt whoever you ran into
         if self.zoomTo and currMap[self.zoomTo.x][self.zoomTo.y] == "#" and not self:touching(self.zoomFrom) then

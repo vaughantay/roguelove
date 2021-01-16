@@ -204,6 +204,28 @@ function test_maps(branch,depth)
   end
 end
 
+function test_spells()
+  player.max_hp=1000
+  player.hp = 1000
+  player.max_mp = 1000
+  player.mp = 1000
+  for _,spell in pairs(possibleSpells) do
+    if spell.target_type ~= "passive" then
+      print(spell.name)
+      for key,func in pairs(spell) do
+        if type(spell[key]) == "function" then
+          local ok, err = pcall(func,spell,player,player)
+          if not ok then print(err) end
+        end
+      end
+      player.max_hp=1000
+      player.hp = 1000
+      player.max_mp = 1000
+      player.mp = 1000
+    end
+  end
+end
+
 function load_data()
   require "data.achievements"
   require "data.ai"

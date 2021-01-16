@@ -168,7 +168,11 @@ function Item:get_damage(target,wielder)
   if possibleItems[self.id].get_damage then
     return possibleItems[self.id].get_damage(self,target,wielder)
   end
-  return (self.damage or 0) + self:get_enchantment_bonus('damage') + (wielder.strength or 0)
+  local dmg = (self.damage or 0)
+  local bonus = .01*self:get_enchantment_bonus('damage_percent')
+  dmg = dmg * math.ceil(bonus > 0 and bonus or 1)
+  
+  return dmg + self:get_enchantment_bonus('damage') + (wielder:get_stat('strength'))
 end
 
 ---Find out how much extra damage an item will deal due to enchantments
@@ -203,7 +207,7 @@ function Item:get_extra_damage(target,wielder,dmg)
       end --end if safe creature types
       if apply == true then
         local dmg = tweak((ed.damage or 0)+math.ceil((ed.damage_percent or 0)/100*dmg))
-        dmg = target:damage(dmg,wielder,ed.damage_type)
+        dmg = target:damage(dmg,wielder,ed.damage_type,ed.armor_piercing,nil,self)
         extradmg[ed.damage_type] = extradmg[ed.damage_type] or 0 + dmg
       end
     end --end if it has an extra damage flag
@@ -299,7 +303,7 @@ function Item:attack(target,wielder,forceHit,ignore_callbacks,forceBasic)
         end
         if count > 0 then dmg = math.ceil(amt/count) end --final damage is average of all returned damage values
       end
-			dmg = target:damage(dmg,wielder,self.damage_type,self:get_armor_piercing(wielder))
+			dmg = target:damage(dmg,wielder,self.damage_type,self:get_armor_piercing(wielder),nil,self)
 			if dmg > 0 then
         txt = txt .. ucfirst(wielder:get_pronoun('n')) .. " hits " .. target:get_pronoun('o') .. " for " .. dmg .. (self.damage_type and " " .. self.damage_type or "") .. " damage"
         --Add extra damage
@@ -429,9 +433,21 @@ end
 --@param enchantment Text. The enchantment ID
 --@return Boolean. Whether or not the item qualifies for the enchantment
 function Item:qualifies_for_enchantment(eid)
+  if self.noEnchantments then return false end
   local enchantment = enchantments[eid]
-  if self.itemType ~= enchantment.itemType and not (enchantment.itemType == "projectile" and (self.itemType == "throwable" or self.itemType == "ammo")) then
+  if enchantment.itemType and (self.itemType ~= enchantment.itemType or (enchantment.subType and self.subType ~= enchantment.subType)) then
     return false
+  elseif enchantment.itemTypes then
+    local ok = false
+    for _,itype in pairs(enchantment.itemTypes) do
+      if self.itemType == itype then
+        ok = true
+        break
+      end
+    end --end item type for
+    if not ok then
+      return false
+    end
   end
   if enchantment.requires_tags then
     for _,tag in ipairs(enchantment.requires_tags) do

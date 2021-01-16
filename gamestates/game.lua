@@ -350,7 +350,7 @@ function game:print_sidebar()
       setColor(100,100,100,255)
     end
     --love.graphics.rectangle('line',printX+xPad-2,printY+yPad,rangedWidth+4,16)
-    love.graphics.print(ranged_text,printX+xPad,printY+yPad-2)
+    love.graphics.print(ranged_text,printX+xPad,printY-2)
     if player.ranged_recharge_countdown then
       setColor(255,255,255,255)
     end
@@ -1430,7 +1430,14 @@ function game:keypressed(key,scancode,isRepeat)
   elseif (key == "crafting") then
 		Gamestate.switch(crafting)
 	elseif (key == "examine") then
-		action="targeting"
+		if action=="targeting" then
+      action="moving"
+      actionResult = nil
+			output.cursorX = 0
+			output.cursorY = 0
+    else
+      action="targeting"
+    end
   elseif (key == "nextTarget") then
     if action == "targeting" and #output.potentialTargets > 0 then
       local targetID = nil
@@ -1571,7 +1578,8 @@ function game:keypressed(key,scancode,isRepeat)
       setTarget(output.cursorX,output.cursorY)
     end
    elseif (key == "q" and action=="moving") then --TODO: Take this out, it's a test
-    Gamestate.switch(factionscreen,"lightchurch")
+     test_spells()
+    --Gamestate.switch(factionscreen,"lightchurch")
   elseif (key == "s" and action=="moving") then --TODO: Take this out, it's a test
     Gamestate.switch(storescreen,"healthstore")
 	elseif key == "charScreen" then

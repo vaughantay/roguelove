@@ -54,6 +54,18 @@ poisondart = ranged_attack:new({
     accuracy_decay = 10,
   }),
 
+dagger = ranged_attack:new({
+    name = "Dagger",
+    description = "Throw a dagger.",
+    projectile=true,
+    projectile_name="dagger",
+    accuracy=85,
+    best_distance_min=3,
+    best_distance_max=6,
+    accuracy_decay = 5,
+    min_range=2
+  }),
+
 genericthrow = ranged_attack:new({
     name = "Throw",
     description = "Throw an item.",
@@ -171,12 +183,12 @@ crossbow = ranged_attack:new({
     description = "Shoot a bolt at an enemy.",
     sound="bow",
     projectile = true,
-    projectile_name="centaurarrow",
+    projectile_name="crossbowbolt",
     max_charges = 1,
     active_recharge = true,
     recharge_text = "reloads their crossbow.",
     recharge_amount = 1,
-    accuracy = 80,
+    accuracy = 0,
     best_distance_min=3,
     best_distance_max=8,
     accuracy_decay = 10,

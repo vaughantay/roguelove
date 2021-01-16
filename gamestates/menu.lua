@@ -38,9 +38,9 @@ function menu:draw()
 	setColor(255,255,255)
 	love.graphics.setFont(fonts.textFont)
   love.graphics.printf("Version " .. gamesettings.version,16,height-prefs['fontSize']*3,width-14,"center")
-  love.graphics.printf("Copyright 2019-2020 Weirdfellows LLC, http://weirdfellows.com",16,height-prefs['fontSize']*2,width-14,"center")
-  local weirdwidth = fonts.textFont:getWidth("Copyright 2019-2020 Weirdfellows LLC, http://weirdfellows.com")
-  local weirdtextwidth = fonts.textFont:getWidth("Copyright 2019-2020 Weirdfellows LLC, ")
+  love.graphics.printf("Copyright 2019-2021 Weirdfellows LLC, http://weirdfellows.com",16,height-prefs['fontSize']*2,width-14,"center")
+  local weirdwidth = fonts.textFont:getWidth("Copyright 2019-2021 Weirdfellows LLC, http://weirdfellows.com")
+  local weirdtextwidth = fonts.textFont:getWidth("Copyright 2019-2021 Weirdfellows LLC, ")
   local URLwidth = fonts.textFont:getWidth("http://weirdfellows.com")
   local startX = math.ceil((width+17)/2)-math.ceil(weirdwidth/2)+weirdtextwidth
   local mouseX,mouseY = love.mouse.getPosition()
@@ -123,8 +123,8 @@ function menu:mousepressed(x,y,button)
 	if x > startX and x < startX+512-161 then
     menu:keypressed('return')
   end
-  local weirdwidth = fonts.textFont:getWidth("Copyright 2019-2020 Weirdfellows LLC, http://weirdfellows.com")
-  local weirdtextwidth = fonts.textFont:getWidth("Copyright 2019-2020 Weirdfellows LLC, ")
+  local weirdwidth = fonts.textFont:getWidth("Copyright 2019-2021 Weirdfellows LLC, http://weirdfellows.com")
+  local weirdtextwidth = fonts.textFont:getWidth("Copyright 2019-2021 Weirdfellows LLC, ")
   local URLwidth = fonts.textFont:getWidth("http://weirdfellows.com")
   local startX = math.ceil((love.graphics.getWidth()+17)/2)-math.ceil(weirdwidth/2)+weirdtextwidth
   local mouseX,mouseY = love.mouse.getPosition()

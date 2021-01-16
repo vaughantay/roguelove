@@ -70,12 +70,32 @@ function ranged_attack:use(target, attacker, item)
   local proj = Projectile((item and item.projectile_name or self.projectile_name),attacker,target)
   --Add enchantments:
   if item then
+    if item.preserve_on_throw then
+      proj.miss_item = item
+    end
     if item.projectile_enchantments then
-      proj.enchantments = item.projectile_enchantments
+      for ench,turns in pairs(item.projectile_enchantments) do
+        proj:apply_enchantment(ench,turns)
+      end
     end
-    if item.enchantments and item.itemType == "throwable" or item.itemType == "ammo" then
-      proj.enchantments = item.enchantments
+    if item.enchantments then
+      if item.throwable then --For thrown attack, copy all enchantments from the source item
+        for ench,turns in pairs(item.enchantments) do
+          proj:apply_enchantment(ench,turns)
+        end
+      else --If not a thrown attack, apply enchantments from the source weapon only if they're specified to do so
+        for ench,turns in pairs(item.enchantments) do
+          local atp = enchantments[ench].apply_to_projectile
+          if atp then
+            local e = (type(atp) == "string" and atp or ench) --If the apply_to_projectile field is set to the ID of a different enchantment, use that enchantment instead. Otherwise just use the enchantment that's on the weapon 
+            proj:apply_enchantment(e,0) --"0" used for turns tells the projectile not to apply this enchantment to the ammo item left behind
+          end
+        end
+        item:decrease_all_enchantments('hit') --decrease the "hit" enchantment if you're using a ranged weapon shooting ammo, since most of the time that's what you'll need
+      end
+      item:decrease_all_enchantments('attack')
     end
+    proj.source_item = item
   end --end if item
   return proj
 end

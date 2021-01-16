@@ -60,8 +60,9 @@ function multiselect:draw()
   
   love.graphics.printf(self.title,x+padX,y+padY,boxW-16,"center")
 	for i, item in ipairs(self.list) do
-		local letter = string.char(i+96)
-		love.graphics.print(letter .. ") " .. item.text,x+padX,y+padY+((line-1)*14))
+    local code = i+96
+		local letter = string.char(code)
+		love.graphics.print((code <=122 and letter .. ") " or "") .. item.text,x+padX,y+padY+((line-1)*14))
 		line = line+1
 	end
   
