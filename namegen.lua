@@ -127,6 +127,16 @@ function namegen:generate_name(nameType,...)
   end
 end
 
+function namegen:generate_item_name(nameType,...)
+  if nameType then
+    if self["generate_" .. nameType .. "_name"] and type(self["generate_" .. nameType .. "_name"]) == "function" then
+      return self["generate_" .. nameType .. "_name"](self,unpack({...}))
+    else
+      return "The Unknown"
+    end
+  end
+end
+
 function namegen:generate_description(descType,...)
   if self["generate_" .. descType .. "_description"] and type(self["generate_" .. descType .. "_description"]) == "function" then
     return self["generate_" .. descType .. "_description"](self,unpack({...}))
@@ -752,8 +762,8 @@ end
 
 --Item names:
 
-function namegen:generate_weapon_name()
-    
+function namegen:generate_weapon_name(item)
+    return "The Sharpest Thing"
 end
 
 function namegen:generate_book_name()

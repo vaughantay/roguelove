@@ -1,6 +1,6 @@
 dungeonBranches = {}
 
---{branch="branch",depth=1,min_depth=1,max_depth=1,replace_upstairs=false,replace_downstairs=false,exit_depth=1,oneway=false,chance=100}
+--Stairs: {branch="branch",depth=1,min_depth=1,max_depth=1,replace_upstairs=false,replace_downstairs=false,exit_depth=1,oneway=false,chance=100}
 
 local main = {
   name = "Dungeon",
@@ -8,7 +8,7 @@ local main = {
   depthName="Depth",
   mapTypes = {'dungeon','caves','forest'},
   creatureTags={'mainbranch'},
-  possibleExits = {{branch="town",depth=1,replace_upstairs=true},{branch="demonruins",depth=1,min_depth=2,max_depth=3,name="Dark Portal"},{branch="swamp",depth=1,min_depth=2,max_depth=3}},
+  possibleExits = {{branch="town",depth=1,replace_upstairs=true},{branch="demonruins",depth=1,min_depth=2,max_depth=3,name="Dark Portal"}},
   forceMapTypes = {},
   allMapsUnique=true,
   noBacktrack=false,
@@ -34,24 +34,21 @@ local demonruins = {
   creatureTypes = {'demon'},
   creatureFactions = {'lightchurch'},
   creatureTags = {'demon','fire','demonruins'},
-  itemTags = {'magic','evil','demon','fire'},
+  itemTags = {'magic','unholy','demon','fire'},
   creatures = {},
   bosses = {},
   noBacktrack=false
 }
 dungeonBranches['demonruins'] = demonruins
 
-local swamp = {
-  name = "The Swamp",
+local wilderness = {
+  name = "The Wilds",
   max_depth=2,
   noMapNames=true,
-  mapTypes = {'swamp'},
-  creatureTypes = {'bug'},
-  creatures = {'dragonfly','giantmosquito','shroomman'},
-  creatureTags = {'swamp'}
-  --nameType="swamp"
+  mapTags = {'plants'},
+  creatureTypes={'animal'}
 }
-dungeonBranches['swamp'] = swamp
+dungeonBranches['wilderness'] = wilderness
 
 local endgame = {
   name = "The Hall of Heroes",

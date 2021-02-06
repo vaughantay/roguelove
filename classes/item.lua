@@ -431,10 +431,16 @@ end
 
 ---Determine if an item qualifies for a particular enchantment
 --@param enchantment Text. The enchantment ID
+--@param permanent Boolean. Whether the enchantment has to qualify as a permanent enchantment (optional)
 --@return Boolean. Whether or not the item qualifies for the enchantment
-function Item:qualifies_for_enchantment(eid)
+function Item:qualifies_for_enchantment(eid,permanent)
   if self.noEnchantments then return false end
   local enchantment = enchantments[eid]
+  
+  if permanent and enchantment.neverPermanent then
+    return false
+  end
+  
   if enchantment.itemType and (self.itemType ~= enchantment.itemType or (enchantment.subType and self.subType ~= enchantment.subType)) then
     return false
   elseif enchantment.itemTypes then
@@ -457,6 +463,19 @@ function Item:qualifies_for_enchantment(eid)
     end --end tag for
   end --end requires_tags if
   return true
+end
+
+---Get a list of all possible enchantments the item could have
+--@param permanent Boolean. Whether the enchantment has to qualify as a permanent enchantment (optional)
+--@return Table. A list of all enchantment IDs
+function Item:get_possible_enchantments(permanent)
+  local possibles = {}
+  for eid,ench in pairs(enchantments) do
+    if not ench.specialOnly and self:qualifies_for_enchantment(eid,permanent) then
+      possibles[#possibles+1] = eid
+    end
+  end
+  return possibles
 end
 
 ---Apply an enchantment to an item

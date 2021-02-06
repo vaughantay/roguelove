@@ -14,7 +14,7 @@ playerClasses = {
     resistances={holy=25}, --These will be added the the characters' base resistances
     stat_modifiers={strength=5,melee=5,ranged=5,dodging=2,magic=2,max_mp=10}, --These values will be added to the characters' base stats
     money=100, --Amount of money the character starts with
-    forbid_species_tags = {"undead","demon","evil"} --This class will be unavailable if the player's species has a tag or type listed in this table
+    forbid_species_tags = {"undead","demon","unholy"} --This class will be unavailable if the player's species has a tag or type listed in this table
   },
   beefcake = {
     name="Beefcake",

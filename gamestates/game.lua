@@ -1012,7 +1012,7 @@ function game:display_minimap(map)
             setColor(255,255,255,math.ceil(200*(mouseOver and 0.25 or 1)))
           elseif map[x][y] == "#" then
             if seen then setColor(125,125,125,math.ceil(200*(mouseOver and 0.25 or 1))) else setColor(50,50,50,math.ceil(200*(mouseOver and 0.25 or 1))) end
-          elseif map[x][y] == "<" then
+          elseif map:tile_has_feature(x,y,'exit') then
             setColor(255,255,0,math.ceil(200*(mouseOver and 0.25 or 1)))
           elseif currMap:get_tile_creature(x,y) and seen then
             setColor(255,0,0,math.ceil(200*(mouseOver and 0.25 or 1)))

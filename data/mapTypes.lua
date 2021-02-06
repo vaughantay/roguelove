@@ -5,6 +5,7 @@ local forest = {
   bossPlaylist = "genericforestboss",
   layouts = {'connectednodes','cavemaze','caves','drunkwalker','noise'},
   modifiers = {'forest'},
+  tags = {'natural','plants'},
   tileset = "forest",
   nameType = "forest",
   descType = "forest"
@@ -32,6 +33,7 @@ local caves = {
   bossPlaylist = "genericcaveboss",
   layouts = {'connectednodes','cavemaze','caves','drunkwalker','noise'},
   modifiers = {'cave'},
+  tags = {'natural'},
   tileset="cave",
   nameType = "cave",
   descType = "cave"
@@ -43,6 +45,7 @@ local lavacave = {
   bossPlaylist = "genericcaveboss",
   layouts = {'connectednodes','cavemaze','caves','drunkwalker','noise'},
   modifiers = {'cave'},
+  tags = {'natural','fire'},
   modifier_arguments = {cave={'lava'}},
   tileset="cave",
   nameType = "cave",
@@ -72,6 +75,10 @@ function town.create(map,width,height)
   map:change_tile(stairs,midX,midY)
   map.stairsUp.x,map.stairsUp.y = midX,midY
   map.stairsDown.x,map.stairsDown.y = midX,midY
+  
+  --Add gates to the wilderness:
+  local gates = Feature('exit',{branch="wilderness",exitName="Gate"})
+  map:change_tile(gates,midX,height-1)
   
   --Add factions:
   for _,fac in pairs(possibleFactions) do
@@ -111,7 +118,8 @@ local demonruins = {
   playlist = "genericcave",
   bossPlaylist = "genericcaveboss",
   tileset="dungeon",
-  description="This city was once home to powerful sorcerers who sought to open a gateway to the Nether Regions in order to summon demons. They were successful."
+  description="This city was once home to powerful sorcerers who sought to open a gateway to the Nether Regions in order to summon demons. They were successful.",
+  tags={'fire','demon','unholy'}
 }
 function demonruins.generateName()
   local cityname = namegen:generate_demon_name()-- .. (random(1,10) == 1 and phonemes[num] or "")
@@ -507,7 +515,11 @@ mapTypes['demonruins'] = demonruins
 
 local swamp = {
   tileset = "swamp",
-  description="Swamps are generally disgusting and dangerous places. Underground swamps, doubly so."
+  description="Swamps are generally disgusting and dangerous places. Underground swamps, doubly so.",
+  tags={'natural','plants','water'},
+  creatureTypes = {'bug'},
+  creatures = {'dragonfly','giantmosquito','shroomman'},
+  creatureTags = {'swamp','poison'}
 }
 function swamp.create(map,width,height)
   layouts['caves'](map,width,height,40)

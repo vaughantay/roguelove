@@ -7,6 +7,7 @@ function multipickup:enter()
   local boxW,boxH = 450,300
   local padX,padY = 0,0
   local descY = 0
+  local fontSize = prefs['fontSize']
   local x,y=math.floor(width/2/uiScale-boxW/2),math.floor(height/2/uiScale-boxH/2)
   self.x,self.y,self.boxW,self.boxH=x,y,boxW,boxH
   if prefs['noImages'] == true then
@@ -15,7 +16,7 @@ function multipickup:enter()
     padX,padY=20,20
   end
   self:refresh_items()
-  descY = y+padY+(count(self.items)+2)*16
+  descY = y+padY+(count(self.items)+2)*(fontSize+2)
   self.descY = descY
   self.padX,self.padY = padX,padY
   self.yModPerc = 100
@@ -50,6 +51,7 @@ function multipickup:draw()
   local padX,padY = self.padX,self.padY
   local descY = self.descY
   local x,y=self.x,self.y
+  local fontSize = prefs['fontSize']
 	
   love.graphics.line(x,descY,x+padX+boxW,descY)
   output:draw_window(x,y,x+boxW,y+boxH)
@@ -57,9 +59,9 @@ function multipickup:draw()
   love.graphics.setFont(fonts.textFont)
   
   if (self.items[self.cursorY] ~= nil) then
-    local printY = y+padY+((self.cursorY+1)*14)
+    local printY = y+padY+((self.cursorY+1)*fontSize)
     setColor(100,100,100,255)
-    love.graphics.rectangle("fill",x+padX,printY,boxW-8,16)
+    love.graphics.rectangle("fill",x+padX,printY,boxW-8,fontSize+2)
     setColor(255,255,255,255)
 	end
   
@@ -68,7 +70,7 @@ function multipickup:draw()
 	for i, item in ipairs(self.items) do
 		local letter = string.char(i+96)
     local name = item:get_name(true)
-		love.graphics.print(letter .. ") " .. name,x+padX,y+padY+((line-1)*14))
+		love.graphics.print(letter .. ") " .. name,x+padX,y+padY+((line-1)*fontSize))
 		line = line+1
 	end
   
@@ -143,15 +145,15 @@ function multipickup:update(dt)
   end
 	local x,y = love.mouse.getPosition()
   local uiScale = (prefs['uiScale'] or 1)
+  local fontSize = prefs['fontSize']
   x,y = x/uiScale, y/uiScale
 	if (x ~= output.mouseX or y ~= output.mouseY) then -- only do this if the mouse has moved
     output.mouseX,output.mouseY = x,y
 		if (x > self.x and x < self.x+self.boxW and y > self.y and y < self.descY) then --if inside item box
-      local mouseY = y-(self.y-self.padY)
-			local listY = math.floor(mouseY/14)
-      local yMod = (prefs['noImages'] and 2 or 4)
-			if (self.items[listY-yMod] ~= nil) then
-				self.cursorY=listY-yMod
+      local mouseY = y-(self.y-self.padY)-(prefs['noImages'] and 2 or 4)*prefs['fontSize']
+			local listY = math.floor(mouseY/(fontSize))
+			if (self.items[listY] ~= nil) then
+				self.cursorY=listY
       else
         self.cursorY=nil
 			end

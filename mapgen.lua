@@ -58,7 +58,7 @@ function mapgen:generate_map(branchID, depth,force)
   build.tileset = whichMap.tileset
   build.playlist = whichMap.playlist or id
   build.bossPlaylist = whichMap.bossPlaylist or id .. "boss"
-  build.lit = whichMap.lit
+  build.lit = whichMap.lit or branch.lit
   build.noCreats = whichMap.noCreats
   build.noItems = whichMap.noItems
   --Generate the map itself:
@@ -153,7 +153,7 @@ end
 
 ---Get a list of possible creatures to spawn on the given map
 --@param map Map. The map to check
---@return Table or nil. Either a table of creature IDs, or nil if there are no special creatures
+--@return Table or nil. Either a table of creature IDs, or nil if there are no possible creatures
 function mapgen:get_creature_list(map)
   local whichMap = mapTypes[map.mapType]
   local branch = branches[map.branch]
@@ -265,7 +265,58 @@ function mapgen:generate_creature(level,list,allowAll)
 	end
 end
 
----Initializes and creates a new creature at the given level. The creature itself must then actually be added to the map using Map:add_item() TODO: Doesn't actually check for item levels yet, enchantments are basically guaranteed to be applied
+---Get a list of possible items to spawn on the given map
+--@param map Map. The map to check
+--@return Table or nil. Either a table of item IDs, or nil if there are no possible items
+function mapgen:get_item_list(map)
+  local whichMap = mapTypes[map.mapType]
+  local branch = branches[map.branch]
+  local specialItems = nil
+  local iTags = nil
+  
+  --Look at specific items first:
+  if whichMap.items then
+    if whichMap.noBranchItems or not branch.items then
+      specialItems = whichMap.items
+    else
+      specialItems =  merge_tables(whichMap.items,branch.items)
+    end
+  else --if the mapTypes doesn't have creatures, fall back to the branch's items
+    specialItems = branch.items --if branch doesn't have creatures, this will set it to nil and just use regular items
+  end
+  
+  --Look at item tags next:
+  if whichMap.itemTags then
+    if whichMap.noBranchItems or not branch.itemTags then
+      iTags = whichMap.itemTags
+    else
+      iTags =  merge_tables(whichMap.itemTags,branch.itemTags)
+    end
+  else --if the mapTypes doesn't have itemTags, fall back to the branch's itemTags
+    iTags = branch.itemTags --if branch doesn't have itemTags, this will keep it as nil
+  end
+  
+  --Add the types and factions to the specialItems list
+  for iid,item in pairs(possibleItems) do
+    local done = false
+    if iTags and not done then
+      for _,iTag in pairs(iTags) do
+        if Item.has_tag(item,iTag) then
+          done = true
+          break
+        end
+        if done == true then break end
+      end --end cFac for
+    end --end tags if
+    if done then
+      if not specialItems then specialItems = {} end
+      specialItems[#specialItems+1] = iid
+    end
+  end
+  return specialItems
+end
+
+---Initializes and creates a new item at the given level. The item itself must then actually be added to the map using Map:add_item() TODO: Doesn't actually check for item levels yet, enchantments are basically guaranteed to be applied
 --@param level Number. The level of the item
 --@return Item. The new item
 function mapgen:generate_item(level)
@@ -280,13 +331,62 @@ function mapgen:generate_item(level)
   -- Create the actual item:
 	local item = Item(newItem)
   --Add enchantments: TODO: Make this not ridiculous
-  if random(1,1) == 1 then
+  if random(1,100) <= gamesettings.artifact_chance then
+    self:make_artifact(item,{'unholy'})
+  else
     local eid = get_random_key(enchantments)
     if item:qualifies_for_enchantment(eid) then
       item:apply_enchantment(eid,random(5,10))
     end
   end
   return item
+end
+
+---Turns an item into a random artifact
+--@param item Item. The item to turn into an artifact
+--@param tags Table. A list of tags, used to prioritize enchantments which match said tags (optional)
+function mapgen:make_artifact(item,tags)
+  local possibles = item:get_possible_enchantments(true)
+  local additions = random(1,3)
+  if count(possibles) == 0 then
+    return false
+  end
+  --First stop: Add an enchantment from the tag list
+  if tags then
+    local taggedPossibles = {}
+    for _,eid in ipairs(possibles) do
+      local ench = enchantments[eid]
+      if ench.tags then
+        for _,tag in ipairs(tags) do
+          if in_table(tag,ench.tags) then
+            taggedPossibles[#taggedPossibles+1] = eid
+            break
+          end --end in_table if
+        end --end tag for
+      end --end if enchantment has tags if
+    end --end enchantment for
+    if #taggedPossibles > 0 then
+      local eid = get_random_element(taggedPossibles)
+      if eid then
+        item:apply_enchantment(eid,-1)
+      else
+        additions = additions+1 --if for some reason we get to this point and there's no enchantment, add an extra "generic" enchantment
+      end
+    else
+      additions = additions+1 --if there are no enchantments matching the tags, add an extra "generic" enchantment
+    end
+  end --end tags if
+  --Now add random other enchantments:
+  for i = 1,additions,1 do
+    local eid = get_random_element(possibles)
+    if eid then
+      item:apply_enchantment(eid,-1)
+    end
+  end
+  if not item.properName then
+    local nameType = (item.nameType or item.itemType)
+    item.properName = namegen:generate_item_name(nameType)
+  end
 end
 
 ---Creates an instance of a branch, to be attached to a given playthrough. Called at the beginning of the game, shouldn't need to be called in game unless you wanted to re-create a branch for some reason.
@@ -305,9 +405,28 @@ function mapgen:generate_branch(branchID)
   elseif data.nameType then
     newBranch.name = namegen:generate_name(data.nameType)
   end
+  if data.mapTypes then
+    newBranch.mapTypes = copy_table(data.mapTypes)
+  end
   if data.new then
     data.new(newBranch)
   end
+  
+  --Add map types based on tags:
+  if newBranch.mapTags then
+    for id,mtype in pairs(mapTypes) do
+      if mtype.tags and (not newBranch.mapTypes or not in_table(id,newBranch.mapTypes)) then
+        for _,tag in ipairs(newBranch.mapTags) do
+          if in_table(tag,mtype.tags) then
+            if not newBranch.mapTypes then newBranch.mapTypes = {} end
+            newBranch.mapTypes[#newBranch.mapTypes+1] = id
+            break
+          end --end map has tag if
+        end --end tag for
+      end --end maptype has tags if
+    end --end mapType for
+  end --end if branch.mapTags
+  
   --Add exits:
   newBranch.exits = {}
   if newBranch.possibleExits then
@@ -688,12 +807,12 @@ function mapgen:get_stair_location(map)
       if not maxDist or dist > maxDist then maxDist = dist end
       if not minDist or dist < minDist then minDist = dist end
       local p = map:findPath(exit.x,exit.y,x,y) --check to make sure the new exit can reach all the other exits
-      if p ~= false then
+      if p == false then --If you can't reach the exit from all other exits, stop checking and just create new coordinates
         reachable = false
         break
       end
     end --end exit for
-    if not minDist or not maxDist or (minDist*1.5 >= maxDist) then
+    if reachable and (not minDist or not maxDist or (minDist*1.5 >= maxDist)) then
       done = true
       break
     end

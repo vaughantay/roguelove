@@ -31,6 +31,7 @@ local poisoned = {
   crit_conditions={{condition="poisoned",turns=5,chance=100}},
   itemType="weapon",
   requires_tags={"sharp"},
+  neverPermanent=true, --This enchantment will never be picked to be a permanent part of an artifact
   apply_to_projectile="poisoned_projectile" --If this enchantment is applied to a ranged weapon, either set this to TRUE to copy this enchantment to the projectile, or set it to the ID of another enchantment to apply that enchantment instead
 }
 enchantments['poisoned'] = poisoned
@@ -122,3 +123,13 @@ local armorDamaging = {
   itemType="armor"
 }
 enchantments['armor_damaging'] = armorDamaging
+
+local artifact = {
+  name = "Artifact",
+  hidden=true, --Enchantment will not show up in the item's description
+  value_increase=1,
+  itemTypes={"weapon","ammo","throwable","armor"},
+  specialOnly=true, --Enchantment will only be applied manually
+  tags={"valuable"},
+}
+enchantments['artifact'] = artifact

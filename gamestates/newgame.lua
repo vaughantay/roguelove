@@ -897,9 +897,9 @@ function newgame:randomize_player_name()
 end
 
 function newgame:getScreen()
-  if (not self.player.species and not gamesettings.no_player_species) then
+  if (not self.player.species and gamesettings.player_species) then
     return "species"
-  elseif (not self.player.class and not gamesettings.no_player_classes) then
+  elseif (not self.player.class and gamesettings.player_classes) then
     return "classes"
   else
     return "name"

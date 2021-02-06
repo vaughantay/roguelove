@@ -89,11 +89,19 @@ local scroll = {
   tags={'paper','magic'},
   value=10
 }
-function scroll:new(spell)
-	self.spell = (type(spell) == "string" and spell or get_random_key(possibleSpells))
-  while possibleSpells[self.spell].target_type == "passive" do
-    self.spell = get_random_key(possibleSpells)
-  end
+function scroll:new(spell,tags)
+  if spell and type(spell) == "string" and possibleSpells[spell] and possibleSpells[spell].target_type ~= "passive" then --spell provided
+    self.spell = spell
+  else --invalid or no spell provided
+    local possibles = {}
+    for id,spell in pairs(possibleSpells) do
+      if possibleSpells.target_type ~= "passive" then
+        possibles[#possibles+1] = id
+      end
+    end --end spell for
+    self.spell = get_random_element(possibles)
+  end --end spell provided or not if
+  
 	self.name = "scroll of " .. possibleSpells[self.spell].name
   self.pluralName = "scrolls of " .. possibleSpells[self.spell].name
 end

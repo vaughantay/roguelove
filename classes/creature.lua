@@ -2317,5 +2317,6 @@ function Creature:craft_recipe(recipeID)
   end
   local text = recipe.result_text or "You make stuff."
   output:out(text)
+  update_stat('recipes_crafted',recipeID)
   return true,text
 end

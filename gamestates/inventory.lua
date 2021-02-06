@@ -197,7 +197,7 @@ function inventory:draw()
 
   love.graphics.push()
   local function stencilFunc()
-    local startY = self.inventory[1].y
+    local startY = self.inventory[1] and self.inventory[1].y or 1
     love.graphics.rectangle("fill",0,startY,width,height-startY)
   end
   love.graphics.stencil(stencilFunc,"replace",1)

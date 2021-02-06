@@ -15,6 +15,7 @@ function Feature:init(feature_type,info,x,y)
     end
 	end
   if x and y then self.x, self.y = x,y end
+  if self.actions then self.actions = copy_table(self.actions) end
 	if (possibleFeatures[feature_type].new ~= nil) then 
 		possibleFeatures[feature_type].new(self,(info or nil),x,y)
 	end
