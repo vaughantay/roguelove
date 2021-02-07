@@ -629,3 +629,22 @@ function Item:has_tag(tag)
   end
   return false
 end
+
+---Add a tag to an item
+--@param tag String. The tag to add
+function Item:add_tag(tag)
+  if not self.tags then
+    self.tags = {tag}
+  elseif not in_table(tag,self.tags) then
+    self.tags[#self.tags+1] = tag
+  end
+  return
+end
+
+---Add multiple tags to an item
+--@param tags Table. The tags to add
+function Item:add_tags(tags)
+  for _,tag in pairs(tags) do
+    self:add_tag(tag)
+  end
+end

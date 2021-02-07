@@ -5,7 +5,7 @@ playerClasses = {
     favor={lightchurch=500}, --List of favor scores the character starts with
     factions={"lightchurch"}, --List of factions the character begins as a member of
     spells={"demondamager"}, --These are spells the character will start with
-    items={{item="holywater",amount=2}}, --These items will be granted on game start
+    items={{item="holywater",amount=2},{item="scroll",passed_info={'holy'},displayName = "3 Random Holy Scrolls",amount=3}}, --These items will be granted on game start
     equipment={{item="dagger",enchantment="blessed",enchantment_turns=5,displayName="Blessed Dagger"}}, --These items will be equipped on game start
     learns_spells={{spell="smite",level=2}}, --These spells will be automatically granted once a certain level is reached
     spell_purchases={{spell="summonangel",level=1,cost=5}, {spell="smite",level=1,cost=5}, {spell="demondamager2",level=1,cost=1,requires="demondamager",replaces="demondamager"}}, --These spells will show up as options to learn (requiring spending points on them)
@@ -71,7 +71,7 @@ playerClasses = {
     description="A death-obsessed wizard.",
     resistances={unholy=10}, --These will be added the the characters' base resistances
     favor={lightchurch=-100}, --List of favor scores the character starts with
-    items={}, --These items will be granted on game start
+    items={{item="spellbook",passed_info={'necromancy'},displayName = "Necromancy Spellbook"}}, --These items will be granted on game start
     spells={}, --These are spells the character will start with
     learns_spells={}, --These spells will be automatically granted once a certain level is reached
     spell_purchases={}, --These spells will show up as options to learn (requiring spending points on them)

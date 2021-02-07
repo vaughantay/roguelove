@@ -318,21 +318,23 @@ end
 
 ---Initializes and creates a new item at the given level. The item itself must then actually be added to the map using Map:add_item() TODO: Doesn't actually check for item levels yet, enchantments are basically guaranteed to be applied
 --@param level Number. The level of the item
+--@param list Table. A list of possible items to pull from
+--@param tags Table. A list of tags, potentially to pass to the item, or to use as preference for enchantments
 --@return Item. The new item
-function mapgen:generate_item(level)
+function mapgen:generate_item(level,list,tags)
 	local newItem = nil
 	-- This selects a random item from the table of possible loot
 	while (newItem == nil) do
-		local n = get_random_key(possibleItems)
+		local n = (list and get_random_element(list) or get_random_key(possibleItems))
 		if not n.neverSpawn and random(1,100) >= (n.rarity or 0) then
 			newItem = n
     end
   end
   -- Create the actual item:
-	local item = Item(newItem)
+	local item = Item(newItem,(possibleItems[newItem].acceptTags and tags or nil))
   --Add enchantments: TODO: Make this not ridiculous
   if random(1,100) <= gamesettings.artifact_chance then
-    self:make_artifact(item,{'unholy'})
+    self:make_artifact(item,tags)
   else
     local eid = get_random_key(enchantments)
     if item:qualifies_for_enchantment(eid) then

@@ -81,6 +81,7 @@ local scroll = {
 	color={r=255,g=255,b=255,a=255},
 	itemType="usable",
 	stacks = true,
+  acceptTags=true, --If true, this item will have the map's passedTags passed to its new() function
 	spell = nil,
   sortBy = "spell",
   usable=true,
@@ -89,21 +90,43 @@ local scroll = {
   tags={'paper','magic'},
   value=10
 }
-function scroll:new(spell,tags)
-  if spell and type(spell) == "string" and possibleSpells[spell] and possibleSpells[spell].target_type ~= "passive" then --spell provided
+function scroll:new(spell)
+  if type(spell) == "string" and possibleSpells[spell] and possibleSpells[spell].target_type ~= "passive" then --spell provided
     self.spell = spell
   else --invalid or no spell provided
+    local tags = nil
     local possibles = {}
+    local allPossibles = {}
+    if type(spell) == "table" and count(spell) > 0 then
+      tags = spell
+    end
     for id,spell in pairs(possibleSpells) do
-      if possibleSpells.target_type ~= "passive" then
-        possibles[#possibles+1] = id
-      end
+      if spell.target_type ~= "passive" then
+        allPossibles[#allPossibles+1] = id --keep track of all possible spells, in case when we look at the tags it comes back with nothing
+        local acceptable = false
+        if tags then
+          if spell.tags then
+            for _,tag in pairs(tags) do
+              if in_table(tag,spell.tags) then
+                acceptable = true
+                break --break the tag for
+              end --end if in_table
+            end --end tag for
+          end --end if spell has tags
+        else --If no tags are provided, then any spell is acceptable
+          acceptable = true
+        end --end if tags or not if
+        if acceptable == true then possibles[#possibles+1] = id end
+      end --end if not passive
     end --end spell for
-    self.spell = get_random_element(possibles)
+    if #possibles == 0 then possibles = allPossibles end
+    spell = get_random_element(possibles)
+    self.spell = spell
   end --end spell provided or not if
   
-	self.name = "scroll of " .. possibleSpells[self.spell].name
-  self.pluralName = "scrolls of " .. possibleSpells[self.spell].name
+	self.name = "scroll of " .. possibleSpells[spell].name
+  self.pluralName = "scrolls of " .. possibleSpells[spell].name
+  if possibleSpells[spell].tags then self:add_tags(possibleSpells[spell].tags) end
 end
 function scroll:use(target,user)
   if possibleSpells[self.spell].target_type == "self" then
@@ -129,19 +152,53 @@ local spellBook = {
   usable=true,
   useVerb="study",
   tags={'paper','magic'},
+  acceptTags=true,
   value=100
 }
-function spellBook:new()
+function spellBook:new(tags,spells,spellCount)
 	require "data.spells"
+  spellCount = spellCount or 5
 	self.color = {r=math.random(33,255),g=math.random(33,255),b=math.random(33,255),a=255}
 	self.properName = namegen:generate_book_name()
-	local s = {}
-	for i=1,5,1 do
-		s[i] = get_random_key(possibleSpells)
-	end
-	self.spells = s
+  if spells then
+    self.spells = spells
+  else
+    local s = {}
+    local possibles = {}
+    local allPossibles = {}
+    for id,spell in pairs(possibleSpells) do
+      if not spell.unlearnable then
+        allPossibles[#allPossibles+1] = id --keep track of all possible spells, in case when we look at the tags it comes back with nothing
+        local acceptable = false
+        if tags then
+          if spell.tags then
+            for _,tag in pairs(tags) do
+              if in_table(tag,spell.tags) then
+                acceptable = true
+                break --break the tag for
+              end --end if in_table
+            end --end tag for
+          end --end if spell has tags
+        else --If no tags are provided, then any spell is acceptable
+          acceptable = true
+        end --end if tags or not if
+        if acceptable == true then possibles[#possibles+1] = id end
+      end --end if not passive
+    end --end spell for
+    if #possibles == 0 then possibles = allPossibles end
+    local possCount = #possibles
+    for i=1,math.min(spellCount,possCount),1 do
+      local k = get_random_key(possibles)
+      s[i] = possibles[k]
+      if possibleSpells[possibles[k]].tags then
+        self:add_tags(possibleSpells[possibles[k]].tags)
+      end
+      table.remove(possibles,k)
+    end
+    self.spells = s
+  end --end preset spells or not if
   local text = "This book contains the following spells: "
-  for id, spellid in ipairs(s) do
+  for id, spellid in ipairs(self.spells) do
 		text = text .. "\n" .. id .. ") " .. possibleSpells[spellid].name
 	end
   self.info = text

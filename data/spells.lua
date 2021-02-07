@@ -6,6 +6,7 @@ blast = Spell({
 	cooldown = 5,
 	target_type = "creature",
 	flags = {aggressive=true},
+  tags={'psychic','attack'},
 	cast = function(self,target,caster)
 		local dmg = target:damage(random(8,15),caster,"magic")
 		if player:can_sense_creature(target) then
@@ -22,6 +23,7 @@ blink = Spell({
   AIcooldown=30,
   sound="teleport",
   flags={fleeing=true,defensive=true},
+  tags={'teleport'},
 	cast = function(self,target,caster)
     local origX,origY = caster.x,caster.y
     local x,y = caster.x,caster.y
@@ -90,7 +92,8 @@ summonangel = Spell({
 	name = "Summon Angel",
 	description = "Summon a holy angel of vengeance.",
 	target_type = "self",
-  cost=10
+  cost=10,
+  tags={'holy','summon'},
 }),
 
 smite = Spell({
@@ -100,6 +103,7 @@ smite = Spell({
     projectile=false,
     cost=1,
     cooldown = 5,
+    tags={'holy','attack'},
     cast = function(self,target,attacker)
       if (attacker.mp and attacker.mp == 0) then
         if attacker == player then output:out("You don't have enough piety to smite your enemies.") end
@@ -122,6 +126,7 @@ homecoming = Spell({
     name = "Homecoming",
     description = "Teleport immediately to the town.",
     target_type = "self",
+    tags={'teleport'},
     cast = function(self,caster)
       if caster == player then
         goToMap(1,"town",true)
@@ -138,6 +143,7 @@ smallfireball = Spell({
   cost=5,
 	target_type = "square",
   projectile = true,
+  tags={'fire','attack'},
 	flags = {aggressive=true},
 	cast = function(self,target,caster)
     if player:can_see_tile(caster.x,caster.y) then output:out(caster:get_name() .. " shoots a fireball.") end
@@ -154,6 +160,7 @@ explodingfireball = Spell({
   projectile = true,
   sound = "fireball_large",
 	flags = {aggressive=true},
+  tags={'fire','attack'},
 	cast = function(self,target,caster)
     if player:can_see_tile(caster.x,caster.y) then output:out(caster:get_name() .. " launches a huge fireball!") end
     Projectile('explodingfireball',caster,target)
@@ -175,6 +182,7 @@ firebrand = Spell({
   cost=10,
 	target_type = "self",
 	flags = {aggressive=true},
+  tags={'fire','buff'},
 	cast = function (self,target,caster)
     local weapons = caster:get_equipped_in_slot('weapon')
     if #weapons > 0 then
@@ -202,6 +210,7 @@ reanimate = Spell({
 	description = "Brings a dead body back to life as a hideous zombie!",
 	target_type = "square",
   cost=5,
+  tags={'unholy','summon','necromancy'},
 	cast = function (self,target, caster)
     if not caster:can_see_tile(target.x,target.y) then
       output:out("You can't see there, so you can't reanimate any corpses that may or may not be there.")
@@ -254,6 +263,7 @@ sacrificecorpse = Spell({
 	name = "Sacrifice Corpse",
 	description = "Sacrifice a recently-dead creature to the darkness, gaining evil power!",
 	target_type = "square",
+  tags={'unholy','necromancy'},
 	cast = function (self,target, caster)
     local corpse = currMap:tile_has_feature(target.x,target.y,'corpse')
     if corpse and corpse.creature:is_type('undead') then
@@ -302,6 +312,7 @@ corpseburst = Spell({
 	name = "Corpse Burst",
 	description = "Accelerates the rate of decay in a dead body so much that the gases build up inside of it and explode. A completely grotesque spell, banned by most civilized nations.",
 	target_type = "square",
+  tags={'unholy','necromancy','attack'},
 	cast = function (self,target,caster)
 		local corpse = currMap:tile_has_feature(target.x,target.y,"corpse")
     if corpse == false then
@@ -321,6 +332,7 @@ witheringcurse = Spell({
 	target_type = "creature",
   cooldown=30,
   range=1,
+  tags={'unholy','curse'},
 	cast = function (self,target,caster)
 		target:give_condition('witheringcurse',-1)
 	end
@@ -348,6 +360,7 @@ undeadlegion = Spell({
 	cooldown = 25,
 	flags = {aggressive=true,defensive=true},
 	target_type = "self",
+  tags={'unholy','necromancy','summon'},
 	cast = function (self,target,caster)
 		if player:can_see_tile(caster.x,caster.y) then output:out(caster:get_name() .. " calls forth an army of the dead!") end
 		local deadheads = random(4,6)
@@ -406,6 +419,7 @@ lifedrain = Spell({
   cooldown=10,
   AIcooldown=20,
   flags={aggressive=true},
+  tags={'unholy','attack'},
   cast = function(self,target,caster)
     if target:is_type('undead') or target:is_type('construct') then
       if caster == player then output:out("You can't drain the life out of something that's not alive.") end
@@ -429,6 +443,7 @@ graspingdead = Spell({
   AIcooldown=30,
   sound="graspingdead",
   flags={aggressive=true},
+  tags={'unholy','necromancy'},
   cast = function (self,target,caster)
 		if player:can_see_tile(caster.x,caster.y) then output:out(caster:get_name() .. " calls forth grasping dead from the earth!") end
 		for x=target.x-1,target.x+1,1 do
@@ -466,6 +481,7 @@ bloodrain = Spell({
   target_type = "square",
   cooldown=10,
   sound="rain",
+  tags={'unholy','blood'},
   cast = function(self,target,caster)
     for x = target.x-3,target.x+3,1 do
       for y = target.y-3,target.y+3,1 do
@@ -496,6 +512,7 @@ enfeeble = Spell({
   target_type = "creature",
   cooldown=25,
   sound="enfeeble",
+  tags={'unholy','curse'},
   cast = function(self,target,caster)
     if target:is_type('undead') then
       if caster == player then output:out("You can't destroy the life force of an undead creature.") end
@@ -576,6 +593,7 @@ painbolt = Spell({
     projectile=false,
     target_type="creature",
     cost=1,
+    tags={'unholy','attack'},
     cast = function(self,target,attacker)
       if target:is_type('undead') then
         local dmg = tweak(10)
@@ -603,6 +621,7 @@ rigormortis = Spell({
     AIcooldown=30,
     description = "Causes the target's joints to lock up, preventing them from moving for a short while.",
     flags={aggressive=true,defensive=true,fleeing=true},
+    tags={'unholy','curse'},
     cast = function(self,target,caster)
       if player:can_see_tile(caster.x,caster.y) then output:out(caster:get_name() .. " gestures at " .. target:get_name() .. ". " .. ucfirst(target:get_pronoun('p')) .. " joints lock up!") end
       currMap:add_effect(Effect('animation','unholydamage',5,target,{r=150,g=0,b=150}),target.x,target.y)
@@ -618,6 +637,7 @@ deadlypremonition = Spell({
     AIcooldown=30,
     description = "Causes a target to experience visions of their own death, terrifying them.",
     sound="deadlypremonition",
+    tags={'curse','psychic'},
     flags={aggressive=true,defensive=true,fleeing=true},
     cast = function(self,target,caster)
       if target == player then return false end
@@ -637,6 +657,7 @@ vampirism = Spell({
 	name = "Vampirism",
 	description = "You regain some health when you damage an enemy.",
 	target_type = "passive",
+  unlearnable = true, --If true, this spell will not show up in spell books or factions to be learned unless explicitly put there
 	damages = function(self,possessor,target,damage)
     if (random(1,2) == 1 and not target:is_type('bloodless')) or target:has_condition('bleeding') then
       local hp = tweak(math.ceil(damage*(random(2,6)/10)))

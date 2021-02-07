@@ -22,7 +22,7 @@ local town = {
   max_depth=1,
   hideDepth=true,
   forceMapTypes={[1]="town"},
-  creatures={"townsperson"},
+  creatures={"townsperson"}
 }
 dungeonBranches['town'] = town
 
@@ -35,6 +35,7 @@ local demonruins = {
   creatureFactions = {'lightchurch'},
   creatureTags = {'demon','fire','demonruins'},
   itemTags = {'magic','unholy','demon','fire'},
+  passedTags = {'holy','unholy','demon','fire'}, --These tags will be given priority for enchantments, and passed to items/creatures to do with what they will (ex: scrolls, to put preference on spells with these tags)
   creatures = {},
   bosses = {},
   noBacktrack=false

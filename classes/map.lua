@@ -391,7 +391,7 @@ end
 function Map:add_item(item,x,y,ignoreFunc)
 	item.x, item.y = x,y
 	self.contents[x][y][item] = item
-  if not ignoreFunc and possibleItems[item.id].new then possibleItems[item.id].new(item,self) end
+  if not ignoreFunc and possibleItems[item.id].placed then possibleItems[item.id].placed(item,self) end
   if item.castsLight then self.lights[item] = item end
   
   --Check for stacking:
@@ -754,12 +754,25 @@ function Map:populate_items(itemTotal,forceGeneric)
   
   --Do special code if the mapType has it:
   if mapType.populate_items and not forceGeneric then
-    return mapType:populate_items(itemTotal)
+    return mapType.populate_items(self,itemTotal)
+  end
+  
+  local passedTags = nil
+  if mapType.passedTags then
+    if mapType.noBranchItems or not branch.passedTags then
+      passedTags = mapType.passedTags
+    else
+      passedTags =  merge_tables(mapType.passedTags,branch.passedTags)
+    end
+  else --if the mapType doesn't have passedTags, fall back to the branch's items
+    passedTags = branch.passedTags --if branch doesn't have creatures, this will set it to nil and just use regular items
   end
   
   if not self.noItems and itemTotal > 0 then
+    local newItems = {}
+    local specialItems = mapgen:get_item_list(self,passedTags)
     for item_amt = 1,itemTotal,1 do
-      local ni = mapgen:generate_item(self.depth)
+      local ni = mapgen:generate_item(self.depth,specialItems,passedTags)
       if ni == false then break end
       local ix,iy = random(2,self.width-1),random(2,self.height-1)
       local tries = 0
@@ -769,10 +782,10 @@ function Map:populate_items(itemTotal,forceGeneric)
         if tries > 100 then break end
       end
       if tries ~= 100 then 
-        self:add_item(ni,ix,iy)
+        newItems[#newItems+1] = self:add_item(ni,ix,iy)
       end --end tries if
     end
-    return true
+    return newItems
 	end --end if not noItems
   return false
 end
