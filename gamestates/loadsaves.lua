@@ -7,11 +7,27 @@ function loadsaves:enter()
   self.cursorX = 1
   self.cursorY = 0
   self.deletewarning = false
-  self.screenMax = round(height/(prefs['fontSize']+2)/2)
+  self.maxScroll=0
   self.currSave = nil
   self.yModPerc = 100
   tween(0.2,self,{yModPerc=0})
   output:sound('stoneslideshort',2)
+  self:create_coordinates()
+end
+
+function loadsaves:create_coordinates()
+  --Create y-coordinates for all saves:
+  local width, height = love.graphics:getWidth(),love.graphics:getHeight()
+  local padding = (prefs['noImages'] and 16 or 32)
+  local sidebarX = round(width/3)*2+padding
+  self.saveCoordinates = {}
+  for i,save in ipairs(self.saves) do
+    local dateWidth = fonts.textFont:getWidth(os.date("%H:%M, %b %d, %Y",save.date))
+    local _,textLines = fonts.textFont:getWrap(save.fileName,sidebarX-32-dateWidth-padding*2)
+    local saveHeight = #textLines*prefs['fontSize']+(4*#textLines)
+    local saveY = (i == 1 and padding*2 or self.saveCoordinates[i-1].maxY+math.ceil(prefs['fontSize']*.5))
+    self.saveCoordinates[i] = {y=saveY,height=saveHeight,maxY=saveY+saveHeight}
+  end
 end
 
 function loadsaves:draw()
@@ -20,7 +36,6 @@ function loadsaves:draw()
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
   love.graphics.push()
   love.graphics.translate(0,height*(self.yModPerc/100))
-  self.screenMax = round(height/(prefs['fontSize']+2)/2)
   local padding = (prefs['noImages'] and 16 or 32)
 	love.graphics.setFont(fonts.textFont)
   local sidebarX = round(width/3)*2+padding
@@ -28,33 +43,45 @@ function loadsaves:draw()
   output:draw_window(sidebarX,1,width-padding,height-padding)
   love.graphics.printf("Load a Saved Game:",padding,round(padding*.75),sidebarX-padding,"center")
   
-  local line = 1
   local printX = (prefs['noImages'] and 14 or 32)
-  local needsScroll = (count(self.saves) > self.screenMax)
+  local maxY = 0
+  
+  --Draw the actual saves:
+  love.graphics.push()
   local mouseX,mouseY = love.mouse.getPosition()
-  for _,save in ipairs(self.saves) do
-    local printY = math.ceil((line*2-self.scroll*2+4)*prefs['fontSize'])
-    if printY > padding*2 and printY < height-padding then
+  mouseY=mouseY+self.scroll
+  local function stencilFunc()
+    local startY = padding*2
+    love.graphics.rectangle("fill",0,startY,width,height-startY-padding)
+  end
+  love.graphics.stencil(stencilFunc,"replace",1)
+  love.graphics.setStencilTest("greater",0)
+  love.graphics.translate(0,-self.scroll)
+  for i,save in ipairs(self.saves) do
+    local printY = self.saveCoordinates[i].y
+    local saveHeight = self.saveCoordinates[i].height
+    local saveMaxY = self.saveCoordinates[i].maxY
       local dateWidth = fonts.textFont:getWidth(os.date("%H:%M, %b %d, %Y",save.date))
       local _,textLines = fonts.textFont:getWrap(save.fileName,sidebarX-32-dateWidth-(needsScroll and padding or 0))
-      if line == self.cursorY then
+      if i == self.cursorY then
         setColor(100,100,100,255)
-        love.graphics.rectangle("fill",printX,printY,sidebarX-padding-(needsScroll and padding*2 or padding),4+prefs['fontSize']*#textLines)
+        love.graphics.rectangle("fill",printX,printY,sidebarX-padding-padding*2,saveHeight)
         setColor(255,255,255,255)
-      elseif mouseX > padding and mouseX < sidebarX-(needsScroll and padding*2 or padding) and mouseY > printY and mouseY < printY+prefs['fontSize']*#textLines and self.deletewarning == false then
+      elseif mouseX > padding and mouseX < sidebarX-padding*2 and mouseY > printY and mouseY < saveMaxY and self.deletewarning == false then
         setColor(100,100,100,125)
-        love.graphics.rectangle("fill",printX,printY,sidebarX-padding-(needsScroll and padding*2 or padding),4+prefs['fontSize']*#textLines)
+        love.graphics.rectangle("fill",printX,printY,sidebarX-padding-padding*2,saveHeight)
         setColor(255,255,255,255)
       end
-      love.graphics.printf(save.fileName,printX,printY,sidebarX-32-dateWidth-(needsScroll and padding or 0))
-      love.graphics.printf(os.date("%H:%M, %b %d, %Y",save.date),sidebarX-32-dateWidth-(needsScroll and padding or 0),printY,dateWidth,"right")
-    end
-    line = line+1
+      love.graphics.printf(save.fileName,printX,printY,sidebarX-32-dateWidth-padding*2)
+      love.graphics.printf(os.date("%H:%M, %b %d, %Y",save.date),sidebarX-32-dateWidth-padding,printY,dateWidth,"right")
+    maxY = self.saveCoordinates[i].y+self.saveCoordinates[i].height
   end
+  love.graphics.setStencilTest()
+  love.graphics.pop()
   
-  if needsScroll then
-    local maxScroll = #self.saves-self.screenMax
-    local scrollAmt = self.scroll/maxScroll
+  if maxY > height-padding then
+    self.maxScroll = maxY-(height-padding)
+    local scrollAmt = self.scroll/self.maxScroll
     self.scrollPositions = output:scrollbar(round(sidebarX-padding*1.75),padding*2,height-padding,scrollAmt)
   end
   
@@ -63,7 +90,6 @@ function loadsaves:draw()
     local endX = width-padding
     local printY = padding
     local padY = prefs['fontSize']+2
-    
     
     if self.cursorY and self.saves[self.cursorY] then
       if not self.currSave or self.currSave.fileName ~= self.saves[self.cursorY].fileName then
@@ -141,23 +167,26 @@ function loadsaves:draw()
 end
 
 function loadsaves:update(dt)
+  local padding = (prefs['noImages'] and 16 or 32)
+  local height = love.graphics.getHeight()
   if self.switchNow == true then
     self.switchNow = nil
     Gamestate.switch(menu)
     Gamestate.update(dt)
     return
   end
-  if self.cursorY < 0 then self.cursorY = 0
-  elseif self.cursorY <= self.scroll then
+  if self.cursorY < 0 then
+    self.cursorY = 0
+  elseif self.saveCoordinates[self.cursorY] and self.saveCoordinates[self.cursorY].y-self.scroll <= padding*3 then
     self:scrollUp()
-  elseif self.cursorY > self.screenMax+self.scroll then
+  elseif self.saveCoordinates[self.cursorY] and self.saveCoordinates[self.cursorY].maxY-self.scroll > height-padding then
     self:scrollDown()
   end
   if self.cursorY > #self.saves then
     self.cursorY = #self.saves
   end
-  if self.screenMax+self.scroll > #self.saves and self.needsScroll then
-    self.scroll = #self.saves-self.screenMax
+  if self.maxScroll+self.scroll > #self.saves and self.needsScroll then
+    self.scroll = #self.saves-self.maxScroll
   end
   --Scrolling:
   if self.scrollPositions and (love.mouse.isDown(1)) then
@@ -246,9 +275,11 @@ function loadsaves:wheelmoved(x,y)
 end
 
 function loadsaves:scrollUp()
+  local padding = (prefs['noImages'] and 16 or 32)
+  local height = love.graphics.getHeight()
   if self.scroll > 0 and self.deletewarning == false then
-    self.scroll = self.scroll - 1
-    if self.cursorY > self.screenMax+self.scroll then
+    self.scroll = self.scroll - prefs['fontSize']
+    if self.saveCoordinates[self.cursorY] and self.saveCoordinates[self.cursorY].maxY-self.scroll > height-padding then
       self.cursorY=self.cursorY-1
       self.cursorX = 1
     end
@@ -256,9 +287,10 @@ function loadsaves:scrollUp()
 end
 
 function loadsaves:scrollDown()
-  if self.screenMax+self.scroll < count(self.saves) and self.deletewarning == false then
-    self.scroll = self.scroll + 1
-    if self.cursorY <= self.scroll then
+  local padding = (prefs['noImages'] and 16 or 32)
+  if self.scroll < self.maxScroll and self.deletewarning == false then
+    self.scroll = self.scroll + prefs['fontSize']
+    if self.saveCoordinates[self.cursorY] and self.saveCoordinates[self.cursorY].y-self.scroll <= padding*3 then
       self.cursorY = self.cursorY+1
       self.cursorX = 1
     end
@@ -279,17 +311,23 @@ function loadsaves:mousepressed(x,y,button)
       self.deletewarning = true
       self.cursorX = 2
     else
-      local line = math.floor(((y/prefs['fontSize'])-4)/2+self.scroll)
       local padding = (prefs['noImages'] and 16 or 32)
       local sidebarX = round(love.graphics.getWidth()/3)*2+padding
-      local needsScroll = (count(self.saves) > self.screenMax)
-      if x > padding and x < sidebarX-(needsScroll and padding*2 or padding) then
-        if self.cursorY == line and self.cursorY >= 1 then
+      if x > padding and x < sidebarX-padding*2 then
+        local line = nil
+        local mouseY = y+self.scroll
+        for i,coords in ipairs(self.saveCoordinates) do
+          if mouseY > coords.y and mouseY < coords.maxY then
+            line = i
+            break
+          end
+        end --end coordinate for
+        if line and self.cursorY == line and self.cursorY >= 1 then
           output:play_playlist('silence')
           load_game("saves/" .. self.saves[self.cursorY].fileName)
           Gamestate.switch(game)
           game:show_map_description()
-        else
+        elseif line then
           self.cursorY = line
         end
       end

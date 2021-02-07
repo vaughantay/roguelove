@@ -12,18 +12,28 @@ function multiselect:enter(origin,list,title,closeAfter,advanceAfter)
   local padX,padY = 0,0
   local descY = 0
   local x,y=math.floor(width/2/uiScale-boxW/2),math.floor(height/2/uiScale-boxH/2)
+  local fontSize = prefs['fontSize']
   self.x,self.y,self.boxW,self.boxH=x,y,boxW,boxH
   if prefs['noImages'] == true then
     padX,padY=5,5
   else
     padX,padY=20,20
   end
-  descY = y+padY+(count(self.list)+2)*16
-  self.descY = descY
   self.padX,self.padY = padX,padY
   self.yModPerc = 100
   tween(0.2,self,{yModPerc=0})
   output:sound('stoneslideshort',2)
+  local _,titleLines = fonts.textFont:getWrap(self.title,boxW-padX)
+  local startY = y+(#titleLines+2)*fontSize
+  for i,item in ipairs(self.list) do
+    local code = i+96
+		local letter = string.char(code)
+    local _,textLines = fonts.textFont:getWrap((code <=122 and letter .. ") " or "") .. item.text,boxW-padX)
+    item.y = (i == 1 and startY or self.list[i-1].maxY)
+    item.height = #textLines*fontSize
+    item.maxY = item.y+item.height
+  end
+  self.descY = self.list[#self.list].maxY+math.ceil(prefs['fontSize']*.5)
 end
 
 function multiselect:select(item)
@@ -40,7 +50,6 @@ function multiselect:draw()
   love.graphics.push()
   love.graphics.scale(uiScale,uiScale)
   love.graphics.translate(0,height*(self.yModPerc/100))
-	local line = 3
   local boxW,boxH = self.boxW,self.boxH
   local padX,padY = self.padX,self.padY
   local descY = self.descY
@@ -50,20 +59,19 @@ function multiselect:draw()
   output:draw_window(x,y,x+boxW,y+boxH)
   
   love.graphics.setFont(fonts.textFont)
+  love.graphics.printf(self.title,x+padX,y+padY,boxW-16,"center")
   
   if (self.list[self.cursorY] ~= nil) then
-    local printY = y+padY+((self.cursorY+1)*14)
+    local printY = self.list[self.cursorY].y
     setColor(100,100,100,255)
-    love.graphics.rectangle("fill",x+padX,printY,boxW-8,16)
+    love.graphics.rectangle("fill",x+padX,printY,boxW-8,self.list[self.cursorY].height)
     setColor(255,255,255,255)
 	end
   
-  love.graphics.printf(self.title,x+padX,y+padY,boxW-16,"center")
 	for i, item in ipairs(self.list) do
     local code = i+96
 		local letter = string.char(code)
-		love.graphics.print((code <=122 and letter .. ") " or "") .. item.text,x+padX,y+padY+((line-1)*14))
-		line = line+1
+		love.graphics.printf((code <=122 and letter .. ") " or "") .. item.text,x+padX,item.y,boxW-padX)
 	end
   
   if (self.list[self.cursorY] ~= nil) then
@@ -133,11 +141,15 @@ function multiselect:update(dt)
 	if (x ~= output.mouseX or y ~= output.mouseY) then -- only do this if the mouse has moved
     output.mouseX,output.mouseY = x,y
 		if (x > self.x and x < self.x+self.boxW and y > self.y and y < self.descY) then --if inside item box
-      local mouseY = y-(self.y-self.padY)
-			local listY = math.floor(mouseY/14)
-      local yMod = (prefs['noImages'] and 2 or 4)
-			if (self.list[listY-yMod] ~= nil) then
-				self.cursorY=listY-yMod
+      local line = nil
+      for i,coords in ipairs(self.list) do
+        if output.mouseY > coords.y and output.mouseY < coords.maxY then
+          line = i
+          break
+        end
+      end --end coordinate for
+			if (self.list[line] ~= nil) then
+				self.cursorY=line
       else
         self.cursorY=nil
 			end

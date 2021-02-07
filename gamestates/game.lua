@@ -1718,6 +1718,15 @@ function ContextualMenu:init(x,y,printX,printY)
     self.items[1] = {name="Move To",y=spellY,action="moveto"}
     spellY = spellY+fontPadding
   end
+  if currMap:touching(player.x,player.y,x,y) then
+    local featureActions = currMap:get_tile_actions(x,y,player,not (x == player.x and y==player.y))
+    if #featureActions > 0 then
+      for _,action in ipairs(featureActions) do
+        self.items[#self.items+1] = {name=action.text,action="featureAction",entity=action.entity,actionID=action.id,y=spellY}
+        spellY = spellY+fontPadding
+      end
+    end
+  end
   for _,spellID in pairs(player:get_spells()) do
     local spell = possibleSpells[spellID]
     if spell.target_type == "square" or spell.target_type == "self" or (spell.target_type == "creature" and self.creature) then
@@ -1801,6 +1810,10 @@ function ContextualMenu:click(x,y)
       Gamestate.switch(monsterpedia,self.creature.id)
     elseif useItem.action == "recharge" then
       if rangedAttacks[player.ranged_attack]:recharge(player) then
+        advance_turn()
+      end
+    elseif useItem.action == "featureAction" then
+      if useItem.entity:action(player,useItem.actionID) ~= false then
         advance_turn()
       end
     else

@@ -154,6 +154,8 @@ end
 function love.resize()
   if Gamestate.current() == settings then
     settings:make_controls()
+  elseif Gamestate.current() == loadsaves then
+    loadsaves:create_coordinates()
   end
   local fs,fstype = love.window.getFullscreen()
   if fs then
