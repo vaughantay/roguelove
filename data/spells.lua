@@ -697,4 +697,61 @@ slimesplit = Spell({
 		end
 	end
 }),
+
+curse = Spell({
+	name = "Curse",
+	description = "Curse an enemy with bad luck, reducing their hit and dodge chances.",
+	cooldown = 10,
+	target_type = "creature",
+  sound="unholydamage",
+	flags = {aggressive=true},
+	cast = function (self,target,caster)
+    if target == caster then
+      if caster == player then output:out("Don't curse yourself. Instead, curse the wretched world that made you this way, and swear revenge!") end
+      return false
+    elseif target.id == "mummy" then
+      if caster == player then output:out("Mummies don't curse each other. Professional courtesy.") end
+      return false
+    elseif target.id == "witch" then
+      if caster == player then output:out("Witches don't curse each other. Professional courtesy.") end
+      return false
+    elseif target:is_type('undead') then
+      if caster == player then output:out("You can't curse the undead. They're already cursed with the darksign.") end
+      return false
+    elseif target:is_type('demon') then
+      if caster == player then output:out("You can't curse a being of pure evil. Well, you could, but it would just end up being a blessing instead.") end
+      return false
+    elseif target:is_type('construct') then
+      if caster == player then output:out("You can't curse an animated object. Since they're not really alive, they can't have bad luck.") end
+      return false
+    end
+		target:give_condition('cursed',random(5,10))
+		if player:can_see_tile(caster.x,caster.y) then output:out(caster:get_name() .. " curses " .. target:get_name() .. " with bad luck.") end
+	end
+}),
+
+knockbackimmunity = Spell({
+    name = "Immune to Knockbacks",
+    description = "You're incredibly massive, and can't be knocked backwards. Good for you.",
+    target_type = "passive"
+  }),
+
+sleepless = Spell({
+    name = "Sleepless",
+    description = "You don't sleep. On the plus side, spells and abilities that make people fall asleep don't work on you. On the minus side, you don't dream. On the plus side, you don't have nightmares.",
+    target_type = "passive"
+  }),
+
+sporedeath = Spell({
+    name = "Filled with Spores",
+    description = "You are full of spores. When you die, they'll explode into the air.",
+    target_type = "passive",
+    dies = function(self,possessor)
+      if player:can_see_tile(possessor.x,possessor.y) then output:out(possessor:get_name() .. " explodes into spores!") end
+      for i=1,random(2,4),1 do
+        currMap:add_effect(Effect('spores'),possessor.x,possessor.y)
+      end
+      if player:can_see_tile(possessor.x,possessor.y) then output:sound('shroomman_death') end
+    end
+  }),
 }

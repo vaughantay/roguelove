@@ -162,45 +162,46 @@ function monsterpedia:draw()
     love.graphics.printf(types,450,start+fontSize*2,(width-460),"center")
 		love.graphics.printf(creat.description,455,start+fontSize*3,(width-475),"left")
     local statStart = math.max(200,start+fontSize*5)
-		love.graphics.print("Damage: " .. creat.strength .. " (" .. (creat.critical_damage and (creat.strength+creat.critical_damage) or math.ceil(creat.strength * 1.5)) .. " damage on critical hit, " .. (creat.critical_chance or 1) .. "% chance)",455,statStart)
-		love.graphics.print("Max HP: " .. creat.max_hp,455,statStart+fontSize)
-		love.graphics.print("Sight Radius: " .. creat.perception,455,statStart+fontSize*2)
-		love.graphics.print("Melee Skill: " .. creat.melee .. " (" .. math.ceil(math.min(math.max(70 + (creat.melee - creat.level*5-5),25),95)) .. "% chance to hit average level " .. creat.level .. " creature)",455,statStart+fontSize*3)
-		love.graphics.print("Dodge Skill: " .. creat.dodging .. " (" .. math.ceil(math.min(math.max(70 + (5+creat.level*5 - creat.dodging),25),95)) .. "% chance to be hit by average level " .. creat.level .. " creature)",455,statStart+fontSize*4)
-    local printY = math.max(275,statStart+fontSize*5)
-    if creat.armor then love.graphics.print("Damage Absorption: " .. creat.armor,455,statStart+fontSize*2) printY = printY+fontSize end
+    local text = "Max HP: " .. creat.max_hp
+    if creat.max_mp then text = text .. "\nMax MP: " .. creat.max_mp end
+    text = text .. "\nDamage: " .. creat.strength .. " (" .. (creat.critical_damage and (creat.strength+creat.critical_damage) or math.ceil(creat.strength * 1.5)) .. " damage on critical hit, " .. (creat.critical_chance or 1) .. "% chance)"
+    text = text .. "\nMelee Skill: " .. creat.melee .. " (" .. math.ceil(math.min(math.max(70 + (creat.melee - creat.level*5-5),25),95)) .. "% chance to hit average level " .. creat.level .. " creature)"
+    if creat.ranged then text = text .. "\nRanged Skill: " .. creat.ranged end
+    if creat.magic then text = text .. "\nMagic Skill: " .. creat.magic end
+    text = text .. "\nDodge Skill: " .. creat.dodging .. " (" .. math.ceil(math.min(math.max(70 + (5+creat.level*5 - creat.dodging),25),95)) .. "% chance to be hit by average level " .. creat.level .. " creature)"
+    if creat.armor then text = text .. "\nDamage Absorption: " .. creat.armor end
+    text = text .. "\nSight Radius: " .. creat.perception
+    if creat.ranged_attack then text = text .. "\nRanged Attack: " .. rangedAttacks[creat.ranged_attack].name end
+    
     if creat.weaknesses then
-      local weakstring = "Weaknesses: "
+      local weakstring = "\nWeaknesses: "
       local first = true
       for dtype,amt in pairs(creat.weaknesses) do
         weakstring = weakstring .. (not first and ", " or "") .. ucfirst(dtype) .. " " .. amt .. "%"
         first = false
       end
-      love.graphics.print(weakstring,455,printY)
-      printY = printY+fontSize
+      text = text .. weakstring
     end --end weaknesses
     if creat.resistances then
-      local resiststring = "Resistances: "
+      local resiststring = "\nResistances: "
       local first = true
       for dtype,amt in pairs(creat.resistances) do
         resiststring = resiststring .. (not first and ", " or "") .. ucfirst(dtype) .. " " .. amt .. "%"
         first = false
       end
-      love.graphics.print(resiststring,455,printY)
-      printY = printY+fontSize
+      text = text .. resiststring
     end --end weaknesses
-    if creat.ranged_attack then
-      local rangedstring = "Ranged Attack: " .. rangedAttacks[creat.ranged_attack].name
-      love.graphics.print(rangedstring,455,printY)
-    end
-      
+    
+    love.graphics.printf(text,455,statStart,(width-475),"left")
+    local _,tlines = fonts.textFont:getWrap(text,(width-475))
+    local printY = statStart+(#tlines+1)*fontSize
     printY=math.max(350,printY+fontSize*2)
 		love.graphics.printf("Special Abilities:",450,printY,(width-460),"center")
     printY=printY+fontSize
 		local abilities = ""
-		if (creat.get_spells) then
+		if (creat.spells) then
       local i = 1
-      for id, ability in pairs(creat:get_spells()) do
+      for id, ability in pairs(creat.spells) do
         if (i > 1) then abilities = abilities .. "\n" end
         abilities = abilities .. possibleSpells[ability].name .. (possibleSpells[ability].target_type == "passive" and " (Passive)" or "") .. " - " .. possibleSpells[ability].description
         i = i + 1
@@ -211,11 +212,12 @@ function monsterpedia:draw()
 			abilities = "None"
       love.graphics.printf(abilities,450,printY,(width-460),"center")
 		end
-		
+    _,tlines = fonts.textFont:getWrap(abilities,(width-475))
+    printY = printY+#tlines*fontSize
     
     if creat.hit_conditions or creat.crit_conditions then
-      printY=printY+45
       love.graphics.printf("Hit Conditions:",450,printY,(width-460),"center")
+      printY=printY+fontSize
       local context = ""
       local i = 1
       if creat.hit_conditions then
@@ -232,22 +234,53 @@ function monsterpedia:draw()
           i = i + 1
         end
       end
-      printY=printY+fontSize
       love.graphics.printf(context,450,printY,(width-460),"center")
 		end
     
-    printY=printY+fontSize*3
-    if totalstats.creature_possessions and totalstats.creature_possessions[id] then love.graphics.print(ucfirst(creat.name) .. " possessions: " .. totalstats.creature_possessions[id],455,printY+fontSize) end
-    if totalstats.exploded_creatures and totalstats.exploded_creatures[id] then love.graphics.print(ucfirst(creat.name) .. " explosions: " .. totalstats.exploded_creatures[id],455,printY+fontSize*2) end
-    if totalstats.creature_kills and totalstats.creature_kills[id] then love.graphics.print(ucfirst(creat.name) .. "s killed: " .. totalstats.creature_kills[id],455,printY+fontSize*3) end
-    if totalstats.creature_kills_by_ally and totalstats.creature_kills_by_ally[id] then love.graphics.print(ucfirst(creat.name) .. "s killed by allies: " .. totalstats.creature_kills_by_ally[id],455,printY+fontSize*4) end
-    if totalstats.turns_as_creature and totalstats.turns_as_creature[id] then love.graphics.print("Turns as " .. creat.name .. ": " .. totalstats.turns_as_creature[id],455,printY+fontSize*5) end
-    if totalstats.kills_as_creature and totalstats.kills_as_creature[id] then love.graphics.print("Kills as " .. creat.name .. ": " .. totalstats.kills_as_creature[id],455,printY+fontSize*6) end
-    if totalstats.deaths_as_creature and totalstats.deaths_as_creature[id] then love.graphics.print("Deaths as " .. creat.name .. ": " .. totalstats.deaths_as_creature[id],455,printY+fontSize*7) end
-    if totalstats.ally_kills_as_creature and totalstats.ally_kills_as_creature[id] then love.graphics.print("Kills made by allies as " .. creat.name .. ": " .. totalstats.ally_kills_as_creature[id],455,printY+fontSize*8) end
-    if totalstats.allied_creature_kills and totalstats.allied_creature_kills[id] then love.graphics.print("Kills made by allied " .. creat.name .. "s: " .. totalstats.allied_creature_kills[id],455,printY+fontSize*9) end
-    if totalstats.creature_ally_deaths and totalstats.creature_ally_deaths[id] then love.graphics.print('Allied ' .. creat.name .. " deaths: " .. totalstats.creature_ally_deaths[id],455,printY+fontSize*10) end
-    if totalstats.ally_deaths_as_creature and totalstats.ally_deaths_as_creature[id] then love.graphics.print('Ally deaths as ' .. creat.name .. ": " .. totalstats.ally_deaths_as_creature[id],455,printY+fontSize*11) end
+    printY=printY+fontSize*2
+    if totalstats.creature_possessions and totalstats.creature_possessions[id] then
+      love.graphics.print(ucfirst(creat.name) .. " possessions: " .. totalstats.creature_possessions[id],455,printY)
+      printY=printY+fontSize
+    end
+    if totalstats.exploded_creatures and totalstats.exploded_creatures[id] then
+      love.graphics.print(ucfirst(creat.name) .. " explosions: " .. totalstats.exploded_creatures[id],455,printY)
+      printY=printY+fontSize
+    end
+    if totalstats.creature_kills and totalstats.creature_kills[id] then
+      love.graphics.print(ucfirst(creat.name) .. "s killed: " .. totalstats.creature_kills[id],455,printY)
+      printY=printY+fontSize
+    end
+    if totalstats.creature_kills_by_ally and totalstats.creature_kills_by_ally[id] then
+      love.graphics.print(ucfirst(creat.name) .. "s killed by allies: " .. totalstats.creature_kills_by_ally[id],455,printY)
+      printY=printY+fontSize
+    end
+    if totalstats.turns_as_creature and totalstats.turns_as_creature[id] then
+      love.graphics.print("Turns as " .. creat.name .. ": " .. totalstats.turns_as_creature[id],455,printY)
+      printY=printY+fontSize
+    end
+    if totalstats.kills_as_creature and totalstats.kills_as_creature[id] then
+      love.graphics.print("Kills as " .. creat.name .. ": " .. totalstats.kills_as_creature[id],455,printY)
+      printY=printY+fontSize
+    end
+    if totalstats.deaths_as_creature and totalstats.deaths_as_creature[id] then
+      love.graphics.print("Deaths as " .. creat.name .. ": " .. totalstats.deaths_as_creature[id],455,printY)
+      printY=printY+fontSize
+    end
+    if totalstats.ally_kills_as_creature and totalstats.ally_kills_as_creature[id] then
+      love.graphics.print("Kills made by allies as " .. creat.name .. ": " .. totalstats.ally_kills_as_creature[id],455,printY)
+      printY=printY+fontSize
+    end
+    if totalstats.allied_creature_kills and totalstats.allied_creature_kills[id] then
+      love.graphics.print("Kills made by allied " .. creat.name .. "s: " .. totalstats.allied_creature_kills[id],455,printY)
+      printY=printY+fontSize
+    end
+    if totalstats.creature_ally_deaths and totalstats.creature_ally_deaths[id] then
+      love.graphics.print('Allied ' .. creat.name .. " deaths: " .. totalstats.creature_ally_deaths[id],455,printY)
+      printY=printY+fontSize
+    end
+    if totalstats.ally_deaths_as_creature and totalstats.ally_deaths_as_creature[id] then
+      love.graphics.print('Ally deaths as ' .. creat.name .. ": " .. totalstats.ally_deaths_as_creature[id],455,printY)
+    end
 	end
   self.closebutton = output:closebutton(24,24)
   love.graphics.pop()
