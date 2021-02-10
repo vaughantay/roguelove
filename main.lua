@@ -35,13 +35,13 @@ end
 
 --pClock = require("profileclock")
 
-Steam = nil
+--[[Steam = nil
 if pcall(function() Steam = require 'luasteam' end) and Steam and Steam.init() then
   --do nothing, it's already loaded
 else
   Steam = nil
   print('Steam not loaded')
-end
+end]]
 
 function love.load(arg)
   love.graphics.setDefaultFilter('nearest','nearest')
