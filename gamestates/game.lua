@@ -431,10 +431,10 @@ function game:print_sidebar()
 				count = count + 1
 			end
 		end
-		love.graphics.printf(conText,printX+xPad,printY+15,335)
+		love.graphics.printf(conText,printX+xPad,printY+fontSize,335)
     local currFont = love.graphics.getFont()
     local _,wrapText = currFont:getWrap(conText,335)
-    printY = printY+15+(fontSize*#wrapText)
+    printY = printY+fontSize*(#wrapText+2)
 	end
 	
   local yPad=0

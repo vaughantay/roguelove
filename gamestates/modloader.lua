@@ -33,7 +33,7 @@ function modloader:draw()
   output:draw_window(sidebarX,1,width-padding,height-padding)
   
   love.graphics.printf("Weirdfellows LLC is not responsible for the behavior of any mods.",padding,round(padding*.75),sidebarX-padding*2,"center")
-  love.graphics.printf("Select Mods to Load:",padding,round(padding*.75)+prefs['fontSize'],sidebarX-padding*2,"center")
+  
   --Draw buttons:
   local midX = math.floor((sidebarX-padding*2)/2)
   local printY = prefs['fontSize']*4

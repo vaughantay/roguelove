@@ -8,49 +8,80 @@ function cheats:enter(previous)
   output:sound('stoneslideshort',2)
   self:make_controls()
   self.cursorY=0
+  self.scroll = 0
 end
 
 function cheats:make_controls()
+  local uiScale = (prefs['uiScale'] or 1)
   local width = love.graphics:getWidth()
-  local startX=math.floor(width/3)
   local padding = (prefs['noImages'] and 16 or 32)
+  local startX=math.floor(width/uiScale/4)+padding
   local fontSize = prefs['fontSize']
+  local wrapL = math.ceil(width/uiScale/2)-padding-(self.scrollPositions and padding or 0)
   self.labels = {}
-  local _, tlines = fonts.textFont:getWrap("These cheats make the game a bit easier without changing too much:",math.ceil(width/2)-padding)
-  local settingY = 145+(#tlines+1)*fontSize
-  self.labels[1] = Setting('twoHitGhost',"Ghost dies in two hits instead of one",startX,settingY,(newgame.cheats['twoHitGhost'] and true or false),true,startX)
-  self.labels[2] = Setting('easierPossession',"Easier possessions",startX,settingY+25,(newgame.cheats['easierPossession'] and true or false),true,startX)
-  self.labels[3] = Setting('quickPossessionCooldown',"Half-length cooldowns for Possession",startX,settingY+50,(newgame.cheats['quickPossessionCooldown'] and true or false),true,startX)
-  self.labels[4] = Setting('noPossessionCooldown',"No cooldowns for Possession",startX,settingY+75,(newgame.cheats['noPossessionCooldown'] and true or false),true,startX)
-  local _, tlines = fonts.textFont:getWrap("The game is meant to be played with permadeath, but this will change it so when you die, the map you're on will regenerate instead:",math.ceil(width/2)-padding)
-  local settingY = 345+(#tlines+1)*fontSize
-  self.labels[5] = Setting('regenMapOnDeath',"Regenerate map on death, instead of Game Over",startX,settingY,(newgame.cheats['regenMapOnDeath'] and true or false),true,startX)
-  local _, tlines = fonts.textFont:getWrap("You really should only use these if you're testing something:",math.ceil(width/2)-padding)
-  local settingY = 500+(#tlines+1)*fontSize
-  self.labels[6] = Setting('fullMap',"Reveal entire map layout",startX,settingY,(newgame.cheats['fullMap'] and true or false),true,startX) 
-  self.labels[7] = Setting('seeAll',"See everything, all the time",startX,settingY+25,(newgame.cheats['seeAll'] and true or false),true,startX)
-  local _, tlines = fonts.textFont:getWrap("The game originally launched with maps that were 75 x 75 tiles, but the maps seemed too big, so they were changed to 60 x 60. But the option's here if you prefered the larger size:",math.ceil(width/2)-padding)
-  self.labels[8] = Setting('largeMaps',"Larger maps",startX,650+(#tlines+1)*fontSize,(newgame.cheats['largeMaps'] and true or false),true,startX)
+  local _, tlines = fonts.textFont:getWrap("These cheats make the game a bit easier without changing too much:",wrapL)
+  local settingY = 145+(#tlines)*fontSize
+  local yAdd = math.max(fontSize,25)
+  self.labels[1] = Setting('text',"These cheats make the game a bit easier without changing too much:",startX,settingY,nil,true,wrapL)
+  settingY=settingY+math.max(yAdd,self.labels[1].height)
+  self.labels[2] = Setting('twoHitGhost',"Ghost dies in two hits instead of one",startX,settingY,(newgame.cheats['twoHitGhost'] and true or false),false,wrapL)
+  settingY=settingY+math.max(yAdd,self.labels[2].height)
+  self.labels[3] = Setting('easierPossession',"Easier possessions",startX,settingY,(newgame.cheats['easierPossession'] and true or false),false,wrapL)
+  settingY=settingY+math.max(yAdd,self.labels[3].height)
+  self.labels[4] = Setting('quickPossessionCooldown',"Half-length cooldowns for Possession",startX,settingY,(newgame.cheats['quickPossessionCooldown'] and true or false),false,wrapL)
+  settingY=settingY+math.max(yAdd,self.labels[4].height)
+  self.labels[5] = Setting('noPossessionCooldown',"No cooldowns for Possession",startX,settingY,(newgame.cheats['noPossessionCooldown'] and true or false),false,wrapL)
+  settingY=settingY+math.max(yAdd,self.labels[5].height)+yAdd
+  
+  self.labels[6] = Setting('text',"The game is meant to be played with permadeath, but this will change it so when you die, the map you're on will regenerate instead:",startX,settingY,nil,true,wrapL)
+  settingY=settingY+math.max(yAdd,self.labels[6].height)
+  self.labels[7] = Setting('regenMapOnDeath',"Regenerate map on death, instead of Game Over",startX,settingY,(newgame.cheats['regenMapOnDeath'] and true or false),false,wrapL)
+  settingY=settingY+math.max(yAdd,self.labels[7].height)+yAdd
+  
+  self.labels[8] = Setting('text',"These will let you see more of the map. They're really more for testing than for use playing the game:",startX,settingY,nil,true,wrapL)
+  settingY=settingY+math.max(yAdd,self.labels[8].height)
+  self.labels[9] = Setting('fullMap',"Reveal entire map layout",startX,settingY,(newgame.cheats['fullMap'] and true or false),false,wrapL) 
+  settingY=settingY+math.max(yAdd,self.labels[9].height)
+  self.labels[10] = Setting('seeAll',"See everything, all the time",startX,settingY,(newgame.cheats['seeAll'] and true or false),false,wrapL)
+  settingY=settingY+math.max(yAdd,self.labels[10].height)+yAdd
+  
+  self.labels[11] = Setting('text',"The game originally launched with maps that were 75 x 75 tiles, but the maps seemed too big, so they were changed to 60 x 60. But the option's here if you prefered the larger size:",startX,settingY,nil,true,wrapL)
+  settingY=settingY+math.max(yAdd,self.labels[11].height)
+  self.labels[12] = Setting('largeMaps',"Larger maps",startX,settingY,(newgame.cheats['largeMaps'] and true or false),false,wrapL)
+  settingY=settingY+math.max(yAdd,self.labels[12].height)
+  self.maxY = settingY-math.ceil(love.graphics.getHeight()/uiScale-padding*2)
 end
 
 function cheats:draw()
   newgame:draw()
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
+  local uiScale = (prefs['uiScale'] or 1)
   setColor(0,0,0,self.blackScreenAlpha)
   love.graphics.rectangle("fill",0,0,width,height)
   setColor(255,255,255,255)
   love.graphics.push()
+  love.graphics.scale(uiScale,uiScale)
   love.graphics.translate(0,height*(self.yModPerc/100))
   local padding = (prefs['noImages'] and 16 or 32)
   local fontSize = prefs['fontSize']
-  output:draw_window(math.ceil(width/4),padding,math.ceil(width/4+width/2),height-padding*2)
+  local startX = math.ceil(width/uiScale/4)
+  local startY = padding
+  local wrapL = math.ceil(width/uiScale/2)-padding
+  local endX=math.ceil(startX+width/uiScale/2)
+  local endY = height/uiScale-padding*2
+  output:draw_window(startX,padding,endX,endY)
+  
+  --Create a "stencil" that stops
+  love.graphics.push()
+  local function stencilFunc()
+    love.graphics.rectangle("fill",startX,padding*2,math.ceil(startX+width/uiScale/2),height/uiScale-padding*4)
+  end
+  love.graphics.stencil(stencilFunc,"replace",1)
+  love.graphics.setStencilTest("greater",0)
+  love.graphics.translate(0,-self.scroll)
   
   love.graphics.setFont(fonts.textFont)
-  love.graphics.printf("Some of these change the game from its intended difficulty and length.",math.ceil(width/4)+padding,padding*2,math.ceil(width/2)-padding,"center")
-  love.graphics.printf("These cheats make the game a bit easier without changing too much:",math.ceil(width/4)+padding,145,math.ceil(width/2)-padding,"center")
-  love.graphics.printf("The game is meant to be played with permadeath, but this will change it so when you die, the map you're on will regenerate instead:",math.ceil(width/4)+padding,345,math.ceil(width/2)-padding,"center")
-  love.graphics.printf("You really should only use these if you're testing something:",math.ceil(width/4)+padding,500,math.ceil(width/2)-padding,"center")
-  love.graphics.printf("The game originally launched with maps that were 75 x 75 tiles, but the maps seemed too big, so they were changed to 60 x 60. But the option's here if you prefered the larger size:",math.ceil(width/4)+padding,650,math.ceil(width/2)-padding,"center")
+  love.graphics.printf("Some of these change the game from its intended difficulty and length.",startX+padding,padding*2,wrapL,"center")
 
   --Draw a border around currently selected cheat:
   if self.labels[self.cursorY] then
@@ -70,8 +101,19 @@ function cheats:draw()
       setting:draw()
     end --end setting table if
   end --end setting for
-  self.closebutton = output:closebutton(width/4+padding,padding*2,self.cursorY == 0)
+  love.graphics.setStencilTest()
   love.graphics.pop()
+
+  if self.maxY > 0 and self.maxY < endY then
+    local scrollAmt = self.scroll/self.maxY
+    if scrollAmt > 1 then scrollAmt = 1 end
+    local redo = false
+    if not self.scrollPositions then redo = true end
+    self.scrollPositions = output:scrollbar(endX-padding,startY+padding,endY,scrollAmt,true)
+    if redo then self:make_controls() end
+  end
+  love.graphics.pop()
+  self.closebutton = output:closebutton(width/uiScale/4+padding,padding*2,self.cursorY == 0)
 end
 
 function cheats:update(dt)
@@ -80,13 +122,15 @@ function cheats:update(dt)
     Gamestate.switch(newgame)
     Gamestate.update(dt)
   end
+  local uiScale = (prefs['uiScale'] or 1)
   local x,y = love.mouse.getPosition()
-	if (y ~= output.mouseY or x ~= output.mouseX) then -- only do this if the mouse has moved
-		output.mouseY = y
-    output.mouseX = x
+	if (y ~= self.mouseY or x ~= self.mouseX) then -- only do this if the mouse has moved
+		self.mouseY = y
+    self.mouseX = x
+    x,y = x/uiScale,y/uiScale
     for sy,setting in pairs(self.labels) do
       local stop = false
-      if x > setting.x-8 and x < setting.x+setting.width+8 and y > setting.y-4 and y < setting.y+setting.height+4 then
+      if setting.id ~= "text" and x > setting.x-8 and x < setting.x+setting.width+8 and y > setting.y-4-self.scroll and y < setting.y+setting.height+4-self.scroll then
         self.cursorY = sy
         stop = true
       end --end y setting check if
@@ -100,9 +144,19 @@ function cheats:keypressed(key)
   if (key == "escape") then
     self:switchBack()
   elseif (key == "up") then
-    if self.cursorY > 0 then self.cursorY = self.cursorY-1 end
+    if self.cursorY > 2 then
+      self.cursorY = self.cursorY-1
+      if self.labels[self.cursorY].id == "text" then
+        self.cursorY = self.cursorY-1
+      end
+    end
   elseif (key == "down") then
-    if self.cursorY < 7 then self.cursorY = self.cursorY+ 1 end
+    if self.cursorY < #self.labels then
+      self.cursorY = self.cursorY+ 1
+      if self.labels[self.cursorY].id == "text" then
+        self.cursorY = self.cursorY+1
+      end
+    end
   elseif key == "return" or key == "kpenter" then
     local setting = nil
     if self.labels[self.cursorY] then
@@ -126,7 +180,8 @@ end
 
 function cheats:mousepressed(x,y,button)
   local width = love.graphics.getWidth()
-  if button == 2 or (x > self.closebutton.minX and x < self.closebutton.maxX and y > self.closebutton.minY and y < self.closebutton.maxY) or x < math.ceil(width/4) or x > math.ceil(width/4+width/2) then 
+  local uiScale = (prefs['uiScale'] or 1)
+  if button == 2 or (x/uiScale > self.closebutton.minX and x/uiScale < self.closebutton.maxX and y/uiScale > self.closebutton.minY and y/uiScale < self.closebutton.maxY) or x < math.ceil(width/4) or x > math.ceil(width/4+width/2) then 
     self:switchBack()
   else
     self:keypressed("return")
@@ -139,6 +194,23 @@ function cheats:switchBack()
   Timer.after(0.2,function() self.switchNow=true end)
 end
 
+function cheats:wheelmoved(x,y)
+	if y > 0 then
+    self:scrollUp()
+	elseif y < 0 then
+    self:scrollDown()
+  end
+end
+
+function cheats:scrollUp()
+  if self.scroll > 0 then
+    self.scroll = self.scroll - prefs.fontSize
+  end
+end
+
+function cheats:scrollDown()
+  if self.scroll < self.maxY then self.scroll = math.min(self.scroll+prefs.fontSize,self.maxY) end
+end
 
 function Setting:init(id,label,x,y,checkbox,center,width,xMod,font,image,highlightImage)
   xMod = xMod or 0
@@ -148,22 +220,22 @@ function Setting:init(id,label,x,y,checkbox,center,width,xMod,font,image,highlig
   self.checkbox = checkbox
   self.image = image
   self.highlightImage = highlightImage
+  self.center = center
   self.y = math.floor(y)
   self.height = math.floor(self.image and images[self.image]:getHeight() or self.font:getHeight())
   local textWidth = self.font:getWidth(label)
-  self.width = math.floor(textWidth + (checkbox ~= nil and 32 or 0))
-  if center then
-    self.x = math.floor((x+width/2)-textWidth/2 + xMod)
-  else
-    self.x = math.floor(x + xMod)
-  end
+  local lWidth,tlines = self.font:getWrap(label,width-(checkbox ~= nil and 64 or 0))
+  self.width = width or math.floor(textWidth + (checkbox ~= nil and 32 or 0))
+  self.height = math.max(#tlines*self.font:getHeight(),self.height)
+  self.x = math.floor(x + xMod)
+  self.checkBoxX = (center and round((self.x+self.width/2)-lWidth/2) or self.x)
 end
 
 function Setting:draw()
   if love.graphics.getFont ~= self.font then love.graphics.setFont(self.font) end
   if self.checkbox == nil then
     if self.disabled then setColor(150,150,150,255) end
-    love.graphics.print(self.label,self.x,self.y)
+    love.graphics.printf(self.label,self.x,self.y,self.width,(self.center and "center" or "left"))
     if self.disabled then setColor(255,255,255,255) end
     if self.image and not prefs['noImages'] then
       love.graphics.draw(self.image,self.x,self.y)
@@ -171,13 +243,13 @@ function Setting:draw()
   else
     if prefs['noImages'] then
       if self.disabled then setColor(150,150,150,255) end
-      love.graphics.print((self.checkbox and "(Y)" or "(N)"),self.x,self.y)
+      love.graphics.print((self.checkbox and "(Y)" or "(N)"),self.checkBoxX,self.y)
       if self.disabled then setColor(255,255,255,255) end
     else
-      love.graphics.draw((self.checkbox and images.uicheckboxchecked or images.uicheckbox),self.x,self.y)
+      love.graphics.draw((self.checkbox and images.uicheckboxchecked or images.uicheckbox),self.checkBoxX,self.y)
     end
     if self.disabled then setColor(150,150,150,255) end
-    love.graphics.print(self.label,self.x+32,self.y)
+    love.graphics.printf(self.label,self.x+32,self.y,self.width-32,(self.center and "center" or "left"))
     if self.disabled then setColor(255,255,255,255) end
     if self.image and not prefs['noImages'] then
       love.graphics.draw(self.image,self.x+32,self.y)

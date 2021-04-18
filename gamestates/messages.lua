@@ -18,9 +18,9 @@ function messages:draw()
   love.graphics.setFont(fonts.textFont)
   local startX,startY,windowW,windowH
   if prefs['noImages'] then
-    startX,startY,windowW,windowH = 1,1,width-12,height-12
+    startX,startY,windowW,windowH = 1,1,width/uiScale-12,height/uiScale-12
   else
-    startX,startY,windowW,windowH = 1,1,width-32,height-32
+    startX,startY,windowW,windowH = 1,1,width/uiScale-32,height/uiScale-32
   end
   output:draw_window(startX,startY,windowW,windowH)
   local fontSize = prefs['fontSize']
@@ -31,7 +31,7 @@ function messages:draw()
   love.graphics.push()
   --Create a "stencil" that stops 
   local function stencilFunc()
-    love.graphics.rectangle("fill",startX+math.min(8,fontSize),startY+math.min(8,fontSize),width-math.min(16,fontSize*2),height-math.min(16,fontSize*2))
+    love.graphics.rectangle("fill",startX+math.min(24,fontSize),startY+math.min(24,fontSize),width-math.min(48,fontSize*2),height-math.min(48,fontSize*2))
   end
   love.graphics.stencil(stencilFunc,"replace",1)
   love.graphics.setStencilTest("greater",0)
@@ -39,7 +39,7 @@ function messages:draw()
 	for i = #output.text,1,-1 do
     local _, tlines = fonts.textFont:getWrap(ucfirst(output.text[i]),textWidth)
     cursor = cursor - math.floor(#tlines*(fontSize*1.25))
-    love.graphics.printf(ucfirst(output.text[i]),15,cursor,textWidth,"left")
+    love.graphics.printf(ucfirst(output.text[i]),24,cursor,textWidth,"left")
 	end
   love.graphics.setStencilTest()
   love.graphics.pop()
@@ -64,7 +64,6 @@ function messages:keypressed(key)
 end
 
 function messages:scrollUp()
-  local uiScale = (prefs['uiScale'] or 1)
   if self.cursorY > self.smallestY then
     self.cursorY = self.cursorY - prefs.fontSize
   end

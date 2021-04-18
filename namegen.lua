@@ -5,7 +5,7 @@ namegen.lists.nastyThings = {"Belch","Blood","Bog","Bone","Cave","Crush","Cry","
 
 namegen.lists.nobleAnimals = {"Bear","Dragon","Eagle","Lion","Wolf"}
 
-namegen.lists.genericEndings = {"Baum","Bauer","Bringer","Burger","Foot","Feet","Fellow","Flower","Forge","Ham","Hammer","Mann","Maker","Son","Stone","Smith","Stein","Shire","Toe","Ton","Tower"}
+namegen.lists.genericEndings = {"Baum","Bauer","Bringer","Burger","Foot","Feet","Fellow","Flower","Ford","Forge","Ham","Hammer","Mann","Maker","Son","Stone","Smith","Stein","Shire","Toe","Ton","Tower","Worth"}
 
 namegen.lists.gob = {"Bank","Coin","Forge","Gob","Gobbo","Goblin","Gold","Greed","Greedy","Green","Hammer","Law","Money","Need","Pepper","Rock","Short","Silver","Steel","Sword","Tower","Want","World"}-- + NastyThings + NobleAnimals
 
