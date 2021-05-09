@@ -2341,10 +2341,10 @@ local store = {
   color={r=0,g=0,b=255,a=255},
   new = function(self,whichStore)
     if type(whichStore) == "string" then
-      whichStore = stores[whichStore]
+      whichStore = currWorld.stores[whichStore]
     end
     if not whichStore then
-      whichStore = get_random_element(stores)
+      whichStore = get_random_element(currWorld.stores)
     end
     self.store = whichStore
     self.name = whichStore.name
@@ -2364,14 +2364,15 @@ local factionHQ = {
   color={r=0,g=0,b=255,a=255},
   new = function(self,whichFac)
     if type(whichFac) == "string" then
-      whichFac = possibleFactions[whichFac]
+      whichFac = currWorld.factions[whichFac]
     end
     if not whichFac then
-      whichFac = get_random_element(possibleFactions)
+      whichFac = get_random_element(currWorld.factions)
     end
     self.faction = whichFac
     self.name = whichFac.name
     if whichFac.map_description then self.description = whichFac.map_description end
+    if whichFac.map_name then self.name = whichFac.map_name end
   end,
   enter = function(self,creature)
     if creature == player then Gamestate.switch(factionscreen,self.faction.id) end
@@ -2392,15 +2393,15 @@ function exit:new(args)
   self.depth = args.depth or 1
   self.oneway = args.oneway
   self.locked = args.locked
-  self.exitName = args.name or "Exit"
+  self.exitName = args.exitName or "Exit"
 end
 function exit:placed(map)
   local tileset = tilesets[map.tileset]
   self.color = tileset.floorColor or tileset.textColor or self.color
   local matches = (map.branch == self.branch)
-  self.name = (matches and self.exitName .. " to " .. (branches[self.branch].depthName or "Depth") .. " " .. self.depth or self.exitName .. " to " .. branches[self.branch].name)
+  self.name = (matches and self.exitName .. " to " .. (currWorld.branches[self.branch].depthName or "Depth") .. " " .. self.depth or self.exitName .. " to " .. currWorld.branches[self.branch].name)
   if matches and self.depth < map.depth then self.symbol = "<" end
-  self.actions.exit.text = (matches and (self.depth < map.depth and "Go up" or "Go down") or "Go to " .. branches[self.branch].name)
+  self.actions.exit.text = (matches and (self.depth < map.depth and "Go up" or "Go down") or "Go to " .. currWorld.branches[self.branch].name)
   map.exits[#map.exits+1] = self
   print('placed exit to ' .. self.branch .. ' ' .. self.depth .. ' at ',self.x,self.y)
 end

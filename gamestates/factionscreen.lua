@@ -7,7 +7,7 @@ function factionscreen:enter(_,whichFac)
   output:sound('stoneslideshort',2)
   self.cursorY = 0
   self.cursorX = 1
-  self.faction = factions[whichFac]
+  self.faction = currWorld.factions[whichFac]
   self.playerMember = player:is_faction_member(whichFac)
   self.screen="Info"
   self.subScreen="Buy"
@@ -100,7 +100,7 @@ function factionscreen:draw()
     printY=printY+#wrappedtext*fontSize
   end
   
-  if not faction.enterThreshold or ((player.favor[factionID] or 0) >= faction.enterThreshold) then
+  if not faction.enter_threshold or ((player.favor[factionID] or 0) >= faction.enter_threshold) then
     printY=printY+fontSize
     local padX = 8
     local infobuttonW = fonts.textFont:getWidth("Information")+padding
@@ -127,8 +127,8 @@ function factionscreen:draw()
     if self.screen == "Missions" then setColor(255,255,255,255) end
     printY = printY+padX
   else
-    local _, wrappedtext = fonts.textFont:getWrap("You need more than " .. faction.enterThreshold .. " favor to do business with this faction.", windowWidth)
-    love.graphics.printf("You need more than " .. faction.enterThreshold .. " favor to do business with this faction.",printX,printY,windowWidth,"center")
+    local _, wrappedtext = fonts.textFont:getWrap("You need more than " .. faction.enter_threshold .. " favor to do business with this faction.", windowWidth)
+    love.graphics.printf("You need more than " .. faction.enter_threshold .. " favor to do business with this faction.",printX,printY,windowWidth,"center")
     printY=printY+(#wrappedtext)*fontSize-math.ceil(padding/2)
   end
   printY=printY+padding
@@ -141,63 +141,63 @@ function factionscreen:draw()
     love.graphics.printf(faction.description,printX,printY,windowWidth,"center")
     local _, wrappedtext = fonts.textFont:getWrap(faction.description, windowWidth)
     printY=printY+(#wrappedtext+1)*fontSize
-    if faction.friendlyFactions then
+    if faction.friendly_factions then
       local friendlyText = "Liked Factions:\n"
-      for i,fac in ipairs(faction.friendlyFactions) do
-        friendlyText = friendlyText .. (i > 1 and ", " or "") .. factions[fac].name
+      for i,fac in ipairs(faction.friendly_factions) do
+        friendlyText = friendlyText .. (i > 1 and ", " or "") .. currWorld.factions[fac].name
       end
       love.graphics.printf(friendlyText,printX,printY,windowWidth,"center")
       local _, wrappedtext = fonts.textFont:getWrap(friendlyText, windowWidth)
       printY=printY+(#wrappedtext+1)*fontSize
     end
-    if faction.enemyFactions then
+    if faction.enemy_factions then
       local enemyText = "Hated Factions:\n"
-      for i,fac in ipairs(faction.enemyFactions) do
-        enemyText = enemyText .. (i > 1 and ", " or "") .. factions[fac].name
+      for i,fac in ipairs(faction.enemy_factions) do
+        enemyText = enemyText .. (i > 1 and ", " or "") .. currWorld.factions[fac].name
       end
       love.graphics.printf(enemyText,printX,printY,windowWidth,"center")
       local _, wrappedtext = fonts.textFont:getWrap(enemyText, windowWidth)
       printY=printY+(#wrappedtext+1)*fontSize
     end
-    if faction.friendlyTypes then
+    if faction.friendly_types then
       local friendlyText = "Liked creature types:\n"
-      for i,typ in ipairs(faction.friendlyTypes) do
+      for i,typ in ipairs(faction.friendly_types) do
         friendlyText = friendlyText .. (i > 1 and ", " or "") .. (creatureTypes[typ] and creatureTypes[typ].name or ucfirst(typ))
       end
       love.graphics.printf(friendlyText,printX,printY,windowWidth,"center")
       local _, wrappedtext = fonts.textFont:getWrap(friendlyText, windowWidth)
       printY=printY+(#wrappedtext+1)*fontSize
     end
-    if faction.enemyTypes then
+    if faction.enemy_types then
       local enemyText = "Hated creature types:\n"
-      for i,typ in ipairs(faction.enemyTypes) do
+      for i,typ in ipairs(faction.enemy_types) do
         enemyText = enemyText .. (i > 1 and ", " or "") .. (creatureTypes[typ] and creatureTypes[typ].name or ucfirst(typ))
       end
       love.graphics.printf(enemyText,printX,printY,windowWidth,"center")
       local _, wrappedtext = fonts.textFont:getWrap(enemyText, windowWidth)
       printY=printY+(#wrappedtext+1)*fontSize
     end
-    if faction.killFavor_factions or faction.killFavor_types then
+    if faction.kill_favor_factions or faction.kill_favor_types then
       love.graphics.printf("Kill Favor:",printX,printY,windowWidth,"center")
       printY=printY+fontSize
-      if faction.killFavor_factions then
+      if faction.kill_favor_factions then
         local killtext = ""
-        for fac,favor in pairs(faction.killFavor_factions) do
-          killtext = killtext .. (favor > 0 and "+" or "") .. favor .. ": members of " .. factions[fac].name .. "\n"
+        for fac,favor in pairs(faction.kill_favor_factions) do
+          killtext = killtext .. (favor > 0 and "+" or "") .. favor .. ": members of " .. currWorld.factions[fac].name .. "\n"
         end
         love.graphics.printf(killtext,printX,printY,windowWidth,"left")
         local _, wrappedtext = fonts.textFont:getWrap(killtext, windowWidth)
         printY=printY+(#wrappedtext)*fontSize
-      end --end killfavor faction if
-      if faction.killFavor_types then
+      end --end kill_favor faction if
+      if faction.kill_favor_types then
         local killtext = ""
-        for typ,favor in pairs(faction.killFavor_types) do
+        for typ,favor in pairs(faction.kill_favor_types) do
           killtext = killtext .. (favor > 0 and "+" or "") .. favor .. ": creatures of type " .. (creatureTypes[typ] and creatureTypes[typ].name or ucfirst(typ)) .. "\n"
         end
         love.graphics.printf(killtext,printX,printY,windowWidth,"left")
         local _, wrappedtext = fonts.textFont:getWrap(killtext, windowWidth)
         printY=printY+(#wrappedtext+1)*fontSize
-      end --end killfavor type if
+      end --end kill_favor type if
     end --end if kill favor anyhwere
     
   elseif self.screen == "Items" then

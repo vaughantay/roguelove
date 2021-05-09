@@ -108,8 +108,8 @@ function loadsaves:draw()
         love.graphics.printf(save.player.properName,sidebarX+padding,printY,endX-sidebarX-padding,"center")
         save.currGame.stats = save.currGame.stats or {}
         printY = printY+padY*#nameLines
-        local _,depthLines = fonts.textFont:getWrap("Depth " .. 11-save.currMap.depth .. ": " .. save.currMap.name,endX-sidebarX-padding)
-        love.graphics.printf("Depth " .. 11-save.currMap.depth .. ": " .. save.currMap.name,sidebarX+padding,printY,endX-sidebarX-padding,"center")
+        local _,depthLines = fonts.textFont:getWrap("Depth " .. 11-save.currMap.depth .. (save.currMap.name and ": " .. save.currMap.name or ""),endX-sidebarX-padding)
+        love.graphics.printf("Depth " .. 11-save.currMap.depth .. ": " .. (save.currMap.name and ": " .. save.currMap.name or ""),sidebarX+padding,printY,endX-sidebarX-padding,"center")
         printY = printY+padY*#depthLines
         love.graphics.printf("Current Body: " .. ucfirst(save.player.name),sidebarX+padding,printY,endX-sidebarX-padding,"center")
         printY = printY+padY*2

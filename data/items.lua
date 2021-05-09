@@ -280,6 +280,26 @@ local greatsword = {
 }
 possibleItems['greatsword'] = greatsword
 
+local club = {
+  name="club",
+	description="A really big stick.",
+	symbol="†",
+	itemType="weapon",
+  subType="melee",
+  equippable=true,
+  equipSlot="weapon",
+  hands=2,
+	color={r=255,g=255,b=255,a=255},
+	damage = 3,
+	accuracy = 10,
+	critical_chance = 5,
+	level = 1,
+	strmod=5,
+  tags={'large','sharp','sword'},
+  value=50
+}
+possibleItems['club'] = club
+
 local dagger = {
   name="dagger",
 	description="A short-bladed dagger, wickedly sharp.",
@@ -545,7 +565,7 @@ end
 possibleItems['painwand'] = painwand
 
 local breastplate = {
-  name="iron breasplate",
+  name="iron breastplate",
 	description="An iron breastplate.",
 	symbol="]",
 	itemType="armor",
@@ -579,6 +599,20 @@ local helmet = {
   value=25
 }
 possibleItems['helmet'] = helmet
+
+local loincloth = {
+  name="loincloth",
+	description="An iron helmet.",
+	symbol="]",
+	itemType="armor",
+  subType="legs",
+  equippable=true,
+  equipSlot="legs",
+	color={r=150,g=150,b=150,a=255},
+  tags={'iron'},
+  value=25
+}
+possibleItems['loincloth'] = loincloth
 
 local sexyring = {
   name="ring of +1000 sexiness",

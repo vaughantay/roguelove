@@ -236,6 +236,7 @@ function load_data()
   require "data.conditions"
   require "data.effects"
   require "data.enchantments"
+  require "data.events"
   require "data.factions"
   require "data.features"
   require "data.gamedefinition"

@@ -527,7 +527,7 @@ end
 --@param cType String. The creature path type (eg flyer) (optional)
 --@param include_effects Boolean. Whether to include effects in the passable check (optional)
 --@param ignore_safety Boolean. Whether to ignore dangerous but transversable tiles (optional)
---@param Boolean. If it's passable.
+--@return Boolean. If it's passable.
 function Map:is_passable_for(x,y,ctype,include_effects,ignore_safety,projectile)
   if not self:in_map(x,y) then return false end
   if type(self[x][y]) == "string" then
@@ -677,7 +677,7 @@ end
 ---Checks if a tile is lit.
 --@param x Number. The x-coordinate
 --@param y Number. The y-coordinate
---@param Boolean. If the tile is lit.
+--@return Boolean. If the tile is lit.
 function Map:is_lit(x,y)
   return self:is_in_map(x,y) and self.lightMap[x][y]
 end
@@ -714,7 +714,7 @@ end
 --@param forceGeneric Boolean. Whether to ignore any special populate_creatures() code in the map's mapType. Optional
 function Map:populate_creatures(creatTotal,forceGeneric)
   local mapTypeID,branchID = self.mapType,self.branch
-  local mapType,branch = mapTypes[mapTypeID],branches[branchID]
+  local mapType,branch = mapTypes[mapTypeID],currWorld.branches[branchID]
   
   --If creatTotal is blank, set creatTotal based on the desired density
   if not creatTotal then
@@ -756,7 +756,7 @@ end
 --@param forceGeneric Boolean. Whether to ignore any special populate_items() code in the map's mapType. Optional
 function Map:populate_items(itemTotal,forceGeneric)
   local mapTypeID,branchID = self.mapType,self.branch
-  local mapType,branch = mapTypes[mapTypeID],branches[branchID]
+  local mapType,branch = mapTypes[mapTypeID],currWorld.branches[branchID]
   
   --If itemTotal is blank, set itemTotal based on the desired density
   if not itemTotal then

@@ -142,8 +142,10 @@ function characterscreen:draw()
     local context = ""
     local i = 1
     for _, condition in pairs(player.hit_conditions) do
-      if (i > 1) then context = context .. ", " end
-      context = context .. conditions[condition.condition].name .. ": " .. condition.chance .. "% Chance"
+      if (i > 1) then context = context .. "; " end
+      context = context .. conditions[condition.condition].name .. ": "
+      if condition.chance then context = context .. condition.chance .. "% Chance" .. (condition.crit_chance and ", " or "") end
+      if condition.crit_chance then context = context .. condition.crit_chance .. "% Chance on a Critical Hit" end 
       i = i + 1
     end
     love.graphics.printf(context,padding,printY,math.floor(width/uiScale)-padding,"left")

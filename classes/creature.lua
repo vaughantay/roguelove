@@ -35,22 +35,21 @@ function Creature:init(creatureType,level,noItems)
   self.favor = self.favor or {}
   self.factions = self.factions or {}
   self.hands = self.hands or (self.noEquip and 0 or 2)
-  if self.equipslots then
+  if self.equipment_slots then
     local slotcount = 1
-    for slot,count in pairs(self.equipslots) do
-      self.equpment[slot] = {slots=count}
+    for slot,count in pairs(self.equipment_slots) do
+      self.equipment[slot] = {slots=count}
     end
-    self.equipslots=nil
+    self.equipment_slots=nil
   elseif not self.noEquip then
-    self.equipment.weapon = {slots=self.hands}
-    self.equipment.offhand = {slots=self.hands}
-    self.equipment.head = {slots=1}
-    self.equipment.torso = {slots=1}
-    self.equipment.hands = {slots=1}
-    self.equipment.legs = {slots=1}
-    self.equipment.feet = {slots=1}
-    self.equipment.accessory = {slots=3}
-    self.equipment.ammo = {slots=self.hands}
+    for slot,count in pairs(gamesettings.default_equipment_slots) do
+      self.equipment[slot] = {slots=count}
+    end
+  end
+  if not self.noEquip and self.hands and self.hands > 0 then
+    self.equipment.weapon = self.equipment.weapon or {slots=self.hands}
+    self.equipment.offhand = self.equipment.offhand or {slots=self.hands}
+    self.equipment.ammo = self.equipment.ammo or {slots=1}
   end
 	self.path = nil
 	self.baseType = "creature"
@@ -99,7 +98,7 @@ function Creature:init(creatureType,level,noItems)
     end
     if self.factions then
       for _,fac in ipairs(self.factions) do
-        self:generate_inventory(factions[fac])
+        self:generate_inventory(currWorld.factions[fac])
       end
     end
   end
@@ -177,7 +176,7 @@ function Creature:generate_inventory(source)
         end --end if itemID
       end --end if checking if we have a possible list set
     end --end slots for
-  end --end equipslots for
+  end --end equipment_slots for
   
   --Delete the vistigial item lists:
   if source == self then
@@ -204,7 +203,7 @@ function Creature:apply_class(classID)
   if class.factions then
     for _,faction in ipairs(class.factions) do
       if not self:is_faction_member(faction) then
-        factions[faction]:join(self)
+        currWorld.factions[faction]:join(self)
       end
     end --end factions for
   end --end factions if
@@ -490,21 +489,30 @@ end
 --@return Table. Any other information that the callbacks might return.
 function Creature:callbacks(callback_type,...)
   local ret = {}
-  if possibleMonsters[self.id][callback_type] and type(possibleMonsters[self.id][callback_type]) == "function" then
-    local r = possibleMonsters[self.id][callback_type](self,unpack({...}))
+  if type(possibleMonsters[self.id][callback_type]) == "function" then
+    local status,r = pcall(possibleMonsters[self.id][callback_type],self,unpack({...}))
+    if status == false then
+        output:out("Error in creature " .. self.name .. " callback \"" .. callback_type .. "\": " .. r)
+      end
 		if (r == false) then return false end
     if r ~= nil and type(r) ~= "boolean" then table.insert(ret,r) end
   end
 	for condition, _ in pairs(self.conditions) do
 		if type(conditions[condition][callback_type]) == "function" then
-			local r = conditions[condition][callback_type](conditions[condition],self,unpack({...}))
+			local status,r = pcall(conditions[condition][callback_type],conditions[condition],self,unpack({...}))
+      if status == false then
+        output:out("Error in condition " .. conditions[condition].name .. " callback \"" .. callback_type .. "\": " .. r)
+      end
 			if (r == false) then return false end
       if r ~= nil and type(r) ~= "boolean" then table.insert(ret,r) end
 		end
 	end
 	for id, spell in pairs(self:get_spells()) do
 		if type(possibleSpells[spell][callback_type]) == "function" then
-			local r = possibleSpells[spell][callback_type](possibleSpells[spell],self,unpack({...}))
+			local status,r = pcall(possibleSpells[spell][callback_type],possibleSpells[spell],self,unpack({...}))
+      if status == false then
+        output:out("Error in spell " .. possibleSpells[spell].name .. " callback \"" .. callback_type .. "\": " .. r)
+      end
 			if (r == false) then return false end
       if r ~= nil and type(r) ~= "boolean" then table.insert(ret,r) end
 		end
@@ -512,13 +520,19 @@ function Creature:callbacks(callback_type,...)
   for _, equipslot in pairs(self.equipment) do
     for _, equip in ipairs(equipslot) do
       if type(possibleItems[equip.id][callback_type]) == "function" then
-        local r = possibleItems[equip.id][callback_type](equip,self,unpack({...}))
+        local status,r = pcall(possibleItems[equip.id][callback_type],equip,self,unpack({...}))
+        if status == false then
+          output:out("Error in spell " .. possibleSpells[spell].name .. " callback \"" .. callback_type .. "\": " .. r)
+        end
         if (r == false) then return false end
         if r ~= nil and type(r) ~= "boolean" then table.insert(ret,r) end
       end --end function exists if
       for ench,_ in pairs(equip:get_enchantments()) do --TODO: This might be a potential slowdown spot
         if type(enchantments[ench][callback_type]) == "function" then
-          local r = enchantments[ench][callback_type](equip,self,unpack({...}))
+          local status,r = pcall(enchantments[ench][callback_type],equip,self,unpack({...}))
+          if status == false then
+            output:out("Error in spell " .. possibleSpells[spell].name .. " callback \"" .. callback_type .. "\": " .. r)
+          end
           if (r == false) then return false end
           if r ~= nil and type(r) ~= "boolean" then table.insert(ret,r) end
         end --end function exists if
@@ -673,12 +687,6 @@ function Creature:get_hit_conditions()
 	return (self.hit_conditions or {})
 end
 
----Check what conditions a creature can inflict on a critical hit
---@return Table. The list of hit conditions
-function Creature:get_crit_conditions()
-	return (self.crit_conditions or {})
-end
-
 ---Attack another entity. If any weapons are equipped, this function will call their attack code instead.
 --@param target Entity. The creature (or feature) they're attacking
 --@param forceHit Boolean. Whether to force the attack instead of rolling for it.
@@ -717,8 +725,6 @@ function Creature:attack(target,forceHit,ignore_callbacks)
 		local result,dmg = calc_attack(self,target)
     if forceHit == true then result = 'hit' end
 		local hitConditions = self:get_hit_conditions()
-    local critConditions = self:get_crit_conditions()
-    if count(critConditions) == 0 then critConditions = hitConditions end
 		local txt = ""
 
 		if (result == "miss") then
@@ -755,10 +761,17 @@ function Creature:attack(target,forceHit,ignore_callbacks)
         output:out(txt)
       end
 			self:callbacks('damages',target,dmg)
-      local cons = (result == "critical" and critConditions or hitConditions)
-			for _, condition in pairs (cons) do
-				if (random(1,100) < condition.chance) then
-          local turns = ((condition.minTurns and condition.maxTurns and random(condition.minTurns,condition.maxTurns)) or tweak(condition.turns))
+      --Handle conditions:
+			for _, condition in pairs (hitConditions) do
+        local targetNum = (result == "critical" and condition.crit_chance or (condition.hit_chance or 0)) --If a critical, use critical chance, defaulting to regular chance. If it's a critical-only condition, regular chance defaults to 0
+				if (random(1,100) < targetNum) then
+          local turns = nil
+          if result == "critical" then
+            turns = (condition.crit_minTurns and condition.crit_maxTurns and random(condition.crit_minTurns,condition.crit_maxTurns) or (condition.critTurns and tweak(condition.critTurns) or nil))
+          end
+          if not turns then
+            turns = ((condition.minTurns and condition.maxTurns and random(condition.minTurns,condition.maxTurns)) or tweak(condition.turns or 0))
+          end
 					target:give_condition(condition.condition,turns,self)
 				end -- end condition chance
 			end	-- end condition forloop
@@ -1009,13 +1022,16 @@ function Creature:die(killer)
           update_stat('creature_kills_by_ally',self.id)
           output:out(self.killer:get_name() .. " kills " .. self:get_name() .. "!" .. (xp > 0 and " You gain " .. xp .. " XP!" or ""))
         end
+        run_all_events_of_type('player_kills')
       else --killed by a non-player ally
         if player:can_sense_creature(self) then output:out(self.killer:get_name() .. " kills " .. self:get_name() .. "!") end
       end
       for fac,favor in pairs(favor) do
-        self.killer.favor[fac] = (self.killer.favor[fac] or 0) + favor
-        if self.killer.playerAlly == true and favor ~= 0 then
-          output:out("You " .. (favor > 0 and "gain " or "lose ") .. math.abs(favor) .. " favor with " .. factions[fac].name .. ".")
+        if not currWorld.factions[fac].members_only_favor or self.killer:is_faction_member(fac) then
+          self.killer.favor[fac] = (self.killer.favor[fac] or 0) + favor
+          if self.killer.playerAlly == true and favor ~= 0 then
+            output:out("You " .. (favor > 0 and "gain " or "lose ") .. math.abs(favor) .. " favor with " .. currWorld.factions[fac].name .. ".")
+          end
         end
       end --end faction for
     elseif seen and not self:is_type('ghost') then --killed by something other than a creature
@@ -1250,7 +1266,7 @@ end
 --@return Boolean. Whether the item is equipped.
 function Creature:is_equipped(item)
   local equipSlot = item.equipSlot
-  if not equipSlot then return false end
+  if not equipSlot or not self.equipment[equipSlot] then return false end
   
   for i=1,self.equipment[equipSlot].slots,1 do
     if self.equipment[equipSlot][i] == item then
@@ -1342,30 +1358,34 @@ function Creature:equip(item)
   
   --Do the actual equipping:
   local equipSlot = self.equipment[slot]
-  for i=1,equipSlot.slots,1 do
-    if not equipSlot[i] then --if there's an empty slot, just use that
-      local didIt = true
-      if possibleItems[item.id].equip then
-        didIt,equipText = possibleItems[item.id].equip(item,self)
-      end
-      if didIt ~= false then
-        equipSlot[i] = item
-        equipText = equipText .. (item.equipText or "You equip " .. item:get_name() .. ".")
-      end
-      return didIt,equipText
-    end --end if empty slot if
-  end --end slots for
-  
-  --If there aren't any empty slots, unequip the last one:
-  local unequipped,uqtext = self:unequip(equipSlot[1])
-  equipText = equipText .. uqtext
-  if not unequipped then  --if for whatever reason unequipping the item failed, return false
-    return false,equipText
+  if equipSlot then
+    for i=1,equipSlot.slots,1 do
+      if not equipSlot[i] then --if there's an empty slot, just use that
+        local didIt = true
+        if possibleItems[item.id].equip then
+          didIt,equipText = possibleItems[item.id].equip(item,self)
+        end
+        if didIt ~= false then
+          equipSlot[i] = item
+          equipText = equipText .. (item.equipText or "You equip " .. item:get_name() .. ".")
+        end
+        return didIt,equipText
+      end --end if empty slot if
+    end --end slots for
+    
+    --If there aren't any empty slots, unequip the last one:
+    local unequipped,uqtext = self:unequip(equipSlot[1])
+    equipText = equipText .. uqtext
+    if not unequipped then  --if for whatever reason unequipping the item failed, return false
+      return false,equipText
+    end
+    --Now that we've unequipped the item, try equipping again by just running this function again:
+    local didIt,newText = self:equip(item)
+    equipText = equipText .. newText
+    return didIt,equipText
+  else
+    return false,"You don't have the right body type to equip that."
   end
-  --Now that we've unequipped the item, try equipping again by just running this function again:
-  local didIt,newText = self:equip(item)
-  equipText = equipText .. newText
-  return didIt,equipText
 end
 
 ---Unequip an item
@@ -1408,7 +1428,7 @@ end
 function Creature:can_see_tile(x,y,forceRefresh)
   if (self == player) and currGame.cheats.seeAll==true then return true end
   if not currMap or not currMap:in_map(x,y,true) then return false end
-  if not self.x or not self.y then output:out(self:get_name() .. " does not exist but is trying to see stuff somehow.") end --If you don't exist, you can't see anything
+  if not self.x or not self.y then output:out(self:get_name() .. " does not have a location but is trying to see stuff somehow.") return false end --If you don't exist, you can't see anything
   
   if not self == player and not forceRefresh then
     if not player.seeTiles then
@@ -1516,17 +1536,17 @@ end --end function
 --@return Boolean. If they're an enemy type
 function Creature:is_enemy_type(target)
   if not target.types then return false end
-  if self.enemyTypes then
-    for _,ctype in ipairs(self.enemyTypes) do
+  if self.enemy_types then
+    for _,ctype in ipairs(self.enemy_types) do
       if target:is_type(ctype) then return true end
     end
   end
   if self.types then --Check through the enemy types for all your creature types
     for _,ctype in ipairs(self.types) do
-      if creatureTypes[ctype] and creatureTypes[ctype].enemyTypes then
-        for _,ct in ipairs(creatureTypes[ctype].enemyTypes) do
+      if creatureTypes[ctype] and creatureTypes[ctype].enemy_types then
+        for _,ct in ipairs(creatureTypes[ctype].enemy_types) do
           if target:is_type(ct) then return true end
-        end --end enemyTypes for
+        end --end enemy_types for
       end --end if creatureTypes[ctype]
     end --end self ctype for
   end --end if self.types
@@ -1538,17 +1558,17 @@ end
 --@return Boolean. If they're a friendly type
 function Creature:is_friendly_type(target)
   if not target.types then return false end
-  if self.friendlyTypes then
-    for _,ctype in pairs(self.friendlyTypes) do
+  if self.friendly_types then
+    for _,ctype in pairs(self.friendly_types) do
       if target:is_type(ctype) then return true end
     end
   end
   if self.types then --Check through the enemy types for all your creature types
     for _,ctype in ipairs(self.types) do
-      if creatureTypes[ctype] and creatureTypes[ctype].friendlyTypes then
-        for _,ct in ipairs(creatureTypes[ctype].friendlyTypes) do
+      if creatureTypes[ctype] and creatureTypes[ctype].friendly_types then
+        for _,ct in ipairs(creatureTypes[ctype].friendly_types) do
           if target:is_type(ct) then return true end
-        end --end enemyTypes for
+        end --end enemy_types for
       end --end if creatureTypes[ctype]
     end --end self ctype for
   end --end if self.types
@@ -1561,7 +1581,7 @@ end
 function Creature:is_faction_enemy(target)
   if not self.factions then return false end
   for _,f in pairs(self.factions) do
-    if factions[f]:is_enemy(target) then return true end
+    if currWorld.factions[f]:is_enemy(target) then return true end
   end
   return false
 end --end function
@@ -1572,7 +1592,7 @@ end --end function
 function Creature:is_faction_friend(target)
   if not self.factions then return false end
   for _,f in pairs(self.factions) do
-    if factions[f]:is_friend(target) then return true end
+    if currWorld.factions[f]:is_friend(target) then return true end
   end
   return false
 end --end function
@@ -1592,30 +1612,64 @@ end --end function
 --@return Table. A table of factions, and the favor scores
 function Creature:get_kill_favor()
   local favor = {}
+  local favorMax = {}
+  local favorMin = {}
   --Kill favor defined in the creature definition itself:
-  if self.killFavor then
-    for faction,score in pairs(self.killFavor) do
+  if self.kill_favor then
+    for faction,score in pairs(self.kill_favor) do
       favor[faction] = (favor[faction] or 0) + score
+      if score > 0 then favorMax[faction] = score
+      else favorMin[faction] = score end
     end
-  end --end if self.killFavor
-  --Next, loop through all the factions in the game to look at their killfavor skills
-  for _,faction in pairs(factions) do
+  end --end if self.kill_favor
+  --Next, loop through all the factions in the game to look at their kill_favor skills
+  for fid,faction in pairs(currWorld.factions) do
+    favorMax[fid] = favorMax[fid] or 0
+    favorMin[fid] = favorMin[fid] or 0
+    if faction.kill_favor then --If the faction has a straight favor score for killing anything
+      if faction.kill_favor > 0 then favorMax[fid] = faction.kill_favor
+      else favorMin[fid] = faction.kill_favor end
+    end
     --Favor for killing this type of creature:
-    if self.types and faction.killFavor_types then
+    if self.types and faction.kill_favor_types then
       for _,typ in pairs(self.types) do
-        if faction.killFavor_types[typ] then
-          favor[faction.id] = (favor[faction.id] or 0) + faction.killFavor_types[typ]
-        end --end if killfavor_types if
+        if faction.kill_favor_types[typ] then
+          local newFavor = faction.kill_favor_types[typ]
+          if (newFavor > 0 and favorMax[fid] < newFavor) then
+            favorMax[fid] = newFavor
+          elseif (newFavor < 0 and favorMin[fid] > newFavor) then
+            favorMin[fid] = newFavor 
+          end
+        end --end if kill_favor_types if
+      end --end self.types for
+    end --end if self.types
+    --Favor for killing a creature with these tags:
+    if self.tags and faction.kill_favor_tags then
+      for _,tag in pairs(self.tags) do
+        if faction.kill_favor_tags[tag] then
+          local newFavor = faction.kill_favor_tags[tag]
+          if (newFavor > 0 and favorMax[fid] < newFavor) then
+            favorMax[fid] = newFavor
+          elseif (newFavor < 0 and favorMin[fid] > newFavor) then
+            favorMin[fid] = newFavor 
+          end
+        end --end if kill_favor_tags if
       end --end self.types for
     end --end if self.types
     --Favor for killing creatures of this faction:
-    if self.factions and faction.killFavor_factions then
+    if self.factions and faction.kill_favor_factions then
       for _,fac in pairs(self.factions) do
-        if faction.killFavor_factions[fac] then
-          favor[faction.id] = (favor[faction.id] or 0) + faction.killFavor_factions[fac]
-        end --end if faction.killfavor_factions
+        if faction.kill_favor_factions[fac] then
+          local newFavor = faction.kill_favor_factions[fac]
+          if (newFavor > 0 and favorMax[fid] < newFavor) then
+            favorMax[fid] = newFavor
+          elseif (newFavor < 0 and favorMin[fid] > newFavor) then
+            favorMin[fid] = newFavor 
+          end
+        end --end if faction.kill_favor_factions
       end --end self.factions for
     end --end if self.factions
+    favor[fid] = favorMax[fid]+favorMin[fid]
   end --end faction for
   return favor
 end

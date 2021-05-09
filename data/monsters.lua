@@ -70,7 +70,7 @@ local imp = {
   pathType = "flyer",
   nameType = "imp",
   ai_flags={"bully"},
-  factions={"chaos"},
+  factions={"demons"},
   ranged_attack="smallfireball",
   ranged_chance=33,
   max_hp = 5,
@@ -94,6 +94,42 @@ local imp = {
   image_varieties=3
 }
 possibleMonsters['imp'] = imp
+
+local cherub = {
+  name = "cherub",
+  description = "This tiny little flying baby is armed with a bow and arrow.",
+  symbol = "c",
+  types={"intelligent","angel","flyer"},
+  tags={"mainbranch"},
+  factions={"angels"},
+  nameType = "angel",
+  pathType="flyer",
+  ranged_attack="cherubbow",
+  spells={'angelicdefense'},
+  extraSense="angelichivemind",
+  level = 10,
+  bravery=70,
+  perception = 12,
+  melee = 2,
+  dodging = 10,
+  strength=2,
+  max_hp=5,
+  min_distance = 3,
+  run_chance = 40,
+  ranged_chance = 80,
+  gender='neuter',
+  corpse="lightflash",
+  castsLight=true,
+  lightDist=1,
+  color={r=255,g=255,b=200,a=255},
+  animated=true,
+  spritesheet=true,
+  animation_time=0.1,
+  image_max=4,
+  image_name = "cherub1",
+  image_varieties=3
+}
+possibleMonsters['cherub'] = cherub
 
 local demonhunter = {
   name = "demon hunter",
@@ -133,7 +169,7 @@ local demonbrute = {
   symbol = "d",
   types={"demon","intelligent"},
   nameType = "demon",
-  factions={"chaos"},
+  factions={"demons"},
   ai_flags={"bully"},
   max_hp = 30,
   level = 3,
@@ -211,6 +247,7 @@ local shroomman = {
   name = "mellow mushroom man",
   description = "A foot-tall semi-sentient fungus!",
   types={"mindless","plant","bloodless"},
+  tags={"poison"},
   symbol = "p",
   melee = 20,
   dodging = 20,
@@ -303,7 +340,7 @@ local townsperson = {
   types = {"intelligent","human"},
   ai_flags={"passive"},
   factions={"village"},
-  symbol = "p",
+  symbol = "t",
   nameType = "human",
   gender="either",
   specialOnly=true,
@@ -333,10 +370,36 @@ local townsperson = {
     end
     self.color={r=r,g=g,b=b,a=255}
     local careers = {'butcher','baker','candlestick maker','hot dog vendor','clockmaker','banker','shopkeeper','IT specialist','town drunk','wastrel','drug dealer','hunter','lumberjack','carpenter','beekeeper','innkeeper','brewer','bartender','soapmaker','cheesemaker','farmer','dairy farmer','naturalist','doctor','witch doctor','apothecary','chemist','pharmacist','lawyer','beggar','cowhand','engineer','scientist','writer','musician','painter','artist','sculptor','dancer','construction worker','stonemason','priest','medium','atheist','bookkeeper','librarian','accountant','food scientist','tinker','tailor','soldier','spy','philosopher'}
-    self.name = careers[random(#careers)]
+    local career = careers[random(#careers)]
+    self.name = career
   end
 }
 possibleMonsters['townsperson'] = townsperson
+
+local townguard = {
+  name="guard",
+  description="A guard, tasked with keeping the peace. Which really just means causing harm to those the people in the town dislike.",
+  types = {"intelligent","human"},
+  factions={"village"},
+  symbol = "p",
+  nameType = "human",
+  gender="either",
+  specialOnly=true,
+  level = 1,
+  max_hp = 25,
+  max_mp = 10,
+  level = 1,
+  maxLevel=10,
+  melee = 5,
+  dodging = 5,
+  strength = 5,
+  perception = 5,
+  aggression = 100,
+  notice_chance = 50,
+  bravery=75,
+  color={r=150,g=150,b=150,a=255}
+}
+possibleMonsters['townguard'] = townguard
 
 --Creature definitions for player races:
 local humanHero = {
@@ -367,6 +430,70 @@ local humanHero = {
   playerSpecies=true
 }
 possibleMonsters['player_human'] = humanHero
+
+local spiderHero = {
+  name = "spiderperson",
+  description = "Half-spider, half-person, all creepy. Fairly weak and fragile, but can shoot webs. Also has 4 arms and 4 legs, meaning they can weild 4 weapons, and wear two different pairs of pants, boots, and gloves.",
+  symbol = "n",
+  types={"intelligent","insect"},
+  nameType = "human",
+  spells={"webshot"},
+  learns_spells={{spell="poisonbite",level=3}}, --These spells will be automatically granted once a certain level is reached
+  max_hp = 30,
+  max_mp = 0,
+  level = 1,
+  melee = 2,
+  dodging = 6,
+  strength = 2,
+  ranged = 5,
+  magic = 0,
+  perception = 8,
+  hands=4,
+  equipment_slots={head=1,torso=1,hands=2,legs=2,feet=2,accessory=3},
+  color={r=255,g=255,b=255,a=255},
+  gender="either",
+  animated=true,
+  spritesheet=true,
+  animation_time=0.3,
+  image_max=3,
+  reverseAnimation=true,
+  image_name = "hero1",
+  image_varieties=3,
+  neverSpawn=true,
+  playerSpecies=true
+}
+possibleMonsters['player_spiderperson'] = spiderHero
+
+local tigerHero = {
+  name = "tiger",
+  description = "A literal tiger. Can't equip anything but has really sharp claws.",
+  symbol = "C",
+  types={"animal"},
+  hit_chance={{condition="bleeding",chance=10,turns=3,crit_chance=100,crit_turns=5}},
+  max_hp = 65,
+  max_mp = 0,
+  level = 1,
+  melee = 6,
+  dodging = 6,
+  strength = 6,
+  ranged = 0,
+  magic = 0,
+  perception = 10,
+  equipment_slots={accesory=3},
+  hands=0,
+  color={r=255,g=255,b=255,a=255},
+  gender="either",
+  animated=true,
+  spritesheet=true,
+  animation_time=0.3,
+  image_max=3,
+  reverseAnimation=true,
+  image_name = "hero1",
+  image_varieties=3,
+  neverSpawn=true,
+  playerSpecies=true
+}
+possibleMonsters['player_tiger'] = tigerHero
 
 local vampireHero = {
   name = "vampire",

@@ -41,7 +41,7 @@ function Store:generate_items()
       end
     end --end sells_items for
   end --end if self.sells_items
-  --TODO: Generate dynamic inventory:
+  --Generate dynamic inventory:
   if self.random_item_amount then
     local possibles = {}
     for id,item in pairs(possibleItems) do

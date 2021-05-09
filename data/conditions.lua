@@ -442,6 +442,11 @@ stunned = Condition({
     end
 	}),
 
+blessed = Condition({
+		name = "Blessed",
+		bonuses={hit_chance=25,dodge_chance=25,stealth=10,notice_chance=10}
+	}),
+
 chilled = Condition({
 		name = "Chilled",
     bonuses={possession_chance=5,notice_chance=-5,hit_chance=-10,dodge_chance=-10,damage_percent=90,speed=-20,animation_time_percent=1.10},

@@ -246,7 +246,6 @@ function Item:attack(target,wielder,forceHit,ignore_callbacks,forceBasic)
     end
     if forceHit == true then result = 'hit' end
 		local hitConditions = self:get_hit_conditions()
-    local critConditions = self:get_crit_conditions()
 		txt = txt .. (string.len(txt) > 0 and " " or "") .. ucfirst(wielder:get_name()) .. " attacks " .. target:get_name() .. " with " .. self:get_name() .. ". "
 
 		if (result == "miss") then
@@ -342,10 +341,17 @@ function Item:attack(target,wielder,forceHit,ignore_callbacks,forceBasic)
         end
       end --end enchantment after_damage for
 			wielder:callbacks('damages',target,dmg)
-      local cons = (result == "critical" and critConditions or hitConditions)
-			for _, condition in pairs (cons) do
-				if (random(1,100) < condition.chance) then
-          local turns = ((condition.minTurns and condition.maxTurns and random(condition.minTurns,condition.maxTurns)) or tweak(condition.turns))
+      --Handle conditions:
+			for _, condition in pairs (hitConditions) do
+        local targetNum = (result == "critical" and condition.crit_chance or (condition.hit_chance or 0)) --If a critical, use critical chance, defaulting to regular chance. If it's a critical-only condition, regular chance defaults to 0
+				if (random(1,100) < targetNum) then
+          local turns = nil
+          if result == "critical" then
+            turns = (condition.crit_minTurns and condition.crit_maxTurns and random(condition.crit_minTurns,condition.crit_maxTurns) or (condition.critTurns and tweak(condition.critTurns) or nil))
+          end
+          if not turns then
+            turns = ((condition.minTurns and condition.maxTurns and random(condition.minTurns,condition.maxTurns)) or tweak(condition.turns or 0))
+          end
 					target:give_condition(condition.condition,turns,wielder)
 				end -- end condition chance
 			end	-- end condition forloop
@@ -543,36 +549,6 @@ function Item:get_hit_conditions()
     local ench = enchantments[e]
     if ench.hit_conditions then
       for _,con in ipairs(ench.hit_conditions) do
-        local already = false
-        for i, c in ipairs(cons) do --check current conditions, and if we already have this condition, use the maximum values between the condition we have and the condition applied by the enchantment
-          if c.condition == con.condition then --c is the current condition, con is the new condition
-            already = true
-            c.minTurns = math.max(c.minTurns or 0,con.minTurns or 0)
-            c.maxTurns = math.max(c.maxTurns or 0,con.maxTurns or 0)
-            c.turns = math.max(c.turns or 0,con.turns or 0)
-            if c.minTurns == 0 then c.minTurns = nil end
-            if c.maxTurns == 0 then c.maxTurns = nil end
-            if c.turns == 0 then c.turns = nil end
-            c.chance = math.max(c.chance,con.chance)
-          end
-        end --end loopthrough of own conditions
-        if not already then
-          cons[#cons+1] = con
-        end
-      end --end ehcnatment's conditions loop
-    end --end if the enchantment has hit conditions
-  end --end enchantment loop
-  return cons
-end
-
----Check what conditions an item can inflict on a critical hit
---@return Table. The list of hit conditions
-function Item:get_crit_conditions()
-	local cons = self.crit_conditions or self.hit_conditions or {}
-	for e,_ in pairs(self:get_enchantments()) do
-    local ench = enchantments[e]
-    if ench.crit_conditions or ench.hit_conditions then
-      for _,con in ipairs((ench.crit_conditions or ench.hit_conditions)) do
         local already = false
         for i, c in ipairs(cons) do --check current conditions, and if we already have this condition, use the maximum values between the condition we have and the condition applied by the enchantment
           if c.condition == con.condition then --c is the current condition, con is the new condition

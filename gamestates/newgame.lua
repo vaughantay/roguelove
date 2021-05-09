@@ -8,7 +8,7 @@ function newgame:enter(previous)
     --Clear all game variables, so there's not any bleed from the previous game
     player = nil
     currGame = nil
-    currWorld = nil
+    initialize_world()
     currMap = nil
     if not self.seed or previous == menu then self.seed = random(999999,2147483647) end
     if not totalstats or not totalstats.games or totalstats.games == 0 then
@@ -188,7 +188,7 @@ function newgame:draw()
           local i = 1
           for id,fav in pairs(creature.favor) do
             if i ~= 1 then desc = desc .. ", "  end
-            desc = desc .. possibleFactions[id].name .. ": " .. fav
+            desc = desc .. currWorld.factions[id].name .. ": " .. fav
             i = i + 1
           end
           desc = desc .. "\n"
@@ -279,7 +279,7 @@ function newgame:draw()
           desc = desc .. "Faction Membership - "
           for i,fac in ipairs(class.factions) do
             if i ~= 1 then desc = desc .. ", " end
-            desc = desc .. possibleFactions[fac].name
+            desc = desc .. currWorld.factions[fac].name
           end
           desc = desc .. "\n"
         end
@@ -318,7 +318,7 @@ function newgame:draw()
           local i = 1
           for id,fav in pairs(class.favor) do
             if i ~= 1 then desc = desc .. ", "  end
-            desc = desc .. possibleFactions[id].name .. ": " .. fav
+            desc = desc .. currWorld.factions[id].name .. ": " .. fav
             i = i + 1
           end
           desc = desc .. "\n"
@@ -869,7 +869,8 @@ end
 
 function newgame:startGame()
   initialize_player(self.player.species,self.player.class,self.player.name,self.player.gender,self.player.pronouns)
-  new_game((tonumber(self.seed) > 0 and tonumber(self.seed) or 1),self.tutorial,self.cheats)
+  local branch = playerClasses[self.player.class].starting_branch or possibleMonsters[self.player.species].starting_branch or gamesettings.default_starting_branch
+  new_game((tonumber(self.seed) > 0 and tonumber(self.seed) or 1),self.tutorial,self.cheats,branch)
   self.cursorY=0
   self.blackAmt = 0
   tween(1,self,{blackAmt=255})

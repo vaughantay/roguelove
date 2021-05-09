@@ -45,7 +45,7 @@ function inventory:sort()
   end --end inventory for
   
   --Put them in the order you'd like to see them:
-  local order = {'usable','throwable','weapon','offhand','armorhead','armortorso','armorhands','armorlegs','armorfeet','accessory','ammo','other'}
+  local order = gamesettings.default_inventory_order
   for _,iType in ipairs(order) do
     if sorted[iType] then
       sorted[#sorted+1] = sorted[iType]
@@ -73,7 +73,7 @@ function inventory:sort()
     end --end 
   end --end item type sorting
   
-  local equipOrder = {'weapon','offhand','head','torso','hands','legs','feet','accessory','ammo'}
+  local equipOrder = gamesettings.default_equipment_order
   self.equipment = {}
   local equipPrintY = (prefs['noImages'] and 16 or 32)
   for _,s in ipairs(equipOrder) do

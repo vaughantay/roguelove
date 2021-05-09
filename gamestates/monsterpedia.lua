@@ -238,7 +238,7 @@ function monsterpedia:draw()
     _,tlines = fonts.textFont:getWrap(abilities,(width-475-scrollPad))
     printY = printY+(#tlines)*fontSize
     
-    if creat.hit_conditions or creat.crit_conditions then
+    if creat.hit_conditions then
       printY=printY+fontSize
       love.graphics.printf("Hit Conditions:",450,printY,(width-460-scrollPad),"center")
       printY=printY+fontSize
@@ -246,15 +246,10 @@ function monsterpedia:draw()
       local i = 1
       if creat.hit_conditions then
         for _, condition in pairs(creat.hit_conditions) do
-          if (i > 1) then context = context .. ", " end
-          context = context .. conditions[condition.condition].name .. ": " .. condition.chance .. "% Chance"
-          i = i + 1
-        end
-      end
-      if creat.crit_conditions then
-        for _, condition in pairs(creat.crit_conditions) do
-          if (i > 1) then context = context .. ", " end
-          context = context .. conditions[condition.condition].name .. ": " .. condition.chance .. "% Chance on Critical Hit"
+          if (i > 1) then context = context .. "; " end
+          context = context .. conditions[condition.condition].name .. ": "
+          if condition.chance then context = context .. condition.chance .. "% Chance" .. (condition.crit_chance and ", " or "") end
+          if condition.crit_chance then context = context .. condition.crit_chance .. "% Chance on a Critical Hit" end
           i = i + 1
         end
       end

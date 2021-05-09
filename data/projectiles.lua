@@ -367,7 +367,7 @@ function healthsyringe:hits(target)
     elseif shitlist and random(1,100) < 10 then --10% chance of currently hostile to ignore caster
       target:ignore(caster)
     end
-    if not shitlist and target.master == nil and target.faction ~= "chaos" and (caster.faction == nil or target.enemyfactions == nil or not in_table(caster.faction,target.enemy_factions)) and random(1,100) < 10 then --10% chance of currently non-hostile to become thrall of caster if they're not in an enemy faction
+    if not shitlist and target.master == nil and target.faction ~= "chaos" and (caster.faction == nil or target.enemy_factions == nil or not in_table(caster.faction,target.enemy_factions)) and random(1,100) < 10 then --10% chance of currently non-hostile to become thrall of caster if they're not in an enemy faction
       target:become_thrall(caster)
     end
   end --end creature if

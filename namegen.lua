@@ -109,6 +109,8 @@ namegen.lists.mapConcepts = {"Blood","Darkness","Death","Demons","Desecration","
 
 namegen.lists.bookNames = {"Atlas","Book","Codex","Dictionary","Encyclopedia","Grimoire","Lexicon","Manual","Omnibus","Scroll","Textbook","Tome","Treatise"}
 
+namegen.lists.goodConcepts = {"beauty","brightness","cheer","delight","friendship","fun","giggles","goodness","goodwill","happiness","harmony","joy","kindness","laughter","life","light","love","nourishment","peace","positivity","rainbows","smiles","sunshine","sweetness","thanksgiving","truth","virtue","warmth","welcome","wisdom","wonder"}
+
 --Metafunctions start here:
 function namegen:get_from_list(list)
   if self.lists[list] then

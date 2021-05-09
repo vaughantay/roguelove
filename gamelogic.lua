@@ -8,7 +8,7 @@
 function new_game(mapSeed,playTutorial,cheats,branch)
 	maps = {}
   branch = branch or gamesettings.default_starting_branch
-  currGame = {startTime=os.date(),fileName=player.properName,playTutorial=playTutorial,tutorialsSeen={},missionFlags={},achievementDisqualifications={},cheats={},autoSave=prefs['autosaveTurns'],seed=mapSeed,stats={}}
+  currGame = {startTime=os.date(),fileName=player.properName,playTutorial=playTutorial,tutorialsSeen={},missionFlags={},achievementDisqualifications={},cheats={},autoSave=prefs['autosaveTurns'],seed=mapSeed,stats={},events_occured={},event_countdown=0}
   if cheats then currGame.cheats = cheats end
   update_stat('games')
   currMap = mapgen:generate_map(branch,1)
@@ -67,19 +67,19 @@ end
 function initialize_world()
   currWorld = {stores={},factions={},branches={}}
   --Generate stores:
-  stores = {}
+  local stores = currWorld.stores
   for id,store in pairs(stores_static) do
     stores[id] = Store(store)
     stores[id].id = id
   end
   --Generate Factions:
-  factions = {}
+  local factions = currWorld.factions
   for id,fac in pairs(possibleFactions) do
     factions[id] = Faction(fac)
     factions[id].id = id
   end
   --Generate dungeon branches:
-  branches = {}
+  local branches = currWorld.branches
   for id,branch in pairs(dungeonBranches) do
     branches[id] = mapgen:generate_branch(id)
   end
@@ -114,9 +114,6 @@ function initialize_world()
       end --end exit for
     end --end depthexit for
   end --end branch for
-  currWorld.stores = stores
-  currWorld.factions = factions
-  currWorld.branches = branches --TODO: use currWorld elsewhere in the code
 end
 
 ---Calculates the chance of hitting an opponent.
@@ -168,20 +165,10 @@ function advance_turn()
     game.waitingToAdvance = true
   end
   output.buffering = true
-  
-  --[[if player.energy >= 200 and not extraTurn then extraTurn = true player.energy = player.energy-100 end
-    output:out("Player energy after extra turn dealy: " .. player.energy)
-
-  if extraTurn ~= 'player_missed_turn' then player.energy = player.energy-100 end]]
-
     
   --Update stats:
   update_stat('turns')
   update_stat('turns_as_creature',player.id)
-  if player.id == "ghost" and totalstats['turns_as_creature']['ghost'] >= 500 then
-    achievements:give_achievement('ghost_turns')
-  end
-  currGame.stats['turns_in_current_body'] = (currGame.stats['turns_in_current_body'] or 1) + 1
   update_stat('turns_on_map',currMap.id)
   
   player:advance()
@@ -199,6 +186,24 @@ function advance_turn()
   for _, projectile in pairs(currMap.projectiles) do
     projectile:advance()
   end
+  
+  --Faction favor decay/growth and event countdown:
+  for fid, faction in pairs(currWorld.factions) do
+    if faction.favor_decay_turns and currGame.stats.turns % faction.favor_decay_turns == 0 and (faction.favor_decay_for_non_members or player:is_faction_member(fid)) then
+      local newFavor = (player.favor[fid] or 0) - (faction.favor_decay or 1)
+      if not faction.favor_decay_floor or newFavor > faction.favor_decay_floor then player.favor[fid] = newFavor end
+    end
+    if faction.favor_growth_turns and currGame.stats.turns % faction.favor_growth_turns == 0 and (faction.favor_growth_for_non_members or player:is_faction_member(fid)) then
+      local newFavor = (player.favor[fid] or 0) + (faction.favor_growth or 1)
+      if not faction.favor_growth_ceiling or newFavor < faction.favor_growth_ceiling then player.favor[fid] = newFavor end
+    end
+    faction.event_countdown = math.max(0,faction.event_countdown-1)
+  end
+  
+  --Random Events:
+  local event_chance = currMap.event_chance or gamesettings.default_event_chance
+  currGame.event_countdown = math.max(0,currGame.event_countdown-1)
+  run_all_events_of_type('random')
   
   for id, creature in pairs(currMap.creatures) do -- this is done after the creatures, effects and projectiles take their actions, in case a creature kills another one
 		if creature.hp < 1 then
@@ -240,8 +245,6 @@ function advance_turn()
       show_tutorial('lowHealth')
     elseif not currGame.tutorialsSeen['stairs'] and player:can_see_tile(currMap.stairsUp.x,currMap.stairsUp.y) then
       show_tutorial('stairs')
-    elseif not currGame.tutorialsSeen['afterFirstPossession'] and player.id ~= "ghost" and get_stat('turns_as_creature',player.id) > 5 then
-      show_tutorial('afterFirstPossession')
     end
   end
   
@@ -295,12 +298,14 @@ function goToMap(depth,branch,force)
       return goToMap(depth,branch,force) --if the generate boss function returns false, rerun this function again
     end
 	elseif (force or debugMode) or (currMap.boss == -1 or currMap.boss.hp < 1) then
+    local firstTime = false
     update_stat('map_beaten',currMap.id)
     achievements:check('map_end')
     currMap.creatures[player] = nil
     if not maps[branch] then maps[branch] = {} end
 		if (maps[branch][depth] == nil) then
 			maps[branch][depth] = mapgen:generate_map(branch,depth)
+      firstTime = true
 		end
 		currMap.contents[player.x][player.y][player] = nil
 		currMap=maps[branch][depth]
@@ -334,6 +339,10 @@ function goToMap(depth,branch,force)
     update_stat('map_reached',currMap.id)
     currGame.autoSave=true
     player.sees = nil
+    run_all_events_of_type('enter_map')
+    if firstTime then
+      run_all_events_of_type('enter_map_first_time')
+    end
     currMap:refresh_lightMap(true) -- refresh the lightmap, forcing it to refresh all lights
     refresh_player_sight()
 	else
@@ -724,4 +733,78 @@ function update_mission_flag(flag,amt)
   else
     currGame.missionFlags[flag] = amt
   end
+end
+
+---Checks whether an event can fire
+--@param eid Number. The ID of the event
+--@return Boolean. Whether or not the event can fire
+function check_event(eid)
+  local event = possibleEvents[eid]
+  local faction = event.faction and currWorld.factions[event.faction] or false
+  local favor = event.faction and player.favor[event.faction] or 0
+  local basic_event_chance = currMap.event_chance or gamesettings.default_event_chance
+  local countdown = faction and faction.event_countdown or currGame.event_countdown
+  
+  --Check if this event can occur on this map based on mapType, branches, and tags
+  local acceptableMap = false
+  if not event.mapTypes and not event.branches and not event.tags then
+    acceptableMap = true
+  else --Only run this if the event actually has a list of mapTypes, branches, or tags
+    if (event.mapTypes and in_table(currMap.mapType,event.mapTypes)) or (event.branches and in_table(currMap.branch,event.branches)) then
+      acceptableMap = true
+    elseif event.tags then --Only run this if mapTypes and branches haven't matched yet
+      local foundTag = false
+      for _,tag1 in ipairs(event.tags) do
+        for _,tag2 in ipairs(currMap.tags) do
+          if tag1 == tag2 then
+            foundTag = true
+            break
+          end
+        end
+      end
+      if foundTag then acceptableMap = true end
+    end
+  end
+  if not acceptableMap then return false end
+
+  --Random event chance and cooldown checks:
+  if event.event_type~="random" or ((event.ignore_basic_chance or random(1,100) < basic_event_chance) and (event.ignore_cooldown or countdown < 1)) then
+    --Faction checks:
+    if not event.faction or ((not event.faction_members_only or player:is_faction_member(event.faction)) and (not event.max_favor or favor < event.max_favor) and (not event.min_favor or favor > event.min_favor)) then
+      --Standard checks:
+      if (not event.chance or random(1,100) < event.chance) and (not event.max_occurances or not currGame.events_occured[eid] or currGame.events_occured[eid] < event.max_occurances) then
+        return true
+      end --end basic if
+    end --end faction check if
+  end --end random chance if
+  return false
+end --end check_event function
+
+---Cause an event to run its code
+--@param eid Number. The event ID
+--@param force Boolean. Whether to ignore the requires() code for the event
+function activate_event(eid,force)
+  local event = possibleEvents[eid]
+  if force or not event.requires or event.requires() ~= false then
+    event.action()
+    currGame.events_occured[eid] = (currGame.events_occured[eid] or 0)+1
+    if event.faction then
+      local faction = currWorld.factions[event.faction]
+      faction.event_countdown = math.max(faction.event_countdown,(event.cooldown or faction.event_cooldown or gamesettings.default_event_cooldown))
+    else
+      currGame.event_countdown = math.max(currGame.event_countdown,(event.cooldown or currMap.event_cooldown or gamesettings.default_event_cooldown))
+    end
+  end
+end
+
+---Loop through the list of events and activate all eligible ones of a given type
+--@param event_type Text. The type of event. Possible event types: enter_map, enter_map_first_time, random, player_kills, boss_dies
+function run_all_events_of_type(event_type)
+  for eid, event in pairs(possibleEvents) do
+    if event.event_type==event_type and (not event.faction or not currMap.forbid_faction_events) then
+      if check_event(eid) then
+        activate_event(eid)
+      end
+    end --end random event type
+  end --end event for
 end

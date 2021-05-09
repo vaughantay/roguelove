@@ -12,7 +12,7 @@ function mapgen:generate_map(branchID, depth,force)
   if currGame.seedState then mapRandom:setState(currGame.seedState) end
   random = function(...) return mapRandom:random(...) end
 
-  local branch = branches[branchID]
+  local branch = currWorld.branches[branchID]
   local forceMapType = branch.forceMapTypes and branch.forceMapTypes[depth]
   if not forceMapType and force then forceMapType = force end --game will default to the branch's forced maps. But if the game definition has no forced map, then you can potentially pass in a forced map instead
   local whichMap = nil
@@ -61,6 +61,10 @@ function mapgen:generate_map(branchID, depth,force)
   build.lit = whichMap.lit or branch.lit
   build.noCreats = whichMap.noCreats
   build.noItems = whichMap.noItems
+  build.noExits = whichMap.noExits
+  build.event_chance = whichMap.event_chance or branch.event_chance
+  build.event_cooldown = whichMap.event_cooldown or branch.event_cooldown
+  build.tags = merge_tables(whichMap.tags or {},branch.tags or {})
   --Generate the map itself:
   local success = true
   if whichMap.create then
@@ -98,31 +102,33 @@ function mapgen:generate_map(branchID, depth,force)
   end --end if stairs already exist
   
   --Add exits:
-  --Do generic up and down stairs first, although they may be replaced by other exits later:
-  if build.depth > 1 then
-    local upStairs = Feature('exit',{branch=build.branch,depth=build.depth-1})
-    build:change_tile(upStairs,build.stairsUp.x,build.stairsUp.y)
-  end
-  if build.depth < branch.max_depth then
-    local downStairs = Feature('exit',{branch=build.branch,depth=build.depth+1})
-    build:change_tile(downStairs,build.stairsDown.x,build.stairsDown.y)
-  end
-  if branch.exits[build.depth] then
-    for depth,exit in pairs(branch.exits[build.depth]) do
-      local whichX,whichY = nil,nil
-      if exit.replace_upstairs then
-        whichX,whichY = build.stairsUp.x,build.stairsUp.y
-      elseif exit.replace_downstairs then
-        whichX,whichY = build.stairsDown.x,build.stairsDown.y
-      end
-      if not whichX or not whichY then
-        whichX,whichY = self:get_stair_location(build)
-      end
-      local branchStairs = Feature('exit',{branch=exit.branch,depth=exit.exit_depth or 1,oneway=exit.oneway,name=exit.name})
-      build:change_tile(branchStairs,whichX,whichY)
-      --TODO: make sure non-oneway exits are reciprocal
+  if not build.noExits then
+    --Do generic up and down stairs first, although they may be replaced by other exits later:
+    if build.depth > 1 then
+      local upStairs = Feature('exit',{branch=build.branch,depth=build.depth-1})
+      build:change_tile(upStairs,build.stairsUp.x,build.stairsUp.y)
     end
-    --TODO: Scramble where the exits are, for fun
+    if build.depth < branch.max_depth then
+      local downStairs = Feature('exit',{branch=build.branch,depth=build.depth+1})
+      build:change_tile(downStairs,build.stairsDown.x,build.stairsDown.y)
+    end
+    if branch.exits[build.depth] then
+      for depth,exit in pairs(branch.exits[build.depth]) do
+        local whichX,whichY = nil,nil
+        if exit.replace_upstairs then
+          whichX,whichY = build.stairsUp.x,build.stairsUp.y
+        elseif exit.replace_downstairs then
+          whichX,whichY = build.stairsDown.x,build.stairsDown.y
+        end
+        if not whichX or not whichY then
+          whichX,whichY = self:get_stair_location(build)
+        end
+        local branchStairs = Feature('exit',{branch=exit.branch,depth=exit.exit_depth or 1,oneway=exit.oneway,name=exit.name})
+        build:change_tile(branchStairs,whichX,whichY)
+        --TODO: make sure non-oneway exits are reciprocal
+      end
+      --TODO: Scramble where the exits are, for fun
+    end
   end
   
 	--Add creatures & items:
@@ -156,7 +162,7 @@ end
 --@return Table or nil. Either a table of creature IDs, or nil if there are no possible creatures
 function mapgen:get_creature_list(map)
   local whichMap = mapTypes[map.mapType]
-  local branch = branches[map.branch]
+  local branch = currWorld.branches[map.branch]
   local specialCreats = nil
   local cTypes = nil
   local cFactions = nil
@@ -270,7 +276,7 @@ end
 --@return Table or nil. Either a table of item IDs, or nil if there are no possible items
 function mapgen:get_item_list(map)
   local whichMap = mapTypes[map.mapType]
-  local branch = branches[map.branch]
+  local branch = currWorld.branches[map.branch]
   local specialItems = nil
   local iTags = nil
   

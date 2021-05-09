@@ -76,7 +76,13 @@ function Spell:use(target, caster, ignoreCooldowns)
     if (caster == player) then output:out("You don't have enough magic points to use that ability.") end
 		return false
 	elseif self.cast then
-		local r = self:cast(target,caster)
+    local status,r = pcall(self.cast,self,target,caster)
+    if not status then
+      local errtxt = "Error from " .. caster:get_name() .. " casting spell " .. self.name .. ": " .. r
+      output:out(errtxt)
+      print(errtxt)
+      return false
+    end
     if r ~= false or r == nil then
       if self.sound and player:can_see_tile(caster.x,caster.y) then output:sound(self.sound) end
       if caster == player then update_stat('ability_used',self.name) end

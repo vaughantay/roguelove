@@ -27,8 +27,7 @@ local poisoned = {
   prefix = "poisoned",
   removal_type="hit",
   description = "Poisons the target on a successful hit.",
-  hit_conditions={{condition='poisoned',chance=25,minTurns=2,maxTurns=4}},
-  crit_conditions={{condition="poisoned",turns=5,chance=100}},
+  hit_conditions={{condition='poisoned',chance=25,minTurns=2,maxTurns=4,crit_chance=100,crit_turns=5}},
   itemType="weapon",
   requires_tags={"sharp"},
   neverPermanent=true, --This enchantment will never be picked to be a permanent part of an artifact
@@ -76,8 +75,7 @@ local sharpened = {
   itemType="weapon",
   subType="melee",
   requires_tags={"sharp"},
-  hit_conditions={{condition="bleeding",minTurns=2,maxTurns=5,chance=100}},
-  crit_conditions={{condition="bleeding",turns=5,chance=100}}
+  hit_conditions={{condition="bleeding",minTurns=2,maxTurns=5,chance=100,crit_turns=5}}
 }
 enchantments['sharpened'] = sharpened
 

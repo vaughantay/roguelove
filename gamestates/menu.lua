@@ -64,7 +64,6 @@ function menu:keypressed(key)
     if self.cursorY > 8 then self.cursorY = 1 end
 	elseif key == "return" or key == "wait" then
 		if (self.cursorY == 1) then
-      initialize_world()
       Gamestate.switch(newgame)
       self.cursorY = 1
       newgame.cheats={}

@@ -753,44 +753,6 @@ undeadrepellent = Spell({
     end
   }),
 
-webshot = Spell({
-    name = "Spray Webbing",
-    description = "Spray sticky webbing in an area to trap your victims.",
-    cooldown = 25,
-    AIcooldown=50,
-    target_type = "square",
-    projectile = true,
-    sound="spit",
-    flags={aggressive=true,defensive=true,fleeing=true},
-    cast = function(self,target,caster)
-      if player:can_see_tile(caster.x,caster.y) then output:out(caster:get_name() .. " sprays webbing all over the place.") end
-      local tiles = mapgen:make_blob(currMap,target.x,target.y,false,25)
-      for _,t in pairs(tiles) do
-        local creat = currMap:get_tile_creature(t.x,t.y)
-        local web = true
-        if creat and creat.id ~= "spider" then
-          creat:give_condition('webbed',tweak(5))
-          currMap:add_effect(Effect('conditionanimation',{owner=creat,condition="webbed",symbol="~",image_base="spiderwebtangle",image_max=2,speed=creat.animation_time,color={r=255,g=255,b=255,a=255},use_color_with_tiles=false,spritesheet=true}),creat.x,creat.y)
-          web = false
-        end
-        for _, f in pairs(currMap:get_tile_features(t.x,t.y)) do
-          if web == false or f.water or f.absorbs or f.id == "web" then web = false break end --if there's already slime, don't reapply
-        end
-        if web then
-          local w = Feature('web')
-          currMap:add_feature(w,t.x,t.y)
-          w:refresh_image_name()
-          for x=t.x-1,t.x+1,1 do
-            for y=t.y-1,t.y+1,1 do
-              local web = currMap:tile_has_feature(x,y,'web')
-              if web then web:refresh_image_name() end
-            end
-          end --end forx
-        end
-      end
-    end --end cast function
-  }),
-
 slimetrail = Spell({
     name = "Slimy Secretions",
     target_type = "passive",
@@ -1656,7 +1618,7 @@ heal = Spell({
           elseif shitlist and random(1,100) < 10 then --10% chance of currently hostile to ignore caster
             target:ignore(caster)
           end
-          --[[if not shitlist and target.master == nil and target.faction ~= "chaos" and (caster.faction == nil or target.enemyfactions == nil or not in_table(caster.faction,target.enemy_factions)) and random(1,100) < 10 then --10% chance of currently non-hostile to become thrall of caster if they're not in an enemy faction
+          --[[if not shitlist and target.master == nil and target.faction ~= "chaos" and (caster.faction == nil or target.enemy_factions == nil or not in_table(caster.faction,target.enemy_factions)) and random(1,100) < 10 then --10% chance of currently non-hostile to become thrall of caster if they're not in an enemy faction
             target:become_thrall(caster)
           end]]
         else --if not touching
@@ -2085,36 +2047,6 @@ eyelaser = Spell({
       return targets
     end
   }),
-
-yawp = Spell({
-    name = "Barbaric Yawp",
-    description = "You too are not a bit tamed, you too are untranslatable. Or, at least, your methods of communication are.",
-    target_type="self",
-    sound="yawp",
-    cooldown=10,
-    flags={aggressive=true,defensive=true,fleeing=true},
-    cast = function(self,target,caster)
-      currMap:add_effect(Effect('soundwavemaker',{r=100,g=100,b=100},5),caster.x,caster.y)
-      if player:can_see_tile(caster.x,caster.y) then output:out(caster:get_name() .. " sounds " .. caster:get_pronoun('p') .. " barbaric yawp over the roofs of the world.") end
-      for x=math.max(caster.x-10,2),math.min(currMap.width-1,caster.x+10) do
-        for y=math.max(caster.y-10,2),math.min(currMap.height-1,caster.y+10) do
-          local creat = currMap:get_tile_creature(x,y)
-          if creat and creat ~= caster then
-            local dist = calc_distance(caster.x,caster.y,creat.x,creat.y)
-            creat:notice(caster)
-            if not creat:is_type('mindless') then creat.fear = creat.fear + random(10,25) end
-            if dist < 3 and random(1,2) == 1 then
-              if player:can_see_tile(creat.x,creat.y) then output:out(creat:get_name() .. " is stunned by the yawp!") end
-              creat:give_condition('stunned',tweak(4))
-            elseif random(1,2) == 1 and not creat:is_type('mindless') then
-              if player:can_see_tile(creat.x,creat.y) then output:out(creat:get_name() .. " is terrified by the yawp!") end
-              creat:give_condition('fear',tweak(30))
-            end --end fear or stunned if
-          end
-        end --end fory
-      end --end forx
-    end
-}),
 
 bloodshield = Spell({
     name = "Like Blood from a Stone",

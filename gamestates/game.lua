@@ -37,8 +37,9 @@ function game:draw()
   setColor(0,0,0,100)
   love.graphics.rectangle('fill',0,0,width,16)
   setColor(255,255,255,255)
-  local branch = branches[currMap.branch]
+  local branch = currWorld.branches[currMap.branch]
   love.graphics.printf((not branch.hideName and branch.name or "") .. (not branch.hideDepth and " " .. (branch.depthName or "Depth") .. " " .. currMap.depth or "") .. (currMap.name and (not branch.hideName or not branch.hideDepth) and ": " or "") .. (currMap.name or ""),0,0,width,"center")
+  self.menuButton = output:closebutton(8,8,false,true,'menu')
   if action == "targeting" then
     local text = "Select Target"
     if actionResult and actionResult.name then
@@ -1209,6 +1210,7 @@ function game:update(dt)
 end
 
 function game:mousepressed(x,y,button)
+  local uiScale = (prefs['uiScale'] or 1)
   if self.popup then
     if self.popup.afterFunc then self.popup.afterFunc() end
     self.popup = nil
@@ -1217,6 +1219,10 @@ function game:mousepressed(x,y,button)
       Timer.after(.5,function() self.blackAmt = nil end)
     end
     return
+  end
+  
+  if x/uiScale > self.menuButton.minX and x/uiScale < self.menuButton.maxX and y/uiScale > self.menuButton.minY and y/uiScale < self.menuButton.maxY then
+    Gamestate.switch(pausemenu)
   end
   
   if self.moveBlocked then return false end --If something is preventing movement don't do anything
@@ -1403,7 +1409,7 @@ function game:keypressed(key,scancode,isRepeat)
     elseif key == "n" or key == "escape" then
       self.warning = nil
     end
-	elseif key == "north" or key == "south" or key == "east" or key == "west" or key == "northwest" or key == "northeast" or key == "southwest" or key == "southeast" then--(prefs['arrowKeys'] and (key == "left" or key == "right" or key == "up" or key == "down")) or (key == keybindings.north or key == keybindings.northeast or key == keybindings.east or key == keybindings.southeast or key == keybindings.south or key == keybindings.southwest or key == keybindings.west or key == keybindings.northwest) then
+	elseif key == "north" or key == "south" or key == "east" or key == "west" or key == "northwest" or key == "northeast" or key == "southwest" or key == "southeast" then
     if self.contextualMenu then
       if key == "north" then
         self.contextualMenu:scrollUp()
@@ -1922,7 +1928,7 @@ local Popup = Class{}
 
 function game:show_map_description()
   local _, count = string.gsub(currMap.description, "\n", "\n")
-  local branch = branches[currMap.branch]
+  local branch = currWorld.branches[currMap.branch]
   self.popup = Popup(currMap.description,(not branch.hideName and branch.name or "") .. (not branch.hideDepth and " " .. (branch.depthName or "Depth") .. " " .. currMap.depth or "") .. (currMap.name and (not branch.hideName or not branch.hideDepth) and "\n" or "") .. (currMap.name or "") .. "\n" .. " ",4+count,true)
   output:sound('interface_bang')
 end

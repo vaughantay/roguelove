@@ -2,8 +2,8 @@ playerClasses = {
   demonhunter = {
     name="Demon Hunter",
     description="Fights those pesky demons.",
-    favor={lightchurch=500}, --List of favor scores the character starts with
-    factions={"lightchurch"}, --List of factions the character begins as a member of
+    favor={lightchurch=500,angels=100,demons=-100}, --List of favor scores the character starts with
+    --factions={"lightchurch"}, --List of factions the character begins as a member of
     spells={"demondamager"}, --These are spells the character will start with
     items={{item="holywater",amount=2},{item="scroll",passed_info={'holy'},displayName = "3 Random Holy Scrolls",amount=3}}, --These items will be granted on game start
     equipment={{item="dagger",enchantment="blessed",enchantment_turns=5,displayName="Blessed Dagger"}}, --These items will be equipped on game start
@@ -27,6 +27,16 @@ playerClasses = {
     stat_modifiers={strength=10,melee=7,ranged=2,max_hp=25,armor=1}, --These values will be added to the characters' base stats
     money=100, --Amount of money the character starts with
     require_species={"player_human"} --This class will only be available if the player's species is listed in this table (or their species has tags or types in the require_species_tags table)
+  },
+  barbarian = {
+    name="Barbarian",
+    description="You too are not a bit tamed, you too are untranslatable.",
+    equipment={{item="club"},{item="loincloth"}}, --These items will be equipped on game start
+    spells={"yawp"}, --These are spells the character will start with
+    learns_spells={{spell="auraoffear",level=5},"passiverage"}, --These spells will be automatically granted once a certain level is reached
+    favor={village=-10}, --List of favor scores the character starts with
+    stat_modifiers={strength=10,melee=10,armor=2}, --These values will be added to the characters' base stats
+    starting_branch="wilderness"
   },
   demonologist = {
     name="Demonologist",

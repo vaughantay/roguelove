@@ -7,7 +7,7 @@ function storescreen:enter(_,whichStore)
   output:sound('stoneslideshort',2)
   self.cursorY = 1
   self.cursorX = 1
-  self.store = stores[whichStore]
+  self.store = currWorld.stores[whichStore]
   self.screen="Buy"
   self.outText = nil
   self:refresh_lists()

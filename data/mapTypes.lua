@@ -1,5 +1,7 @@
 mapTypes = {}
 
+--noBranchItems & noBranchCreatures
+
 local forest = {
   playlist = "genericforest",
   bossPlaylist = "genericforestboss",
@@ -59,11 +61,15 @@ local town = {
   description = "A quaint village that for some reason has a staircase in the middle leading into an underground dungeon complex.",
   width=25,
   height=25,
-  noItems=true,
-  lit=true,
+  noItems=true, --If true, no items will generate on this level
+  noExits=true, --If true, the automatic code to generate exits won't run on this level. You should manually put in exits in the create() code or something, or the player will get stuck
+  lit=true, --If true, the entire level will count as lit. Perception distance won't matter
   stores=5,
   factions=5,
-  creature_density=10
+  creature_density=10, --How many creatures should be generated per 100 tiles
+  event_chance=100, --Likelihood that a non-faction random event will occur. Overrides the event_chance values in gamesettings and in the branch
+  event_cooldown=100, --Turns that must pass between ranodm events. Overrides the event_cooldown values in gamesettings and in the branch
+  forbid_faction_events=true, --If true, faction events won't occur on this map
 }
 function town.create(map,width,height)
   width,height = map.width,map.height
@@ -71,7 +77,7 @@ function town.create(map,width,height)
   
   --Add stairs in the middle:
   local midX, midY = round(width/2),round(height/2)
-  local stairs = Feature('exit',{branch="main"})
+  local stairs = Feature('exit',{branch="main",exitName="Stairway"})
   map:change_tile(stairs,midX,midY)
   map.stairsUp.x,map.stairsUp.y = midX,midY
   map.stairsDown.x,map.stairsDown.y = midX,midY
@@ -81,8 +87,8 @@ function town.create(map,width,height)
   map:change_tile(gates,midX,height-1)
   
   --Add factions:
-  for _,fac in pairs(possibleFactions) do
-    if not fac.hidden and not fac.noHQ then
+  for _,fac in pairs(currWorld.factions) do
+    if not fac.hidden and not fac.no_hq then
       local hq = Feature('factionHQ',fac)
       local tries = 0
       local ix,iy = random(2,map.width-1),random(2,map.height-1)
@@ -98,7 +104,7 @@ function town.create(map,width,height)
   end
   
   --Add stores:
-  for _,store in pairs(stores) do
+  for _,store in pairs(currWorld.stores) do
     local s = Feature('store',store)
     local tries = 0
     local ix,iy = random(2,map.width-1),random(2,map.height-1)
@@ -516,10 +522,11 @@ mapTypes['demonruins'] = demonruins
 local swamp = {
   tileset = "swamp",
   description="Swamps are generally disgusting and dangerous places. Underground swamps, doubly so.",
-  tags={'natural','plants','water'},
+  tags={'natural','plants','water','swamp','poison'},
+  passedTags={'natural','plants','water','poison'},
+  creatures = {'dragonfly','mosquito','shroomman'},
   creatureTypes = {'bug'},
-  creatures = {'dragonfly','giantmosquito','shroomman'},
-  creatureTags = {'swamp','poison'}
+  creatureTags = {'plants','swamp','poison','bug'},
 }
 function swamp.create(map,width,height)
   layouts['caves'](map,width,height,40)
