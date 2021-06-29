@@ -2339,6 +2339,7 @@ local store = {
   symbol="^",
   alwaysDisplay=true,
   color={r=0,g=0,b=255,a=255},
+  actions={enter={text="Enter",description="Shop at the store."}},
   new = function(self,whichStore)
     if type(whichStore) == "string" then
       whichStore = currWorld.stores[whichStore]
@@ -2348,9 +2349,13 @@ local store = {
     end
     self.store = whichStore
     self.name = whichStore.name
+    self.actions.enter.text = "Shop at " .. whichStore.name
     if whichStore.map_description then self.description = whichStore.map_description end
   end,
   enter = function(self,creature)
+    if creature == player then self:action(player) end
+  end,
+  action = function(self,creature)
     if creature == player then Gamestate.switch(storescreen,self.store.id) end
   end
 }
@@ -2362,6 +2367,7 @@ local factionHQ = {
   symbol="^",
   alwaysDisplay=true,
   color={r=0,g=0,b=255,a=255},
+  actions={enter={text="Enter",description="Interact with the faction."}},
   new = function(self,whichFac)
     if type(whichFac) == "string" then
       whichFac = currWorld.factions[whichFac]
@@ -2371,10 +2377,14 @@ local factionHQ = {
     end
     self.faction = whichFac
     self.name = whichFac.name
+    self.actions.enter.text = (whichFac.enter_text or "Enter") .. " " .. whichFac.name
     if whichFac.map_description then self.description = whichFac.map_description end
     if whichFac.map_name then self.name = whichFac.map_name end
   end,
   enter = function(self,creature)
+    if creature == player then self:action(player) end
+  end,
+  action = function(self,creature)
     if creature == player then Gamestate.switch(factionscreen,self.faction.id) end
   end
 }
@@ -2411,3 +2421,16 @@ function exit:action(entity,action)
   end
 end
 possibleFeatures['exit'] = exit
+
+local valhalla = {
+  name = "Portal to Valhalla",
+  description = "An gateway to the afterlife of true heroes",
+  symbol = ">",
+  alwaysDisplay=true,
+  color={r=255,g=255,b=255,a=255},
+  actions={exit={text="Ascend",description="Ascend to valhalla."}},
+}
+function valhalla:action(entity,action)
+  win()
+end
+possibleFeatures['valhalla'] = valhalla

@@ -367,8 +367,10 @@ function factionscreen:draw()
     end --end buy/sell split
   elseif self.screen == "Spells" then
     self.spellButtons = {}
+    local spellCount = 0
     for i,spellDef in ipairs(faction.teaches_spells or {}) do
       if not player:has_spell(spellDef.spell) then
+        count = count + 1
         local spell = possibleSpells[spellDef.spell]
         local costText = nil
         if spellDef.moneyCost then
@@ -406,9 +408,15 @@ function factionscreen:draw()
         printY=printY+fontSize
       end
     end
+    if spellCount == 0 then
+      love.graphics.printf("There are currently no spells available to learn.",windowX,printY,windowWidth,"center")
+    end
   elseif self.screen == "Services" then
     self.serviceButtons = {}
-    for i,servID in ipairs(faction.offers_services or {}) do
+    local serviceCount = 0
+    local services = faction.offers_services or {}
+    for i,servID in ipairs(services) do
+      serviceCount = serviceCount+1
       local service = possibleServices[servID]
       local costText = service:get_cost(player)
       local serviceText = service.name .. (costText and " (Cost: " .. costText .. ")" or "") .. "\n" .. service.description
@@ -429,8 +437,28 @@ function factionscreen:draw()
       end
       printY=printY+fontSize
     end
+    if serviceCount == 0 then
+      love.graphics.printf("There are currently no services available.",windowX,printY,windowWidth,"center")
+    end
   elseif self.screen == "Missions" then
-end
+    self.missionButtons = {}
+    local missions = (faction.offers_missions or {})
+    local missionCount = 0
+    for i, missionID in ipairs(missions) do
+      if not currGame.missionStatus[missionID] and not currGame.finishedMissions[missionID] then
+        missionCount = missionCount+1
+        local mission = possibleMissions[missionID]
+        local missionText = mission.name .. "\n" .. mission.description
+        local __, wrappedtext = fonts.textFont:getWrap(missionText, windowWidth)
+        love.graphics.printf(missionText,windowX,printY,windowWidth,"center")
+        printY=printY+(#wrappedtext)*fontSize
+        
+      end
+    end
+    if missionCount == 0 then
+      love.graphics.printf("There are currently no missions available.",windowX,printY,windowWidth,"center")
+    end
+  end
 
   self.closebutton = output:closebutton(windowX+24,24,nil,true)
   love.graphics.pop()
@@ -635,7 +663,7 @@ function factionscreen:mousepressed(x,y,button)
     self.screen = "Spells"
   elseif self.serviceButton and x > self.serviceButton.minX and x < self.serviceButton.maxX and y > self.serviceButton.minY and y < self.serviceButton.maxY then
     self.screen = "Services"
-  elseif self.missioNButton and x > self.missionButton.minX and x < self.missionButton.maxX and y > self.missionButton.minY and y < self.missionButton.maxY then
+  elseif self.missionButton and x > self.missionButton.minX and x < self.missionButton.maxX and y > self.missionButton.minY and y < self.missionButton.maxY then
     self.screen = "Missions"
   end
 end --end mousepressed

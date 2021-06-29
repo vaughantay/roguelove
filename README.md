@@ -45,6 +45,11 @@ Features that have been added that weren't in Possession:
   * Branches can be set to ensure each floor within the branch is a different map type, so it doesn't repeat.
   * Branches and MapTypes can define the specific creatures that will spawn in them, or list creature types, factions, and tags they'll pull creatures from.
   * TODO: Let branches define item spawns within them.
+* Events
+  * Events are arbitrary code chunks that can run at given points during the game.
+  * There are four times that events can be checked to run: Entering a map, entering a map for the first time, killing a creature, and randomly.
+  * Events can be associated with a faction, and can be set to only run if the player's favor is above or below a certain level, or only if the player is a member of the faction.
+  * Events can be set to only run a limited number of times during the game, have a set rarity, and can have requires() code that determines if the event can be run at the current time. They can also just be run manually, if desired.
 * Miscellaneous:
   * Features can have "actions" attached to them. There's a new keybinding used to perform a feature's action. Features can have multiple actions attached to them.
 

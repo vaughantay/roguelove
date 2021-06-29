@@ -244,6 +244,7 @@ function load_data()
   require "data.layouts"
   require "data.mapModifiers"
   require "data.mapTypes"
+  require "data.missions"
   require "data.monsters"
   require "data.playerclasses"
   require "data.projectiles"

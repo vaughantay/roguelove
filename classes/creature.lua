@@ -539,6 +539,17 @@ function Creature:callbacks(callback_type,...)
       end --end enchantment for
     end
 	end
+  for missionID, missionStatus in pairs(currGame.missionStatus) do
+    local mission = possibleMissions[missionID]
+    if mission and type(mission[callback_type]) == "function" then
+      local status,r = pcall(mission[callback_type],mission,self,unpack({...}))
+      if status == false then
+        output:out("Error in mission " .. mission.name .. " callback \"" .. callback_type .. "\": " .. r)
+      end
+      if (r == false) then return false end
+      if r ~= nil and type(r) ~= "boolean" then table.insert(ret,r) end
+    end
+  end
 	return true,ret
 end
 

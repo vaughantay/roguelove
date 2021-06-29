@@ -59,8 +59,10 @@ function mapgen:generate_map(branchID, depth,force)
   build.playlist = whichMap.playlist or id
   build.bossPlaylist = whichMap.bossPlaylist or id .. "boss"
   build.lit = whichMap.lit or branch.lit
-  build.noCreats = whichMap.noCreats
+  build.noCreatures = whichMap.noCreatures
   build.noItems = whichMap.noItems
+  build.noStores = whichMap.noStores
+  build.noFactions = whichMap.noFactions
   build.noExits = whichMap.noExits
   build.event_chance = whichMap.event_chance or branch.event_chance
   build.event_cooldown = whichMap.event_cooldown or branch.event_cooldown
@@ -151,6 +153,9 @@ function mapgen:generate_map(branchID, depth,force)
     end --end tries if
   end
   --TODO: Add faction HQs:
+  if not build.noFactions then
+    
+  end
   
   currGame.seedState = mapRandom:getState()
   random = love.math.random
@@ -255,11 +260,11 @@ function mapgen:generate_creature(level,list,allowAll)
   --Prevent an infinite loop if there are no creatures of a given level:
   level = math.max(0,tweak(level))
   if not list then
-    local noCreats = true
+    local noCreatures = true
     for _,creat in pairs(possibleMonsters) do
-      if creat.level == level or (creat.maxLevel or 0) <= level then noCreats = false break end
+      if creat.level == level or (creat.maxLevel or 0) <= level then noCreatures = false break end
     end
-    if noCreats == true then return false end
+    if noCreatures == true then return false end
   end
   
 	-- This selects a random creature from the table of possible creatures, and compares the desired creature level to this creature's level. If it's a match, continue, otherwise select another one

@@ -566,3 +566,61 @@ function swamp.generateName()
   return "The " .. (random(1,2) == 1 and (adjectives[random(#adjectives)] .. " " .. swampnames[random(#swampnames)]) or (swampnames[random(#swampnames)] .. " of " .. titles[random(#titles)]))
 end
 mapTypes['swamp'] = swamp
+
+local endgame = {
+  tileset = "dungeon",
+  name = "The Hall of Heroes",
+  description="In this hall, a true hero can ascend to valhalla.",
+  width=10,
+  height=25,
+  noItems=true, --If true, no items will generate on this level
+  noCreatures=true,
+  noStores=true,
+  noFactions=true,
+  event_chance=0, --Likelihood that a non-faction random event will occur. Overrides the event_chance values in gamesettings and in the branch
+  event_cooldown=0, --Turns that must pass between ranodm events. Overrides the event_cooldown values in gamesettings and in the branch
+  forbid_faction_events=true, --If true, faction events won't occur on this map
+}
+function endgame.create(map,width,height)
+  width,height = map.width,map.height
+  map:clear(true)
+  
+  --Add stairs in the middle:
+  local midX = round(width/2)
+  local stairY = height-1
+  local stairs = Feature('exit',{branch="main",exitName="Stairway",depth=3})
+  map:change_tile(stairs,midX,stairY)
+  map.stairsUp.x,map.stairsUp.y = midX,stairY
+  map.stairsDown.x,map.stairsDown.y = midX,2
+  local valhalla = Feature('valhalla')
+  map:change_tile(valhalla,midX,2)
+  local wins = load_wins()
+  local availableWins = copy_table(wins)
+  for y=stairY,2,-2 do
+    for i = 1,2,1 do
+      local gender = get_random_element({"male","female","other"})
+      local name = namegen:generate_human_name({gender=gender})
+      local date = "in a Long-Ago, Forgotten Time"
+      local class = "Hero"
+      local pronoun = (gender == "male" and "He" or (gender == "female" and "She" or "They"))
+      if #availableWins > 0 then
+        local k = get_random_key(availableWins)
+        local win = availableWins[k]
+        name = win.name
+        date = os.date("%b %d, %Y",win.date)
+        class = ucfirst(win.player.name or "Hero")
+        local gender = win.player.gender
+        pronoun = (gender == "male" and "He" or (gender == "female" and "She" or "They"))
+        table.remove(availableWins,k)
+      end
+      local statue = Feature('statue')
+      statue.name = "Statue of " .. name
+      local x = (i == 1 and 2 or width-1)
+      map:add_feature(statue,x,y)
+      statue.description = "A statue of " .. name .. ", " .. class .. ".\n" .. pronoun .. " ascended " .. date .. "."
+      map[x][y-1] = "#"
+      map[x][y+1] = "#"
+    end
+  end
+end
+mapTypes['endgame'] = endgame

@@ -58,9 +58,13 @@ dungeonBranches['wilderness'] = wilderness
 
 local endgame = {
   name = "The Hall of Heroes",
+  forceMapTypes = {[1]="endgame"},
   max_depth=1,
+  hideName=true, --If this is set to true, the name of the branch will not be shown when displaying the name of the map
   hideDepth=true,
   noCreatures=true, --No creatures will be generated on this branch
-  noItems=true --No items will be generated on this branch
+  noItems=true, --No items will be generated on this branch
+  noStores=true,
+  noFactions=true
 }
 dungeonBranches['endgame'] = endgame

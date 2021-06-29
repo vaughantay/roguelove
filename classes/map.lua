@@ -728,7 +728,7 @@ function Map:populate_creatures(creatTotal,forceGeneric)
     return mapType:populate_creatures(creatTotal)
   end
   
-  if not self.noCreats and creatTotal > 0 then
+  if not self.noCreatures and creatTotal > 0 then
     local newCreats = {}
     local specialCreats = mapgen:get_creature_list(self)
 		for creat_amt=1,creatTotal,1 do
@@ -747,7 +747,7 @@ function Map:populate_creatures(creatTotal,forceGeneric)
       end --end tries if
 		end --end creature for
     return newCreats
-	end --end if not nocreats
+	end --end if not noCreatures
   return false
 end
 

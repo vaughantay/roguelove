@@ -2665,7 +2665,7 @@ local finalbosshit = {
   stopsInput = true,
 }
 function finalbosshit:update(dt)
-  local hits = get_mission_flag('finalboss')
+  local hits = get_mission_status('finalboss')
   if not self.badghost then
     for _,creat in pairs(currMap.creatures) do
       if creat.id == 'badghost' then

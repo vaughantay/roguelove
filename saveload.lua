@@ -235,7 +235,7 @@ end
 function save_win()
   require "lib.serialize"
   local wins = load_wins()
-  wins[#wins+1] = {name=player.properName,date=os.time(),stats=currGame.stats}
+  wins[#wins+1] = {name=player.properName,date=os.time(),stats=currGame.stats,player=player}
   love.filesystem.write("wins.sav",serialize(wins))
 end
 

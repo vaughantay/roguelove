@@ -7,8 +7,8 @@
 --@param branch String. The ID of the branch to start on. (optional)
 function new_game(mapSeed,playTutorial,cheats,branch)
 	maps = {}
-  branch = branch or gamesettings.default_starting_branch
-  currGame = {startTime=os.date(),fileName=player.properName,playTutorial=playTutorial,tutorialsSeen={},missionFlags={},achievementDisqualifications={},cheats={},autoSave=prefs['autosaveTurns'],seed=mapSeed,stats={},events_occured={},event_countdown=0}
+  branch = parse_name_for_level(player.properName) or branch or gamesettings.default_starting_branch
+  currGame = {startTime=os.date(),fileName=player.properName,playTutorial=playTutorial,tutorialsSeen={},missionStatus={},finishedMissions={},achievementDisqualifications={},cheats={},autoSave=prefs['autosaveTurns'],seed=mapSeed,stats={},events_occured={},event_countdown=0}
   if cheats then currGame.cheats = cheats end
   update_stat('games')
   currMap = mapgen:generate_map(branch,1)
@@ -30,16 +30,9 @@ end
 ---Figures out which level to load based on a given string. Used for level-skip cheats. TODO: Redo this for branches (probably just remove it entirely)
 --@param name String. The name of the level to load, or "level#" to load any level at a given depth, or "generic#" to load the generic level at the given depth.
 function parse_name_for_level(name)
-  local depth = (string.sub(name,1,5) == "level" and tonumber(string.sub(name,6)) or (string.sub(name,1,7) == "generic") and tonumber(string.sub(name,8)))
-  if specialLevels[name] then
-    player.properName="Dirty Cheater"
-    return name,(specialLevels[name].depth or 1)
-  elseif string.sub(name,1,5) == "level" and depth and depth > 0 and depth <= gamesettings.levels then
-    player.properName="Dirty Cheater"
-    return nil,depth
-  elseif string.sub(name,1,7) == "generic" and depth and depth > 0 and depth <= gamesettings.levels then
-    player.properName="Dirty Cheater"
-    return "generic",depth
+  if dungeonBranches[name] then
+    print(name)
+    return name
   end
 end
 
@@ -265,6 +258,8 @@ function win()
   save_win()
   delete_save(currGame.fileName,true)
   game:blackOut(5,true)
+  game:show_popup([[You truly are a true hero.]]
+    ,"",6,false,true,function() currGame = nil Gamestate.switch(credits) end)
 end
 
 ---This function is called when you lose. It clears out the player and current game variables, and switches back to the main menu.
@@ -708,31 +703,70 @@ function show_tutorial(tutorial)
   currGame.tutorialsSeen[tutorial] = true
 end
 
----Gets the value of a "mission flag." Mission flags aren't pre-defined, you can use them as you see fit to track whatever information you want in a given playthrough.
---@param flag String. The ID of the mission flag.
---@return Anything. The value of the flag.
-function get_mission_flag(flag)
-  return currGame.missionFlags[flag]
-end
-
----Sets a "mission flag" to a specific value. Mission flags aren't pre-defined, you can use them as you see fit to track whatever information you want in a given playthrough.
---@param flag String. The ID of the mission flag.
---@param value Anything. The value you'd like to store.
-function set_mission_flag(flag,val)
-  currGame.missionFlags[flag] = val
-end
-
----Updates a "mission flags" value by a given number value. Mission flags aren't pre-defined, you can use them as you see fit to track whatever information you want in a given playthrough. Only call this function on a mission flag that's using number values!
---@param flag String. The ID of the mission flag.
---@param amt Number. The amount to increase the flag by. (optional, defaults to 1)
-function update_mission_flag(flag,amt)
-  local f = currGame.missionFlags[flag]
-  amt = amt or 1
-  if type(f) == "number" then
-    currGame.missionFlags[flag] = f + amt
-  else
-    currGame.missionFlags[flag] = amt
+---Starts a mission at 0 and runs its begin() code
+--@param missionID String. The ID of the mission. Can either be a pre-defined mission, or you can use any ad-hoc value if you want to use this to track something that's not an actual mission.
+--@param startVal Anything. The starting status of the mission(Optional, defaults to 0)
+--@param skipFunc Boolean. Whether to skip the start() function (assuming the mission actually has one) (Optional)
+--@return Anything. Either false if the mission didn't start, the returned value of the start() function if there was one, or true.
+function start_mission(missionID,startVal,skipFunc)
+  local mission = possibleMissions[missionID]
+  local ret = true
+  if not skipFunc and mission and mission.start then
+    ret = mission.start(startVal)
   end
+  if ret ~= false then --If the mission isn't pre-defined or doesn't have a finish() code
+    set_mission_status(missionID,startVal or 0)
+  end
+  return ret
+end
+
+---Gets the status of a given mission.
+--@param missionID String. The ID of the mission. Can either be a pre-defined mission, or you can use any ad-hoc value if you want to use this to track something that's not an actual mission.
+--@return Anything. The status of the mission.
+function get_mission_status(missionID)
+  return currGame.missionStatus[missionID]
+end
+
+---Sets a the status value of a mission to a specific value.
+--@param missionID String. The ID of the mission. Can either be a pre-defined mission, or you can use any ad-hoc value if you want to use this to track something that's not an actual mission.
+--@param value Anything. The value you'd like to store.
+function set_mission_status(missionID,val)
+  currGame.missionStatus[missionID] = val
+  return val
+end
+
+---Updates a mission's status value by a given number value. Generally, you should inly call this function on a mission that's already has number values as it status. If you don't, though, it'll just set the mission status to whatever the number you passed.
+--@param missionID String. The ID of the mission. Can either be a pre-defined mission, or you can use any ad-hoc value if you want to use this to track something that's not an actual mission.
+--@param amt Number. The amount to increase the status by. (optional, defaults to 1)
+function update_mission_status(missionID,amt)
+  local f = currGame.missionStatus[missionID]
+  amt = amt or 1
+  local newVal = nil
+  if type(f) == "number" then
+    newVal = f + amt
+  else
+    newVal = amt
+  end
+  set_mission_status(missionID,newVal)
+  return newVal
+end
+
+---Marks a mission as finished, removing it from the active mission table. Also runs the mission's finish() code if it's a pre-defined mission.
+--@param missionID String. The ID of the mission. Can either be a pre-defined mission, or you can use any ad-hoc value if you want to use this to track something that's not an actual mission.
+--@param endVal Anything. A value you want to store in the finished missions table (eg to determine how the mission ended if it has multiple endings). (Optional)
+--@param skipFunc Boolean. Whether to skip the finish() function (assuming the mission actually has one) (Optional)
+--@return Anything. Either false if the mission didn't end, the returned value of the finish() function if there was one, or true.
+function finish_mission(missionID,endVal,skipFunc)
+  local mission = possibleMissions[missionID]
+  local ret = true
+  if not skipFunc and mission and mission.finish then
+    ret = mission.finish(endVal)
+  end
+  if ret ~= false then --If the mission isn't pre-defined or doesn't have a finish() code
+    currGame.finishedMissions[missionID] = endVal or true
+    currGame.missionStatus[missionID] = nil
+  end
+  return ret
 end
 
 ---Checks whether an event can fire
