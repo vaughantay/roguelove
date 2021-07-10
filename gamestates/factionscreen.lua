@@ -78,6 +78,7 @@ function factionscreen:draw()
     local canJoin,reason = faction:can_join(player)
     if canJoin then
       joinText = "You are eligible to join this faction."
+      --TODO: Add join button
     else
       joinText = "You're not eligible to join this faction" .. (reason and " for the following reasons: " or ".")
     end
@@ -370,7 +371,7 @@ function factionscreen:draw()
     local spellCount = 0
     for i,spellDef in ipairs(faction.teaches_spells or {}) do
       if not player:has_spell(spellDef.spell) then
-        count = count + 1
+        spellCount = spellCount + 1
         local spell = possibleSpells[spellDef.spell]
         local costText = nil
         if spellDef.moneyCost then
@@ -423,7 +424,7 @@ function factionscreen:draw()
       local __, wrappedtext = fonts.textFont:getWrap(serviceText, windowWidth)
       love.graphics.printf(serviceText,windowX,printY,windowWidth,"center")
       printY=printY+(#wrappedtext)*fontSize
-      local canDo,canDoText = service:requires(player)
+      local canDo,canDoText = (not service.requires or service:requires(player))
       if canDo == false then
         canDoText = "You're not eligible for this service" .. (canDoText and ": " .. canDoText or ".")
         local __, wrappedtext = fonts.textFont:getWrap(canDoText, windowWidth)
@@ -452,7 +453,18 @@ function factionscreen:draw()
         local __, wrappedtext = fonts.textFont:getWrap(missionText, windowWidth)
         love.graphics.printf(missionText,windowX,printY,windowWidth,"center")
         printY=printY+(#wrappedtext)*fontSize
-        
+        local canDo,canDoText = (not mission.requires or mission:requires(player))
+        if canDo == false then
+          canDoText = "You're not eligible for this mission" .. (canDoText and ": " .. canDoText or ".")
+          local __, wrappedtext = fonts.textFont:getWrap(canDoText, windowWidth)
+          love.graphics.printf(canDoText,windowX,printY,windowWidth,"center")
+          printY=printY+(#wrappedtext)*fontSize
+          self.missionButtons[#self.missionButtons+1] = false
+        else
+          local serviceW = fonts.textFont:getWidth("Accept")+padding
+          self.missionButtons[#self.missionButtons+1] = output:button(math.floor(midX-serviceW/2),printY,serviceW,false,(self.cursorY == 2+i and "hover" or nil),"Accept")
+          printY=printY+32
+        end
       end
     end
     if missionCount == 0 then
@@ -469,7 +481,10 @@ function factionscreen:keypressed(key)
     self:switchBack()
   elseif (key == "return" or key == "kpenter") then
     if self.cursorY == 1 then --join button
-      
+      if self.faction:can_join(player) then
+        self.faction:join(player)
+        --TODO: Make this work
+      end
     elseif self.cursorY == 2 then --nav buttons
       if self.cursorX == 1 then self.screen = "Info"
       elseif self.cursorX == 2 then self.screen = "Items"
@@ -482,6 +497,12 @@ function factionscreen:keypressed(key)
           local service = possibleServices[self.faction.offers_services[self.cursorY-2]]
           local didIt, useText = service:activate(player)
           if useText then self.outText = useText end
+        end
+      elseif self.screen == "Missions" then
+        if self.cursorY > 2 and self.missionButtons[self.cursorY-2] then
+          local missionID = self.faction.offers_missions[self.cursorY-2]
+          local useText = start_mission(missionID)
+          if type(useText) == "string" then self.outText = useText end
         end
       elseif self.screen == "Spells" then
         if self.cursorY > 2 and self.spellButtons[self.cursorY-2] then
@@ -577,6 +598,13 @@ function factionscreen:keypressed(key)
     elseif self.screen == "Services" then
       for i=self.cursorY-1,#self.serviceButtons,1 do
         if self.serviceButtons[i] ~= false then
+          self.cursorY = i+2
+          break
+        end
+      end
+    elseif self.screen == "Missions" then
+      for i=self.cursorY-1,#self.missionButtons,1 do
+        if self.missionButtons[i] ~= false then
           self.cursorY = i+2
           break
         end
