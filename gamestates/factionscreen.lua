@@ -424,7 +424,13 @@ function factionscreen:draw()
       local __, wrappedtext = fonts.textFont:getWrap(serviceText, windowWidth)
       love.graphics.printf(serviceText,windowX,printY,windowWidth,"center")
       printY=printY+(#wrappedtext)*fontSize
-      local canDo,canDoText = (not service.requires or service:requires(player))
+      
+      local canDo,canDoText = nil,nil
+      if not service.requires then
+        canDo=true
+      else
+        canDo,canDoText = service:requires(player)
+      end
       if canDo == false then
         canDoText = "You're not eligible for this service" .. (canDoText and ": " .. canDoText or ".")
         local __, wrappedtext = fonts.textFont:getWrap(canDoText, windowWidth)
@@ -446,25 +452,44 @@ function factionscreen:draw()
     local missions = (faction.offers_missions or {})
     local missionCount = 0
     for i, missionID in ipairs(missions) do
-      if not currGame.missionStatus[missionID] and not currGame.finishedMissions[missionID] then
+      local active = currGame.missionStatus[missionID]
+      if not currGame.finishedMissions[missionID] then
         missionCount = missionCount+1
         local mission = possibleMissions[missionID]
         local missionText = mission.name .. "\n" .. mission.description
         local __, wrappedtext = fonts.textFont:getWrap(missionText, windowWidth)
         love.graphics.printf(missionText,windowX,printY,windowWidth,"center")
         printY=printY+(#wrappedtext)*fontSize
-        local canDo,canDoText = (not mission.requires or mission:requires(player))
-        if canDo == false then
-          canDoText = "You're not eligible for this mission" .. (canDoText and ": " .. canDoText or ".")
-          local __, wrappedtext = fonts.textFont:getWrap(canDoText, windowWidth)
-          love.graphics.printf(canDoText,windowX,printY,windowWidth,"center")
-          printY=printY+(#wrappedtext)*fontSize
-          self.missionButtons[#self.missionButtons+1] = false
-        else
-          local serviceW = fonts.textFont:getWidth("Accept")+padding
-          self.missionButtons[#self.missionButtons+1] = output:button(math.floor(midX-serviceW/2),printY,serviceW,false,(self.cursorY == 2+i and "hover" or nil),"Accept")
-          printY=printY+32
-        end
+        if active then
+          local canFinish,canFinishText = nil,nil
+          if mission.can_finish then
+            canFinish,canFinishText = mission:can_finish(player)
+          end
+          if not canFinish then
+            canFinishText = "You are currently on this mission" .. (canFinishText and ". " .. canFinishText or ".")
+            local __, wrappedtext = fonts.textFont:getWrap(canFinishText, windowWidth)
+            love.graphics.printf(canFinishText,windowX,printY,windowWidth,"center")
+            printY=printY+(#wrappedtext)*fontSize
+            self.missionButtons[#self.missionButtons+1] = false
+          else
+            local serviceW = fonts.textFont:getWidth("Finish")+padding
+            self.missionButtons[#self.missionButtons+1] = output:button(math.floor(midX-serviceW/2),printY,serviceW,false,(self.cursorY == 2+i and "hover" or nil),"Finish")
+            printY=printY+32
+          end
+        else --Not active mission
+          local canDo,canDoText = (not mission.requires or mission:requires(player))
+          if canDo == false then
+            canDoText = "You're not eligible for this mission" .. (canDoText and ": " .. canDoText or ".")
+            local __, wrappedtext = fonts.textFont:getWrap(canDoText, windowWidth)
+            love.graphics.printf(canDoText,windowX,printY,windowWidth,"center")
+            printY=printY+(#wrappedtext)*fontSize
+            self.missionButtons[#self.missionButtons+1] = false
+          else
+            local serviceW = fonts.textFont:getWidth("Accept")+padding
+            self.missionButtons[#self.missionButtons+1] = output:button(math.floor(midX-serviceW/2),printY,serviceW,false,(self.cursorY == 2+i and "hover" or nil),"Accept")
+            printY=printY+32
+          end
+        end --end active mission or not if
       end
     end
     if missionCount == 0 then
@@ -501,8 +526,16 @@ function factionscreen:keypressed(key)
       elseif self.screen == "Missions" then
         if self.cursorY > 2 and self.missionButtons[self.cursorY-2] then
           local missionID = self.faction.offers_missions[self.cursorY-2]
-          local useText = start_mission(missionID)
-          if type(useText) == "string" then self.outText = useText end
+          if currGame.missionStatus[missionID] then
+            local mission = possibleMissions[missionID]
+            if mission.can_finish and mission:can_finish(player) then
+              local useText = finish_mission(missionID)
+              if type(useText) == "string" then self.outText = useText end
+            end
+          else
+            local useText = start_mission(missionID)
+            if type(useText) == "string" then self.outText = useText end
+          end
         end
       elseif self.screen == "Spells" then
         if self.cursorY > 2 and self.spellButtons[self.cursorY-2] then
@@ -681,6 +714,43 @@ function factionscreen:mousepressed(x,y,button)
       end --end x/y check
     end --end list for
   end --end if item screen
+  
+  --Services:
+  if self.screen == "Services" and self.serviceButtons then
+    for i,button in ipairs(self.serviceButtons) do
+      if button and x > button.minX and x < button.maxX and y > button.minY and y < button.maxY then
+        local service = possibleServices[self.faction.offers_services[i]]
+        local didIt, useText = service:activate(player)
+        if didIt and useText then self.outText = useText end
+      end--end button coordinate if
+    end--end button for
+  elseif self.screen == "Spells" then
+    for i,button in ipairs(self.spellButtons) do
+      if button and x > button.minX and x < button.maxX and y > button.minY and y < button.maxY then
+        local spellID = self.spellButtons[i].spellID
+        local spell = possibleSpells[spellID]
+        if self.faction:teach_spell(spellID,player) ~= false then
+          self.outText = "You learn " .. spell.name .. "."
+        end
+      end --end button coordinate if
+    end --end button for
+  elseif self.screen == "Missions" then
+    for i,button in ipairs(self.missionButtons) do
+      if button and x > button.minX and x < button.maxX and y > button.minY and y < button.maxY then
+        local missionID = self.faction.offers_missions[i]
+        if currGame.missionStatus[missionID] then
+          local mission = possibleMissions[missionID]
+          if mission.can_finish and mission:can_finish(player) then
+            local useText = finish_mission(missionID)
+            if type(useText) == "string" then self.outText = useText end
+          end
+        else
+          local useText = start_mission(missionID)
+          if type(useText) == "string" then self.outText = useText end
+        end --end active or not if
+      end--end button coordinate if
+    end--end button for
+  end
   
   --Navbuttons:
   if self.infoButton and x > self.infoButton.minX and x < self.infoButton.maxX and y > self.infoButton.minY and y < self.infoButton.maxY then

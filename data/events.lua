@@ -10,7 +10,7 @@ local demons_demonattack = {
   cooldown = 100, --If this event occurs, this many turns will pass before another event can. There are separate cooldowns for each faction, and for non-faction events
   action = function()
     local times = currGame.events_occured['demons_demonattack'] or 0
-    output:out("Caclking demons suddenly materialize around you!")
+    output:out("Cackling demons suddenly materialize around you!")
     local demons = times+2
     local tries = 0
     for i=1,demons,1 do
@@ -20,7 +20,7 @@ local demons_demonattack = {
         local x,y = random(player.x-5,player.x+5),random(player.y-5,player.y+5)
         if currMap:isClear(x,y) then
           local imp = Creature('imp')
-          while guard.level < math.min(player.level,imp.maxLevel) do
+          while imp.level < math.min(player.level,imp.maxLevel) do
             imp:level_up(true)
           end
           currMap:add_creature(imp,x,y)
@@ -67,7 +67,7 @@ local town_guards = {
   end,
   action = function()
     output:out("Guards were waiting in ambush for you!")
-    local guards = math.max(math.ceil(math.abs(player.favor.village)/10),2)
+    local guards = math.max(math.ceil(math.abs((player.favor.village or 0))/10),2)
     local tries = 0
     for i=1,guards,1 do
       local placed = false

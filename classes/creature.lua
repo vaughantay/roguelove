@@ -1757,7 +1757,7 @@ end
 --@param noSound Boolean. Whether to become hostile without playing a sound (optional)
 --@return Boolean. Whether the creature became hostile to the target.
 function Creature:become_hostile(creat, skip_callbacks,noSound,noText)
-  if self == player then return false end
+  if self == player or not creat or creat.baseType ~= "creature" then return false end
   if skip_callbacks == true or (creat:callbacks('became_enemy',self) and self:callbacks('become_hostile',creat)) then
     if creat == player and player:can_see_tile(self.x,self.y) and self.shitlist[player] == nil and player:does_notice(creat) and player:can_sense_creature(creat) then
       if not noText then output:out(self:get_name() .. " becomes hostile!") end

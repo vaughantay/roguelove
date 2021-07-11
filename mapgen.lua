@@ -67,6 +67,7 @@ function mapgen:generate_map(branchID, depth,force)
   build.event_chance = whichMap.event_chance or branch.event_chance
   build.event_cooldown = whichMap.event_cooldown or branch.event_cooldown
   build.tags = merge_tables(whichMap.tags or {},branch.tags or {})
+  build.forbid_faction_events = whichMap.forbid_faction_events or branch.forbid_faction_events
   --Generate the map itself:
   local success = true
   if whichMap.create then

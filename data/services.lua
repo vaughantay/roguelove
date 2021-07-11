@@ -14,7 +14,7 @@ function healing:requires()
   if hp == mhp then
     return false,"You're at full health."
   end
-  if (player.favor.lightChurch or 0) < mhp-hp then
+  if (player.favor.lightchurch or 0) < mhp-hp then
     return false,"You don't have enough favor."
   end
 end
@@ -37,5 +37,9 @@ function blessing:requires()
   else
     return true
   end
+end
+function blessing:use(user)
+  user:give_condition('blessed',5)
+  return true,"You feel #blessed."
 end
 possibleServices['blessing'] = blessing

@@ -75,6 +75,7 @@ local imp = {
   ranged_chance=33,
   max_hp = 5,
   level = 1,
+  maxLevel=3,
   melee = 4,
   dodging = 10,
   strength = 2,
