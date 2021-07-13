@@ -19,7 +19,7 @@ Features that have been added that weren't in Possession:
   * Factions can determine NPCs' hostility or friendliness to the player, to other faction members, and to specific creature types.
   * Players can gain or lose favor with factions from killing specific creatures or creature types. Factions can view the player as an ally or enemy depending on their favor level.
   * It's possible to join, learn spells from, and trade items with factions.
-  * TODO: Implementing faction missions.
+  * Factions can offer missions. 
 * Stores
   * Stores can have a variety of items, and can generate with infinite or limited numbers of that item.
   * Stores can sell and buy different lists of items.

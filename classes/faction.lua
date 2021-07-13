@@ -111,6 +111,16 @@ function Faction:join(creature)
   end
 end
 
+---Have a creature leave as a member of the faction.
+--@param creature Creature. The creature that's leaving. (optional, defaults to the player)
+function Faction:leave(creature)
+  creature = creature or player
+  if creature:is_faction_member(self.id) then
+    local k = in_table(self.id,creature.factions)
+    table.remove(creature.factions,k)
+  end
+end
+
 ---Test if a creature can become a member of the faction.
 --@param creature Creature. The creature that's a potential applicant. (optional, defaults to the player)
 --@return Boolean. Whether the creature can join or not.

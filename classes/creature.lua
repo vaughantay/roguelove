@@ -1038,12 +1038,19 @@ function Creature:die(killer)
         if player:can_sense_creature(self) then output:out(self.killer:get_name() .. " kills " .. self:get_name() .. "!") end
       end
       for fac,favor in pairs(favor) do
-        if not currWorld.factions[fac].members_only_favor or self.killer:is_faction_member(fac) then
+        local member = self.killer:is_faction_member(fac)
+        if not currWorld.factions[fac].members_only_favor or member then
           self.killer.favor[fac] = (self.killer.favor[fac] or 0) + favor
           if self.killer.playerAlly == true and favor ~= 0 then
             output:out("You " .. (favor > 0 and "gain " or "lose ") .. math.abs(favor) .. " favor with " .. currWorld.factions[fac].name .. ".")
           end
-        end
+          if currWorld.factions[fac].banish_threshold and member and self.killer.favor[fac] < currWorld.factions[fac].banish_threshold then
+            currWorld.factions[fac]:leave(self.killer)
+            if self.killer.playerAlly == true  then
+              output:out("You are kicked out of " .. currWorld.factions[fac].name .. "!")
+            end
+          end --end banich favor if
+        end --end if member/members only favor
       end --end faction for
     elseif seen and not self:is_type('ghost') then --killed by something other than a creature
       output:out(self:get_name() .. " dies!")

@@ -19,6 +19,7 @@ possibleFactions['lightchurch'] = {
   friendly_threshold = 100, --The amount of favor above which the player is treated as a friend. If left blank, this faction will never consider the player a friend based on favor alone (they'll still be treated as a friend due to faction membership, unless always_attack_player is true)
   enter_threshold = 0, --The amount of favor below which you're not allowed to do business with the faction
   join_threshold = 100, --The amount of favor you need to be eligible to join the faction
+  banish_threshold=0, --If your favor falls below this, you'll be kicked out of the faction
   sells_items = {{item="holywater",favorCost=5,moneyCost=50}, {item="dagger",favorCost=250,amount=1,membersOnly=true}}, --pre-defined items that this faction sells to friendly players
   sells_tags = {"holy"}, --Tags for randomly-generated items that will be sold by the shop
   passed_tags = {"holy"}, --These tags will be given priority for enchantments applied to items, and passed to items to do with what they will (ex: scrolls, to put preference on spells with these tags) TODO: Actually implement this

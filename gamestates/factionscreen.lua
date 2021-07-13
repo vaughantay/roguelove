@@ -78,13 +78,17 @@ function factionscreen:draw()
     local canJoin,reason = faction:can_join(player)
     if canJoin then
       joinText = "You are eligible to join this faction."
-      --TODO: Add join button
     else
       joinText = "You're not eligible to join this faction" .. (reason and " for the following reasons: " or ".")
     end
     love.graphics.printf(joinText,printX,printY,windowWidth,"center")
     local _, wrappedtext = fonts.textFont:getWrap(joinText, windowWidth)
     printY=printY+(#wrappedtext)*fontSize
+    if canJoin then
+      local joinButtonW = fonts.buttonFont:getWidth("Join")+padding
+      local buttonX=math.floor(midX-joinButtonW/2)
+      self.joinButton = output:button(buttonX,printY,joinButtonW+joinButtonW,false,(self.cursorY == 1 and "hover" or nil),"Join")
+    end
     if reason then
       printY = printY+fontSize
       local _, wrappedtext = fonts.textFont:getWrap(reason, windowWidth)
@@ -104,11 +108,11 @@ function factionscreen:draw()
   if not faction.enter_threshold or ((player.favor[factionID] or 0) >= faction.enter_threshold) then
     printY=printY+fontSize
     local padX = 8
-    local infobuttonW = fonts.textFont:getWidth("Information")+padding
-    local shopbuttonW = fonts.textFont:getWidth("Items")+padding
-    local spellbuttonW = fonts.textFont:getWidth("Abilities")+padding
-    local servicebuttonW = fonts.textFont:getWidth("Services")+padding
-    local missionbuttonW = fonts.textFont:getWidth("Missions")+padding
+    local infobuttonW = fonts.buttonFont:getWidth("Information")+padding
+    local shopbuttonW = fonts.buttonFont:getWidth("Items")+padding
+    local spellbuttonW = fonts.buttonFont:getWidth("Abilities")+padding
+    local servicebuttonW = fonts.buttonFont:getWidth("Services")+padding
+    local missionbuttonW = fonts.buttonFont:getWidth("Missions")+padding
     local totalWidth = windowWidth
     local startX = math.floor(midX-totalWidth/2)+padding
     if self.screen == "Info" then setColor(150,150,150,255) end
@@ -508,7 +512,7 @@ function factionscreen:keypressed(key)
     if self.cursorY == 1 then --join button
       if self.faction:can_join(player) then
         self.faction:join(player)
-        --TODO: Make this work
+        self.playerMember=true
       end
     elseif self.cursorY == 2 then --nav buttons
       if self.cursorX == 1 then self.screen = "Info"
@@ -681,6 +685,14 @@ function factionscreen:mousepressed(x,y,button)
   x,y=x/uiScale,y/uiScale
   if (x > self.closebutton.minX and x < self.closebutton.maxX and y > self.closebutton.minY and y < self.closebutton.maxY) then
     self:switchBack()
+  end
+  
+  --Join button:
+  if self.joinButton and x > self.joinButton.minX and x < self.joinButton.maxX and y > self.joinButton.minY and y < self.joinButton.maxY then
+    if self.faction:can_join(player) then
+      self.faction:join(player)
+      self.playerMember=true
+    end
   end
   --Item screen:
   if self.screen == "Items" then

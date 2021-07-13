@@ -254,7 +254,7 @@ function load_data()
   require "data.room_decorators"
   require "data.services"
   require "data.spells"
-  require "data.stores_static"
+  require "data.stores"
   require "data.tilesets"
   require "gamestates.characterscreen"
   require "gamestates.cheats"
