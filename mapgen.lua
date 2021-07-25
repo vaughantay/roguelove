@@ -59,10 +59,10 @@ function mapgen:generate_map(branchID, depth,force)
   build.playlist = whichMap.playlist or id
   build.bossPlaylist = whichMap.bossPlaylist or id .. "boss"
   build.lit = whichMap.lit or branch.lit
-  build.noCreatures = whichMap.noCreatures
-  build.noItems = whichMap.noItems
-  build.noStores = whichMap.noStores
-  build.noFactions = whichMap.noFactions
+  build.noCreatures = whichMap.noCreatures or branch.noCreatures
+  build.noItems = whichMap.noItems or branch.noItems
+  build.noStores = whichMap.noStores or branch.noStores
+  build.noFactions = whichMap.noFactions or branch.noFactions
   build.noExits = whichMap.noExits
   build.event_chance = whichMap.event_chance or branch.event_chance
   build.event_cooldown = whichMap.event_cooldown or branch.event_cooldown
@@ -95,7 +95,7 @@ function mapgen:generate_map(branchID, depth,force)
   if (build.stairsUp.x == 0 or build.stairsUp.y == 0 or build.stairsDown.x == 0 or build.stairsDown.y == 0) then
     --build.stairsUp = {x=5,y=5}
     --build.stairsDown = {x=10,y=10}
-    print('making generic stairs! Why?',build.stairsUp.x,build.stairsUp.y,build.stairsDown.x,build.stairsDown.y)
+    print('making generic stairs',build.stairsUp.x,build.stairsUp.y,build.stairsDown.x,build.stairsDown.y)
     local s = mapgen:addGenericStairs(build,width,height,depth)
     if s == false then
       currGame.seedState = mapRandom:getState()
@@ -134,122 +134,15 @@ function mapgen:generate_map(branchID, depth,force)
     end
   end
   
-	--Add creatures & items:
+	--Add content:
   build:populate_creatures()
   build:populate_items()
-
-  --Add stores:
-  if not build.noStores then
-    --TODO: Forcing stores to occur, getting # of stores, chance a store occurs
-    local newStore = Feature('store')
-    local tries = 0
-    local ix,iy = random(2,build.width-1),random(2,build.height-1)
-    while (build:isClear(ix,iy) == false or build[ix][iy] == "<" or build[ix][iy] == ">") do
-      ix,iy = random(2,build.width-1),random(2,build.height-1)
-      tries = tries+1
-      if tries > 100 then break end
-    end
-    if tries ~= 100 then 
-      build:add_feature(newStore,ix,iy)
-    end --end tries if
-  end
-  --TODO: Add faction HQs:
-  if not build.noFactions then
-    
-  end
+  build:populate_stores()
+  build:populate_factions()
   
   currGame.seedState = mapRandom:getState()
   random = love.math.random
 	return build
-end
-
----Get a list of possible creatures to spawn on the given map
---@param map Map. The map to check
---@return Table or nil. Either a table of creature IDs, or nil if there are no possible creatures
-function mapgen:get_creature_list(map)
-  local whichMap = mapTypes[map.mapType]
-  local branch = currWorld.branches[map.branch]
-  local specialCreats = nil
-  local cTypes = nil
-  local cFactions = nil
-  local cTags = nil
-  
-  --Look at specific creatures first:
-  if whichMap.creatures then
-    if whichMap.noBranchCreatures or not branch.creatures then
-      specialCreats = whichMap.creatures
-    else
-      specialCreats =  merge_tables(whichMap.creatures,branch.creatures)
-    end
-  else --if the mapTypes doesn't have creatures, fall back to the branch's creatures
-    specialCreats = branch.creatures --if branch doesn't have creatures, this will set it to nil and just use regular creatures
-  end
-  
-  --Look at creature types, factions and tags next:
-  if whichMap.creatureTypes then
-    if whichMap.noBranchCreatures or not branch.creatureTypes then
-      cTypes = whichMap.creatureTypes
-    else
-      cTypes =  merge_tables(whichMap.creatureTypes,branch.creatureTypes)
-    end
-  else --if the mapTypes doesn't have creatureTypes, fall back to the branch's creatureTypes
-    cTypes = branch.creatureTypes --if branch doesn't have creatureTypes, this will keep it as nil
-  end
-  if whichMap.creatureFactions then
-    if whichMap.noBranchCreatures or not branch.creatureFactions then
-      cFactions = whichMap.creatureFactions
-    else
-      cFactions =  merge_tables(whichMap.creatureFactions,branch.creatureFactions)
-    end
-  else --if the mapTypes doesn't have creatureFactions, fall back to the branch's creatureFactions
-    cFactions = branch.creatureFactions --if branch doesn't have creatureFactions, this will keep it as nil
-  end
-  if whichMap.creatureTags then
-    if whichMap.noBranchCreatures or not branch.creatureTags then
-      cTags = whichMap.creatureTags
-    else
-      cTags =  merge_tables(whichMap.creatureTags,branch.creatureTags)
-    end
-  else --if the mapTypes doesn't have creatureFactions, fall back to the branch's creatureFactions
-    cTags = branch.creatureTags --if branch doesn't have creatureFactions, this will keep it as nil
-  end
-  
-  --Add the types and factions to the specialCreats list
-  for cid,creat in pairs(possibleMonsters) do
-    local done = false
-    if cTypes then
-      for _,cType in pairs(cTypes) do
-        if Creature.is_type(creat,cType) then
-          done = true
-          break
-        end
-        if done == true then break end
-      end --end cType for
-    end --end cType if
-    if cFactions and not done then
-      for _,cFac in pairs(cFactions) do
-        if Creature.is_faction_member(creat,cFac) then
-          done = true
-          break
-        end
-        if done == true then break end
-      end --end cFac for
-    end --end faction if
-    if cTags and not done then
-      for _,cTag in pairs(cTags) do
-        if Creature.has_tag(creat,cTag) then
-          done = true
-          break
-        end
-        if done == true then break end
-      end --end cFac for
-    end --end faction if
-    if done then
-      if not specialCreats then specialCreats = {} end
-      specialCreats[#specialCreats+1] = cid
-    end
-  end
-  return specialCreats
 end
 
 ---Initializes and creates a new creature at the given level. The creature itself must then actually be added to a map using Map:add_creature()
@@ -275,57 +168,6 @@ function mapgen:generate_creature(level,list,allowAll)
 			return Creature(n,level)
 		end
 	end
-end
-
----Get a list of possible items to spawn on the given map
---@param map Map. The map to check
---@return Table or nil. Either a table of item IDs, or nil if there are no possible items
-function mapgen:get_item_list(map)
-  local whichMap = mapTypes[map.mapType]
-  local branch = currWorld.branches[map.branch]
-  local specialItems = nil
-  local iTags = nil
-  
-  --Look at specific items first:
-  if whichMap.items then
-    if whichMap.noBranchItems or not branch.items then
-      specialItems = whichMap.items
-    else
-      specialItems =  merge_tables(whichMap.items,branch.items)
-    end
-  else --if the mapTypes doesn't have creatures, fall back to the branch's items
-    specialItems = branch.items --if branch doesn't have creatures, this will set it to nil and just use regular items
-  end
-  
-  --Look at item tags next:
-  if whichMap.itemTags then
-    if whichMap.noBranchItems or not branch.itemTags then
-      iTags = whichMap.itemTags
-    else
-      iTags =  merge_tables(whichMap.itemTags,branch.itemTags)
-    end
-  else --if the mapTypes doesn't have itemTags, fall back to the branch's itemTags
-    iTags = branch.itemTags --if branch doesn't have itemTags, this will keep it as nil
-  end
-  
-  --Add the types and factions to the specialItems list
-  for iid,item in pairs(possibleItems) do
-    local done = false
-    if iTags and not done then
-      for _,iTag in pairs(iTags) do
-        if Item.has_tag(item,iTag) then
-          done = true
-          break
-        end
-        if done == true then break end
-      end --end cFac for
-    end --end tags if
-    if done then
-      if not specialItems then specialItems = {} end
-      specialItems[#specialItems+1] = iid
-    end
-  end
-  return specialItems
 end
 
 ---Initializes and creates a new item at the given level. The item itself must then actually be added to the map using Map:add_item() TODO: Doesn't actually check for item levels yet, enchantments are basically guaranteed to be applied
@@ -427,10 +269,11 @@ function mapgen:generate_branch(branchID)
   end
   
   --Add map types based on tags:
-  if newBranch.mapTags then
+  local mTags = newBranch.mapTags or newBranch.contentTags
+  if mTags then
     for id,mtype in pairs(mapTypes) do
       if mtype.tags and (not newBranch.mapTypes or not in_table(id,newBranch.mapTypes)) then
-        for _,tag in ipairs(newBranch.mapTags) do
+        for _,tag in ipairs(mTags) do
           if in_table(tag,mtype.tags) then
             if not newBranch.mapTypes then newBranch.mapTypes = {} end
             newBranch.mapTypes[#newBranch.mapTypes+1] = id

@@ -8,7 +8,9 @@ local healthstore = {
   noBuy = false, --If the store buys things or not
   buys_items = {healthpotionminor=5,scroll=1},
   buys_tags = {"magic"}, --Tags for non-predefined items that will be bought by the shop
-  currency_item = nil --The item to use as currency, instead of money
+  tags={"organized"}, --Tags to be used to determine if a store can spawn in a map
+  currency_item = nil, --The item to use as currency, instead of money
+  multiple_locations=true --If this is set to true, this store can spawn in multiple locations. The locations will share inventory. If not set, the store can only spawn once per game
 }
 stores_static['healthstore'] = healthstore
 

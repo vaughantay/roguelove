@@ -1585,9 +1585,6 @@ function game:keypressed(key,scancode,isRepeat)
     end
    elseif (key == "q" and action=="moving") then --TODO: Take this out, it's a test
      test_spells()
-    --Gamestate.switch(factionscreen,"lightchurch")
-  elseif (key == "s" and action=="moving") then --TODO: Take this out, it's a test
-    Gamestate.switch(storescreen,"healthstore")
 	elseif key == "charScreen" then
 		Gamestate.switch(characterscreen)
 	elseif key == "save" then

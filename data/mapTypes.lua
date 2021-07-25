@@ -1,6 +1,6 @@
 mapTypes = {}
 
---noBranchItems & noBranchCreatures
+--noBranchItems, noBranchCreatures, and noBranchContent
 
 local forest = {
   playlist = "genericforest",
@@ -64,8 +64,6 @@ local town = {
   noItems=true, --If true, no items will generate on this level
   noExits=true, --If true, the automatic code to generate exits won't run on this level. You should manually put in exits in the create() code or something, or the player will get stuck
   lit=true, --If true, the entire level will count as lit. Perception distance won't matter
-  stores=5,
-  factions=5,
   creature_density=10, --How many creatures should be generated per 100 tiles
   event_chance=100, --Likelihood that a non-faction random event will occur. Overrides the event_chance values in gamesettings and in the branch
   event_cooldown=100, --Turns that must pass between ranodm events. Overrides the event_cooldown values in gamesettings and in the branch
@@ -85,9 +83,9 @@ function town.create(map,width,height)
   --Add gates to the wilderness:
   local gates = Feature('exit',{branch="wilderness",exitName="Gate"})
   map:change_tile(gates,midX,height-1)
-  
-  --Add factions:
-  for _,fac in pairs(currWorld.factions) do
+end
+function town.populate_factions(map)
+  for _,fac in pairs(map:get_faction_list()) do
     if not fac.hidden and not fac.no_hq then
       local hq = Feature('factionHQ',fac)
       local tries = 0
@@ -102,9 +100,9 @@ function town.create(map,width,height)
       end --end tries if
     end
   end
-  
-  --Add stores:
-  for _,store in pairs(currWorld.stores) do
+end
+function town.populate_stores(map)
+  for _,store in pairs(map:get_store_list()) do
     local s = Feature('store',store)
     local tries = 0
     local ix,iy = random(2,map.width-1),random(2,map.height-1)

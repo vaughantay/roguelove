@@ -2352,6 +2352,10 @@ local store = {
     self.actions.enter.text = "Shop at " .. whichStore.name
     if whichStore.map_description then self.description = whichStore.map_description end
   end,
+  placed = function(self)
+    self.store.placed = true
+    print('placed store ' .. self.name .. ' at ',self.x,self.y)
+  end,
   enter = function(self,creature)
     if creature == player then self:action(player) end
   end,
@@ -2380,6 +2384,9 @@ local factionHQ = {
     self.actions.enter.text = (whichFac.enter_text or "Enter") .. " " .. whichFac.name
     if whichFac.map_description then self.description = whichFac.map_description end
     if whichFac.map_name then self.name = whichFac.map_name end
+  end,
+  placed = function(self)
+    self.faction.placed = true
   end,
   enter = function(self,creature)
     if creature == player then self:action(player) end

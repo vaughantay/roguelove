@@ -709,6 +709,242 @@ function Map:reveal()
   end
 end
 
+---Get a list of possible creatures to spawn on this map. Stores the list, so when this is called in the future it just returns the list.
+--@param self Map. The map to check
+--@param force Boolean. Whether to force recalculation of the creature list (otherwise will return the stored list if it's already been calculated)
+--@return Table or nil. Either a table of creature IDs, or nil if there are no possible creatures
+function Map:get_creature_list(force)
+  if self.creature_list and not force then
+    return self.creature_list
+  end
+  local whichMap = mapTypes[self.mapType]
+  local branch = currWorld.branches[self.branch]
+  local specialCreats = nil
+  local cTypes = nil
+  local cFactions = nil
+  local cTags = whichMap.creatureTags or whichMap.contentTags
+  
+  --Look at specific creatures first:
+  if whichMap.creatures then
+    if (whichMap.noBranchCreatures or whichMap.noBranchContent) or not branch.creatures then
+      specialCreats = whichMap.creatures
+    else
+      specialCreats =  merge_tables(whichMap.creatures,branch.creatures)
+    end
+  elseif not whichMap.noBranchCreatures and not whichMap.noBranchContent then --if the mapTypes doesn't have creatures, fall back to the branch's creatures
+    specialCreats = branch.creatures --if branch doesn't have creatures, this will set it to nil and just use regular creatures
+  end
+  
+  --Look at creature types, factions and tags next:
+  if whichMap.creatureTypes then
+    if (whichMap.noBranchCreatures or whichMap.noBranchContent) or not branch.creatureTypes then
+      cTypes = whichMap.creatureTypes
+    else
+      cTypes =  merge_tables(whichMap.creatureTypes,branch.creatureTypes)
+    end
+  elseif not whichMap.noBranchCreatures and not whichMap.noBranchContent then --if the mapTypes doesn't have creatureTypes, fall back to the branch's creatureTypes
+    cTypes = branch.creatureTypes --if branch doesn't have creatureTypes, this will keep it as nil
+  end
+  if whichMap.creatureFactions then
+    if (whichMap.noBranchCreatures or whichMap.noBranchContent) or not branch.creatureFactions then
+      cFactions = whichMap.creatureFactions
+    else
+      cFactions =  merge_tables(whichMap.creatureFactions,branch.creatureFactions)
+    end
+  elseif not whichMap.noBranchCreatures and not whichMap.noBranchContent then --if the mapTypes doesn't have creatureFactions, fall back to the branch's creatureFactions
+    cFactions = branch.creatureFactions --if branch doesn't have creatureFactions, this will keep it as nil
+  end
+  if cTags then
+    if not whichMap.noBranchCreatures and not whichMap.noBranchContent and (branch.creatureTags or branch.contentTags) then
+      cTags =  merge_tables(cTags,(branch.creatureTags or branch.contentTags))
+    end
+  elseif not whichMap.noBranchCreatures and not whichMap.noBranchContent then --if the mapTypes doesn't have creatureTags, fall back to the branch's creatureTags
+    cTags = branch.creatureTags or branch.contentTags --if branch doesn't have creatureTags, this will keep it as nil
+  end
+  
+  --Add the types and factions to the specialCreats list
+  for cid,creat in pairs(possibleMonsters) do
+    local done = false
+    if cTypes then
+      for _,cType in pairs(cTypes) do
+        if Creature.is_type(creat,cType) then
+          done = true
+          break
+        end
+        if done == true then break end
+      end --end cType for
+    end --end cType if
+    if cFactions and not done then
+      for _,cFac in pairs(cFactions) do
+        if Creature.is_faction_member(creat,cFac) then
+          done = true
+          break
+        end
+        if done == true then break end
+      end --end cFac for
+    end --end faction if
+    if cTags and not done then
+      for _,cTag in pairs(cTags) do
+        if Creature.has_tag(creat,cTag) then
+          done = true
+          break
+        end
+        if done == true then break end
+      end --end cFac for
+    end --end faction if
+    if done then
+      if not specialCreats then specialCreats = {} end
+      specialCreats[#specialCreats+1] = cid
+    end
+  end
+  self.creature_list = specialCreats
+  return specialCreats
+end
+
+---Get a list of possible items to spawn on the given map
+--@param self Map. The map to check
+--@param force Boolean. Whether or not to forcibly re-calculate it, rather than returning the pre-calculated value 
+--@return Table or nil. Either a table of item IDs, or nil if there are no possible items
+function Map:get_item_list(force)
+  if self.item_list and not force then
+    return self.item_list
+  end
+  local whichMap = mapTypes[self.mapType]
+  local branch = currWorld.branches[self.branch]
+  local specialItems = nil
+  local iTags = whichMap.itemTags or whichMap.contentTags
+  
+  --Look at specific items first:
+  if whichMap.items then
+    if (whichMap.noBranchItems or whichMap.noBranchContent) or not branch.items then
+      specialItems = whichMap.items
+    else
+      specialItems =  merge_tables(whichMap.items,branch.items)
+    end
+  elseif not whichMap.noBranchItems and not whichMap.noBranchContent then --if the mapTypes doesn't have creatures, fall back to the branch's items
+    specialItems = branch.items --if branch doesn't have creatures, this will set it to nil and just use regular items
+  end
+  
+  --Look at item tags next:
+  if iTags then
+    if not whichMap.noBranchItems and not whichMap.noBranchContent and (branch.itemTags or branch.contentTags) then
+      iTags =  merge_tables(iTags,(branch.itemTags or branch.contentTags))
+    end
+  else --if the mapTypes doesn't have itemTags, fall back to the branch's itemTags
+    iTags = branch.itemTags or branch.contentTags --if branch doesn't have itemTags, this will keep it as nil
+  end
+  
+  --Add the applicable items to the specialItems list
+  for iid,item in pairs(possibleItems) do
+    local done = false
+    if iTags and not done then
+      for _,iTag in pairs(iTags) do
+        if Item.has_tag(item,iTag) then
+          done = true
+          break
+        end
+        if done == true then break end
+      end --end cFac for
+    end --end tags if
+    if done then
+      if not specialItems then specialItems = {} end
+      specialItems[#specialItems+1] = iid
+    end
+  end
+  self.item_list = specialItems
+  return specialItems
+end
+
+---Get a list of possible stores to spawn on the given map. TODO: Make this actually do something, as is it just returns all possible stores
+--@param self Map. The map to check
+--@param force Boolean. Whether or not to forcibly re-calculate it, rather than returning the pre-calculated value 
+--@return Table or nil. Either a table of faction IDs, or nil if there are no possible stores
+function Map:get_store_list(force)
+  if self.store_list and not force then
+    return self.store_list
+  end
+  local store_list = nil
+  local whichMap = mapTypes[self.mapType]
+  local branch = currWorld.branches[self.branch]
+  local sTags = whichMap.storeTags or whichMap.contentTags
+  
+  --Look at tags next:
+  if sTags then
+    if not whichMap.noBranchStores and not whichMap.noBranchContent and (branch.storeTags or branch.contentTags) then
+      sTags =  merge_tables(fTags,(branch.storeTags or branch.contentTags))
+    end
+  elseif not whichMap.noBranchContent then --if the mapTypes doesn't have storeTags, fall back to the branch's factionTags
+    sTags = branch.storeTags or branch.contentTags --if branch doesn't have storeTags, this will keep it as nil
+  end
+  
+  --Add the types and factions to the specialItems list
+  for sid,store in pairs(currWorld.stores) do
+    local done = false
+    if not sTags then done = true end --If the map doesn't have a list of faction tags set, any factions are eligible to spawn there
+    if sTags and not done then
+      for _,sTags in pairs(sTags) do
+        if store.tags and in_table(sTags,store.tags) then
+          done = true
+          break
+        end
+        if done == true then break end
+      end --end cFac for
+    end --end tags if
+    if done then
+      if not store_list then store_list = {} end
+      store_list[#store_list+1] = sid
+    end
+  end --end faction for
+  self.store_list = store_list
+  return store_list
+end
+
+---Get a list of possible factions to spawn on the given map
+--@param self Map. The map to check
+--@param force Boolean. Whether or not to forcibly re-calculate it, rather than returning the pre-calculated value 
+--@return Table or nil. Either a table of faction IDs, or nil if there are no possible factions
+function Map:get_faction_list(force)
+  if self.faction_list and not force then
+    return self.faction_list
+  end
+  local whichMap = mapTypes[self.mapType]
+  local branch = currWorld.branches[self.branch]
+  local faction_list = nil
+  local fTags = whichMap.factionTags or whichMap.contentTags
+  
+  --Look at faction tags next:
+  if fTags then
+    if not whichMap.noBranchFactions and not whichMap.noBranchContent and (branch.factionTags or branch.contentTags) then
+      fTags =  merge_tables(fTags,(branch.factionTags or branch.contentTags))
+    end
+  elseif not whichMap.noBranchContent then --if the mapTypes doesn't have factionTags, fall back to the branch's factionTags
+    fTags = branch.factionTags or branch.contentTags --if branch doesn't have itemTags, this will keep it as nil
+  end
+  
+  --Add the types and factions to the specialItems list
+  for fid,faction in pairs(currWorld.factions) do
+    if not faction.hidden and not faction.no_hq then
+      local done = false
+      if not fTags then done = true end --If the map doesn't have a list of faction tags set, any factions are eligible to spawn there
+      if fTags and not done then
+        for _,fTag in pairs(fTags) do
+          if faction.tags and in_table(fTag,faction.tags) then
+            done = true
+            break
+          end
+          if done == true then break end
+        end --end cFac for
+      end --end tags if
+      if done then
+        if not faction_list then faction_list = {} end
+        faction_list[#faction_list+1] = fid
+      end
+    end --end if not hidden
+  end --end faction for
+  self.faction_list = faction_list
+  return faction_list
+end
+
 ---Randomly add creatures to the map
 --@param creatTotal Number. The number of creatures to add. Optional, if blank will generate enough to meet the necessary density
 --@param forceGeneric Boolean. Whether to ignore any special populate_creatures() code in the map's mapType. Optional
@@ -730,7 +966,7 @@ function Map:populate_creatures(creatTotal,forceGeneric)
   
   if not self.noCreatures and creatTotal > 0 then
     local newCreats = {}
-    local specialCreats = mapgen:get_creature_list(self)
+    local specialCreats = self:get_creature_list()
 		for creat_amt=1,creatTotal,1 do
 			local nc = mapgen:generate_creature(self.depth,specialCreats)
       if nc == false then break end
@@ -783,7 +1019,7 @@ function Map:populate_items(itemTotal,forceGeneric)
   
   if not self.noItems and itemTotal > 0 then
     local newItems = {}
-    local specialItems = mapgen:get_item_list(self,passedTags)
+    local specialItems = self:get_item_list()
     for item_amt = 1,itemTotal,1 do
       local ni = mapgen:generate_item(self.depth,specialItems,passedTags)
       if ni == false then break end
@@ -801,4 +1037,83 @@ function Map:populate_items(itemTotal,forceGeneric)
     return newItems
 	end --end if not noItems
   return false
+end
+
+---Randomly add a store to the map. This only adds one store to the map
+--@param forceGeneric Boolean. Whether to ignore any special populate_stores() code in the map's mapType. Optional
+function Map:populate_stores(forceGeneric)
+  local mapTypeID,branchID = self.mapType,self.branch
+  local mapType,branch = mapTypes[mapTypeID],currWorld.branches[branchID]
+  
+  --Do special code if the mapType has it:
+  if mapType.populate_stores and not forceGeneric then
+    return mapType.populate_stores(self)
+  end
+  
+  if not self.noStores then
+    local stores = self:get_store_list()
+    local selected = nil
+    if stores then
+      stores = shuffle(stores)
+      for _,storeID in ipairs(stores) do
+        if not currWorld.stores[storeID].placed or currWorld.stores[storeID].multiple_locations then
+          selected = storeID
+          break
+        end
+      end
+    end
+    if selected then
+      --TODO: Implement spawning a copy of the store with its own inventory, if necessary
+      local newStore = Feature('store',selected)
+      local tries = 0
+      local ix,iy = random(2,self.width-1),random(2,self.height-1)
+      while (self:isClear(ix,iy) == false) do
+        ix,iy = random(2,self.width-1),random(2,self.height-1)
+        tries = tries+1
+        if tries > 100 then break end
+      end
+      if tries ~= 100 then 
+        self:add_feature(newStore,ix,iy)
+      end --end tries if
+    end
+  end
+end
+
+---Randomly add an appropriate faction to the map. This only adds one faction to the map, and only factions that haven't previously been placed 
+--@param forceGeneric Boolean. Whether to ignore any special populate_factions() code in the map's mapType. Optional
+function Map:populate_factions(forceGeneric)
+  local mapTypeID,branchID = self.mapType,self.branch
+  local mapType,branch = mapTypes[mapTypeID],currWorld.branches[branchID]
+  
+  --Do special code if the mapType has it:
+  if mapType.populate_factions and not forceGeneric then
+    return mapType.populate_factions(self)
+  end
+  
+  if not self.noFactions then
+    local facs = self:get_faction_list()
+    local selected = nil
+    if facs then
+      facs = shuffle(facs)
+      for _,factionID in ipairs(facs) do
+        if not currWorld.factions[factionID].placed or currWorld.factions[factionID].multiple_locations then
+          selected = factionID
+          break
+        end
+      end
+    end
+    if selected then
+      local hq = Feature('factionHQ',selected)
+      local tries = 0
+      local ix,iy = random(2,self.width-1),random(2,self.height-1)
+      while (self:isClear(ix,iy) == false or self[ix][iy] == "<" or self[ix][iy] == ">") do
+        ix,iy = random(2,self.width-1),random(2,self.height-1)
+        tries = tries+1
+        if tries > 100 then break end
+      end
+      if tries ~= 100 then 
+        self:add_feature(hq,ix,iy)
+      end --end tries if
+    end
+  end
 end

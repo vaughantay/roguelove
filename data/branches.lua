@@ -24,7 +24,8 @@ local town = {
   hideName=true, --If this is set to true, the name of the branch will not be shown when displaying the name of the map
   forceMapTypes={[1]="town"},
   possibleExits = {{branch="main",depth=1,replace_downstairs=true},{branch="wilderness",depth=1}},
-  creatures={"townsperson"}
+  creatures={"townsperson"},
+  factionTags={"organized"}
 }
 dungeonBranches['town'] = town
 
@@ -49,6 +50,7 @@ local wilderness = {
   name = "The Wilds",
   max_depth=2,
   noMapNames=true,
+  contentTags={"wild"}, -- This value will be used for any content tag list (ie creatureTags, itemTags, etc) unless a more specific tag list is set
   mapTags = {'plants'}, --Map types with these tags will be added to the list of map types possible in this branch
   creatureTypes={'animal'},
   possibleExits = {{branch="town",depth=1,replace_upstairs=true},{branch="main",depth=1}},
