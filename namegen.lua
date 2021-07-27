@@ -765,7 +765,16 @@ end
 --Item names:
 
 function namegen:generate_weapon_name(item)
-    return "The Sharpest Thing"
+    local nameType = random(1,2)
+    if nameType == 1 then -- "The Dagger of Doom"
+      local noun = self:get_from_list('nouns')
+      local concept = self:get_from_list('concepts')
+      return "The " .. noun .. " of " .. concept
+    elseif nameType == 2 then -- "The Deadly Dagger"
+      local noun = self:get_from_list('nouns')
+      local adjective = self:get_from_list('adjectives')
+      return "The " .. adjective .. " " .. noun
+    end
 end
 
 function namegen:generate_book_name()
