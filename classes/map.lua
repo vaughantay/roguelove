@@ -1056,7 +1056,7 @@ function Map:populate_stores(forceGeneric)
     if stores then
       stores = shuffle(stores)
       for _,storeID in ipairs(stores) do
-        if not currWorld.stores[storeID].placed or currWorld.stores[storeID].multiple_locations then
+        if not currWorld.stores[storeID].isPlaced or currWorld.stores[storeID].multiple_locations then
           selected = storeID
           break
         end
@@ -1096,7 +1096,7 @@ function Map:populate_factions(forceGeneric)
     if facs then
       facs = shuffle(facs)
       for _,factionID in ipairs(facs) do
-        if not currWorld.factions[factionID].placed or currWorld.factions[factionID].multiple_locations then
+        if not currWorld.factions[factionID].isPlaced or currWorld.factions[factionID].multiple_locations then
           selected = factionID
           break
         end

@@ -2353,7 +2353,7 @@ local store = {
     if whichStore.map_description then self.description = whichStore.map_description end
   end,
   placed = function(self)
-    self.store.placed = true
+    self.store.isPlaced = true
     print('placed store ' .. self.name .. ' at ',self.x,self.y)
   end,
   enter = function(self,creature)
@@ -2385,8 +2385,12 @@ local factionHQ = {
     if whichFac.map_description then self.description = whichFac.map_description end
     if whichFac.map_name then self.name = whichFac.map_name end
   end,
-  placed = function(self)
-    self.faction.placed = true
+  placed = function(self,map)
+    local placeFunc = possibleFactions[self.faction.id].placed
+    if placeFunc and type(placeFunc) == "function" then
+      placeFunc(self.faction,self,map)
+    end
+    self.faction.isPlaced = true
   end,
   enter = function(self,creature)
     if creature == player then self:action(player) end

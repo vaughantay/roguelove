@@ -50,7 +50,6 @@ function Feature:get_description()
   if self.attackable then txt = txt .. "\nYou can attack it." end
   if self.possessable then txt = txt .. "\nYou can possess it." end
   if self.pushable then txt = txt .. "\nYou can push it." end
-  if self.ghostPassable then txt = txt .. "\nYou can pass through it when in your ghostly form." end
   return txt
 end
 

@@ -78,6 +78,7 @@ possibleFactions['barbariangod'] = {
   tags={"wild"}, --Tags that will be used to determine if this faction can spawn on a given map
   map_name = "Altar to the God of Destruction", --The name of the feature used to interact with this faction
   map_description = "A bloodstained altar.", --Description that will show on the Feature tile used to access the faction
+  enter_text = "Bow to", --The text that will display for interacting with this faction
   multiple_locations = true, --If set to true, this faction can spawn in multiple locations. Otherwise, will only spawn on one map per game
   kill_favor = 1, --Gain/lose this much favor on any kill
   favor_decay_turns=10, --Favor with this faction will decrease by 1 after this many turns
@@ -99,6 +100,17 @@ possibleFactions['barbariangod'] = {
     self.map_name = "Altar to " .. name .. ", God of Destruction"
     self.god_name = name
     return name .. ", God of Destruction"
+  end,
+  placed = function(self,HQ,map)
+    for x=HQ.x-1,HQ.x+1,1 do
+      for y=HQ.y-1,HQ.y+1,1 do
+        map[x][y] = "."
+        if x ~= HQ.x or y ~= HQ.y then
+          local blood = Feature('chunk')
+          map:add_feature(blood,x,y)
+        end
+      end
+    end
   end
 }
 
@@ -107,7 +119,6 @@ possibleFactions['demons'] = {
   description = "While Hell is politically fragmented, demons generally refrain from attacking each other if other enemies are present.",
   enemy_factions = {"angels"}, --Factions whose members this faction will always attack
   kill_favor_types = {angel=2,demon=-5}, --Favor granted for killing certain creature types
-  attack_all_neutral = true,
   no_hq = true,
   never_join = true
 }
@@ -115,7 +126,7 @@ possibleFactions['demons'] = {
 possibleFactions['angels'] = {
   name = "The Heavenly Horde",
   description = "The angelic hivemind.",
-  friendly_factions = {"lightchurch"}, --Creature types this faction will not attack
+  friendly_factions = {"lightchurch"}, --Factions this faction will not attack
   enemy_factions = {"demons","chaos"}, --Factions whose members this faction will always attack
   enemy_types = {"demon","undead"}, --Creature types this faction will always attack
   kill_favor_types = {demon=5,angel=-10}, --Favor granted for killing certain creature types

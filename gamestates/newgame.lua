@@ -739,7 +739,7 @@ function newgame:mousepressed(x,y,button)
   
   --Pronoun Selection:
   if self.pronouns and y >= self.pronouns[1].minY and y <= self.pronouns[1].maxY then
-    for i = 1,4,1 do
+    for i = 1,#self.pronouns,1 do
       if x >= self.pronouns[i].minX and x <= self.pronouns[i].maxX then
         self.player.gender = self.pronouns[i].gender
         self.cursorY = 3
