@@ -14,6 +14,9 @@ function new_game(mapSeed,playTutorial,cheats,branch)
   currMap = mapgen:generate_map(branch,1)
   player:moveTo(currMap.stairsUp.x,currMap.stairsUp.y)
   currMap.creatures[player] = player
+  if playerClasses[player.class] and playerClasses[player.class].placed then
+    playerClasses[player.class].placed(player,currMap)
+  end
   maps[currMap.branch] = {}
 	maps[currMap.branch][currMap.depth] = currMap
 	output:setCursor(0,0)

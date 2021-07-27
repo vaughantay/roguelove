@@ -36,7 +36,18 @@ playerClasses = {
     learns_spells={{spell="auraoffear",level=5},"passiverage"}, --These spells will be automatically granted once a certain level is reached
     favor={village=-10}, --List of favor scores the character starts with
     stat_modifiers={strength=10,melee=10,armor=2}, --These values will be added to the characters' base stats
-    starting_branch="wilderness"
+    starting_branch="wilderness",
+    placed = function(creature,map)
+      for x=2,map.width,1 do
+        for y=2,map.width,1 do
+          local altar = map:tile_has_feature(x,y,'factionHQ')
+          if altar and altar.faction.id == "barbariangod" then
+            creature.x,creature.y=x,y
+            return
+          end
+        end
+      end
+    end
   },
   demonologist = {
     name="Demonologist",
