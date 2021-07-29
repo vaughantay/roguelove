@@ -32,7 +32,7 @@ possibleFactions['lightchurch'] = {
   only_pays_favor = true, --When buying non-predefined items, don't pay money for them, just favor
   teaches_spells = {{spell="demondamager",favorCost=100,moneyCost = 100}, {spell="summonangel",favorCost=100,membersOnly=true}}, --spells that this faction teaches to friendly players
   offers_services = {"healing","blessing"}, --services that this faction offers to friendly players
-  offers_missions = {"killtownies"}, --missions that this faction offers to friendly players
+  offers_missions = {""}, --missions that this faction offers to friendly players
   possible_inventory = {{item="scroll",chance=100}}, --items that all members of this faction might drop
   hidden = false, --If set to true, this faction won't appear on the faction list page
   never_join = false, --If set to true, this faction cannot be joined
@@ -48,12 +48,12 @@ possibleFactions['lightchurch'] = {
     while (w2 == w1) do
       w2 = namegen:get_from_list('goodConcepts')
     end
-    return "The " .. ucfirst(namegen:get_from_list('religiousGroups')) .. " of " .. ucfirst(w1) .. " and " .. ucfirst(w2)
+    return ucfirst(namegen:get_from_list('religiousGroups')) .. " of " .. ucfirst(w1) .. " and " .. ucfirst(w2)
   end
 }
 
 possibleFactions['grievers'] = {
-  name = "The Grievers", --Name of the faction
+  name = "Grievers", --Name of the faction
   description = "A powerful organization dedicated to eradicating the undead. Pretty chill towards anyone who's not undead.", --Description of the faction
   map_description = "A powerful organization dedicated to eradicating the undead.", --Description that will show on the Feature tile used to access the faction
   tags={"organized"}, --Tags used to describe the faction, for deciding what maps to put them in
@@ -94,7 +94,7 @@ possibleFactions['barbariangod'] = {
   only_pays_favor = true, --When buying non-predefined items, don't pay money for them, just favor
   teaches_spells = {}, --spells that this faction teaches to friendly players
   offers_services = {}, --services that this faction offers to friendly players
-  offers_missions = {}, --missions that this faction offers to friendly players
+  offers_missions = {"killtownies"}, --missions that this faction offers to friendly players
   generateName = function(self)
     local name = namegen:generate_guttural_name()
     self.map_name = "Altar to " .. name .. ", God of Destruction"
@@ -135,7 +135,7 @@ possibleFactions['angels'] = {
 }
 
 possibleFactions['village'] = {
-  name = "The Village",
+  name = "Villagers",
   description = "The peaceful villagers.",
   hidden = true,
   no_hq = true,

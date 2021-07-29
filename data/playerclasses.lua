@@ -14,6 +14,7 @@ playerClasses = {
     resistances={holy=25}, --These will be added the the characters' base resistances
     stat_modifiers={strength=5,melee=5,ranged=5,dodging=2,magic=2,max_mp=10}, --These values will be added to the characters' base stats
     money=100, --Amount of money the character starts with
+    starting_missions = {ascend=0,killdemons=0}, --What missions this class starts with, and what value to set the mission status to. Note: This will override default_starting_missions in gamedefinition.lua if it exists, so if you want the class to have both make sure to include the default starting missions in this table as well
     forbid_species_tags = {"undead","demon","unholy"} --This class will be unavailable if the player's species has a tag or type listed in this table
   },
   beefcake = {
@@ -34,7 +35,8 @@ playerClasses = {
     equipment={{item="club"},{item="loincloth"}}, --These items will be equipped on game start
     spells={"yawp"}, --These are spells the character will start with
     learns_spells={{spell="auraoffear",level=5},"passiverage"}, --These spells will be automatically granted once a certain level is reached
-    favor={village=-10}, --List of favor scores the character starts with
+    favor={village=-1,barbariangod=100}, --List of favor scores the character starts with
+    factions={"barbariangod"}, --List of factions the character begins as a member of
     stat_modifiers={strength=10,melee=10,armor=2}, --These values will be added to the characters' base stats
     starting_branch="wilderness",
     placed = function(creature,map)

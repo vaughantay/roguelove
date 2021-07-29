@@ -58,9 +58,9 @@ local town_guards = {
   mapTypes={"town"}, --The mapTypes this event can occur on
   branches = {}, --The branches this event can occur on
   tags={}, --The map and branch tags this event can occur on
-  chance=100,
+  chance=10,
   requires = function()
-    if player.favor.town and player.favor.town > -1 then
+    if player.favor.town and player.favor.town > -2 then
       return false
     end
     return true
@@ -101,7 +101,7 @@ local town_clear_corpses = {
       for y=2,currMap.height-1,1 do
         local contents = currMap:get_contents(x,y)
         for _,content in pairs(contents) do
-          if content.id == "corpse" or content.id == "chunk" then
+          if content.id == "corpse" or content.id == "chunk" or content.id == "bloodstain" then
             content:delete()
           end
         end

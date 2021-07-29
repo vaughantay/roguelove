@@ -14,8 +14,24 @@ function new_game(mapSeed,playTutorial,cheats,branch)
   currMap = mapgen:generate_map(branch,1)
   player:moveTo(currMap.stairsUp.x,currMap.stairsUp.y)
   currMap.creatures[player] = player
-  if playerClasses[player.class] and playerClasses[player.class].placed then
-    playerClasses[player.class].placed(player,currMap)
+  --Do special class stuff if necessary:
+  local startingMissions = true
+  local class = playerClasses[player.class]
+  if class then
+    if class.placed then
+      class.placed(player,currMap)
+    end
+    if class.starting_missions then
+      startingMissions=false
+      for mid,val in pairs(class.starting_missions) do
+        start_mission(mid,val)
+      end
+    end
+  end
+  if startingMissions and gamesettings.default_starting_missions then
+    for mid,val in pairs(gamesettings.default_starting_missions) do
+      start_mission(mid,val)
+    end
   end
   maps[currMap.branch] = {}
 	maps[currMap.branch][currMap.depth] = currMap
