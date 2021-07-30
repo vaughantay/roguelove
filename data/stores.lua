@@ -4,7 +4,7 @@ local healthstore = {
   name = "Healthe & Well-ness Apotheckarie", --Name of the store
   description = "A ramshackle booth, stacked with potions. The proprietor beams at you, a strong medicinal stench wafting off of him.", --Description of the store
   map_description = "A ramshackle booth, stacked with potions.", --Description of the store that will show on the Feature tile used to enter the store
-  sells_items = {{item="healthpotionminor",cost=10,amount=5},{item="dart",cost=1},{item="dagger",amount=5,cost=1},{item="scroll",amount=10,cost=1,passed_info="blink"},{item="scroll",amount=10,cost=1}}, --The items sold by the shop
+  sells_items = {{item="healthpotionminor",cost=10,amount=5},{item="dart",cost=1},{item="dagger",amount=5,cost=1,restock_amount=1},{item="scroll",amount=10,cost=1,passed_info="blink",restock_to=5},{item="scroll",amount=10,cost=1}}, --The items sold by the shop
   noBuy = false, --If the store buys things or not
   buys_items = {healthpotionminor=5,scroll=1},
   buys_tags = {"magic"}, --Tags for non-predefined items that will be bought by the shop

@@ -21,9 +21,7 @@ function Item:init(type_name,info,amt,ignoreNewFunc)
 	self.baseType = "item"
   self.itemType = self.itemType or "other"
   self.color = copy_table(self.color)
-  if (self.stacks) then
-    self.amount = amt or 1
-  end
+  self.amount = amt or 1
   if self.image_varieties and not self.image_name then
     self.image_variety = random(1,self.image_varieties)
     self.image_name = self.id .. self.image_variety
@@ -433,6 +431,31 @@ function Item:reload(possessor)
       output:out(possessor:get_name() .. " reloads " .. self:get_name() .. " with " .. usedAmmo:get_name(false,amt) .. ".")
     end
   end --end if using specific ammo
+end
+
+---Determines if another item is the same as this item
+--@param item Item. The item to check
+--@return Boolean. Whether or not the items are the same
+function Item:matches(item)
+  if self.id == item.id and (not self.sortBy or (self[self.sortBy] == item[self.sortBy])) then
+    local matchEnch = true
+    --Compare enchantments:
+    if (self.enchantments and count(self.enchantments) or 0) == (item.enchantments and count(item.enchantments) or 0) then
+      for ench,turns in pairs(self.enchantments or {}) do
+        if item.enchantments[ench] ~= turns then
+          matchEnch = false
+          break
+        end
+      end --end enchantment for
+    else --if the number of enchantments doesn't match, obviously the enchantments themselves won't match
+      matchEnch = false
+    end
+    
+    if matchEnch == true then
+      return true
+    end
+  end
+  return false
 end
 
 ---Determine if an item qualifies for a particular enchantment

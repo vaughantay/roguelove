@@ -25,8 +25,7 @@ function Store:generate_items()
   if self.sells_items then
     for _,info in pairs(self.sells_items) do
       local itemID = info.item
-      local item = Item(itemID,info.passed_info,(info.amount or -1))
-      if not item.amount then item.amount = (info.amount or -1) end --This is here because non-stackable items don't generate with amounts
+      local item = Item(itemID,info.passed_info,(info.amount or -1)) --If an amount is not defined, set it to -1, which fills in for infinite
       local makeNew = true
       if item.sortBy then
         local index = self:get_inventory_index(item)
@@ -60,12 +59,10 @@ function Store:generate_items()
         local item = Item(itemID)
         if not item.amount then item.amount = 1 end --This is here because non-stackable items don't generate with amounts
         local makeNew = true
-        if item.sortBy then
-          local index = self:get_inventory_index(item)
-          if index then
-            self.inventory[index].item.amount = self.inventory[index].item.amount+item.amount
-            makeNew = false
-          end
+        local index = self:get_inventory_index(item)
+        if index then
+          self.inventory[index].item.amount = self.inventory[index].item.amount+item.amount
+          makeNew = false
         end
         if makeNew == true then
           local id = #self.inventory+1
@@ -76,10 +73,56 @@ function Store:generate_items()
   end --end random items if
 end
 
+---Restocks the store. Default behavior: Restock all defined items up to their original amount, unless restock_amount or restock_to is set.
+function Store:restock()
+  print('restocking ' .. self.name)
+  --First, do defined items
+  if self.sells_items then
+    for _,info in pairs(self.sells_items) do
+      if info.amount and info.amount ~= -1 then --don't restock infinite-stock items
+        local itemID = info.item
+        local item = Item(itemID,info.passed_info)
+        local currAmt = self:get_count(item) or 0
+        local restock_to = (info.restock_to or info.amount)
+        if currAmt < (info.restock_to or info.amount) and currAmt ~= -1 then
+          local final_restock = math.min(info.restock_amount or restock_to-currAmt,restock_to)
+          local index = self:get_inventory_index(item)
+          if index then
+            self.inventory[index].item.amount = self.inventory[index].item.amount+final_restock
+            print(self.name .. ': Re-upping ' .. self.inventory[index].item:get_name() .. " by " .. final_restock)
+          else
+            local id = #self.inventory+1
+            item.amount = final_restock
+            self.inventory[id] = {item=item,cost=info.cost,id=id}
+            print(self.name .. ': Adding ' .. item:get_name() .. " at " .. final_restock)
+          end
+        end --end currAmt < restock to amount
+      end --end if amount
+    end --end sells_items for
+  end --end if self.sells_items
+end
+
 ---Gets a list of the items the store is selling
 --@return Table. The list of items the store has in stock
 function Store:get_inventory()
   return self.inventory
+end
+
+---Gets the numbers of items this store has in its current inventory that matches a passed item
+--@param item Item. The item to count.
+--@return Number. The number of items
+function Store:get_count(item)
+  local iCount = 0
+  for id,info in ipairs(self:get_inventory()) do
+    if item:matches(info.item) then
+      if info.amount == -1 then
+        return -1
+      end
+      iCount = iCount + (info.item.amount or 1)
+    end
+  end
+  print(item:get_name() .. " count in " .. self.name .. ": " .. iCount)
+  return iCount
 end
 
 ---Gets a list of the items that a creature can sell to a store
@@ -155,11 +198,10 @@ function Store:creature_buys_item(item,cost,amt,creature)
     if amt == totalAmt then --if buying all the store has
       if item.stacks or totalAmt == 1 then
         creature:give_item(item)
-        if not item.stacks then item.amount = nil end
       elseif not item.stacks then
         for i=1,amt,1 do
           local newItem = item:clone()
-          newItem.amount = nil
+          newItem.amount = 1
           creature:give_item(newItem)
         end
       end
@@ -183,7 +225,7 @@ function Store:creature_buys_item(item,cost,amt,creature)
     else --if buying a nonstackable item
       for i=1,amt,1 do
         local newItem = item:clone()
-        newItem.amount = nil
+        newItem.amount=1
         creature:give_item(newItem)
       end
       if item.amount ~= -1 then item.amount = item.amount - amt end
@@ -203,7 +245,7 @@ end
 --@return Number. The index ID of the item.
 function Store:get_inventory_index(item)
   for id,info in ipairs(self:get_inventory()) do
-    if info.item.id == item.id and item.stacks == true and (not item.sortBy or (item[item.sortBy] == info.item[item.sortBy])) then
+    if item:matches(info.item) then
       return id
     end
   end
