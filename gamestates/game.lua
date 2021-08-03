@@ -407,7 +407,18 @@ function game:print_sidebar()
       local buttonType = ((player.cooldowns[spell.name] or spell:requires(player) == false) and "disabled" or (actionResult and actionResult.name == spell.name and "hover" or nil))
       self.spellButtons[spellID] = output:button(minX,minY+2,(maxX-minX),smallButtons,buttonType,nil,true)
       if self.spellButtons[spellID].hover == true then
-        descBox = {desc=spell.name .. "\n" .. spell:get_description(),x=minX,y=minY}
+        local target_type = spell.target_type
+        local targetText = ""
+        if target_type == "self" then
+          targetText = "This ability does not require a target."
+        elseif target_type == "creature" then
+          targetText = "This ability can be used on creatures."
+        elseif target_type == "tile" then
+          targetText = "This ability can be used on any tile in range."
+        elseif target_type == "passive" then
+          targetText = "This ability is passive and is used automatically when needed."
+        end
+        descBox = {desc=spell:get_description() .. "\n" .. targetText,x=minX,y=minY}
       end
       if player.cooldowns[spell.name] or spell:requires(player) == false then
         setColor(100,100,100,255)
@@ -1732,7 +1743,7 @@ function ContextualMenu:init(x,y,printX,printY)
   end
   for _,spellID in pairs(player:get_spells()) do
     local spell = possibleSpells[spellID]
-    if spell.target_type == "square" or spell.target_type == "self" or (spell.target_type == "creature" and self.creature) then
+    if spell.target_type == "tile" or spell.target_type == "self" or (spell.target_type == "creature" and self.creature) then
       self.items[#self.items+1] = {name=spell.name,y = spellY,action=spell,cooldown=player.cooldowns[spell.name]}
       spellY = spellY+fontPadding
     end

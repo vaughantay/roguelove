@@ -536,7 +536,7 @@ function inventory:useItem()
     if use ~= false then
       self:switchBack()
       if action ~= "targeting" then advance_turn() end
-    elseif (item.target_type == "creature" or item.target_type == "square") and (not item.charges or item.charges > 0) then
+    elseif (item.target_type == "creature" or item.target_type == "tile") and (not item.charges or item.charges > 0) then
       item:target()
       self:switchBack()
     else

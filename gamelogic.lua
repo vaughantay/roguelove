@@ -617,7 +617,7 @@ function setTarget(x,y)
       x,y = output.targetLine[#output.targetLine].x,output.targetLine[#output.targetLine].y
       creat = currMap:get_tile_creature(x,y)
     end --end projectile if
-		if (actionResult.target_type == "square") then
+		if (actionResult.target_type == "tile") then
       local arg = (actionResult.baseType == "spell" and actionIgnoreCooldown or actionItem)
 			if actionResult:use({x=x,y=y},player,arg) ~= false then
         if actionItem then

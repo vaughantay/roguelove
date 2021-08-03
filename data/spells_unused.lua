@@ -117,7 +117,7 @@ spores = Spell({
 	cooldown = 20,
   AIcooldown=35,
 	flags = {aggressive=true},
-	target_type = "square",
+	target_type = "tile",
   sound="summon_spores",
 	cast = function (self,target,caster)
     if player:can_see_tile(caster.x,caster.y) then output:out(caster:get_name() .. " summons a cloud of spores!") end
@@ -175,7 +175,7 @@ poisoncloud = Spell({
   range=5,
   projectile = true,
 	flags = {aggressive=true},
-	target_type = "square",
+	target_type = "tile",
   sound="spray_long",
 	cast = function (self,target,caster)
 		if player:can_see_tile(caster.x,caster.y) then output:out(caster:get_name() .. " sprays poison gas!") end
@@ -461,7 +461,7 @@ acid = Spell({
 	description = "Throw a beaker of highly corrosive acid at an area, creating a toxic spill. Why would you do this?",
   cooldown=10,
   AIcooldown = 20,
-	target_type = "square",
+	target_type = "tile",
   projectile=true,
 	flags = {aggressive=true},
 	cast = function (self,target,caster)
@@ -546,7 +546,7 @@ molotov = Spell({
 	description = "What's a Revolutionary's favorite drink? A Cubre Libre of course. This, on the other hand, isn't a drink at all, it's an improvised explosive device.",
   cooldown=10,
   AIcooldown=20,
-	target_type = "square",
+	target_type = "tile",
   projectile=true,
 	flags = {aggressive=true},
 	cast = function (self,target,caster)
@@ -638,7 +638,7 @@ dash = Spell({
     cooldown = 10,
     range=5,
     projectile = true,
-    target_type = "square",
+    target_type = "tile",
     sound="dash",
     flags={defensive=true,fleeing=true},
     cast = function(self,target,caster)
@@ -716,7 +716,7 @@ zombait = Spell({
     description = "Throw a piece of raw meat on the ground to distract nearby undead. If you throw it onto a creature instead, nearby undead will rush to attack them. Also works on animals.",
     cooldown = 20,
     projectile = true,
-    target_type = "square",
+    target_type = "tile",
     flags={aggressive=true,defensive=true,fleeing=true},
     cast = function(self,target,caster)
       Projectile('zombait',caster,target)
@@ -728,7 +728,7 @@ bait = Spell({
     description = "Throw a piece of raw meat on the ground to distract nearby animals (or undead). If you throw it onto a creature instead, animals or undead will rush to attack them.",
     cooldown = 20,
     projectile = true,
-    target_type = "square",
+    target_type = "tile",
     flags={aggressive=true,defensive=true,fleeing=true},
     cast = function(self,target,caster)
       Projectile('zombait',caster,target)
@@ -796,7 +796,7 @@ assassinate = Spell({
 
 smokebomb = Spell({
     name = "Smoke Bomb",
-    target_type = "square",
+    target_type = "tile",
     cooldown = 10,
     AIcooldown=30,
     sound = "explosion_smoke",
@@ -862,7 +862,7 @@ cultleader = Spell({
 
 awakenmummy = Spell({
     name = "Awaken Mummy",
-    target_type = "square",
+    target_type = "tile",
     description = "Awaken an ancient ruler. If you awaken one this way, it will not be hostile towards you.",
     cast = function(self,target,caster)
       local sarc = currMap:tile_has_feature(target.x,target.y,'sarcophagus')
@@ -913,7 +913,7 @@ sacrifice = Spell({
 
 sandstorm = Spell({
   name = "Sandstorm",
-  target_type = "square",
+  target_type = "tile",
   description = "Summon up a whirling cloud of blinding sand.",
   cooldown = 20,
   AIcooldown=30,
@@ -943,7 +943,7 @@ sandstorm = Spell({
 
 scarabs = Spell({
     name = "Summon Scarabs",
-    target_type = "square",
+    target_type = "tile",
     description = "Cause a swarm of scarabs to erupt from a corpse",
     cooldown = 10,
     sound="bugswarm",
@@ -1148,7 +1148,7 @@ bailout = Spell({
 
 throwmoney = Spell({
     name = "Throw Money",
-    target_type = "square",
+    target_type = "tile",
     description = "Throw a bunch of money on the ground, distracting nearby intelligent enemies.",
     flags={defensive=true,fleeing=true},
     cast = function(self,target,caster)
@@ -1329,7 +1329,7 @@ reinvest = Spell({
 ratswarm = Spell({
     name = "Rat Swarm",
     description = "Loose a swarm of ravenous rodents!",
-    target_type = "square",
+    target_type = "tile",
     projectile = true,
     cooldown = 25,
     flags={aggressive=true},
@@ -1537,7 +1537,7 @@ entanglingvines = Spell({
 
 awakentrees = Spell({
     name = "Awaken Wood",
-    target_type="square",
+    target_type="tile",
     projectile=false,
     description = "Rouse the spirits of the trees and bring them to your aid.",
     cooldown = 30,
@@ -1574,7 +1574,7 @@ awakentrees = Spell({
 treeteleport = Spell({
     name = "Tree Teleportation",
     description = "Instantly transport yourself to a nearby tree.",
-    target_type = "square",
+    target_type = "tile",
     projectile = "false",
     cooldown = 10,
     cast = function(self,target,caster)
@@ -1761,7 +1761,7 @@ devour = Spell({
 
 spit = Spell({
     name = "Spit Out",
-    target_type = "square",
+    target_type = "tile",
     projectile=true,
     description = "Projectile vomit the creature you are currently digesting.",
     flags={aggressive=true},
@@ -1972,7 +1972,7 @@ directedscream = Spell({
 rainbowblast = Spell({
     name = "Rainbow Blast",
     description = "A multicolored beam of pure magic shoots out of your horn, hitting everything in its path.",
-    target_type = "square",
+    target_type = "tile",
     projectile = false,
     sound = "rainbowblast2",
     cooldown=5,
@@ -2018,7 +2018,7 @@ tranqdart = Spell({
 eyelaser = Spell({
     name = "Eye laser",
     description = "Shoot a giant laser from your eye.",
-    target_type = "square",
+    target_type = "tile",
     sound="laser",
     projectile = false,
     cooldown=5,
@@ -2148,7 +2148,7 @@ bloodsight = Spell({
 
 throwbomb = Spell({
   name = "Throw Bomb",
-  target_type = "square",
+  target_type = "tile",
   description = "Throw a bomb at an area, dealing splash damage. It might not land quite where you aim, though...",
   projectile = true,
   AIcooldown=5,
@@ -2374,7 +2374,7 @@ liverofsteel = Spell({
 booze_fire = Spell({
     name = "Breathe Fire?",
     description = "You once saw a highly-traied street performer in a faraway land do this really cool trick with a bottle of flammable booze, and you're drunk enough to think you can replicate it.",
-    target_type = "square",
+    target_type = "tile",
     range=2,
     AIcooldown=10,
     sound="cough",
@@ -2803,7 +2803,7 @@ tornado = Spell({
     description = "Summons a miniature tornado to ravage the dungeon.",
     cooldown = 25,
     AIcooldown=50,
-    target_type = "square",
+    target_type = "tile",
     sound = "tornado",
     flags = {aggressive=true},
     cast = function(self,target,caster)
@@ -2912,7 +2912,7 @@ knightjump = Spell({
     name = "Knight Jump",
     description = "Leap over your enemies and land in a nearby square an L-shaped path away from where you started. If you land on someone's head, this will hurt them a lot.",
     cooldown = 15,
-    target_type = "square",
+    target_type = "tile",
     sound="jump",
     flags={aggressive=true,defensive=true,fleeing=true},
     cast = function(self,target,caster)
@@ -2976,7 +2976,7 @@ distraction = Spell({
     description = "Throw a noisemaker, which will cause nearby enemies to investigate and make them less likely to see you.",
     cooldown = 30,
     projectile=true,
-    target_type="square",
+    target_type="tile",
     cast = function(self,target,caster)
       if player:can_see_tile(caster.x,caster.y) then
         output:out(caster:get_name() .. " throws a noisemaker.")
@@ -2989,7 +2989,7 @@ remoteviewing = Spell({
     name = "Remote Viewing",
     description = "See a location far removed from your physical body.",
     cooldown = 30,
-    target_type="square",
+    target_type="tile",
     sound="teleport",
     cast = function(self,target,caster)
       if not caster:can_move_to(target.x,target.y) then
@@ -3184,7 +3184,7 @@ spitslime = Spell({
 	name="Spit Slime",
 	description="Spit slime at an enemy.",
 	cooldown=15,
-	target_type = "square",
+	target_type = "tile",
   projectile = true,
   sound = "spit",
 	flags = {aggressive=true,defensive=true,fleeing=true},
@@ -3263,7 +3263,7 @@ sleepsense = Spell({
 darkness = Spell({
   name = "Darkness",
   description = "You cast a blanket of supernatural darkness over an area. Any creatures who aren't already aware of you might fall asleep. Creatures trapped in the darkness will slowly become more afraid and will be unable to see.",
-  target_type = "square",
+  target_type = "tile",
   cooldown=10,
   AIcooldown=30,
   sound="darkness",
