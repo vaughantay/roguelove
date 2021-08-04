@@ -2,6 +2,7 @@ multipickup = {}
 
 function multipickup:enter()
   self.cursorY = 0
+  self.scrollY = 0
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
   local uiScale = (prefs['uiScale'] or 1)
   local boxW,boxH = 450,300
@@ -15,6 +16,7 @@ function multipickup:enter()
   else
     padX,padY=20,20
   end
+  self.itemLines = {}
   self:refresh_items()
   descY = y+padY+(count(self.items)+2)*(fontSize+2)
   self.descY = descY
@@ -58,6 +60,18 @@ function multipickup:draw()
   
   love.graphics.setFont(fonts.textFont)
   
+  love.graphics.printf("Pick Up Items",x+padX,y+padY,boxW-16,"center")
+  
+  --Drawing the text:
+  love.graphics.push()
+  --Create a "stencil" that stops 
+  local function stencilFunc()
+    love.graphics.rectangle("fill",x+padX,y+padY+fontSize,boxW-padX*2,boxH-padY)
+  end
+  love.graphics.stencil(stencilFunc,"replace",1)
+  love.graphics.setStencilTest("greater",0)
+  love.graphics.translate(0,-self.scrollY)
+  --Draw the highloght box:
   if (self.items[self.cursorY] ~= nil) then
     local printY = y+padY+((self.cursorY+1)*fontSize)
     setColor(100,100,100,255)
@@ -65,26 +79,57 @@ function multipickup:draw()
     setColor(255,255,255,255)
 	end
   
-  love.graphics.printf("Pick Up Items",x+padX,y+padY,boxW-16,"center")
+  --Draw the item list:
+  local bottom = 0
 	local items = {}
 	for i, item in ipairs(self.items) do
 		local letter = string.char(i+96)
     local name = item:get_name(true)
-		love.graphics.print(letter .. ") " .. name,x+padX,y+padY+((line-1)*fontSize))
+    local itemY = y+padY+((line-1)*fontSize)
+		love.graphics.print(letter .. ") " .. name,x+padX,itemY)
 		line = line+1
+    self.itemLines[i] = {minY=itemY,maxY=itemY+fontSize+2}
+    bottom = itemY+fontSize+2
 	end
+  bottom = bottom+fontSize
   
+  love.graphics.setStencilTest()
+  
+  --Draw the description:
   if (self.items[self.cursorY] ~= nil) then
-    local fontSize = prefs['fontSize']
     local item = self.items[self.cursorY]
     local desc = item:get_description()
     local info = item:get_info(true)
-    local _, dlines = fonts.descFont:getWrap(desc,x+padX)
-    local descH = #dlines*fontSize+fontSize
-    local _, ilines = fonts.descFont:getWrap(info,x+padX)
-    local infoH = #ilines*fontSize+fontSize*(#ilines > 0 and 2 or 0)
-    love.graphics.printf(desc,x+padX,descY+8,boxW-16,"left")
-    love.graphics.printf(info,x+padX,descY+descH+8,boxW-16,"left")
+    local oldFont = love.graphics.getFont()
+    love.graphics.setFont(fonts.descFont)
+    local descText = desc .. (info ~= "" and "\n\n" or info)
+    local width, tlines = fonts.descFont:getWrap(descText,300)
+    local height = #tlines*(prefs['descFontSize']+3)+math.ceil(fontSize/2)
+    x,y = round((x+boxW)/2),self.itemLines[self.cursorY].minY+round(fontSize/2)
+    if (y+20+height < love.graphics.getHeight()) then
+      setColor(255,255,255,185)
+      love.graphics.rectangle("line",x+22,y+20,302,height)
+      setColor(0,0,0,185)
+      love.graphics.rectangle("fill",x+23,y+21,301,height-1)
+      setColor(255,255,255,255)
+      love.graphics.printf(ucfirst(descText),x+24,y+22,300)
+    else
+      setColor(255,255,255,185)
+      love.graphics.rectangle("line",x+22,y+20-height,302,height)
+      setColor(0,0,0,185)
+      love.graphics.rectangle("fill",x+23,y+21-height,301,height-1)
+      setColor(255,255,255,255)
+      love.graphics.printf(ucfirst(descText),x+24,y+22-height,300)
+    end
+    love.graphics.setFont(oldFont)
+  end
+  love.graphics.pop()
+  
+  --Scrollbars
+  if bottom > self.y+self.boxH then
+    self.scrollMax = bottom-(self.y+self.boxH)
+    local scrollAmt = self.scrollY/self.scrollMax
+    self.scrollPositions = output:scrollbar(self.x+self.boxW-padX,self.y+padY,self.y+self.boxH,scrollAmt,true)
   end
   self.closebutton = output:closebutton(self.x+(prefs['noImages'] and 8 or 20),self.y+(prefs['noImages'] and 8 or 20),nil,true)
   love.graphics.pop()
@@ -100,10 +145,16 @@ function multipickup:keypressed(key)
 	elseif (key == "up") then
 		if (self.items[self.cursorY-1] ~= nil) then
 			self.cursorY = self.cursorY - 1
+      if self.itemLines[self.cursorY].minY-self.scrollY-prefs['fontSize'] < self.y+self.padY+prefs['fontSize'] then
+        self:scrollUp()
+      end
 		end
 	elseif (key == "down") then
 		if (self.items[self.cursorY+1] ~= nil) then
 			self.cursorY = self.cursorY + 1
+      if self.itemLines[self.cursorY].maxY-self.scrollY+prefs['fontSize'] > self.y+prefs['fontSize']+self.boxH then
+        self:scrollDown()
+      end
 		end
 	else
 		local id = string.byte(key)-96
@@ -117,7 +168,7 @@ function multipickup:mousepressed(x,y,button)
   local uiScale = (prefs['uiScale'] or 1)
 	if (x/uiScale > self.x and x/uiScale < self.x+self.boxW and y/uiScale > self.y and y/uiScale < self.descY) then
     if button == 2 or (x/uiScale > self.closebutton.minX and x/uiScale < self.closebutton.maxX and y/uiScale > self.closebutton.minY and y/uiScale < self.closebutton.maxY) then self:switchBack() end
-		if (self.items[self.cursorY] ~= nil) then
+		if (self.items[self.cursorY] ~= nil) and (not self.scrollPositions or x/uiScale < self.x+self.boxW-self.padX) then
       self:pickup(self.items[self.cursorY])
 		end
 	end
@@ -125,14 +176,27 @@ end
 
 function multipickup:wheelmoved(x,y)
   if y > 0 then
-		if (self.cursorY and self.items[self.cursorY-1] ~= nil) then
-			self.cursorY = self.cursorY - 1
-		end
+    self:scrollUp()
 	elseif y < 0 then
-    self.cursorY = self.cursorY or 0
-		if (self.items[self.cursorY+1] ~= nil) then
-			self.cursorY = self.cursorY + 1
-		end
+    self:scrollDown()
+  end --end button type if
+end
+
+function multipickup:scrollUp()
+  if self.scrollY > 0 then
+    self.scrollY = self.scrollY - prefs.fontSize
+    if self.scrollY < prefs.fontSize then
+      self.scrollY = 0
+    end
+  end
+end
+
+function multipickup:scrollDown()
+  if self.scrollMax and self.scrollY < self.scrollMax then
+    self.scrollY = self.scrollY+prefs.fontSize
+    if self.scrollMax-self.scrollY < prefs.fontSize then
+      self.scrollY = self.scrollMax
+    end
   end
 end
 
@@ -149,16 +213,29 @@ function multipickup:update(dt)
   x,y = x/uiScale, y/uiScale
 	if (x ~= output.mouseX or y ~= output.mouseY) then -- only do this if the mouse has moved
     output.mouseX,output.mouseY = x,y
-		if (x > self.x and x < self.x+self.boxW and y > self.y and y < self.descY) then --if inside item box
-      local mouseY = y-(self.y-self.padY)-(prefs['noImages'] and 2 or 4)*prefs['fontSize']
-			local listY = math.floor(mouseY/(fontSize))
-			if (self.items[listY] ~= nil) then
-				self.cursorY=listY
-      else
-        self.cursorY=nil
-			end
+		if (x > self.x and x < self.x+self.boxW-(not self.scrollPositions and 0 or self.padX) and y > self.y+prefs['fontSize']+self.padY and y < self.descY) then --if inside item box
+      for i,coords in ipairs(self.itemLines) do
+        if y > coords.minY-self.scrollY and y < coords.maxY-self.scrollY then
+          self.cursorY = i
+          break
+        end
+      end
 		end
 	end
+  if (love.mouse.isDown(1)) and self.scrollPositions then
+    local x,y = love.mouse.getPosition()
+    local upArrow = self.scrollPositions.upArrow
+    local downArrow = self.scrollPositions.downArrow
+    local elevator = self.scrollPositions.elevator
+    if x>upArrow.startX and x<upArrow.endX and y>upArrow.startY and y<upArrow.endY then
+      self:scrollUp()
+    elseif x>downArrow.startX and x<downArrow.endX and y>downArrow.startY and y<downArrow.endY then
+      self:scrollDown()
+    elseif x>elevator.startX and x<elevator.endX and y>upArrow.endY and y<downArrow.startY then
+      if y<elevator.startY then self:scrollUp()
+      elseif y>elevator.endY then self:scrollDown() end
+    end --end clicking on arrow
+  end
 end
 
 function multipickup:switchBack()

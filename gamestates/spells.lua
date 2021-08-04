@@ -220,11 +220,19 @@ end
 function spellscreen:scrollUp()
   if self.scrollY > 0 then
     self.scrollY = self.scrollY - prefs.fontSize
+    if self.scrollY < prefs.fontSize then
+      self.scrollY = 0
+    end
   end
 end
 
 function spellscreen:scrollDown()
-  if self.scrollMax and self.scrollY < self.scrollMax then self.scrollY = self.scrollY+prefs.fontSize end
+  if self.scrollMax and self.scrollY < self.scrollMax then
+    self.scrollY = self.scrollY+prefs.fontSize
+    if self.scrollMax-self.scrollY < prefs.fontSize then
+      self.scrollY = self.scrollMax
+    end
+  end
 end
 
 function spellscreen:update(dt)
