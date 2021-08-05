@@ -345,6 +345,7 @@ local townsperson = {
   nameType = "human",
   gender="either",
   specialOnly=true,
+  money=10,
   level = 0,
   strength = 1,
   possession_chance = 80,

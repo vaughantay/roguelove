@@ -647,3 +647,17 @@ function Item:add_tags(tags)
     self:add_tag(tag)
   end
 end
+
+---Delete an item
+function Item:delete(map)
+  if self.owner then
+    return self.owner:delete_item(self)
+  end
+  map = currMap
+  for id,f in pairs(map.contents[self.x][self.y]) do
+    if f == self or id == self then
+      map.contents[self.x][self.y][id] = nil
+    end --end if
+  end --end for
+  if self.castsLight then map.lights[self] = nil end
+end

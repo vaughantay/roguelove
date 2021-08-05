@@ -30,7 +30,7 @@ function Creature:init(creatureType,level,noItems)
   self.checked = {}
   self.inventory = {}
   self.equipment = {}
-  self.money = self.money or 0
+  self.money = tweak(self.money or 0)
   self.xp = 0
   self.favor = self.favor or {}
   self.factions = self.factions or {}
@@ -54,7 +54,7 @@ function Creature:init(creatureType,level,noItems)
 	self.path = nil
 	self.baseType = "creature"
   self.types = self.types or {}
-  self.speed = self.speed or 100
+  self.speed = tweak(self.speed or 100)
   self.energy = self.speed
   self.color = copy_table(self.color)
   self.color.a = self.color.a or 255
@@ -1173,11 +1173,19 @@ end
 --@param item Item. The item to pick up
 --@param tileOnly Boolean. Whether to only allow pickups from the tile the creature is standing on. If not set to TRUE, creatures can also pick up from adjacent tiles.
 function Creature:pickup(item,tileOnly)
-  local x,y = self.x,self.y
-  if (tileOnly ~= true and not self:touching(item)) or (tileOnly == true and (item.x ~= x or item.y ~= y)) then return false end
-  currMap.contents[item.x][item.y][item] = nil
-  self:give_item(item)
-  if player:can_sense_creature(self) then output:out(self:get_name() .. " picks up " .. item:get_name() .. ".") end
+  local didIt,pickupText = nil,nil
+  if possibleItems[item.id].pickup then
+    didIt,pickupText = possibleItems[item.id].pickup(item,self)
+  end
+  if didIt ~= false then
+    local x,y = self.x,self.y
+    if (tileOnly ~= true and not self:touching(item)) or (tileOnly == true and (item.x ~= x or item.y ~= y)) then return false end
+    currMap.contents[item.x][item.y][item] = nil
+    self:give_item(item)
+    if player:can_sense_creature(self) then
+      output:out(pickupText or self:get_name() .. " picks up " .. item:get_name() .. ".")
+    end
+  end
 end
 
 ---Transfer an item to a creature's inventory
@@ -1195,6 +1203,7 @@ function Creature:give_item(item)
     table.insert(self.inventory,item)
   end
   item.x,item.y=self.x,self.y
+  item.owner = self
   return item
 end
 
@@ -1209,6 +1218,7 @@ function Creature:drop_item(item)
     if self:is_equipped(item) then
       self:unequip(item)
       item.x,item.y=self.x,self.y
+      item.owner=nil
     end
 	end
 end
@@ -1227,6 +1237,11 @@ function Creature:drop_all_items(deathItems)
     for _,item in ipairs(self.death_items) do
       currMap:add_item(item,self.x,self.y,true)
     end --end inventory for loop
+  end
+  --Money:
+  if self.money then
+    local money = Item('money',self.money)
+    currMap:add_item(money,self.x,self.y,true)
   end
   self.inventory = {}
   self.death_items = nil
