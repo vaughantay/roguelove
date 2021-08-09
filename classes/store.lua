@@ -27,12 +27,10 @@ function Store:generate_items()
       local itemID = info.item
       local item = Item(itemID,info.passed_info,(info.amount or -1)) --If an amount is not defined, set it to -1, which fills in for infinite
       local makeNew = true
-      if item.sortBy then
-        local index = self:get_inventory_index(item)
-        if index then
-          self.inventory[index].item.amount = self.inventory[index].item.amount+item.amount
-          makeNew = false
-        end
+      local index = self:get_inventory_index(item)
+      if index then
+        self.inventory[index].item.amount = self.inventory[index].item.amount+item.amount
+        makeNew = false
       end
       if makeNew == true then
         local id = #self.inventory+1
@@ -42,32 +40,10 @@ function Store:generate_items()
   end --end if self.sells_items
   --Generate dynamic inventory:
   if self.random_item_amount then
-    local possibles = {}
-    for id,item in pairs(possibleItems) do
-      local done = false
-      for _,tag in ipairs(self.sells_tags) do
-        if item.value and not item.neverSpawn and (in_table(tag,item) or item.itemType == tag) then
-          possibles[#possibles+1] = id
-          done = true
-          break
-        end
-      end
-    end
+    local possibles = self:get_possible_random_items()
     if count(possibles) > 0 then
       for i=1,self.random_item_amount,1 do
-        local itemID = possibles[random(#possibles)]
-        local item = Item(itemID)
-        if not item.amount then item.amount = 1 end --This is here because non-stackable items don't generate with amounts
-        local makeNew = true
-        local index = self:get_inventory_index(item)
-        if index then
-          self.inventory[index].item.amount = self.inventory[index].item.amount+item.amount
-          makeNew = false
-        end
-        if makeNew == true then
-          local id = #self.inventory+1
-          self.inventory[id] = {item=item,cost=item.value*(self.markup or 1),id=id}
-        end
+        self:generate_random_item(possibles)
       end --end random_item_amount for
     end --end possibles count if
   end --end random items if
@@ -75,7 +51,6 @@ end
 
 ---Restocks the store. Default behavior: Restock all defined items up to their original amount, unless restock_amount or restock_to is set.
 function Store:restock()
-  print('restocking ' .. self.name)
   --First, do defined items
   if self.sells_items then
     for _,info in pairs(self.sells_items) do
@@ -85,21 +60,38 @@ function Store:restock()
         local currAmt = self:get_count(item) or 0
         local restock_to = (info.restock_to or info.amount)
         if currAmt < (info.restock_to or info.amount) and currAmt ~= -1 then
-          local final_restock = math.min(info.restock_amount or restock_to-currAmt,restock_to)
+          local final_restock = math.min(info.restock_amount or restock_to,restock_to-currAmt)
           local index = self:get_inventory_index(item)
           if index then
             self.inventory[index].item.amount = self.inventory[index].item.amount+final_restock
-            print(self.name .. ': Re-upping ' .. self.inventory[index].item:get_name() .. " by " .. final_restock)
           else
             local id = #self.inventory+1
             item.amount = final_restock
             self.inventory[id] = {item=item,cost=info.cost,id=id}
-            print(self.name .. ': Adding ' .. item:get_name() .. " at " .. final_restock)
           end
         end --end currAmt < restock to amount
       end --end if amount
     end --end sells_items for
   end --end if self.sells_items
+  --Restock randomly generated items:
+  if self.random_item_amount then
+    local random_inv = 0
+    local restock_to = (self.random_item_restock_to or self.random_item_amount)
+    for _,inv in ipairs(self.inventory) do
+      if inv.randomly_generated then
+        random_inv = random_inv + (inv.item.amount or 1)
+      end
+    end --end random for
+    local final_restock = math.min(self.random_item_restock_amount or restock_to,restock_to-random_inv)
+    if final_restock > 0 then
+      local possibles = self:get_possible_random_items()
+      if count(possibles) > 0 then
+        for i=1,final_restock,1 do
+          self:generate_random_item(possibles)
+        end --end random_item_amount for
+      end --end possibles count if
+    end
+  end --end if random_item_amount
 end
 
 ---Gets a list of the items the store is selling
@@ -121,7 +113,6 @@ function Store:get_count(item)
       iCount = iCount + (info.item.amount or 1)
     end
   end
-  print(item:get_name() .. " count in " .. self.name .. ": " .. iCount)
   return iCount
 end
 
@@ -137,7 +128,7 @@ function Store:get_buy_list(creat)
     elseif self.buys_tags and item.value then
       for _,tag in ipairs(self.buys_tags) do
         if item:has_tag(tag) or item.itemType == tag then
-          buying[#buying+1]={item=item,cost=item.value}
+          buying[#buying+1]={item=item,cost=item:get_value()}
         end
       end
     end
@@ -248,6 +239,45 @@ function Store:get_inventory_index(item)
     if item:matches(info.item) then
       return id
     end
+  end
+end
+
+---Get all possible random items the store can stock
+--@return Table. A list of the item IDs
+function Store:get_possible_random_items()
+  local possibles = {}
+  for id,item in pairs(possibleItems) do
+    local done = false
+    for _,tag in ipairs(self.sells_tags) do
+      if item.value and not item.neverSpawn and (in_table(tag,item) or item.itemType == tag) then
+        possibles[#possibles+1] = id
+        done = true
+        break
+      end
+    end
+  end
+  return possibles
+end
+
+---Generate a random item from the store's possible random items list
+--@param list Table. A list of item IDs to pull from. Optional, defaults to the list from get_possible_random_items()
+function Store:generate_random_item(list)
+  local possibles = list or self:get_possible_random_items()
+  local itemID = possibles[random(#possibles)]
+  local item = Item(itemID,(possibleItems[itemID].acceptTags and self.passed_tags or nil))
+  if random(1,100) <= (self.artifact_chance or gamesettings.artifact_chance) then
+    mapgen:make_artifact(item)
+  end
+  if not item.amount then item.amount = 1 end --This is here because non-stackable items don't generate with amounts
+  local makeNew = true
+  local index = self:get_inventory_index(item)
+  if index then
+    self.inventory[index].item.amount = self.inventory[index].item.amount+item.amount
+    makeNew = false
+  end
+  if makeNew == true then
+    local id = #self.inventory+1
+    self.inventory[id] = {item=item,cost=item:get_value()*(self.markup or 1),id=id,randomly_generated=true}
   end
 end
 

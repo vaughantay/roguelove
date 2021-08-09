@@ -185,7 +185,7 @@ function Faction:teach_spell(spellID,creature)
   creature.spells[#creature.spells+1] = spellID
 end
 
----Generates the faction's store's inventory
+---Generates the faction's inventory
 function Faction:generate_items()
   --Generate items from list:
   if not self.sells_items then return end
@@ -194,12 +194,10 @@ function Faction:generate_items()
     local item = Item(itemID,info.passed_info,(info.amount or -1))
     if not item.amount then item.amount = (info.amount or -1) end --This is here because non-stackable items don't generate with amounts
     local makeNew = true
-    if item.sortBy then
-      local index = self:get_inventory_index(item)
-      if index then
-        self.inventory[index].item.amount = self.inventory[index].item.amount+item.amount
-        makeNew = false
-      end
+    local index = self:get_inventory_index(item)
+    if index then
+      self.inventory[index].item.amount = self.inventory[index].item.amount+item.amount
+      makeNew = false
     end
     if makeNew == true then
       local id = #self.inventory+1
@@ -208,43 +206,80 @@ function Faction:generate_items()
   end
   --Generate dynamic inventory:
   if self.random_item_amount then
-    local possibles = {}
-    for id,item in pairs(possibleItems) do
-      local done = false
-      for _,tag in ipairs(self.sells_tags) do
-        if item.value and not item.neverSpawn and (in_table(tag,item) or item.itemType == tag) then
-          possibles[#possibles+1] = id
-          done = true
-          break
-        end
-      end
-    end
+    local possibles = self:get_possible_random_items()
     if count(possibles) > 0 then
       for i=1,self.random_item_amount,1 do
-        local itemID = possibles[random(#possibles)]
-        local item = Item(itemID)
-        if not item.amount then item.amount = 1 end --This is here because non-stackable items don't generate with amounts
-        local makeNew = true
-        if item.sortBy then
-          local index = self:get_inventory_index(item)
-          if index then
-            self.inventory[index].item.amount = self.inventory[index].item.amount+item.amount
-            makeNew = false
-          end
-        end
-        if makeNew == true then
-          local id = #self.inventory+1
-          self.inventory[id] = {item=item,cost=item.value*(self.markup or 1),id=id}
-        end
+        self:generate_random_item(possibles)
       end --end random_item_amount for
     end --end possibles count if
   end --end random items if
+end
+
+---Restocks the faction's inventory. Default behavior: Restock all defined items up to their original amount, unless restock_amount or restock_to is set.
+function Faction:restock()
+  --First, do defined items
+  if self.sells_items then
+    for _,info in pairs(self.sells_items) do
+      if info.amount and info.amount ~= -1 then --don't restock infinite-stock items
+        local itemID = info.item
+        local item = Item(itemID,info.passed_info)
+        local currAmt = self:get_count(item) or 0
+        local restock_to = (info.restock_to or info.amount)
+        if currAmt < (info.restock_to or info.amount) and currAmt ~= -1 then
+          local final_restock = math.min(info.restock_amount or restock_to,restock_to-currAmt)
+          local index = self:get_inventory_index(item)
+          if index then
+            self.inventory[index].item.amount = self.inventory[index].item.amount+final_restock
+          else
+            local id = #self.inventory+1
+            item.amount = final_restock
+            self.inventory[id] = {item=item,cost=info.cost,id=id}
+          end
+        end --end currAmt < restock to amount
+      end --end if amount
+    end --end sells_items for
+  end --end if self.sells_items
+  --Restock randomly generated items:
+  if self.random_item_amount then
+    local random_inv = 0
+    local restock_to = (self.random_item_restock_to or self.random_item_amount)
+    for _,inv in ipairs(self.inventory) do
+      if inv.randomly_generated then
+        random_inv = random_inv + (inv.item.amount or 1)
+      end
+    end --end random for
+    local final_restock = math.min(self.random_item_restock_amount or restock_to,restock_to-random_inv)
+    if final_restock > 0 then
+      local possibles = self:get_possible_random_items()
+      if count(possibles) > 0 then
+        for i=1,final_restock,1 do
+          self:generate_random_item()
+        end --end random_item_amount for
+      end --end possibles count if
+    end
+  end --end if random_item_amount
 end
 
 ---Gets a list of the items the faction is selling
 --@return Table. The list of items the faction has in stock
 function Faction:get_inventory()
   return self.inventory
+end
+
+---Gets the numbers of items this faction has in its current inventory that matches a passed item
+--@param item Item. The item to count.
+--@return Number. The number of items
+function Faction:get_count(item)
+  local iCount = 0
+  for id,info in ipairs(self:get_inventory()) do
+    if item:matches(info.item) then
+      if info.amount == -1 then
+        return -1
+      end
+      iCount = iCount + (info.item.amount or 1)
+    end
+  end
+  return iCount
 end
 
 ---Gets a list of the items that a creature can sell to a faction
@@ -259,7 +294,7 @@ function Faction:get_buy_list(creat)
     elseif self.buys_tags and item.value then
       for _,tag in ipairs(self.buys_tags) do
         if item:has_tag(tag) then
-          buying[#buying+1]={item=item,favorCost=math.floor(item.value/(self.money_per_favor or 10)),moneyCost=(not self.only_pays_favor and item.value or nil)}
+          buying[#buying+1]={item=item,favorCost=math.floor(item:get_value()/(self.money_per_favor or 10)),moneyCost=(not self.only_pays_favor and item:get_value() or nil)}
         end
       end
     end
@@ -332,7 +367,7 @@ function Faction:creature_buys_item(item,moneyCost,favorCost,amt,creature)
     else
       for i=1,amt,1 do
         local newItem = item:clone()
-        newItem.amount = nil
+        newItem.amount = 1
         creature:give_item(newItem)
       end
       if item.amount ~= -1 then item.amount = item.amount - amt end
@@ -349,8 +384,47 @@ end
 --@return Number. The index ID of the item.
 function Faction:get_inventory_index(item)
   for id,info in ipairs(self:get_inventory()) do
-    if info.item.id == item.id and item.stacks == true and (not item.sortBy or (item[item.sortBy] == info.item[item.sortBy])) then
+    if item:matches(info.item) then
       return id
     end
   end
 end
+
+---Get all possible random items the faction can stock
+--@return Table. A list of the item IDs
+function Faction:get_possible_random_items()
+  local possibles = {}
+  for id,item in pairs(possibleItems) do
+      local done = false
+      for _,tag in ipairs(self.sells_tags) do
+        if item.value and not item.neverSpawn and (in_table(tag,item) or item.itemType == tag) then
+          possibles[#possibles+1] = id
+          done = true
+          break
+        end
+      end
+    end
+    return possibles
+  end
+  
+  ---Generate a random item from the faction's possible random items list
+--@param list Table. A list of item IDs to pull from. Optional, defaults to the list from get_possible_random_items()
+  function Faction:generate_random_item(list)
+    local possibles = list or self:get_possible_random_items()
+    local itemID = possibles[random(#possibles)]
+    local item = Item(itemID,(possibleItems[itemID].acceptTags and self.passed_tags or nil))
+    if random(1,100) <= (self.artifact_chance or gamesettings.artifact_chance) then
+      mapgen:make_artifact(item)
+    end
+    if not item.amount then item.amount = 1 end --This is here because non-stackable items don't generate with amounts
+    local makeNew = true
+    local index = self:get_inventory_index(item)
+    if index then
+      self.inventory[index].item.amount = self.inventory[index].item.amount+item.amount
+      makeNew = false
+    end
+    if makeNew == true then
+      local id = #self.inventory+1
+      self.inventory[id] = {item=item,cost=item:get_value()*(self.markup or 1),id=id,randomly_generated=true}
+    end
+  end

@@ -22,6 +22,8 @@ local weaponstore = {
   buys_tags = {"weapon"},
   markup=2, --Randomly-selected items' values will be multiplied by this number to determine how much this shop will sell the items for
   random_item_amount=10, --How many random items to fill the shop with
+  random_item_restock_amount=1, --How many random items to restock each restock cycle
+  random_item_restock_to=5, --Don't restock random items if the random item count is above this amount
   min_artifacts=1,
   artifact_chance=1
 }

@@ -698,9 +698,11 @@ function downtime()
       m:populate_creatures()
     end
   end
-  --TODO: Refresh faction inventories
   for _, store in pairs(currWorld.stores) do
     store:restock()
+  end
+  for _, faction in pairs(currWorld.factions) do
+    faction:restock()
   end
 end
 

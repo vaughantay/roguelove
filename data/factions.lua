@@ -21,11 +21,13 @@ possibleFactions['lightchurch'] = {
   enter_threshold = 0, --The amount of favor below which you're not allowed to do business with the faction
   join_threshold = 100, --The amount of favor you need to be eligible to join the faction
   banish_threshold=0, --If your favor falls below this, you'll be kicked out of the faction
-  sells_items = {{item="holywater",favorCost=5,moneyCost=50}, {item="dagger",favorCost=250,amount=1,membersOnly=true}}, --pre-defined items that this faction sells to friendly players
+  sells_items = {{item="holywater",favorCost=5,moneyCost=50,amount=10,restock_amount=2,restock_to=5}, {item="dagger",favorCost=250,amount=1,membersOnly=true}}, --pre-defined items that this faction sells to friendly players
   sells_tags = {"holy"}, --Tags for randomly-generated items that will be sold by the shop
   passed_tags = {"holy"}, --These tags will be given priority for enchantments applied to items, and passed to items to do with what they will (ex: scrolls, to put preference on spells with these tags) TODO: Actually implement this
   markup=2, --Randomly-selected items' values will be multiplied by this number to determine how much this shop will sell the items for
-  random_item_amount=2, --How many random items to fill the shop with
+  random_item_amount=5, --How many random items to fill the shop with
+  random_item_restock_amount=1, --How many random items to restock each restock cycle
+  random_item_restock_to=3, --Don't restock random items if the random item count is above this amount
   buys_items = {demonblood={favorCost=2}}, --pre-defined items that this faction buys in return for favor or money
   buys_tags = {"magic","holy","unholy","demon"}, --Tags for non-predefined items that will be bought by the faction
   money_per_favor = 10, --When buying non-predefined items, divide the item's value by this number to get the favor paid (rounded down)

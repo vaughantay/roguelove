@@ -409,7 +409,8 @@ local cattleprod = {
 	accuracy = 10,
 	level = 1,
   tags={'nonlethal','electric'},
-  value=10
+  value=10,
+  noEnchantments=true
 }
 function cattleprod:attack_hits(target,wielder,damage)
   if player:can_sense_creature(target) then output:out(wielder:get_name() .. " gives " .. target:get_name() .. " a nasty shock with a cattle prod!") end

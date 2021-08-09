@@ -93,7 +93,7 @@ function Item:get_info()
     uses = uses .. "\n\nEnchantments:"
     for ench,turns in pairs(enches) do
       local enchantment = enchantments[ench]
-      uses = uses .. "\n\n" .. ucfirst(enchantment.name) .. (enchantment.removal_type and " (" .. turns .. " " .. enchantment.removal_type .. "s remaining)" or "") .. "\n" .. enchantment.description
+      uses = uses .. "\n\n" .. ucfirst(enchantment.name) .. ((enchantment.removal_type and turns ~= -1) and " (" .. turns .. " " .. enchantment.removal_type .. "s remaining)" or "") .. "\n" .. enchantment.description
     end
   end
 	return uses
@@ -498,6 +498,7 @@ end
 --@param permanent Boolean. Whether the enchantment has to qualify as a permanent enchantment (optional)
 --@return Table. A list of all enchantment IDs
 function Item:get_possible_enchantments(permanent)
+  if self.noEnchantments then return {} end
   local possibles = {}
   for eid,ench in pairs(enchantments) do
     if not ench.specialOnly and self:qualifies_for_enchantment(eid,permanent) then
@@ -617,6 +618,13 @@ end
 --@return Number. The crit chance of the weapon.
 function Item:get_critical_chance()
   return (self.critical_chance or 0)+self:get_enchantment_bonus('critical_chance')
+end
+
+---Checks the value of an item
+--@return Number. The value of the item
+function Item:get_value()
+  if not self.value then return 0 end
+  return self.value+self:get_enchantment_bonus('value')
 end
 
 ---Checks if an item has a descriptive tag.
