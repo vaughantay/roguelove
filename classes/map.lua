@@ -855,7 +855,7 @@ function Map:get_item_list(force)
   return specialItems
 end
 
----Get a list of possible stores to spawn on the given map. TODO: Make this actually do something, as is it just returns all possible stores
+---Get a list of possible stores to spawn on the given map.
 --@param self Map. The map to check
 --@param force Boolean. Whether or not to forcibly re-calculate it, rather than returning the pre-calculated value 
 --@return Table or nil. Either a table of faction IDs, or nil if there are no possible stores

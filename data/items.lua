@@ -350,51 +350,6 @@ function selfharmdagger:attacked_with(target,wielder)
 end
 possibleItems['selfharmdagger'] = selfharmdagger
 
-local firedagger = {
-  name="fire dagger",
-	description="A short-bladed dagger, wickedly sharp, and on fire.",
-	symbol="†",
-	itemType="weapon",
-  subType="melee",
-  equippable=true,
-  throwable=true,
-  equipSlot="weapon",
-  hands=1,
-	color={r=255,g=200,b=200,a=255},
-	damage = 3,
-	accuracy = 10,
-	critical_chance = 5,
-	level = 1,
-  damage_type="fire",
-  tags={'sharp','fire','hot'},
-  value=10
-}
-function firedagger:after_damage(target,attacker)
-  target:give_condition('onfire',10)
-end
-possibleItems['firedagger'] = firedagger
-
-local holydagger = {
-  name="holy dagger",
-	description="A short-bladed dagger, wickedly sharp, and blessed with righteousness.",
-	symbol="†",
-	itemType="weapon",
-  subType="melee",
-  equippable=true,
-  throwable=true,
-  equipSlot="weapon",
-  hands=1,
-	color={r=255,g=255,b=200,a=255},
-	damage = 3,
-	accuracy = 10,
-	critical_chance = 5,
-	level = 1,
-  damage_type="holy",
-  tags={'sharp','holy'},
-  value=10
-}
-possibleItems['holydagger'] = holydagger
-
 local cattleprod = {
   name="cattle prod",
 	description="A cattle prod. Deals no damage, but stuns.",

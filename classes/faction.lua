@@ -188,11 +188,18 @@ end
 ---Generates the faction's inventory
 function Faction:generate_items()
   --Generate items from list:
+  local tags = self.passedTags
   if not self.sells_items then return end
   for _,info in pairs(self.sells_items) do
     local itemID = info.item
-    local item = Item(itemID,info.passed_info,(info.amount or -1))
-    if not item.amount then item.amount = (info.amount or -1) end --This is here because non-stackable items don't generate with amounts
+    local item = Item(itemID,(info.passed_info or (possibleItems[itemID].acceptTags and tags) or nil),(info.amount or -1))
+    if info.artifact then
+      mapgen:make_artifact(item,tags)
+    elseif info.enchantments then
+      for _,eid in ipairs(info.enchantments) do
+        item:apply_enchantment(eid,-1)
+      end
+    end
     local makeNew = true
     local index = self:get_inventory_index(item)
     if index then
@@ -412,9 +419,16 @@ function Faction:get_possible_random_items()
   function Faction:generate_random_item(list)
     local possibles = list or self:get_possible_random_items()
     local itemID = possibles[random(#possibles)]
-    local item = Item(itemID,(possibleItems[itemID].acceptTags and self.passed_tags or nil))
+    local tags = self.passedTags
+    local item = Item(itemID,(possibleItems[itemID].acceptTags and tags or nil))
     if random(1,100) <= (self.artifact_chance or gamesettings.artifact_chance) then
-      mapgen:make_artifact(item)
+      mapgen:make_artifact(item,tags)
+    elseif random(1,100) <= gamesettings.enchantment_chance then
+      local possibles = item:get_possible_enchantments(true)
+      if count(possibles) > 0 then
+        local eid = get_random_element(possibles)
+        item:apply_enchantment(eid,-1)
+      end
     end
     if not item.amount then item.amount = 1 end --This is here because non-stackable items don't generate with amounts
     local makeNew = true

@@ -186,13 +186,14 @@ function mapgen:generate_item(level,list,tags)
   end
   -- Create the actual item:
 	local item = Item(newItem,(possibleItems[newItem].acceptTags and tags or nil))
-  --Add enchantments: TODO: Make this not ridiculous
+  --Add enchantments:
   if random(1,100) <= gamesettings.artifact_chance then
     self:make_artifact(item,tags)
-  else
-    local eid = get_random_key(enchantments)
-    if item:qualifies_for_enchantment(eid) then
-      item:apply_enchantment(eid,random(5,10))
+  elseif random(1,100) <= gamesettings.enchantment_chance then
+    local possibles = item:get_possible_enchantments(true)
+    if count(possibles) > 0 then
+      local eid = get_random_element(possibles)
+      item:apply_enchantment(eid,-1)
     end
   end
   return item

@@ -4,7 +4,7 @@ possibleFactions['lightchurch'] = {
   name = "Church of Sweetness and Light", --Name of the faction
   description = "A powerful organization dedicated to eradicating evil. Luckily for them, but unluckily for everyone else, they also get to determine what qualifies as evil.", --Description of the faction
   map_description = "A powerful organization dedicated to eradicating evil.", --Description that will show on the Feature tile used to access the faction
-  tags={"organized"}, --Tags used to describe the faction, for deciding what maps to put them in
+  tags={"organized","holy"}, --Tags used to describe the faction, for deciding what maps to put them in
   friendly_types = {"angel"}, --Creature types this faction will not attack
   enemy_types = {"demon","undead"}, --Creature types this faction will always attack
   friendly_factions = {"grievers","angels"}, --Factions whose members this faction will not attack
@@ -21,9 +21,9 @@ possibleFactions['lightchurch'] = {
   enter_threshold = 0, --The amount of favor below which you're not allowed to do business with the faction
   join_threshold = 100, --The amount of favor you need to be eligible to join the faction
   banish_threshold=0, --If your favor falls below this, you'll be kicked out of the faction
-  sells_items = {{item="holywater",favorCost=5,moneyCost=50,amount=10,restock_amount=2,restock_to=5}, {item="dagger",favorCost=250,amount=1,membersOnly=true}}, --pre-defined items that this faction sells to friendly players
+  sells_items = {{item="holywater",favorCost=5,moneyCost=50,amount=10,restock_amount=2,restock_to=5}, {item="dagger",favorCost=250,amount=1,membersOnly=true,artifact=true},{item="dagger",favorCost=10,amount=5,enchantments={"blessed"}},{item="scroll",favorCost=1,moneyCost=5,amount=5,restock_amount=1}}, --pre-defined items that this faction sells to friendly players
   sells_tags = {"holy"}, --Tags for randomly-generated items that will be sold by the shop
-  passed_tags = {"holy"}, --These tags will be given priority for enchantments applied to items, and passed to items to do with what they will (ex: scrolls, to put preference on spells with these tags) TODO: Actually implement this
+  passedTags = {"holy"}, --These tags will be given priority for enchantments applied to items, and passed to items to do with what they will (ex: scrolls, to put preference on spells with these tags)
   markup=2, --Randomly-selected items' values will be multiplied by this number to determine how much this shop will sell the items for
   random_item_amount=5, --How many random items to fill the shop with
   random_item_restock_amount=1, --How many random items to restock each restock cycle
