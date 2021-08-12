@@ -726,7 +726,15 @@ function newgame:mousepressed(x,y,button)
   local nameBoxX=math.floor(width/2)-256+48-(prefs['noImages'] and 32 or 0)
   local nameBoxWidth = 512-128+(prefs['noImages'] and 96 or 0)
   if x > self.closebutton.minX and x < self.closebutton.maxX and y > self.closebutton.minY and y < self.closebutton.maxY then
-    Gamestate.switch(menu)
+     if screen == "species" then
+      Gamestate.switch(menu)
+    elseif screen == "classes" then
+      self.player.species=nil
+      self.cursorY = 1
+    elseif screen == "name" then
+      self.player.class=nil
+      self.cursorY = 1
+    end
     return
   end
   
