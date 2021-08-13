@@ -634,6 +634,12 @@ function Item:has_tag(tag)
   if self.tags and in_table(tag,self.tags) then
     return true
   end
+  for e,_ in pairs(self:get_enchantments()) do
+    local enchantment = enchantments[e]
+    if enchantment.tags and in_table(tag,enchantment.tags) then
+      return true
+    end --end if it has the right bonus
+  end --end enchantment for
   return false
 end
 
