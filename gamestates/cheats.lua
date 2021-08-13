@@ -141,23 +141,24 @@ function cheats:update(dt)
 end
 
 function cheats:keypressed(key)
+  key = input:parse_key(key)
   if (key == "escape") then
     self:switchBack()
-  elseif (key == "up") then
+  elseif (key == "north") then
     if self.cursorY > 2 then
       self.cursorY = self.cursorY-1
       if self.labels[self.cursorY].id == "text" then
         self.cursorY = self.cursorY-1
       end
     end
-  elseif (key == "down") then
+  elseif (key == "south") then
     if self.cursorY < #self.labels then
       self.cursorY = self.cursorY+ 1
       if self.labels[self.cursorY].id == "text" then
         self.cursorY = self.cursorY+1
       end
     end
-  elseif key == "return" or key == "kpenter" then
+  elseif key == "return" or key == "wait" then
     local setting = nil
     if self.labels[self.cursorY] then
       setting = self.labels[self.cursorY]

@@ -304,7 +304,8 @@ end
 
 function monsterpedia:keypressed(key)
   local lineSize = math.max(output:get_tile_size(),prefs['fontSize'],prefs['asciiSize'])
-  if (key == "up") then
+  key = input:parse_key(key)
+  if (key == "north") then
     self.cursorY = self.cursorY - 1
     self.rightScroll = 0
     if monsterpedia.positions[self.cursorY].id == -1 then --if you're on a label
@@ -314,7 +315,7 @@ function monsterpedia:keypressed(key)
       monsterpedia:scrollUp()
     end
     if self.cursorY < 1 then self.cursorY = 1 end --if, after all that, the cursor is offscreen, move it back down
-  elseif (key == "down") then
+  elseif (key == "south") then
     if monsterpedia.positions[self.cursorY+1] and monsterpedia.positions[self.cursorY+1].id then
       self.cursorY = self.cursorY + 1
       self.rightScroll = 0

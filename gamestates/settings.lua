@@ -282,17 +282,18 @@ function settings:keypressed(key)
         action = "moving"
     end -- end check that makes sure it's not a reserved key
   else -- end setting keys
+    key = input:parse_key(key)
     if (key == "escape") then
       self:switchBack()
-    elseif (key == "up") then
+    elseif (key == "north") then
       if output.cursorY > 1 then output:moveCursor(0,-1) end
-    elseif (key == "down") then
+    elseif (key == "south") then
       output:moveCursor(0,1)
-    elseif (key == "left") then
+    elseif (key == "west") then
       if output.cursorX > 1 then output:moveCursor(-1,0) end
-    elseif (key == "right") then
+    elseif (key == "east") then
       output:moveCursor(1,0)
-    elseif (key == "return") or key == "kpenter" then -- this is the big one
+    elseif (key == "return") or key == "wait" then -- this is the big one
       local setting = nil
       if self.labels[self.screen][output.cursorY][output.cursorX] then
         setting = self.labels[self.screen][output.cursorY][output.cursorX]

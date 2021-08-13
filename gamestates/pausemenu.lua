@@ -68,13 +68,14 @@ function pausemenu:draw()
 end
 
 function pausemenu:keypressed(key,isRepeat)
+  key = input:parse_key(key)
   if key == "escape" then
     self:switchBack()
-  elseif key == "up" then
+  elseif key == "north" then
     self.cursorY = (self.cursorY == 1 and 5 or self.cursorY-1)
-  elseif key == "down" then
+  elseif key == "south" then
     self.cursorY = (self.cursorY == 5 and 1 or self.cursorY+1)
-  elseif key == "return" or key == "kpenter" then
+  elseif key == "return" or key == "wait" then
     self:mousepressed(1,1,1)
   end --end key if
 end

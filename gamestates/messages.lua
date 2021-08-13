@@ -54,9 +54,10 @@ function messages:draw()
 end
 
 function messages:keypressed(key)
-  if (key == "up" or key == keybindings.north) then
+  key = input:parse_key(key)
+  if (key == "north") then
     messages:scrollUp()
-  elseif (key == "down" or key == keybindings.south) then
+  elseif (key == "south") then
     messages:scrollDown()
   else
     self:switchBack()

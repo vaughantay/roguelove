@@ -233,16 +233,17 @@ function characterscreen:draw()
 end
 
 function characterscreen:keypressed(key)
-  if key == "up" then
+  key = input:parse_key(key)
+  if key == "north" then
     if self.cursorY > 0 then
       self.cursorY = self.cursorY - 1
       self.cursorX = 1
     end
-  elseif key == "down" then
+  elseif key == "south" then
     if self.screen == "character" and self.cursorY < #self.skillButtons+count(self.learnButtons) then
       self.cursorY = self.cursorY + 1
     end
-  elseif key == "return" or key == "kpenter" then
+  elseif key == "return" or key == "wait" then
     if self.cursorY == 0 then
       if self.cursorX == 1 then
         self.screen = "character"
@@ -256,9 +257,9 @@ function characterscreen:keypressed(key)
     elseif self.learnButtons[self.cursorY] then
       self:use_learnButton(self.learnButtons[self.cursorY].info)
     end
-  elseif key == "right" then
+  elseif key == "east" then
     if self.cursorY == 0 then self.cursorX = math.min(self.cursorX+1,3) end
-  elseif key == "left" then
+  elseif key == "west" then
     if self.cursorY == 0 then self.cursorX = math.max(self.cursorX-1,1) end
   elseif key == "escape" then
     self:switchBack()

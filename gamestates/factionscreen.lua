@@ -506,9 +506,10 @@ function factionscreen:draw()
 end
 
 function factionscreen:keypressed(key)
+  key = input:parse_key(key)
   if key == "escape" then
     self:switchBack()
-  elseif (key == "return" or key == "kpenter") then
+  elseif (key == "return" or key == "wait") then
     if self.cursorY == 1 then --join button
       if self.faction:can_join(player) then
         self.faction:join(player)
@@ -579,7 +580,7 @@ function factionscreen:keypressed(key)
         end
       end --end which screen if
     end --end cursorY tests within return
-  elseif key == "left" then
+  elseif key == "west" then
     self.cursorX = self.cursorX - 1
     if self.cursorY == 2 and self.cursorX < 1 then self.cursorX = 5 end --looping if on the nav buttons
     if self.cursorY < 2 then self.cursorY = 2 self.cursorX = 5 end --if above the nav buttons, move to them
@@ -590,7 +591,7 @@ function factionscreen:keypressed(key)
         self.cursorX = math.max(1,self.cursorX)
       end
     end
-  elseif key == "right" then
+  elseif key == "east" then
     self.cursorX = self.cursorX + 1
     if self.cursorY == 2 and self.cursorX > 5 then self.cursorX = 1 end --looping if on the nav buttons
     if self.cursorY < 2 then self.cursorY = 2 self.cursorX = 1 end --if above the nav buttons, move to them
@@ -601,7 +602,7 @@ function factionscreen:keypressed(key)
         self.cursorX = math.min(self.cursorX,4)
       end
     end
-  elseif key == "up" then
+  elseif key == "north" then
     if self.cursorY < 3 then --Top bars only
       self.cursorY = math.max((self.faction:can_join(player) and 1 or 2),self.cursorY-1)
     elseif self.screen == "Services" then
@@ -626,7 +627,7 @@ function factionscreen:keypressed(key)
         self.cursorX = 1
       end
     end --end cursorY check
-  elseif key == "down" then
+  elseif key == "south" then
     if self.cursorY < 2 then --Top bars only
       self.cursorY = self.cursorY + 1
       if self.cursorY == 1 and not self.faction:can_join(player) then

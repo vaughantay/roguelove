@@ -325,6 +325,8 @@ function inventory:draw()
 end
 
 function inventory:keypressed(key)
+  local letter = key
+  key = input:parse_key(key)
 	if (key == "escape") then
     if self.selectedItem then
       self.selectedItem = nil
@@ -332,7 +334,7 @@ function inventory:keypressed(key)
     else
       self:switchBack()
     end
-	elseif (key == "return") or key == "kpenter" then
+	elseif (key == "return") or key == "wait" then
     if self.cursorY == 0 then --sorting buttons
       if self.filterButtons[self.cursorX] then
         self.filter = self.filterButtons[self.cursorX].filter
@@ -363,7 +365,7 @@ function inventory:keypressed(key)
         end
       end --end cursorX == 1 if
     end --end cursorY == 0 if
-	elseif (key == "up") and not self.selectedItem then
+	elseif (key == "north") and not self.selectedItem then
     if self.cursorY == 1 then
       self.cursorX = 1
       self.cursorY = 0
@@ -392,7 +394,7 @@ function inventory:keypressed(key)
         end --end equipment for
       end --end if item exists at next slot if
 		end
-	elseif (key == "down") and not self.selectedItem then
+	elseif (key == "south") and not self.selectedItem then
     if self.cursorY == 0 then
       self.cursorX = 1
     end
@@ -419,7 +421,7 @@ function inventory:keypressed(key)
         end --end equipment for
       end --end if item exists at next slot if
 		end --end which cursorX if
-  elseif key == "left" then
+  elseif key == "west" then
     if self.cursorY == 0 then
       if self.cursorX > 1 then
         self.cursorX = self.cursorX-1
@@ -428,7 +430,7 @@ function inventory:keypressed(key)
       self.cursorX = 1
       self.cursorY,self.yHold = (self.yHold or 1),self.cursorY
     elseif self.cursorX > 3 then self.cursorX = self.cursorX-1 end
-  elseif key == "right" then
+  elseif key == "east" then
     if self.cursorY == 0 then
       if self.cursorX < #self.filterButtons then
         self.cursorX = self.cursorX+1
@@ -454,17 +456,17 @@ function inventory:keypressed(key)
       self.cursorX = self.cursorX + 1
     end --end which cursorX if
   elseif self.selectedItem then --only look at item buttons if you've selected an item
-    if key == keybindings.use then
+    if key == "use" then
       self:useItem()
-    elseif key == keybindings.equip then
+    elseif key == "equip" then
       self:equipItem()
-    elseif key == keybindings.drop then
+    elseif key == "drop" then
       self:dropItem()
-    elseif key == keybindings.throw then
+    elseif key == "throw" then
       self:throwItem()
     end
 	else
-		local id = string.byte(key)-96
+		local id = string.byte(letter)-96
 		if (player.inventory[id] ~= nil) then
       self.selectedItem = player.inventory[id]
       self.cursorY = id

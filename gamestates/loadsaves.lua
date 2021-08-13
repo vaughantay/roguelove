@@ -206,22 +206,23 @@ function loadsaves:update(dt)
 end
 
 function loadsaves:keypressed(key, isRepeat)
+  key = input:parse_key(key)
   if self.deletewarning == false then
     if key == "escape" then
       self:switchBack()
-    elseif key == "up" then
+    elseif key == "north" then
       self.cursorY = self.cursorY-1
       self.cursorX = 1
-    elseif key == "down" then
+    elseif key == "south" then
       if self.cursorY < #self.saves then
         self.cursorY = self.cursorY+1
         self.cursorX = 1
       end
-    elseif key == "left" then
+    elseif key == "west" then
       self.cursorX = math.max(self.cursorX - 1,1)
-    elseif key == "right" then
+    elseif key == "east" then
       self.cursorX = math.min (self.cursorX + 1,3)
-    elseif key == "return" or key == "kpenter" then
+    elseif key == "return" or key == "wait" then
       if self.cursorX == 1 then
         self.cursorX = 2
       elseif self.cursorX == 2 and self.cursorY ~= 0 and self.saves[self.cursorY] then
@@ -238,9 +239,9 @@ function loadsaves:keypressed(key, isRepeat)
       self.deletewarning = false
       self.yesbutton,self.nobutton = nil,nil
       self.cursorX = 3
-    elseif key == "left" then
+    elseif key == "west" then
       self.cursorX = 1
-    elseif key == "right" then
+    elseif key == "east" then
       self.cursorX = 2
     elseif key == "y" then
       delete_save(self.saves[self.cursorY].fileName)
@@ -251,7 +252,7 @@ function loadsaves:keypressed(key, isRepeat)
       self.deletewarning = false
       self.yesbutton,self.nobutton = nil,nil
       self.cursorX = 3
-    elseif key == "return" or key == "kpenter" then
+    elseif key == "return" or key == "wait" then
       if self.cursorX == 1 then
         delete_save(self.saves[self.cursorY].fileName)
         local y,scroll = self.cursorY,self.scroll

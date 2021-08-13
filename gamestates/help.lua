@@ -98,11 +98,12 @@ function help:update(dt)
 end
 
 function help:keypressed(key)
-  if key == "escape" or key == "return" or key == "kpenter" then
+  key = input:parse_key(key)
+  if key == "escape" or key == "return" or key == "wait" then
     self:switchBack()
-  elseif key == "down" then
+  elseif key == "south" then
     self:scrollDown()
-  elseif key == "up" then
+  elseif key == "north" then
     self:scrollUp()
   end
 end

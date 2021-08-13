@@ -104,6 +104,7 @@ Ripple by Andrew Minnich, MIT license.
 end
 
 function credits:keypressed(key)
+  key = input:parse_key(key)
   if key == "escape" then
     Gamestate.switch(menu)
   end

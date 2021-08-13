@@ -254,9 +254,11 @@ function storescreen:draw()
 end
 
 function storescreen:keypressed(key)
+  local typed = key
+  key = input:parse_key(key)
   if key == "escape" then
     self:switchBack()
-  elseif (key == "return" or key == "kpenter") then
+  elseif (key == "return" or key == "wait") then
     if self.cursorY == 1 and not self.noBuy then --buttons
       if self.cursorX == 1 then
         self.screen = "Buy"
@@ -284,37 +286,37 @@ function storescreen:keypressed(key)
         list[id].buyAmt = (list[id].amount ~= -1 and math.min(list[id].buyAmt+1,list[id].amount) or list[id].buyAmt+1)
       end
     end --end cursorY tests within return
-  elseif key == "left" then
+  elseif key == "west" then
     if self.cursorY == 1 and not self.noBuy then --looping if on the nav buttons
       self.cursorX = 1
     else
       self.cursorX = math.max(1,self.cursorX-1)
     end
-  elseif key == "right" then
+  elseif key == "east" then
     if self.cursorY == 1 and not self.noBuy then --looping if on the nav buttons
       self.cursorX = 2
     else
       self.cursorX = math.min(self.cursorX+1,4)
     end
-  elseif key == "up" then
+  elseif key == "north" then
     if self.cursorY > 1 then
       self.cursorY = self.cursorY - 1
       self.cursorX = 1
     end --end cursorY check
-  elseif key == "down" then
+  elseif key == "south" then
     local max = (self.screen == "Buy" and #self.selling_list+2 or #self.buying_list+2)
     if self.cursorY < max then
       self.cursorY = self.cursorY + 1
       self.cursorX = 1
     end
-  elseif tonumber(key) and self.cursorX == 3 then
+  elseif tonumber(typed) and self.cursorX == 3 then
     local id = self.cursorY-2
     local list = (self.screen == "Buy" and self.selling_list or self.buying_list)
     if string.len(tostring(list[id].buyAmt or "")) < 3 then
       if list[id].buyAmt == 0 then
-        list[id].buyAmt = tonumber(key)
+        list[id].buyAmt = tonumber(typed)
       else
-        local newAmt = (list[id].buyAmt or "").. key
+        local newAmt = (list[id].buyAmt or "").. typed
         list[id].buyAmt = tonumber(newAmt)
       end
     end

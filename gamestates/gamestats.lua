@@ -795,9 +795,10 @@ function gamestats:draw()
 end
 
 function gamestats:keypressed(key)
+  key = input:parse_key(key)
   if key == "escape" then
     self:switchBack()
-  elseif key == "up" then
+  elseif key == "north" then
     if self.screen == "stats" and self.cursorX > 1 and self.cursorY ~= 1 then
       if self.stats[self.cursorY-1] and self.stats[self.cursorY-1].id == "achievements" then
         self.achievementCursorY = math.max(self.achievementCursorY and self.achievementCursorY-1 or 1,1)
@@ -817,7 +818,7 @@ function gamestats:keypressed(key)
         self:scrollUp()
       end
     end
-  elseif key == "down" then
+  elseif key == "south" then
     local maxY = (self.screen == "losses" and #self.graveyard+1) or (self.screen == "stats" and #self.stats+1) or (self.screen == "wins" and #self.wins+1)
     if self.screen == "stats" and self.cursorX > 1 and self.cursorY ~= 1 then
       if self.stats[self.cursorY-1] and self.stats[self.cursorY-1].id == "achievements" then
@@ -847,7 +848,7 @@ function gamestats:keypressed(key)
         end
       end
     end
-  elseif key == "left" then
+  elseif key == "west" then
     if self.cursorY == 1 then
       self.cursorX = math.max(self.cursorX-1,1)
     else
@@ -858,7 +859,7 @@ function gamestats:keypressed(key)
         self.cursorX = (self.screen == "losses" and 2 or 1)
       end
     end
-  elseif key == "right" then
+  elseif key == "east" then
     if self.cursorY == 1 then
       self.cursorX = math.min(self.cursorX+1,3)
     else
@@ -874,7 +875,7 @@ function gamestats:keypressed(key)
         self.cursorX = 3
       end
     end
-  elseif key == "return" or key == "kpenter" then
+  elseif key == "return" or key == "wait" then
     if self.cursorY == 1 then
       if self.cursorX == 1 then
         self.screen = "stats"

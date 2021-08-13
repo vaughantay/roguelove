@@ -136,20 +136,21 @@ function multipickup:draw()
 end
 
 function multipickup:keypressed(key)
+  key = input:parse_key(key)
 	if (key == "escape") then
 		self:switchBack()
-	elseif (key == "return") or key == "kpenter" then
+	elseif (key == "return") or key == "wait" then
 		if self.items[self.cursorY] then
       self:pickup(self.items[self.cursorY])
     end
-	elseif (key == "up") then
+	elseif (key == "north") then
 		if (self.items[self.cursorY-1] ~= nil) then
 			self.cursorY = self.cursorY - 1
       if self.itemLines[self.cursorY].minY-self.scrollY-prefs['fontSize'] < self.y+self.padY+prefs['fontSize'] then
         self:scrollUp()
       end
 		end
-	elseif (key == "down") then
+	elseif (key == "south") then
 		if (self.items[self.cursorY+1] ~= nil) then
 			self.cursorY = self.cursorY + 1
       if self.itemLines[self.cursorY].maxY-self.scrollY+prefs['fontSize'] > self.y+prefs['fontSize']+self.boxH then

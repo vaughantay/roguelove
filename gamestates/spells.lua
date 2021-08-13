@@ -160,22 +160,24 @@ function spellscreen:draw()
 end
 
 function spellscreen:keypressed(key)
+  local letter = key
+  key = input:parse_key(key)
   local playerSpells = player:get_spells()
 	if (key == "escape") then
 		self:switchBack()
-	elseif (key == "return") or key == "kpenter" then
+	elseif (key == "return") or key == "wait" then
 		if (possibleSpells[playerSpells[self.cursorY]] and possibleSpells[playerSpells[self.cursorY]]:target(target,player) ~= false) then
 			advance_turn()
 		end
 		self:switchBack()
-	elseif (key == "up") then
+	elseif (key == "north") then
 		if (playerSpells[self.cursorY-1] ~= nil) then
 			self.cursorY = self.cursorY - 1
 		end
     if self.spellLines[self.cursorY].minY-self.scrollY-prefs['fontSize'] < self.y+self.padY+prefs['fontSize'] then
       self:scrollUp()
     end
-	elseif (key == "down") then
+	elseif (key == "south") then
 		if (playerSpells[self.cursorY+1] ~= nil) then
 			self.cursorY = self.cursorY + 1
 		end
@@ -183,7 +185,7 @@ function spellscreen:keypressed(key)
       self:scrollDown()
     end
 	else
-		local id = string.byte(key)-96
+		local id = string.byte(letter)-96
 		if (playerSpells[id] ~= nil) then
 			if(possibleSpells[playerSpells[id]]:target(target,player) ~= false) then
 				advance_turn()
