@@ -288,6 +288,7 @@ function output:load_ui()
   images.smallbutton = {image=love.graphics.newImage("images/ui/smallbutton.png"),hover=love.graphics.newImage("images/ui/smallbuttonhover.png"),disabled=love.graphics.newImage("images/ui/smallbuttondisabled.png"),l=love.graphics.newQuad(0,0,32,16,128,16),middle=love.graphics.newQuad(32,0,32,16,128,16),r=love.graphics.newQuad(64,0,32,16,128,16),small=love.graphics.newQuad(96,0,32,16,128,16)}
   images.largebutton = {image=love.graphics.newImage("images/ui/button.png"),hover=love.graphics.newImage("images/ui/buttonlarge.png"),l=love.graphics.newQuad(0,0,64,64,256,64),middle=love.graphics.newQuad(64,0,64,64,256,64),r=love.graphics.newQuad(128,0,64,64,256,64),small=love.graphics.newQuad(192,0,64,64,256,64)}
   images.closebutton = {image=love.graphics.newImage("images/ui/closebutton.png"),hover=love.graphics.newImage("images/ui/closebuttonhover.png")}
+  images.menubutton = {image=love.graphics.newImage("images/ui/menubutton.png"),hover=love.graphics.newImage("images/ui/menubuttonhover.png")}
   images.cursors = {main = love.mouse.newCursor("images/ui/cursor.png",0,0)}
   --love.mouse.setCursor(images.cursors.main)
 end
@@ -591,8 +592,10 @@ end
 --@param y Number. The y-coordinate of the button
 --@param hover Boolean. Whether or not to draw the close button as if it's being hovered over. Optional
 --@param useScaling Boolean. Whether to take into account the game's UI scaling setting. Optional
+--@param imageBase Text. The name of the base image to use (defaults to "close")
 --@return Table. A table with the values minX, maxX, minY, and maxY, containing the corresponding coordinates of the button, and hover, a boolean saying if the button is being hovered over
-function output:closebutton(x,y,hover,useScaling)
+function output:closebutton(x,y,hover,useScaling,imageBase)
+  imageBase = imageBase or "close"
   local mouseX,mouseY = love.mouse.getPosition()
   local uiScale = 1
   if useScaling then
@@ -604,7 +607,7 @@ function output:closebutton(x,y,hover,useScaling)
     if mouseX > x and mouseX < x+16 and mouseY>y and mouseY<y+16 then
       hover = true
     end
-    local image = (hover and images.closebutton.hover or images.closebutton.image)
+    local image = (hover and images[imageBase .. 'button'].hover or images[imageBase .. 'button'].image)
     love.graphics.draw(image,x,y)
     return {minX=x,maxX=x+16,minY=y,maxY=y+16,hover=hover}
   else --imageless buttons
