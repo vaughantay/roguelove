@@ -502,6 +502,7 @@ local vampireHero = {
   description = "A bloodsucking monster of the night.",
   symbol = "v",
   types={"undead","intelligent","vampire"},
+  forbidden_tags={'holy','healing','food'},
   spells={"vampirism"},
   possible_inventory={{item="blood",chance=100,amount=5}},
   learns_spells={{spell="smite",level=2}}, --These spells will be automatically granted once a certain level is reached

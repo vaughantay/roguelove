@@ -37,7 +37,7 @@ function multiselect:enter(origin,list,title,closeAfter,advanceAfter)
 end
 
 function multiselect:select(item)
-  if item.selectFunction(unpack(item.selectArgs)) ~= false then
+  if not item.disabled and item.selectFunction(unpack(item.selectArgs)) ~= false then
     if self.closeAfter then self:switchBack() end
     if self.advanceAfter then advance_turn() end
   end
@@ -77,9 +77,11 @@ function multiselect:draw()
 	end
   
 	for i, item in ipairs(self.list) do
+    if item.disabled then setColor(150,150,150,255) end
     local code = i+96
 		local letter = string.char(code)
 		love.graphics.printf((code <=122 and letter .. ") " or "") .. item.text,x+padX,item.y,boxW-padX)
+    if item.disabled then setColor(255,255,255,255) end
 	end
   local bottom = self.list[#self.list].maxY+fontSize
   

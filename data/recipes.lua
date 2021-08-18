@@ -2,10 +2,10 @@ possibleRecipes = {}
 
 local uhw =
 {
-    results={unholywater=1},
-    ingredients={holywater=1,demonblood=1},
-    requires_class="demonologist",
-    result_text="You mix the demon blood into the holy water, corrupting it and turning it into unholy water."
+  results={unholywater=1},
+  ingredients={holywater=1,demonblood=1},
+  requires_class="demonologist",
+  result_text="You mix the demon blood into the holy water, corrupting it and turning it into unholy water."
 }
 possibleRecipes['unholywater'] = uhw
 

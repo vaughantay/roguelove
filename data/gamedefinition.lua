@@ -7,6 +7,7 @@ gamesettings = {
   bosses=true,
   inventory=true,
   crafting=true,
+  craft_anywhere=true,
   leveling=true,
   events=true,
   player_tombstones=true,

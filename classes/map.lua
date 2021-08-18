@@ -839,7 +839,7 @@ function Map:get_item_list(force)
     local done = false
     if iTags and not done then
       for _,iTag in pairs(iTags) do
-        if Item.has_tag(item,iTag) then
+        if Item.has_tag(item,iTag,true) then
           done = true
           break
         end

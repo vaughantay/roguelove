@@ -30,6 +30,9 @@ function Creature:init(creatureType,level,noItems)
   self.checked = {}
   self.inventory = {}
   self.equipment = {}
+  self.extra_stats = self.extra_stats or {}
+  self.forbidden_spell_tags = self.forbidden_spell_tags or self.forbidden_tags or {}
+  self.forbidden_item_tags = self.forbidden_item_tags or self.forbidden_tags or {}
   self.money = tweak(self.money or 0)
   self.xp = 0
   self.favor = self.favor or {}
@@ -209,9 +212,7 @@ function Creature:apply_class(classID)
   end --end factions if
   if class.spells then
     for _,spell in ipairs(class.spells) do
-      if not self:has_spell(spell) then
-        self.spells[#self.spells+1] = spell
-      end
+      self:learn_spell(spell)
     end
   end --end if spells
   if class.items then
@@ -243,6 +244,27 @@ function Creature:apply_class(classID)
     self.hp = self.max_hp
     self.mp = self.max_mp
   end --end if stat_modifiers
+  if class.extra_stats then
+    for id,stat in pairs(class.extra_stats) do
+      self.extra_stats[id] = copy_table(stat)
+    end
+  end
+  if class.forbidden_spell_tags then
+    for _, tag in pairs(class.forbidden_spell_tags) do
+      self.forbidden_spell_tags[#self.forbidden_spell_tags+1] = tag
+    end
+  end
+  if class.forbidden_item_tags then
+    for _, tag in pairs(class.forbidden_item_tags) do
+      self.forbidden_item_tags[#self.forbidden_item_tags+1] = tag
+    end
+  end
+  if class.forbidden_tags then
+    for _, tag in pairs(class.forbidden_tags) do
+      self.forbidden_spell_tags[#self.forbidden_spell_tags+1] = tag
+      self.forbidden_item_tags[#self.forbidden_item_tags+1] = tag
+    end
+  end
   if class.money then
     self.money = class.money
   end
@@ -731,7 +753,7 @@ function Creature:attack(target,forceHit,ignore_callbacks)
   
   --Basic attack:
   if target.baseType == "feature" and self:touching(target) then
-    return target:damage(self.strength,self,self.damage_type)
+    return target:damage(self:get_damage(),self,self.damage_type)
 	elseif self:touching(target) and (ignore_callbacks or self:callbacks('attacks',target) and target:callbacks('attacked',self)) then
 		local result,dmg = calc_attack(self,target)
     if forceHit == true then result = 'hit' end
@@ -2244,7 +2266,7 @@ end
 ---Gets the creature's damage value, including bonuses
 --@return Number. The damage value
 function Creature:get_damage()
-  return self.strength + self:get_bonus('damage')
+  return self:get_stat('strength') + self:get_bonus('damage')
 end
 
 ---Gets the creature's armor piercing value, including bonuses
@@ -2261,9 +2283,39 @@ end
 
 ---A generic function for getting a stat and its bonus
 --@param stat Text. The stat to get
+--@param noBonus Boolean. If true, don't add the bonus to the stat
 --@return Number. The stat value
-function Creature:get_stat(stat)
-  return (self[stat] or 0)+self:get_bonus(stat)
+function Creature:get_stat(stat,noBonus)
+  return (self[stat] or 0)+(not noBonus and self:get_bonus(stat) or 0)
+end
+
+---A generic function for getting an extra stat and its bonuses
+--@param stat Text. The stat to get
+--@param noBonus Boolean. If true, don't add the bonus to the stat
+--@return Number. The stat value
+function Creature:get_extra_stat(stat,noBonus)
+  return (self.extra_stats[stat] and self.extra_stats[stat].value or 0)+(not noBonus and self:get_bonus(stat) or 0)
+end
+
+---Sets an extra stat to a value
+--@param stat Text. The stat to set
+--@param val Number. What to set the stat to
+function Creature:set_extra_stat(stat,val)
+  self.extra_stats[stat].value = val
+end
+
+---Adds/subtracts a value to an extra stat
+--@param stat Text. The stat to set
+--@param val Number. What to add to the stat
+--@return Number. The stat value
+function Creature:update_extra_stat(stat,val)
+  local newVal = self:get_extra_stat(stat,true) + val
+  local max = self.extra_stats[stat].max
+  local min = self.extra_stats[stat].min
+  if max and newVal > max then newVal = max end
+  if min and newVal < min then newVal = min end
+  self.extra_stats[stat].value = newVal
+  return newVal
 end
 
 ---Get all spells the creature has, including those granted by equipment
@@ -2300,6 +2352,33 @@ function Creature:learn_spell(spellID)
   if not self:has_spell(spellID,true) then
     self.spells[#self.spells+1] = spellID
   end
+end
+
+---Determine if a creature can learn this spell or not
+--@param spellID Text. The ID of the spell to check
+function Creature:can_learn_spell(spellID)
+  local spell = possibleSpells[spellID]
+  if spell.level_requirement and self.level < spell.level_requirement then
+    return false,"You're not a high enough level to learn this ability."
+  elseif spell.stat_requirements then
+    for stat,requirement in pairs(spell.stat_requirements) do
+      if self:get_stat(stat,true) < requirement and self:get_bonus_stat(stat,true) < requirement then
+        return false,"You don't have the stat qualifications for this ability."
+      end
+    end
+  elseif player.forbidden_spell_tags and count(player.forbidden_spell_tags) > 0 then
+    for _,tag in ipairs(player.forbidden_spell_tags) do
+      if spell:has_tag(tag) then
+        return false,"You're unable to learn this type of ability."
+      end
+    end
+  else
+    local ret,text = spell:learn_requires(self)
+    if ret == false then
+      return false,text
+    end
+  end
+  return true
 end
 
 ---Get all ranged attacks the creature has, including those granted by equipment

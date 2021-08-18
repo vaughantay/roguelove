@@ -133,7 +133,7 @@ end
 --@param target Creature. The creature getting potentially hit
 --@param item Item. The item the attacker is using.
 function calc_hit_chance(attacker,target,item)
-  local hitMod = attacker.melee - (target.dodging or 0)
+  local hitMod = attacker:get_stat('melee') - (target.get_stat and target:get_stat('dodging') or 0)
   return math.min(math.max(70 + (hitMod > 0 and hitMod*2 or hitMod) + attacker:get_bonus('hit_chance') - (target.get_bonus and target:get_bonus('dodge_chance') or 0) + (item and item:get_accuracy() or 0),25),95)
 end
 
@@ -142,7 +142,7 @@ end
 --@param target Creature. The creature getting attacked.
 --@param forceHit Boolean. Whether to ignore hit chance and force a hit. (optional)
 --@param item Item. The item the attacker is using, if any. (optional)
---@return result String. "hit", "miss", or "critical
+--@return result String. "hit", "miss", or "critical"
 --@return dmg Number. The damage to do.
 function calc_attack(attacker,target,forceHit,item)
 	local dmg = (item and item:get_damage(target,attacker) or attacker:get_damage())

@@ -144,6 +144,14 @@ function Faction:can_join(creature)
       end
     end
   end
+  if self.enemy_types then
+    for _,ctype in pairs(self.enemy_types) do
+      if creature:is_type(ctype) then
+        reasons = (reasons and reasons .. " " or "") .. "Your kind is not welcome here."
+        canJoin = false
+      end --end is_type if
+    end --end ctype for
+  end --end if self.enemy_types
   if self.join_requirements then
     local bool,rejectionText = self:join_requirements(creature)
     if bool == false then

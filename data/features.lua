@@ -341,10 +341,44 @@ local gate = {
 }
 possibleFeatures['gate'] = gate
 
+local valhallagate = {
+    name="Gate to Valhalla",
+    symbol="+",
+    color={r=100,g=100,b=100,a=255},
+    description = "A closed adamantium gate.",
+    blocksMovement = true,
+    pathThrough = true,
+    closed=true,
+    actions={unlock={text="Unlock the Gate to Valhalla",description="Unlock the Gate to Valhalla.",requires=function(self,user) if self.closed and user:has_item('heroskey') then return true else return false end end}},
+  enter=function(self,entity)
+    if self.closed then
+      self:action(entity)
+      return false
+    end
+  end,
+  action = function(self,entity)
+    local herokey = player:has_item('heroskey')
+    if entity ~= player or not herokey then output:out("You need a Hero's Key to unlock the gates to Valhalla.") return false end
+    self.symbol="'"
+    self.closed=false
+    self.description = "An open iron gate."
+    self.blocksMovement = false
+    self.blocksSight = false
+    if player:can_see_tile(self.x,self.y) then
+      output:out("You place the Hero's Key in the gate and turn it. The gate opens, and the key fades away.")
+      output:sound("gate_open")
+    end
+    self.image_name = "gateopen"
+    player:delete_item(herokey,1)
+    update_mission_status('ascend')
+  end
+}
+possibleFeatures['valhallagate'] = valhallagate
+
 local tree = {
   name = "Tree",
   useWalkedOnImage = true,
-  description = "A tall tree. How does it grow without sunlight?",
+  description = "A tall tree.",
   symbol = "7",
   passableFor={ghost=true},
   color={r=0,g=200,b=0},
@@ -2360,7 +2394,7 @@ local store = {
     if creature == player then self:action(player) end
   end,
   action = function(self,creature)
-    if creature == player then Gamestate.switch(storescreen,self.store.id) end
+    if creature == player then Gamestate.switch(storescreen,self.store.id) return false end
   end
 }
 possibleFeatures['store'] = store
@@ -2396,7 +2430,7 @@ local factionHQ = {
     if creature == player then self:action(player) end
   end,
   action = function(self,creature)
-    if creature == player then Gamestate.switch(factionscreen,self.faction.id) end
+    if creature == player then Gamestate.switch(factionscreen,self.faction.id) return false end
   end
 }
 possibleFeatures['factionHQ'] = factionHQ
@@ -2422,7 +2456,7 @@ function exit:placed(map)
   local matches = (map.branch == self.branch)
   self.name = (matches and self.exitName .. " to " .. (currWorld.branches[self.branch].depthName or "Depth") .. " " .. self.depth or self.exitName .. " to " .. currWorld.branches[self.branch].name)
   if matches and self.depth < map.depth then self.symbol = "<" end
-  self.actions.exit.text = (matches and (self.depth < map.depth and "Go up" or "Go down") or "Go to " .. currWorld.branches[self.branch].name)
+  self.actions.exit.text = (matches and (self.depth < map.depth and "Go up" or "Go down") or "Enter " .. currWorld.branches[self.branch].name)
   map.exits[#map.exits+1] = self
   print('placed exit to ' .. self.branch .. ' ' .. self.depth .. ' at ',self.x,self.y)
 end
@@ -2435,11 +2469,13 @@ possibleFeatures['exit'] = exit
 
 local valhalla = {
   name = "Portal to Valhalla",
-  description = "An gateway to the afterlife of true heroes",
-  symbol = ">",
+  description = "A gateway to the afterlife of true heroes.",
+  symbol = "0",
   alwaysDisplay=true,
-  color={r=255,g=255,b=255,a=255},
+  color={r=255,g=0,b=255,a=255},
   actions={exit={text="Ascend",description="Ascend to valhalla."}},
+  castsLight = true,
+  lightDist=1,
 }
 function valhalla:action(entity,action)
   win()

@@ -112,3 +112,19 @@ end
 function Spell:requires(possessor)
   return true
 end
+
+--Placeholder for the learn_requires() callback, used to determine if the creature meets the requirements for using the spell
+--@param possessor Creature. The creature who's trying to use the spell.
+--@return true
+function Spell:learn_requires(possessor)
+  return true
+end
+
+---Checks if a spell has a descriptive tag.
+--@param tag String. The tag to check for
+--@return Boolean. Whether or not it has the tag.
+function Spell:has_tag(tag)
+  if self.tags and in_table(tag,self.tags) then
+    return true
+  end
+end

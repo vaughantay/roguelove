@@ -79,42 +79,88 @@ function town.create(map,width,height)
   map:change_tile(stairs,midX,midY)
   map.stairsUp.x,map.stairsUp.y = midX,midY
   map.stairsDown.x,map.stairsDown.y = midX,midY
+  map:add_feature(Feature('statue'),midX-1,midY-1)
+  map:add_feature(Feature('statue'),midX+1,midY-1)
+  map:add_feature(Feature('statue'),midX-1,midY+1)
+  map:add_feature(Feature('statue'),midX+1,midY+1)
   
   --Add gates to the wilderness:
   local gates = Feature('exit',{branch="wilderness",exitName="Gate"})
   map:change_tile(gates,midX,height-1)
 end
+function town.check_building_footprint(ix,iy,map) --This is not a "normal" function for mapTypes, this is special to this one, called in its custom populate_factions and populate_stores code
+  local midX, midY = round(map.width/2),round(map.height/2)
+  for x=ix-2,ix+2,1 do
+    for y=iy-2,iy+2,1 do
+      if not map:isClear(x,y) or (x > midX-2 and x < midX+2 and y>midY-2 and y<midY-2) then
+        return false
+      end
+    end
+  end
+end
 function town.populate_factions(map)
+  local midX, midY = round(map.width/2),round(map.height/2)
+  local newFacs = {}
   for _,fac in pairs(map:get_faction_list()) do
     if not fac.hidden and not fac.no_hq then
       local hq = Feature('factionHQ',fac)
       local tries = 0
-      local ix,iy = random(2,map.width-1),random(2,map.height-1)
-      while (map:isClear(ix,iy) == false or map[ix][iy] == "<" or map[ix][iy] == ">") do
-        ix,iy = random(2,map.width-1),random(2,map.height-1)
+      local ix,iy = random(4,map.width-3),random(4,map.height-3)
+      while (town.check_building_footprint(ix,iy,map) == false) do
+        ix,iy = random(4,map.width-3),random(5,map.height-5)
         tries = tries+1
         if tries > 100 then break end
       end
-      if tries ~= 100 then 
-        map:add_feature(hq,ix,iy)
+      if tries ~= 100 then
+        local xDiff,yDiff = math.abs(ix-midX),math.abs(iy-midY)
+        for x=ix-1,ix+1,1 do
+          for y=iy-1,iy+1,1 do
+            map[x][y] = "#"
+          end
+        end
+        if xDiff > yDiff then
+          map[(ix < midX and ix+1 or ix-1)][iy] = "."
+          map:add_feature(hq,(ix < midX and ix+1 or ix-1),iy)
+        else
+          map[ix][(iy < midY and iy+1 or iy-1)] = "."
+          map:add_feature(hq,ix,(iy < midY and iy+1 or iy-1))
+        end
+        newFacs[#newFacs+1] = hq
       end --end tries if
     end
   end
+  return newFacs
 end
 function town.populate_stores(map)
+  local midX, midY = round(map.width/2),round(map.height/2)
+  local newStores = {}
   for _,store in pairs(map:get_store_list()) do
     local s = Feature('store',store)
     local tries = 0
-    local ix,iy = random(2,map.width-1),random(2,map.height-1)
-    while (map:isClear(ix,iy) == false or map[ix][iy] == "<" or map[ix][iy] == ">") do
-      ix,iy = random(2,map.width-1),random(2,map.height-1)
+    local ix,iy = random(4,map.width-3),random(4,map.height-3)
+    while (town.check_building_footprint(ix,iy,map) == false) do
+      ix,iy = random(4,map.width-3),random(4,map.height-3)
       tries = tries+1
       if tries > 100 then break end
     end
     if tries ~= 100 then 
-      map:add_feature(s,ix,iy)
+      local xDiff,yDiff = math.abs(ix-midX),math.abs(iy-midY)
+        for x=ix-1,ix+1,1 do
+          for y=iy-1,iy+1,1 do
+            map[x][y] = "#"
+          end
+        end
+        if xDiff > yDiff then
+          map[(ix < midX and ix+1 or ix-1)][iy] = "."
+          map:add_feature(s,(ix < midX and ix+1 or ix-1),iy)
+        else
+          map[ix][(iy < midY and iy+1 or iy-1)] = "."
+          map:add_feature(s,ix,(iy < midY and iy+1 or iy-1))
+        end
+      newStores[#newStores+1] = s
     end --end tries if
   end
+  return s
 end
 mapTypes['town'] = town
 
@@ -569,7 +615,7 @@ local endgame = {
   tileset = "dungeon",
   name = "The Hall of Heroes",
   description="In this hall, a true hero can ascend to valhalla.",
-  width=10,
+  width=9,
   height=25,
   noItems=true, --If true, no items will generate on this level
   noCreatures=true,
@@ -583,7 +629,7 @@ function endgame.create(map,width,height)
   width,height = map.width,map.height
   map:clear(true)
   
-  --Add stairs in the middle:
+  --Add stairs:
   local midX = round(width/2)
   local stairY = height-1
   local stairs = Feature('exit',{branch="main",exitName="Stairway",depth=3})
@@ -592,9 +638,22 @@ function endgame.create(map,width,height)
   map.stairsDown.x,map.stairsDown.y = midX,2
   local valhalla = Feature('valhalla')
   map:change_tile(valhalla,midX,2)
+  local vgate1 = Feature('valhallagate')
+  local vgate2 = Feature('valhallagate')
+  map:change_tile(vgate1,midX,3)
+  map:change_tile(vgate2,midX,5)
+  for x=2,width-1,1 do
+    if x ~= midX then
+      map[x][2] = "#"
+      map[x][3] = "#"
+      map[x][4] = "#"
+      map[x][5] = "#"
+    end
+  end
+  --Statues:
   local wins = load_wins()
   local availableWins = copy_table(wins)
-  for y=stairY,2,-2 do
+  for y=stairY,6,-2 do
     for i = 1,2,1 do
       local gender = get_random_element({"male","female","other"})
       local name = namegen:generate_human_name({gender=gender})
@@ -615,6 +674,7 @@ function endgame.create(map,width,height)
       statue.name = "Statue of " .. name
       local x = (i == 1 and 2 or width-1)
       map:add_feature(statue,x,y)
+      if y > 5 then map:add_feature(Feature('candles'),x+(i==1 and 2 or -2),y) end
       statue.description = "A statue of " .. name .. ", " .. class .. ".\n" .. pronoun .. " ascended " .. date .. "."
       map[x][y-1] = "#"
       map[x][y+1] = "#"

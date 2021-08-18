@@ -235,17 +235,19 @@ end
 function save_win()
   require "lib.serialize"
   local wins = load_wins()
-  wins[#wins+1] = {name=player.properName,date=os.time(),stats=currGame.stats,player=player}
+  wins[#wins+1] = {name=player.properName,date=os.time(),stats=currGame.stats,player={properName=player.properName,name=player.name}} --TODO: Save more player info in a way that doesn't break the game
   love.filesystem.write("wins.sav",serialize(wins))
 end
 
 function load_wins()
   if (love.filesystem.getInfo('wins.sav')) then
     local ok, loadedwins = pcall( love.filesystem.load, "wins.sav" ) -- load the chunk safely
-    if ok then
+    if not ok or not loadedwins then
+      loadedwins = {}
+    else
       loadedwins = loadedwins()
-      return loadedwins
     end
+    return loadedwins
   end
   return {} --if no loaded wins then return empty
 end

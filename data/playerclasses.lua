@@ -33,11 +33,12 @@ playerClasses = {
     name="Barbarian",
     description="You too are not a bit tamed, you too are untranslatable.",
     equipment={{item="club"},{item="loincloth"}}, --These items will be equipped on game start
-    spells={"yawp"}, --These are spells the character will start with
-    learns_spells={{spell="auraoffear",level=5},"passiverage"}, --These spells will be automatically granted once a certain level is reached
+    spells={"yawp","passiverage"}, --These are spells the character will start with
+    learns_spells={{spell="auraoffear",level=5}}, --These spells will be automatically granted once a certain level is reached
     favor={village=-1,barbariangod=100}, --List of favor scores the character starts with
     factions={"barbariangod"}, --List of factions the character begins as a member of
     stat_modifiers={strength=10,melee=10,armor=2}, --These values will be added to the characters' base stats
+    extra_stats={fury={name="Fury",value=0,min=0,max=100,bar_color={r=255,g=255,b=0,a=255}}},
     starting_branch="wilderness",
     placed = function(creature,map)
       for x=2,map.width,1 do

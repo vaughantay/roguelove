@@ -23,7 +23,7 @@ blink = Spell({
   AIcooldown=30,
   sound="teleport",
   flags={fleeing=true,defensive=true},
-  tags={'teleport'},
+  tags={'teleport','magic'},
 	cast = function(self,target,caster)
     local origX,origY = caster.x,caster.y
     local x,y = caster.x,caster.y
@@ -57,6 +57,7 @@ demondamager = Spell({
 	name = "Demon Fighter",
 	description = "You know a lot about demons. Particularly, how to hurt them.",
 	target_type = "passive",
+  tags={'knowledge'},
   calc_damage = function(self,possessor,target,damage)
     if target:is_type('demon') then
       return math.ceil(damage * 1.5)
@@ -83,6 +84,7 @@ scrawny = Spell({
 	name = "Scrawny Arms",
 	description = "Your arms are basically noodles, and they're not al dente. You can never deal more than 1 damage in melee.",
 	target_type = "passive",
+  tags={'physical','negative'},
   calc_damage = function(self,possessor,target,damage)
     return 1
   end
@@ -94,6 +96,7 @@ summonangel = Spell({
 	target_type = "self",
   cost=10,
   tags={'holy','summon'},
+  level_requirement=3
 }),
 
 smite = Spell({
@@ -126,7 +129,7 @@ homecoming = Spell({
     name = "Homecoming",
     description = "Teleport immediately to the town.",
     target_type = "self",
-    tags={'teleport'},
+    tags={'teleport','magic'},
     cast = function(self,caster)
       if caster == player then
         goToMap(1,"town",true)
@@ -143,7 +146,7 @@ smallfireball = Spell({
   cost=5,
 	target_type = "tile",
   projectile = true,
-  tags={'fire','attack'},
+  tags={'fire','attack','magic'},
 	flags = {aggressive=true},
 	cast = function(self,target,caster)
     if player:can_see_tile(caster.x,caster.y) then output:out(caster:get_name() .. " shoots a fireball.") end
@@ -160,7 +163,7 @@ explodingfireball = Spell({
   projectile = true,
   sound = "fireball_large",
 	flags = {aggressive=true},
-  tags={'fire','attack'},
+  tags={'fire','attack','magic'},
 	cast = function(self,target,caster)
     if player:can_see_tile(caster.x,caster.y) then output:out(caster:get_name() .. " launches a huge fireball!") end
     Projectile('explodingfireball',caster,target)
@@ -182,7 +185,7 @@ firebrand = Spell({
   cost=10,
 	target_type = "self",
 	flags = {aggressive=true},
-  tags={'fire','buff'},
+  tags={'fire','buff','magic'},
 	cast = function (self,target,caster)
     local weapons = caster:get_equipped_in_slot('weapon')
     if #weapons > 0 then
@@ -210,7 +213,7 @@ reanimate = Spell({
 	description = "Brings a dead body back to life as a hideous zombie!",
 	target_type = "tile",
   cost=5,
-  tags={'unholy','summon','necromancy'},
+  tags={'unholy','summon','necromancy','magic'},
 	cast = function (self,target, caster)
     if not caster:can_see_tile(target.x,target.y) then
       output:out("You can't see there, so you can't reanimate any corpses that may or may not be there.")
@@ -263,7 +266,7 @@ sacrificecorpse = Spell({
 	name = "Sacrifice Corpse",
 	description = "Sacrifice a recently-dead creature to the darkness, gaining evil power!",
 	target_type = "tile",
-  tags={'unholy','necromancy'},
+  tags={'unholy','necromancy','magic'},
 	cast = function (self,target, caster)
     local corpse = currMap:tile_has_feature(target.x,target.y,'corpse')
     if corpse and corpse.creature:is_type('undead') then
@@ -312,7 +315,7 @@ corpseburst = Spell({
 	name = "Corpse Burst",
 	description = "Accelerates the rate of decay in a dead body so much that the gases build up inside of it and explode. A completely grotesque spell, banned by most civilized nations.",
 	target_type = "tile",
-  tags={'unholy','necromancy','attack'},
+  tags={'unholy','necromancy','attack','magic'},
 	cast = function (self,target,caster)
 		local corpse = currMap:tile_has_feature(target.x,target.y,"corpse")
     if corpse == false then
@@ -332,7 +335,7 @@ witheringcurse = Spell({
 	target_type = "creature",
   cooldown=30,
   range=1,
-  tags={'unholy','curse'},
+  tags={'unholy','curse','necromancy','magic'},
 	cast = function (self,target,caster)
 		target:give_condition('witheringcurse',-1)
 	end
@@ -342,6 +345,7 @@ auraoffear = Spell({
     name = "Fearsome Visage",
     description = "You are either really scary or really ugly. Just being in your presence fills your enemies with fear.",
     target_type = "passive",
+    tags={'physical'},
     advance = function(self,possessor)
       for x=possessor.x-10,possessor.x+10,1 do
         for y=possessor.y-10,possessor.y+10,1 do
@@ -360,7 +364,7 @@ undeadlegion = Spell({
 	cooldown = 25,
 	flags = {aggressive=true,defensive=true},
 	target_type = "self",
-  tags={'unholy','necromancy','summon'},
+  tags={'unholy','necromancy','summon','magic'},
 	cast = function (self,target,caster)
 		if player:can_see_tile(caster.x,caster.y) then output:out(caster:get_name() .. " calls forth an army of the dead!") end
 		local deadheads = random(4,6)
@@ -389,6 +393,7 @@ shademaker = Spell({
     name = "Leader of the Dead",
     description = "Anytime you kill a living creature, you'll draw forth a shade to join your unholy crusade.",
     target_type = "passive",
+    tags={'unholy','necromancy','summon','magic'},
     kills = function(self,possessor,victim)
       if possessor.id == "deathknight" or possessor.master.id == "deathknight" then
         if not victim:is_type('undead') and not victim:is_type('construct') and victim ~= player then
@@ -419,7 +424,7 @@ lifedrain = Spell({
   cooldown=10,
   AIcooldown=20,
   flags={aggressive=true},
-  tags={'unholy','attack'},
+  tags={'unholy','attack','magic'},
   cast = function(self,target,caster)
     if target:is_type('undead') or target:is_type('construct') then
       if caster == player then output:out("You can't drain the life out of something that's not alive.") end
@@ -443,7 +448,7 @@ graspingdead = Spell({
   AIcooldown=30,
   sound="graspingdead",
   flags={aggressive=true},
-  tags={'unholy','necromancy'},
+  tags={'unholy','necromancy','magic'},
   cast = function (self,target,caster)
 		if player:can_see_tile(caster.x,caster.y) then output:out(caster:get_name() .. " calls forth grasping dead from the earth!") end
 		for x=target.x-1,target.x+1,1 do
@@ -481,7 +486,7 @@ bloodrain = Spell({
   target_type = "tile",
   cooldown=10,
   sound="rain",
-  tags={'unholy','blood'},
+  tags={'unholy','blood','magic'},
   cast = function(self,target,caster)
     for x = target.x-3,target.x+3,1 do
       for y = target.y-3,target.y+3,1 do
@@ -512,7 +517,7 @@ enfeeble = Spell({
   target_type = "creature",
   cooldown=25,
   sound="enfeeble",
-  tags={'unholy','curse'},
+  tags={'unholy','curse','magic'},
   cast = function(self,target,caster)
     if target:is_type('undead') then
       if caster == player then output:out("You can't destroy the life force of an undead creature.") end
@@ -538,6 +543,7 @@ decayaura = Spell({
 	name = "Aura of Decay",
 	description = "An aura of death and decay surrounds you, causing nearby plants to wither and die.",
 	target_type = "passive",
+  tags={'unholy','magic'},
   advance = function(self,possessor)
     local grasses = {}
     for x=possessor.x-1,possessor.x+1,1 do
@@ -593,7 +599,7 @@ painbolt = Spell({
     projectile=false,
     target_type="creature",
     cost=1,
-    tags={'unholy','attack'},
+    tags={'unholy','attack','magic'},
     cast = function(self,target,attacker)
       if target:is_type('undead') then
         local dmg = tweak(10)
@@ -621,7 +627,7 @@ rigormortis = Spell({
     AIcooldown=30,
     description = "Causes the target's joints to lock up, preventing them from moving for a short while.",
     flags={aggressive=true,defensive=true,fleeing=true},
-    tags={'unholy','curse'},
+    tags={'unholy','curse','magic'},
     cast = function(self,target,caster)
       if player:can_see_tile(caster.x,caster.y) then output:out(caster:get_name() .. " gestures at " .. target:get_name() .. ". " .. ucfirst(target:get_pronoun('p')) .. " joints lock up!") end
       currMap:add_effect(Effect('animation','unholydamage',5,target,{r=150,g=0,b=150}),target.x,target.y)
@@ -658,6 +664,7 @@ vampirism = Spell({
 	description = "You regain some health when you damage an enemy.",
 	target_type = "passive",
   unlearnable = true, --If true, this spell will not show up in spell books or factions to be learned unless explicitly put there
+  tags={'unholy','physical'},
 	damages = function(self,possessor,target,damage)
     if (random(1,2) == 1 and not target:is_type('bloodless')) or target:has_condition('bleeding') then
       local hp = tweak(math.ceil(damage*(random(2,6)/10)))
@@ -676,6 +683,7 @@ slimesplit = Spell({
 	name = "Mitosis",
 	description = "You split in half when you are damaged.",
 	target_type = "passive",
+  tags={'physical'},
 	damaged = function(self,possessor, attacker,amt,dtype)
 		if (dtype ~= "fire" and possessor.hp > 20 and random(1,3) == 1 ) then
 			for x = possessor.x-1,possessor.x+1,1 do
@@ -705,6 +713,7 @@ curse = Spell({
 	target_type = "creature",
   sound="unholydamage",
 	flags = {aggressive=true},
+  tags={'curse','magic'},
 	cast = function (self,target,caster)
     if target == caster then
       if caster == player then output:out("Don't curse yourself. Instead, curse the wretched world that made you this way, and swear revenge!") end
@@ -733,25 +742,44 @@ curse = Spell({
 knockbackimmunity = Spell({
     name = "Immune to Knockbacks",
     description = "You're incredibly massive, and can't be knocked backwards. Good for you.",
-    target_type = "passive"
+    target_type = "passive",
+    tags={'physical'}
   }),
 
 sleepless = Spell({
     name = "Sleepless",
     description = "You don't sleep. On the plus side, spells and abilities that make people fall asleep don't work on you. On the minus side, you don't dream. On the plus side, you don't have nightmares.",
-    target_type = "passive"
+    target_type = "passive",
+    tags={'physical'}
   }),
 
 sporedeath = Spell({
     name = "Filled with Spores",
     description = "You are full of spores. When you die, they'll explode into the air.",
     target_type = "passive",
+    tags={'physical','nature'},
     dies = function(self,possessor)
       if player:can_see_tile(possessor.x,possessor.y) then output:out(possessor:get_name() .. " explodes into spores!") end
       for i=1,random(2,4),1 do
         currMap:add_effect(Effect('spores'),possessor.x,possessor.y)
       end
       if player:can_see_tile(possessor.x,possessor.y) then output:sound('shroomman_death') end
+    end
+  }),
+
+passiverage = Spell({
+    name = "Anger Management Problems",
+    description = "You're very angry. Your fury builds in battle, eventually exploding into a terrible rage.",
+    target_type="passive",
+    tags={'physical'},
+    damaged = function(self,possessor, attacker,amt,dtype)
+      local perc = math.ceil((amt/possessor:get_mhp())*100)*2
+      if possessor.extra_stats.fury then
+        local newVal = possessor:update_extra_stat('fury',perc)
+        if newVal >= possessor.extra_stats.fury.max then
+          possessor:give_condition('enraged',-1)
+        end
+      end
     end
   }),
 
@@ -762,6 +790,7 @@ yawp = Spell({
     sound="yawp",
     cooldown=10,
     flags={aggressive=true,defensive=true,fleeing=true},
+    tags={'physical'},
     cast = function(self,target,caster)
       currMap:add_effect(Effect('soundwavemaker',{r=100,g=100,b=100},5),caster.x,caster.y)
       if player:can_see_tile(caster.x,caster.y) then output:out(caster:get_name() .. " sounds " .. caster:get_pronoun('p') .. " barbaric yawp over the roofs of the world.") end
@@ -789,6 +818,7 @@ angelichivemind = Spell({
     name = "Angelic Hivemind",
     description = "Can sense the presence of other angels on the same map.",
     target_type = "passive",
+    tags={'holy'},
     sense = function(self,possessor,target)
       if target:is_type('angel') then return true end
       if possessor:can_see_tile(target.x,target.y) then return true end
@@ -800,6 +830,7 @@ angelicdefense = Spell({
     name = "Angelic Defense",
     description = "When one angel is attacked, all other angels on the level come running.",
     target_type = "passive",
+    tags={'holy'},
     attacked = function(self,possessor,attacker)
       for _,creat in pairs(currMap.creatures) do
         if creat:is_type('angel') then
@@ -825,6 +856,7 @@ webshot = Spell({
     projectile = true,
     sound="spit",
     flags={aggressive=true,defensive=true,fleeing=true},
+    tags={'physical'},
     cast = function(self,target,caster)
       if player:can_see_tile(caster.x,caster.y) then output:out(caster:get_name() .. " sprays webbing all over the place.") end
       local tiles = mapgen:make_blob(currMap,target.x,target.y,false,25)
@@ -862,6 +894,7 @@ poisonbite = Spell({
     cooldown=9,
     AIcooldown=18,
     sound="unholydamage",
+    tags={'physical','poison'},
     cast = function(self,target,caster)
       if player:can_see_tile(target.x,target.y) then
         output:out(caster:get_name() .. " injects " .. target:get_name() .. " with poison!")

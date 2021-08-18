@@ -1218,11 +1218,10 @@ enraged = Condition({
       return false
     end,
     apply = function(self,possessor)
-      if possessor.faction then
-        possessor.oldfaction = possessor.faction
-      end
-      possessor.faction = "chaos"
       if player:can_sense_creature(possessor) then output:sound('enraged') end
+      if possessor.extra_stats.fury then
+        possessor.extra_stats.fury.bar_color={r=255,g=0,b=0,a=255}
+      end
     end,
     update = function(self,possessor,dt)
       if player:does_notice(possessor) then
@@ -1234,12 +1233,13 @@ enraged = Condition({
         end
       end
     end,
-    cured = function(self,possessor)
-      if possessor.oldfaction then
-        possessor.faction = possessor.oldfaction
-        possessor.oldfaction = nil
-      else
-        possessor.faction = nil
+    advance = function(self,possessor)
+      if possessor.extra_stats.fury then
+        possessor:update_extra_stat('fury',-5)
+        if possessor.extra_stats.fury.value == 0 then
+          possessor:cure_condition('enraged')
+          possessor.extra_stats.fury.bar_color={r=255,g=255,b=0,a=255}
+        end
       end
     end
   }),
@@ -1445,8 +1445,8 @@ bloodbond = Condition({
       moves = function(self,possessor)
         if not possessor.grappler or not possessor:touching(possessor.grappler) then possessor:cure_condition('grappled') return true end
         --try to break grapple. if you fail, you can't move
-        local pStr = random(1,possessor.strength)
-        local gStr = random(1,possessor.grappler.strength)
+        local pStr = random(1,possessor:get_stat('strength'))
+        local gStr = random(1,possessor.grappler:get_stat('strength'))
         if pStr >= gStr then
           if player:can_see_tile(possessor.x,possessor.y) then output:out(possessor:get_name() .. " breaks " .. possessor.grappler:get_name() .. "'s grapple.") end
           possessor:cure_condition('grappled')

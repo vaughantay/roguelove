@@ -279,6 +279,19 @@ function game:print_sidebar()
     printY = printY+fontPad*2
   end
   
+  if player.extra_stats then
+    for stat_id,stat in pairs(player.extra_stats) do
+      if stat.max and stat.bar_color then
+        output:draw_health_bar(stat.value,stat.max,printX+xPad,printY,325,math.max(fontPad,16),stat.bar_color)
+        love.graphics.printf(stat.name .. ": " .. stat.value .. "/" .. stat.max,printX+xPad,printY+yBonus,332,"center")
+        printY = printY+fontPad*2
+      else
+        love.graphics.print(stat.name .. ": " .. stat.value,printX+xPad,printY)
+        printY=printY+fontPad*2
+      end
+    end
+  end
+  
   setColor(255,255,255,255)
   if prefs.statsOnSidebar then
     love.graphics.print("Base Damage: " .. player.strength,printX+xPad,printY)
@@ -304,7 +317,7 @@ function game:print_sidebar()
     love.graphics.print(keybindings.inventory .. ") Inventory",printX+xPad,printY-2+yBonus)
     printY = printY+buttonPadding
   end
-  if gamesettings.crafting then
+  if gamesettings.crafting and gamesettings.craft_anywhere then
     local invWidth = whichFont:getWidth(keybindings.crafting .. ") Crafting")
     local minX,minY=printX+xPad-2,printY
     local maxX,maxY=minX+invWidth+4,minY+16
@@ -1444,7 +1457,7 @@ function game:keypressed(key,scancode,isRepeat)
 		Gamestate.switch(inventory,"usable")
   elseif (key == "equip") then
 		Gamestate.switch(inventory,"equippable")
-  elseif (key == "crafting") then
+  elseif (key == "crafting" and gamesettings.crafting and gamesettings.craft_anywhere) then
 		Gamestate.switch(crafting)
 	elseif (key == "examine") then
 		if action=="targeting" then

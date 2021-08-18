@@ -404,11 +404,17 @@ function factionscreen:draw()
           love.graphics.printf("You don't have enough money to learn this ability.",windowX,printY,windowWidth,"center")
           printY=printY+fontSize
         else
-          local spellW = fonts.textFont:getWidth("Learn " .. spell.name)+padding
-          local button = output:button(math.floor(midX-spellW/2),printY,spellW,false,(self.cursorY == 2+#self.spellButtons+1 and "hover" or nil),"Learn " .. spell.name)
-          button.spellID = spellDef.spell
-          self.spellButtons[#self.spellButtons+1] = button 
-          printY=printY+32
+          local ret,text = player:can_learn_spell(spellDef.spell)
+          if ret == false then
+            love.graphics.printf((text or "You're unable to learn this ability."),windowX,printY,windowWidth,"center")
+            printY=printY+fontSize
+          else
+            local spellW = fonts.textFont:getWidth("Learn " .. spell.name)+padding
+            local button = output:button(math.floor(midX-spellW/2),printY,spellW,false,(self.cursorY == 2+#self.spellButtons+1 and "hover" or nil),"Learn " .. spell.name)
+            button.spellID = spellDef.spell
+            self.spellButtons[#self.spellButtons+1] = button 
+            printY=printY+32
+          end
         end
         printY=printY+fontSize
       end

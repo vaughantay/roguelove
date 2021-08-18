@@ -629,17 +629,20 @@ end
 
 ---Checks if an item has a descriptive tag.
 --@param tag String. The tag to check for
+--@param ignore_enchantments Boolean. Whether to ignore looking at enchantments' tags.
 --@return Boolean. Whether or not it has the tag.
-function Item:has_tag(tag)
+function Item:has_tag(tag,ignore_enchantments)
   if self.tags and in_table(tag,self.tags) then
     return true
   end
-  for e,_ in pairs(self:get_enchantments()) do
-    local enchantment = enchantments[e]
-    if enchantment.tags and in_table(tag,enchantment.tags) then
-      return true
-    end --end if it has the right bonus
-  end --end enchantment for
+  if not ignore_enchantments then
+    for e,_ in pairs(self:get_enchantments()) do
+      local enchantment = enchantments[e]
+      if enchantment.tags and in_table(tag,enchantment.tags) then
+        return true
+      end --end if it has the right bonus
+    end --end enchantment for
+  end
   return false
 end
 

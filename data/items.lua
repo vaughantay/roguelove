@@ -167,18 +167,16 @@ function spellBook:new(tags,spells,spellCount)
     local possibles = {}
     local allPossibles = {}
     for id,spell in pairs(possibleSpells) do
-      if not spell.unlearnable then
+      if not spell.unlearnable and spell:has_tag('magic') then
         allPossibles[#allPossibles+1] = id --keep track of all possible spells, in case when we look at the tags it comes back with nothing
         local acceptable = false
         if tags then
-          if spell.tags then
-            for _,tag in pairs(tags) do
-              if in_table(tag,spell.tags) then
-                acceptable = true
-                break --break the tag for
-              end --end if in_table
-            end --end tag for
-          end --end if spell has tags
+          for _,tag in pairs(tags) do
+            if spell:has_tag(tag) then
+              acceptable = true
+              break --break the tag for
+            end --end if in_table
+          end --end tag for
         else --If no tags are provided, then any spell is acceptable
           acceptable = true
         end --end if tags or not if
@@ -206,17 +204,12 @@ end
 function spellBook:use()
   local list = {}
   for _, spellid in ipairs(self.spells) do
-    if not player:has_spell(spellid) then
-      list[#list+1] = {text="Learn " .. possibleSpells[spellid].name,description=possibleSpells[spellid].description,selectFunction=player.learn_spell,selectArgs={player,spellid}}
-    end
+    local alreadyLearned = player:has_spell(spellid)
+    local canLearn,canText = player:can_learn_spell(spellid)
+    list[#list+1] = {text="Learn " .. possibleSpells[spellid].name,description=possibleSpells[spellid].description .. (alreadyLearned and "\nYou already know this spell." or "") .. (canText and "\n" .. canText or ""),selectFunction=player.learn_spell,selectArgs={player,spellid},disabled=(alreadyLearned or not canLearn)}
   end
-  if #list > 0 then
-    Gamestate.switch(multiselect,list,"Learn a Spell from " .. self.properName,true,true)
-    return false
-  else
-    output:out("You already know all the spells in this book.")
-    return false,"You already know all the spells in this book."
-  end
+  Gamestate.switch(multiselect,list,"Learn a Spell from " .. self.properName,true,true)
+  return false
 end
 possibleItems['spellbook'] = spellBook
 
@@ -782,6 +775,16 @@ function bloodextractor:use(corpse,user)
   end
 end
 possibleItems['bloodextractor'] = bloodextractor
+
+local heroskey = {
+  name = "Hero's Key",
+  plural_name = "Hero's Keys",
+  description = "A key that unlocks the gates to valhalla.",
+  symbol="\\",
+  color={r=255,g=255,b=0,a=255},
+  itemType="other"
+}
+possibleItems['heroskey'] = heroskey
 
 local money = {
   name = "$1",
