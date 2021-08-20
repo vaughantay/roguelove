@@ -1355,15 +1355,19 @@ function Creature:equip(item)
   local equipText = ""
   if not slot then return false,"You can't equip this type of item." end
   
-  --Check for item requires code, stat requirements, etc
+  --Check for level/stat requirements, etc
+  local canEquip,noText = self:can_use_item(item,"equip")
+  if canEquip == "false" then
+    return false,noText
+  end
   
   --For items that require "hands" to equip (presumably weapons and offhand items only)
   if item.hands then
-    --If the item requires more hands to hold than you have, just forget it entirely:
+    --First, check to make sure we even have the correct number of hands
     if item.hands > (self.hands or 0) then
-      return false,"You don't have enough hands to equip this item."
+      return false,"You don't have enough hands to equip " .. item:get_name() .. "."
     end
-    --Otherwise add up all the hands currently being used:
+    --Add up all the hands currently being used:
     local handsUsed = 0
     for i=1,self.equipment.weapon.slots,1 do
       local weap = self.equipment.weapon[i]
@@ -1476,6 +1480,31 @@ function Creature:unequip(item)
     end --end if item == item if
   end --end slot check for
 	return false,unequipText
+end
+
+---Determine if a creature can use this item or not
+--@param item Item. The item to check
+--@param verb Text. The verb the item uses. Or "equip" if it's equipment we're looking at, which also makes it check hands
+--@return Boolean. Whether or not it's equippable
+--@return Text. Why you can't equip it, if applicable. Nil if it is equipable.
+function Creature:can_use_item(item,verb)
+  verb = verb or "use"
+  if item.level_requirement and self.level < item.level_requirement then
+    return false,"You're not a high enough level to " .. verb .. " " .. item:get_name() .. "."
+  elseif item.stat_requirements then
+    for stat,requirement in pairs(item.stat_requirements) do
+      if self:get_stat(stat,true) < requirement and self:get_bonus_stat(stat,true) < requirement then
+        return false,"Your " .. stat .. " stat is too low to " .. verb .. " "  .. item:get_name() .. "."
+      end
+    end
+  elseif player.forbidden_item_tags and count(player.forbidden_item_tags) > 0 then
+    for _,tag in ipairs(player.forbidden_item_tags) do
+      if item:has_tag(tag) then
+        return false,"You can't " .. verb .. " this type of item."
+      end
+    end
+  end
+  return true
 end
 
 ---Check if a creature can see a given tile
@@ -2356,6 +2385,8 @@ end
 
 ---Determine if a creature can learn this spell or not
 --@param spellID Text. The ID of the spell to check
+--@return Boolean. Whether or not it can be learned
+--@return Text. The reason it can't be learned (or nil if it can)
 function Creature:can_learn_spell(spellID)
   local spell = possibleSpells[spellID]
   if spell.level_requirement and self.level < spell.level_requirement then
@@ -2363,7 +2394,7 @@ function Creature:can_learn_spell(spellID)
   elseif spell.stat_requirements then
     for stat,requirement in pairs(spell.stat_requirements) do
       if self:get_stat(stat,true) < requirement and self:get_bonus_stat(stat,true) < requirement then
-        return false,"You don't have the stat qualifications for this ability."
+        return false,"Your " .. stat .. " stat is too low to learn this ability."
       end
     end
   elseif player.forbidden_spell_tags and count(player.forbidden_spell_tags) > 0 then

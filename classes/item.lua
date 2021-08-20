@@ -79,6 +79,9 @@ function Item:get_info()
     if attack.best_distance_min or attack.best_distance_max then uses = uses .. "\nBest Range: " .. (attack.best_distance_min and attack.best_distance_min .. " (min)" or "") .. (attack.best_distance_min and attack.best_distance_max and " - " or "") .. (attack.best_distance_max and attack.best_distance_max .. " (max)" or "") end
     uses = uses .. "\n"
   end
+  if self.kills then
+    uses = uses .. "\nKillks: " .. self.kills
+  end
   if self.projectile_name then
     local projectile = projectiles[self.projectile_name]
     uses = uses .. "\nProjectile: " .. ucfirst(projectile.name)
@@ -152,6 +155,8 @@ end
 --@param user Creature. The creature using the item.
 --@return Boolean.Whether the use was successful.
 function Item:use(target,user)
+  local canUse,text = user:can_use_item(self,self.useVerb)
+  if canUse == false then return false,text end
 	if possibleItems[self.id].use then
     return possibleItems[self.id].use(self,target,user)
   end

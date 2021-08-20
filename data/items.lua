@@ -42,7 +42,7 @@ function blood:use(user)
   if user:has_spell('vampirism') then
     local dmg = tweak(10)
     output:out(user:get_name() .. " drinks some blood and regains " .. dmg .. " health!")
-    user:update_hp(dmg)
+    user:updateHP(dmg)
     user:delete_item(self)
   else
     if user == player then output:out("You're not going to drink blood. That's disgusting.") end
@@ -442,6 +442,7 @@ local holywater = {
   stacks=true,
   tags={'liquid','holy'},
   noEnchantments=true,
+  useVerb="Apply",
   value=5
 }
 function holywater:use()
@@ -747,7 +748,7 @@ local bloodextractor = {
   symbol = "&",
   itemType="usable",
   usable=true,
-  useText="Extract Blood",
+  useVerb="Extract Blood",
   color={r=100,g=100,b=100,a=255},
   value=50
 }

@@ -1,11 +1,12 @@
 inventory = {}
 
-function inventory:enter(previous,whichType)
+function inventory:enter(previous,whichType,action)
   self.cursorY = 0
   self.cursorX = 1
   self.scroll=0
   self.biggestY=0
   self.selectedItem=nil
+  self.action=action
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
   local uiScale = (prefs['uiScale'] or 1)
   local padX,padY = 0,0
@@ -124,7 +125,12 @@ function inventory:draw()
   local sidebarX = round(width/2)+padding
   output:draw_window(1,1,sidebarX-padding,height-padding)
   output:draw_window(sidebarX,1,width-padding,height-padding)
-  love.graphics.printf("Inventory\nYou have: $" .. player.money,padding,round(padding*.75),sidebarX-padding,"center")
+  local topText = "Inventory"
+  if self.action == "use" then topText = "Select items to use"
+  elseif self.action == "drop" then topText = "Select items to drop"
+  elseif self.action == "throw" then topText = "Select items to throw"
+  elseif self.action == "equip" then topText = "Select items to equip" end
+  love.graphics.printf(topText .. "\nYou have: $" .. player.money,padding,round(padding*.75),sidebarX-padding,"center")
   
   local printX = (prefs['noImages'] and 14 or 32)
   
@@ -339,6 +345,7 @@ function inventory:keypressed(key)
       if self.filterButtons[self.cursorX] then
         self.filter = self.filterButtons[self.cursorX].filter
         self:sort()
+        if self.action and self.action ~= "drop" then self.action = nil end
       end
     else
       if self.cursorX == 1 then --selecting an item from the list
@@ -346,6 +353,15 @@ function inventory:keypressed(key)
           self.selectedItem = self.inventory[self.cursorY].item
           self.xHold = self.cursorX
           self.cursorX = 3
+          if self.action == "drop" then
+            self:dropItem()
+          elseif self.action == "equip" then
+            self:equipItem()
+          elseif self.action == "use" then
+            self:useItem()
+          elseif self.action == "throw" then
+            self:throwItem()
+          end
         end --end item exists if
       elseif self.cursorX == 2 then --selecting an item from the equipped list
         if self.equipment[self.cursorY].item then
@@ -427,15 +443,13 @@ function inventory:keypressed(key)
         self.cursorX = self.cursorX-1
       end
     elseif self.cursorX == 2 then
-      self.cursorX = 1
+      self.cursorX = (self.yHold == 0 and #self.filterButtons or 1)
       self.cursorY,self.yHold = (self.yHold or 1),self.cursorY
     elseif self.cursorX > 3 then self.cursorX = self.cursorX-1 end
   elseif key == "east" then
-    if self.cursorY == 0 then
-      if self.cursorX < #self.filterButtons then
-        self.cursorX = self.cursorX+1
-      end
-    elseif self.cursorX == 1 then
+    if self.cursorY == 0 and self.cursorX < #self.filterButtons then
+      self.cursorX = self.cursorX+1
+    elseif self.cursorY == 0 or self.cursorX == 1 then
       self.cursorX = 2
       self.cursorY,self.yHold = self.yHold,self.cursorY
       if not self.equipment[self.cursorY] or not self.equipment[self.cursorY].item then
@@ -465,12 +479,6 @@ function inventory:keypressed(key)
     elseif key == "throw" then
       self:throwItem()
     end
-	else
-		local id = string.byte(letter)-96
-		if (player.inventory[id] ~= nil) then
-      self.selectedItem = player.inventory[id]
-      self.cursorY = id
-		end
 	end
 end
 
@@ -565,7 +573,11 @@ end
 function inventory:dropItem()
   player:drop_item(self.selectedItem)
   self.selectedItem = nil
+  self.cursorX=1
   self:sort()
+  if self.cursorY > #self.inventory then
+    self.cursorY = #self.inventory
+  end
   advance_turn()
 end
 
