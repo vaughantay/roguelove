@@ -9,7 +9,7 @@ local rabidnerd = {
   nameType = "human",
   possible_inventory={{item="healthpotionminor",chance=100,min_amt=2,max_amt=5},{item="scroll",chance=50}},
   possible_death_items={{item="uglyring",chance=75}},
-  possible_weapon={"dagger","firedagger"},
+  possible_weapon={"dagger"},
   possible_accessory={false,false,false,false,false,false,"sexyring","uglyring","strengthring","sadring"},
   max_hp = 5,
   level = 1,

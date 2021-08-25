@@ -877,10 +877,10 @@ function Map:get_store_list(force)
     sTags = branch.storeTags or branch.contentTags --if branch doesn't have storeTags, this will keep it as nil
   end
   
-  --Add the types and factions to the specialItems list
+  --Add the tagged stores to the store list
   for sid,store in pairs(currWorld.stores) do
     local done = false
-    if not sTags then done = true end --If the map doesn't have a list of faction tags set, any factions are eligible to spawn there
+    if not sTags then done = true end --If the map doesn't have a list of store tags set, any store are eligible to spawn there
     if sTags and not done then
       for _,sTags in pairs(sTags) do
         if store.tags and in_table(sTags,store.tags) then
@@ -894,7 +894,7 @@ function Map:get_store_list(force)
       if not store_list then store_list = {} end
       store_list[#store_list+1] = sid
     end
-  end --end faction for
+  end --end store for
   self.store_list = store_list
   return store_list
 end
@@ -1063,7 +1063,14 @@ function Map:populate_stores(forceGeneric)
       end
     end
     if selected then
-      --TODO: Implement spawning a copy of the store with its own inventory, if necessary
+      --If necessary, spawn a copy of the store with its own ID
+      local store = currWorld.stores[selected]
+      if store.isPlaced and store.multiple_locations then
+        local s = Store(store.id)
+        s.multiple_locations=nil
+        selected = #currWorld.stores+1
+        currWorld.stores[selected] = s
+      end
       local newStore = Feature('store',selected)
       local tries = 0
       local ix,iy = random(2,self.width-1),random(2,self.height-1)

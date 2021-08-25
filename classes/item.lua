@@ -32,7 +32,7 @@ function Item:init(type_name,info,amt,ignoreNewFunc)
 	return self
 end
 
----Clones an instance of the item. Don't call this directly. Called via Item('itemID')
+---Clones an instance of the item.
 --@param type_name String. The ID of the item.
 --@param info Anything. Argument to pass into the item's new() function.
 --@param amt Number. The amount of the item to create.

@@ -190,7 +190,7 @@ function Faction:teach_spell(spellID,creature)
     creature.favor[self.id] = creature.favor[self.id] - spellInfo.favorCost
   end
   --Teach it, finally:
-  creature.spells[#creature.spells+1] = spellID
+  creature:learn_spell(spellID)
 end
 
 ---Generates the faction's inventory

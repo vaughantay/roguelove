@@ -80,9 +80,9 @@ function initialize_world()
   currWorld = {stores={},factions={},branches={}}
   --Generate stores:
   local stores = currWorld.stores
-  for id,store in pairs(stores_static) do
-    stores[id] = Store(store)
-    stores[id].id = id
+  for id,store in pairs(possibleStores) do
+    local s = Store(id)
+    stores[#stores+1] = s
   end
   --Generate Factions:
   local factions = currWorld.factions

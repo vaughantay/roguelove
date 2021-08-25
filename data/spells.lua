@@ -903,4 +903,55 @@ poisonbite = Spell({
       target:give_condition('poisoned',tweak(5))
     end
   }),
+
+heal_other = Spell({
+    name = "Heal Other",
+    target_type = "creature",
+    cooldown = 5,
+    description = "Practice the healing arts on a nearby creature. If cast on an unfriendly creature, there's a chance they will become friendly towards you.",
+    flags={friendly=true},
+    cast = function(self,target,caster)
+      if target == caster then output:out("You can't use this ability to heal yourself. That's too selfish for an orc.") return false end
+      if target.hp < target:get_mhp() then
+        if caster:touching(target) then
+          local amt = math.max(5,math.ceil(target:get_mhp() *.05))
+          if player:can_see_tile(caster.x,caster.y) then
+            output:out(caster:get_name() .. " heals " .. target:get_name() .. " for amt damage.")
+            output:sound('heal_other')
+          end
+          target:updateHP(amt)
+          local enemy = target:is_enemy(caster)
+          local shitlist = target.shitlist[caster]
+          if enemy and not shitlist and random(1,100) < 50 then --50% chance of currently-non-hostile to ignore caster
+            target:ignore(caster)
+          elseif shitlist and random(1,100) < 10 then --10% chance of currently hostile to ignore caster
+            target:ignore(caster)
+          end
+          --[[if not shitlist and target.master == nil and target.faction ~= "chaos" and (caster.faction == nil or target.enemy_factions == nil or not in_table(caster.faction,target.enemy_factions)) and random(1,100) < 10 then --10% chance of currently non-hostile to become thrall of caster if they're not in an enemy faction
+            target:become_thrall(caster)
+          end]]
+        else --if not touching
+          Projectile('healthsyringe',caster,target)
+        end
+      else
+        if caster == player then output:out(target:get_name()  .. " isn't hurt. Healing them wouldn't be worthwhile.") end
+        return false
+      end
+    end,
+    decide = function(self,target,caster)
+      local creats = caster:get_seen_creatures()
+      local mostDmg, dmgedCreat = nil,nil
+      if creats then
+        for _,creat in pairs(creats) do
+          if caster:is_enemy(creat) == false and creat ~= caster then
+            local dmg = (creat:get_mhp()-creat.hp)
+            if (mostDmg == nil or dmg > mostDmg) and dmg > 0 then
+              mostDmg,dmgedCreat = dmg,creat
+            end --end damage if
+          end --end enemy if
+        end --end creature for
+      end --end self sees if
+      return dmgedCreat or false
+    end
+  }),
 }

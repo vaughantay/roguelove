@@ -33,7 +33,7 @@ possibleFactions['lightchurch'] = {
   money_per_favor = 10, --When buying non-predefined items, divide the item's value by this number to get the favor paid (rounded down)
   only_pays_favor = true, --When buying non-predefined items, don't pay money for them, just favor
   teaches_spells = {{spell="demondamager",favorCost=100,moneyCost = 100}, {spell="summonangel",favorCost=100,membersOnly=true}}, --spells that this faction teaches to friendly players
-  offers_services = {"healing","blessing"}, --services that this faction offers to friendly players
+  offers_services = {"healing_church","blessing"}, --services that this faction offers to friendly players
   offers_missions = {""}, --missions that this faction offers to friendly players
   possible_inventory = {{item="scroll",chance=100}}, --items that all members of this faction might drop
   hidden = false, --If set to true, this faction won't appear on the faction list page

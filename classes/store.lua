@@ -4,23 +4,33 @@ Store = Class{}
 ---Initiate a store from its definition. You shouldn't use this function, the game uses it at loadtime to instantiate the stores.
 --@param data Table. The table of store data.
 --@return self Store. The faction itself.
-function Store:init(data)
+function Store:init(store_id)
+  local data = possibleStores[store_id]
 	for key, val in pairs(data) do
 		if type(val) ~= "function" then
       self[key] = data[key]
     end
 	end
+  self.id = self.id or store_id
   self.baseType = "store"
   if data.nameGen then
     self.name = data:nameGen()
   end
   self.inventory = {}
+  self.offers_services = self.offers_services or {}
+  self.teaches_spells = self.teaches_spells or {}
   self:generate_items()
 	return self
 end
 
 ---Generates the store's inventory
 function Store:generate_items()
+  --Do custom stocking code:
+  if possibleStores[self.id].generate_items then
+    if possibleStores[self.id].generate_items(self) == false then
+      return
+    end
+  end
   --Generate items from list:
   local tags = self.passedTags
   if self.sells_items then
@@ -34,16 +44,7 @@ function Store:generate_items()
           item:apply_enchantment(eid,-1)
         end
       end
-      local makeNew = true
-      local index = self:get_inventory_index(item)
-      if index then
-        self.inventory[index].item.amount = self.inventory[index].item.amount+item.amount
-        makeNew = false
-      end
-      if makeNew == true then
-        local id = #self.inventory+1
-        self.inventory[id] = {item=item,cost=info.cost,id=id}
-      end
+      self:add_item(item,info)
     end --end sells_items for
   end --end if self.sells_items
   --Generate dynamic inventory:
@@ -59,24 +60,39 @@ end
 
 ---Restocks the store. Default behavior: Restock all defined items up to their original amount, unless restock_amount or restock_to is set.
 function Store:restock()
-  --First, do defined items
+  --Delete items marked to delete on restock:
+  for id,info in pairs(self.inventory) do
+    if info.delete_on_restock then
+      table.remove(self.inventory,id)
+    end
+  end
+  
+  --Do custom restocking code:
+  if possibleStores[self.id].restock then
+    if possibleStores[self.id].restock(self) == false then
+      return
+    end
+  end
+  
+  --Do pre-defined items
   if self.sells_items then
+    local tags = self.passedTags
     for _,info in pairs(self.sells_items) do
       if info.amount and info.amount ~= -1 then --don't restock infinite-stock items
         local itemID = info.item
-        local item = Item(itemID,info.passed_info)
+        local item = Item(itemID,(info.passed_info or (possibleItems[itemID].acceptTags and tags) or nil),(info.amount or -1))
         local currAmt = self:get_count(item) or 0
-        local restock_to = (info.restock_to or info.amount)
-        if currAmt < (info.restock_to or info.amount) and currAmt ~= -1 then
-          local final_restock = math.min(info.restock_amount or restock_to,restock_to-currAmt)
-          local index = self:get_inventory_index(item)
-          if index then
+        local restock_amt = info.restock_amount or 0
+        local restock_to = (info.restock_to or (restock_amt >= 0 and info.amount or 0))
+        if (restock_amt >= 0 and currAmt < restock_to) or (restock_amt < 0 and currAmt > restock_to) then
+          local final_restock = (restock_amt >= 0 and math.min((restock_amt > 0 and restock_amt or restock_to),restock_to-currAmt) or (restock_amt < 0 and math.max(restock_amt or restock_to,restock_to-currAmt)))
+          if final_restock < 0 then
             self.inventory[index].item.amount = self.inventory[index].item.amount+final_restock
-          else
-            local id = #self.inventory+1
-            item.amount = final_restock
-            self.inventory[id] = {item=item,cost=info.cost,id=id}
+            if self.inventory[index].item.amount <= 0 then
+              table.remove(self.inventory,index)
+            end
           end
+          self:add_item(item,info)
         end --end currAmt < restock to amount
       end --end if amount
     end --end sells_items for
@@ -100,6 +116,29 @@ function Store:restock()
       end --end possibles count if
     end
   end --end if random_item_amount
+end
+
+---Adds an item to the store. If the store already has this item, increase the amount
+--@param item Item. The item to add
+--@param info Table. The information to pass
+function Store:add_item(item,info)
+  local makeNew = true
+  info = info or {}
+  info.cost = info.cost or item:get_value()*(self.markup or 1)
+  local index = self:get_inventory_index(item)
+  if index then
+    self.inventory[index].item.amount = self.inventory[index].item.amount+item.amount
+    makeNew = false
+  end
+  if makeNew == true then
+    local id = #self.inventory+1
+    self.inventory[id] = {item=item,id=id}
+    if info then
+      for i,k in pairs(info) do
+        self.inventory[id][i] = self.inventory[id][i] or k
+      end
+    end
+  end --end if makenew
 end
 
 ---Gets a list of the items the store is selling
@@ -144,7 +183,7 @@ function Store:get_buy_list(creat)
   return buying
 end
 
----Sell an item to the store
+---Sell an item to the store TODO: Update this to use add_item
 --@param item Item. The item being sold
 --@param cost Number. The amount the store will pay per item.
 --@param amt Number. The amount of the item being sold. Optional, defaults to 1.
@@ -154,10 +193,14 @@ function Store:creature_sells_item(item,cost,amt,creature)
   local totalAmt = item.amount or 1
   if amt > totalAmt then amt = totalAmt end
   local totalCost = cost*amt
-  local index = self:get_inventory_index(item)
-  if index and self.inventory[index].item.amount ~= -1 then
-    self.inventory[index].item.amount = self.inventory[index].item.amount+amt
+  local givenItem = item
+  if item.amount > amt then
+    item.owner = nil --This is done because item.owner is the creature who owns the item, and Item:clone() does a deep copy of all tables, which means it will create a copy of the owner, which owns a copy of the item, which is owned by another copy of the owner which owns another copy of the item etc etc leading to a crash
+    givenItem = item:clone()
+    givenItem.amount = amt
+    item.owner = creature
   end
+  self:add_item(givenItem)
   creature:delete_item(item,amt)
   if self.currency_item then
     local creatureItem = creature:has_item(self.currency_item)
@@ -239,6 +282,33 @@ function Store:creature_buys_item(item,cost,amt,creature)
   return false,"You don't have enough to buy " .. item:get_name(true,amt) .. " ."
 end
 
+---Have a creature learn a spell from a faction.
+--@param spellID String. The ID of the spell they're trying to learn.
+--@param creature Creature. The creature learning the spell. (optional, defaults to the player)
+--@return Boolean. Whether learning the spell was successful or not.
+function Store:teach_spell(spellID,creature)
+  creature = creature or player
+  if creature:has_spell(spellID) then return false end
+  
+  --Get the spell info:
+  local spellInfo = nil
+  for _,s in ipairs(self.teaches_spells) do
+    if s.spell == spellID then
+      spellInfo = s
+      break
+    end
+  end
+  if not spellInfo then return false end
+  
+  --Pay the price:
+  if spellInfo.cost then
+    creature.money = creature.money - spellInfo.cost
+  end
+  
+  --Teach it, finally:
+  creature:learn_spell(spellID)
+end
+
 ---Gets the index within the store's inventory of the item in question
 --@param item Item. The item to seach for.
 --@return Number. The index ID of the item.
@@ -284,16 +354,7 @@ function Store:generate_random_item(list)
     end
   end
   if not item.amount then item.amount = 1 end --This is here because non-stackable items don't generate with amounts
-  local makeNew = true
-  local index = self:get_inventory_index(item)
-  if index then
-    self.inventory[index].item.amount = self.inventory[index].item.amount+item.amount
-    makeNew = false
-  end
-  if makeNew == true then
-    local id = #self.inventory+1
-    self.inventory[id] = {item=item,cost=item:get_value()*(self.markup or 1),id=id,randomly_generated=true}
-  end
+  self:add_item(item,{randomly_generated=true,delete_on_restock=self.delete_random_items_on_restock})
 end
 
 ---Placeholder for the requires() code, which is run to determine if the player can enter the store or not.

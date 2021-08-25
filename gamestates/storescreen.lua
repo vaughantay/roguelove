@@ -7,7 +7,7 @@ function storescreen:enter(_,whichStore)
   output:sound('stoneslideshort',2)
   self.cursorY = 1
   self.cursorX = 1
-  self.store = currWorld.stores[whichStore]
+  self.store = whichStore
   self.screen="Buy"
   self.outText = nil
   self:refresh_lists()
@@ -64,20 +64,50 @@ function storescreen:draw()
     printY=printY+#wrappedtext*fontSize
   end
   
-  if not self.store.noBuy then
+  if not self.store.noBuy or count(self.store.offers_services) > 0 then
     printY=printY+fontSize
     local padX = 8
     local buybuttonW = fonts.buttonFont:getWidth("Buying")+padding
     local sellbuttonW = fonts.buttonFont:getWidth("Selling")+padding
-    local biggestButton = math.max(buybuttonW,sellbuttonW)
-    buybuttonW,sellbuttonW = biggestButton,biggestButton
-    local startX = windowX+math.floor(windowWidth/2)
+    local servicebuttonW = fonts.buttonFont:getWidth("Services")+padding
+    local spellbuttonW = fonts.buttonFont:getWidth("Abilities")+padding
+    local biggestButton = math.max(buybuttonW,sellbuttonW,servicebuttonW,spellbuttonW)
+    buybuttonW,sellbuttonW,servicebuttonW,spellbuttonW= biggestButton,biggestButton,biggestButton,biggestButton
+    local totalButtons = (self.store.noBuy and 1 or 2)
+    self.navButtons = {}
+    if count(self.store.offers_services) > 0 then
+      totalButtons = totalButtons+1
+    end
+    if count(self.store.teaches_spells) > 0 then
+      totalButtons = totalButtons+1
+    end
+    local buttonX = windowX+math.floor((windowWidth/2)-(totalButtons/2)*biggestButton)+padding
     if self.screen == "Buy" then setColor(150,150,150,255) end
-    self.buyButton = output:button(startX-math.floor(buybuttonW/2)-padX,printY,buybuttonW+padX,false,((self.cursorX == 1 and self.cursorY == 1) and "hover" or nil),"Buying")
+    self.buyButton = output:button(buttonX-padX,printY,buybuttonW+padX,false,((self.cursorX == 1 and self.cursorY == 1) and "hover" or nil),"Buying")
+    self.navButtons[#self.navButtons+1] = self.buyButton
+    buttonX=buttonX+buybuttonW+padX
     if self.screen == "Buy" then setColor(255,255,255,255) end
-    if self.screen == "Sell" then setColor(150,150,150,255) end
-    self.sellButton = output:button(startX+math.floor(buybuttonW/2)+padX,printY,sellbuttonW,false,((self.cursorX == 2 and self.cursorY == 1) and "hover" or nil),"Selling")
-    if self.screen == "Sell" then setColor(255,255,255,255) end
+    if not self.store.noBuy then
+      if self.screen == "Sell" then setColor(150,150,150,255) end
+      self.sellButton = output:button(buttonX,printY,sellbuttonW,false,((self.cursorX == 2 and self.cursorY == 1) and "hover" or nil),"Selling")
+      self.navButtons[#self.navButtons+1] = self.sellButton
+      buttonX=buttonX+sellbuttonW+padX
+      if self.screen == "Sell" then setColor(255,255,255,255) end
+    end
+    if count(self.store.offers_services) > 0 then
+      if self.screen == "Services" then setColor(150,150,150,255) end
+      self.serviceButton = output:button(buttonX,printY,servicebuttonW,false,((self.cursorX == #self.navButtons+1 and self.cursorY == 1) and "hover" or nil),"Services")
+      self.navButtons[#self.navButtons+1] = self.serviceButton
+      buttonX=buttonX+servicebuttonW+padX
+      if self.screen == "Services" then setColor(255,255,255,255) end
+    end
+    if count(self.store.teaches_spells) > 0 then
+      if self.screen == "Spells" then setColor(150,150,150,255) end
+      self.spellsButton = output:button(buttonX,printY,spellbuttonW,false,((self.cursorX == #self.navButtons+1 and self.cursorY == 1) and "hover" or nil),"Abilities")
+      self.navButtons[#self.navButtons+1] = self.spellsButton
+      buttonX=buttonX+spellbuttonW+padX
+      if self.screen == "Spells" then setColor(255,255,255,255) end
+    end
     printY = printY+padding
   end
   printY=printY+8
@@ -247,6 +277,78 @@ function storescreen:draw()
       printY = printY+fontSize+16
       self.totalCost = self.totalCost + (info.buyAmt*info.cost)
     end
+  elseif self.screen == "Services" then
+    self.serviceButtons = {}
+    local serviceCount = 0
+    local services = self.store.offers_services or {}
+    for i,servID in ipairs(services) do
+      serviceCount = serviceCount+1
+      local service = possibleServices[servID]
+      local costText = service:get_cost(player)
+      local serviceText = service.name .. (costText and " (Cost: " .. costText .. ")" or "") .. "\n" .. service.description
+      local __, wrappedtext = fonts.textFont:getWrap(serviceText, windowWidth)
+      love.graphics.printf(serviceText,windowX,printY,windowWidth,"center")
+      printY=printY+(#wrappedtext)*fontSize
+      
+      local canDo,canDoText = nil,nil
+      if not service.requires then
+        canDo=true
+      else
+        canDo,canDoText = service:requires(player)
+      end
+      if canDo == false then
+        canDoText = "You're not eligible for this service" .. (canDoText and ": " .. canDoText or ".")
+        local __, wrappedtext = fonts.textFont:getWrap(canDoText, windowWidth)
+        love.graphics.printf(canDoText,windowX,printY,windowWidth,"center")
+        printY=printY+(#wrappedtext)*fontSize
+        self.serviceButtons[#self.serviceButtons+1] = false
+      else
+        local serviceW = fonts.textFont:getWidth("Select " .. service.name)+padding
+        self.serviceButtons[#self.serviceButtons+1] = output:button(math.floor(midX-serviceW/2),printY,serviceW,false,(self.cursorY == 1+i and "hover" or nil),"Select " .. service.name)
+        printY=printY+32
+      end
+      printY=printY+fontSize
+    end
+    if serviceCount == 0 then
+      love.graphics.printf("There are currently no services available.",windowX,printY,windowWidth,"center")
+    end
+  elseif self.screen == "Spells" then
+    self.spellButtons = {}
+    local spellCount = 0
+    for i,spellDef in ipairs(self.store.teaches_spells or {}) do
+      if not player:has_spell(spellDef.spell) then
+        spellCount = spellCount + 1
+        local spell = possibleSpells[spellDef.spell]
+        local costText = nil
+        if spellDef.moneyCost then
+          costText = " (Cost: $" .. spellDef.moneyCost .. ")"
+        end
+        local spellText = spell.name .. (costText or "") .. "\n" .. spell.description
+        local __, wrappedtext = fonts.textFont:getWrap(spellText, windowWidth)
+        love.graphics.printf(spellText,windowX,printY,windowWidth,"center")
+        printY=printY+(#wrappedtext)*fontSize
+        if spellDef.moneyCost and player.money < spellDef.moneyCost then
+          love.graphics.printf("You don't have enough money to learn this ability.",windowX,printY,windowWidth,"center")
+          printY=printY+fontSize
+        else
+          local ret,text = player:can_learn_spell(spellDef.spell)
+          if ret == false then
+            love.graphics.printf((text or "You're unable to learn this ability."),windowX,printY,windowWidth,"center")
+            printY=printY+fontSize
+          else
+            local spellW = fonts.textFont:getWidth("Learn " .. spell.name)+padding
+            local button = output:button(math.floor(midX-spellW/2),printY,spellW,false,(self.cursorY == 1+#self.spellButtons+1 and "hover" or nil),"Learn " .. spell.name)
+            button.spellID = spellDef.spell
+            self.spellButtons[#self.spellButtons+1] = button 
+            printY=printY+32
+          end
+        end
+        printY=printY+fontSize
+      end
+    end
+    if spellCount == 0 then
+      love.graphics.printf("There are currently no abilities available to learn.",windowX,printY,windowWidth,"center")
+    end
   end
 
   self.closebutton = output:closebutton(windowX+24,24,nil,true)
@@ -259,13 +361,30 @@ function storescreen:keypressed(key)
   if key == "escape" then
     self:switchBack()
   elseif (key == "return" or key == "wait") then
-    if self.cursorY == 1 and not self.noBuy then --buttons
-      if self.cursorX == 1 then
+    if self.cursorY == 1 then --buttons
+      local whichButton = self.navButtons[self.cursorX]
+      if whichButton == self.buyButton then
         self.screen = "Buy"
-        self.cursorY = 2
-      else
+      elseif whichButton == self.sellButton then
         self.screen = "Sell"
-        self.cursorY = 2
+      elseif whichButton == self.serviceButton then
+        self.screen = "Services"
+      elseif whichButton == self.spellsButton then
+        self.screen = "Spells"
+      end
+    elseif self.screen == "Services" then
+      if self.cursorY > 1 and self.serviceButtons[self.cursorY-1] then
+        local service = possibleServices[self.store.offers_services[self.cursorY-1]]
+        local didIt, useText = service:activate(player)
+        if useText then self.outText = useText end
+      end
+    elseif self.screen == "Spells" then
+      if self.cursorY > 1 and self.spellButtons[self.cursorY-1] then
+        local spellID = self.spellButtons[self.cursorY-1].spellID
+        local spell = possibleSpells[spellID]
+        if self.store:teach_spell(spellID,player) ~= false then
+          self.outText = "You learn " .. spell.name .. "."
+        end
       end
     elseif self.cursorY == 2 then
       if self.screen == "Buy" then
@@ -287,27 +406,46 @@ function storescreen:keypressed(key)
       end
     end --end cursorY tests within return
   elseif key == "west" then
-    if self.cursorY == 1 and not self.noBuy then --looping if on the nav buttons
-      self.cursorX = 1
+    local buttonCount = #self.navButtons
+    if self.cursorY == 1 then --looping if on the nav buttons
+      self.cursorX = self.cursorX-1
+      if self.cursorX < 1 then self.cursorX = buttonCount end
     else
       self.cursorX = math.max(1,self.cursorX-1)
     end
   elseif key == "east" then
-    if self.cursorY == 1 and not self.noBuy then --looping if on the nav buttons
-      self.cursorX = 2
+    local buttonCount = #self.navButtons
+    if self.cursorY == 1 then --looping if on the nav buttons
+      self.cursorX = self.cursorX+1
+      if self.cursorX > buttonCount then self.cursorX = 1 end
     else
       self.cursorX = math.min(self.cursorX+1,4)
     end
   elseif key == "north" then
     if self.cursorY > 1 then
       self.cursorY = self.cursorY - 1
-      self.cursorX = 1
     end --end cursorY check
   elseif key == "south" then
-    local max = (self.screen == "Buy" and #self.selling_list+2 or #self.buying_list+2)
-    if self.cursorY < max then
-      self.cursorY = self.cursorY + 1
-      self.cursorX = 1
+    if self.screen == "Services" then
+      for i=self.cursorY-1,#self.serviceButtons,1 do
+        if self.serviceButtons[i] ~= false then
+          self.cursorY = i+1
+          break
+        end
+      end
+    elseif self.screen == "Spells" then
+      for i=self.cursorY-1,#self.spellButtons,1 do
+        if self.spellButtons[i] then
+          print('button at',i)
+          self.cursorY = i+1
+          break
+        end
+      end --end cursorY for
+    else
+      local max = (self.screen == "Buy" and #self.selling_list+2 or #self.buying_list+2)
+      if self.cursorY < max then
+        self.cursorY = self.cursorY + 1
+      end
     end
   elseif tonumber(typed) and self.cursorX == 3 then
     local id = self.cursorY-2
@@ -337,16 +475,40 @@ function storescreen:mousepressed(x,y,button)
   end
   --Buy/Sell Buttons:
   if self.buyButton and x > self.buyButton.minX and x < self.buyButton.maxX and y > self.buyButton.minY and y < self.buyButton.maxY then
-    self.screen = "Buy"
-    self.cursorY = 2
-  elseif self.sellButton and x > self.sellButton.minX and x < self.sellButton.maxX and y > self.sellButton.minY and y < self.sellButton.maxY then
-    self.screen = "Sell"
-    self.cursorY = 2
-  elseif x > self.actionButton.minX and x < self.actionButton.maxX and y > self.actionButton.minY and y < self.actionButton.maxY then
-    if self.screen == "Buy" then
-      return self:player_buys()
-    else
-      return self:player_sells()
+      self.screen = "Buy"
+      self.cursorY = 2
+    elseif self.sellButton and x > self.sellButton.minX and x < self.sellButton.maxX and y > self.sellButton.minY and y < self.sellButton.maxY then
+      self.screen = "Sell"
+      self.cursorY = 2
+    elseif self.serviceButton and x > self.serviceButton.minX and x < self.serviceButton.maxX and y > self.serviceButton.minY and y < self.serviceButton.maxY then
+    self.screen = "Services"
+    elseif self.spellsButton and x > self.spellsButton.minX and x < self.spellsButton.maxX and y > self.spellsButton.minY and y < self.spellsButton.maxY then
+    self.screen = "Spells"
+  elseif self.screen == "Services" and self.serviceButtons then --Services:
+    for i,button in ipairs(self.serviceButtons) do
+      if button and x > button.minX and x < button.maxX and y > button.minY and y < button.maxY then
+        local service = possibleServices[self.store.offers_services[i]]
+        local didIt, useText = service:activate(player)
+        if didIt and useText then self.outText = useText end
+      end--end button coordinate if
+    end--end button for
+  elseif self.screen == "Spells" and self.spellButtons then
+    for i,button in ipairs(self.spellButtons) do
+      if button and x > button.minX and x < button.maxX and y > button.minY and y < button.maxY then
+        local spellID = self.spellButtons[i].spellID
+        local spell = possibleSpells[spellID]
+        if self.store:teach_spell(spellID,player) ~= false then
+          self.outText = "You learn " .. spell.name .. "."
+        end
+      end --end button coordinate if
+    end --end button for
+  else --Buying/selling screen:
+    if x > self.actionButton.minX and x < self.actionButton.maxX and y > self.actionButton.minY and y < self.actionButton.maxY then
+      if self.screen == "Buy" then
+        return self:player_buys()
+      else
+        return self:player_sells()
+      end
     end
   end
   local list = (self.screen == "Buy" and self.selling_list or self.buying_list)
@@ -385,7 +547,7 @@ function storescreen:update(dt)
       v.buyAmt = v.amount
     end
   end
-  if self.cursorY == 1 and self.noBuy then
+  if self.cursorY == 1 and self.store.noBuy and count(self.store.offers_services) == 0 then
     self.cursorY = 2
   end
 end

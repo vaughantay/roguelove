@@ -2374,9 +2374,18 @@ local store = {
   alwaysDisplay=true,
   color={r=0,g=0,b=255,a=255},
   actions={enter={text="Enter",description="Shop at the store."}},
-  new = function(self,whichStore)
-    if type(whichStore) == "string" then
-      whichStore = currWorld.stores[whichStore]
+  new = function(self,storeID) --If storeID is a number, use the store with that ID number. If it's an actual store def, use that store. If it's a string, use the first instance of a store with that ID
+    local whichStore = nil
+    if type(storeID) == "table" and storeID.baseType == "store" then
+      whichStore = storeID
+    elseif type(storeID) == "string" then
+      for sid,st in pairs(currWorld.stores) do
+        if st.id == storeID then
+          storeID = sid
+          whichStore = currWorld.stores[storeID]
+          break
+        end
+      end
     end
     if not whichStore then
       whichStore = get_random_element(currWorld.stores)
@@ -2394,7 +2403,7 @@ local store = {
     if creature == player then self:action(player) end
   end,
   action = function(self,creature)
-    if creature == player then Gamestate.switch(storescreen,self.store.id) return false end
+    if creature == player then Gamestate.switch(storescreen,self.store) return false end
   end
 }
 possibleFeatures['store'] = store
