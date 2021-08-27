@@ -81,6 +81,7 @@ function Store:restock()
       if info.amount and info.amount ~= -1 then --don't restock infinite-stock items
         local itemID = info.item
         local item = Item(itemID,(info.passed_info or (possibleItems[itemID].acceptTags and tags) or nil),(info.amount or -1))
+        local index = self:get_inventory_index(item)
         local currAmt = self:get_count(item) or 0
         local restock_amt = info.restock_amount or 0
         local restock_to = (info.restock_to or (restock_amt >= 0 and info.amount or 0))
@@ -91,8 +92,9 @@ function Store:restock()
             if self.inventory[index].item.amount <= 0 then
               table.remove(self.inventory,index)
             end
+          else
+            self:add_item(item,info)
           end
-          self:add_item(item,info)
         end --end currAmt < restock to amount
       end --end if amount
     end --end sells_items for
@@ -183,7 +185,7 @@ function Store:get_buy_list(creat)
   return buying
 end
 
----Sell an item to the store TODO: Update this to use add_item
+---Sell an item to the store
 --@param item Item. The item being sold
 --@param cost Number. The amount the store will pay per item.
 --@param amt Number. The amount of the item being sold. Optional, defaults to 1.

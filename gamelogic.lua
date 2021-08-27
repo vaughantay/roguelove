@@ -87,8 +87,7 @@ function initialize_world()
   --Generate Factions:
   local factions = currWorld.factions
   for id,fac in pairs(possibleFactions) do
-    factions[id] = Faction(fac)
-    factions[id].id = id
+    factions[id] = Faction(id)
   end
   --Generate dungeon branches:
   local branches = currWorld.branches
