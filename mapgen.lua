@@ -140,6 +140,10 @@ function mapgen:generate_map(branchID, depth,force)
   build:populate_stores()
   build:populate_factions()
   
+  if whichMap.start_revealed or branch.start_revealed then
+    build:reveal()
+  end
+  
   currGame.seedState = mapRandom:getState()
   random = love.math.random
 	return build

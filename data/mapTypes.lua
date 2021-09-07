@@ -68,6 +68,7 @@ local town = {
   event_chance=100, --Likelihood that a non-faction random event will occur. Overrides the event_chance values in gamesettings and in the branch
   event_cooldown=100, --Turns that must pass between ranodm events. Overrides the event_cooldown values in gamesettings and in the branch
   forbid_faction_events=true, --If true, faction events won't occur on this map
+  start_revealed=true, --If true, reveal the entire map when it's entered (LOS will still apply, so you can't necessarily actively see everything)
 }
 function town.create(map,width,height)
   width,height = map.width,map.height
