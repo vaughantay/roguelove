@@ -1609,8 +1609,9 @@ function game:keypressed(key,scancode,isRepeat)
       self.contextualMenu = ContextualMenu(output.cursorX,output.cursorY)
       setTarget(output.cursorX,output.cursorY)
     end
-   elseif (key == "q" and action=="moving") then --TODO: Take this out, it's a test
-     test_spells()
+  elseif (key == "q" and action=="moving") then --TODO: Take this out, it's a test
+     --test_spells()
+    downtime()
 	elseif key == "charScreen" then
 		Gamestate.switch(characterscreen)
 	elseif key == "save" then
@@ -1674,7 +1675,7 @@ function game:description_box(text,x,y)
     local oldFont = love.graphics.getFont()
     love.graphics.setFont(fonts.descFont)
     local width, tlines = fonts.descFont:getWrap(text,300)
-    local height = #tlines*(prefs['descFontSize']+3)+math.ceil(prefs['fontSize']/2)
+    local height = #tlines*(prefs['descFontSize']+3)+math.ceil(prefs['descFontSize']/2)
     x,y = round(x),round(y)
     if (y+20+height < love.graphics.getHeight()) then
       setColor(255,255,255,185)

@@ -636,6 +636,7 @@ local crossbow = {
   max_charges=1,
   ranged_attack="crossbow",
   ranged_accuracy=5,
+  charge_name="bolts",
   usesAmmo="bolt",
   color={r=150,g=150,b=150,a=255},
   tags={'wooden','ranged'},

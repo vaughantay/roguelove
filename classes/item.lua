@@ -62,7 +62,7 @@ end
 function Item:get_info()
 	local uses = ""
   if self.charges and not self.hide_charges then
-    uses = uses .. (self.charge_name and ucfirst(self.charge_name) or "Charges") .. (self.ammo_name and " (" .. self.ammo_name .. ")" or "") .. ": " .. self.charges
+    uses = uses .. (self.charge_name and ucfirst(self.charge_name) or "Charges") .. (self.ammo_name and " (" .. self.ammo_name .. ")" or "") .. ": " .. self.charges .. (self.max_charges and "/" .. self.max_charges or "")
   end
 	if (self.itemType == "weapon") then
 		if self.damage then uses = uses .. "Melee Damage: " .. self.damage .. (self.damage_type and " (" .. self.damage_type .. ")" or "") end
@@ -72,20 +72,17 @@ function Item:get_info()
   end
   if self.ranged_attack then
     local attack = rangedAttacks[self.ranged_attack]
-    uses = uses .. "\nGrants Ranged Attack: " .. attack:get_name()
-    uses = uses .. "\n" .. attack:get_description()
-    uses = uses .. "\nBase Accuracy: " .. attack.accuracy .. "%"
+    uses = uses .. "\nRanged Attack: " .. attack:get_name() .. " (" .. attack:get_description() .. ")"
+    uses = uses .. "\nRanged Accuracy: " .. attack.accuracy .. "%"
     if attack.min_range or attack.range then uses = uses .. "\nRange: " .. (attack.min_range and attack.min_range .. " (min)" or "") .. (attack.min_range and attack.range and " - " or "") .. (attack.range and attack.range .. " (max)" or "") end
     if attack.best_distance_min or attack.best_distance_max then uses = uses .. "\nBest Range: " .. (attack.best_distance_min and attack.best_distance_min .. " (min)" or "") .. (attack.best_distance_min and attack.best_distance_max and " - " or "") .. (attack.best_distance_max and attack.best_distance_max .. " (max)" or "") end
-    uses = uses .. "\n"
   end
   if self.kills then
     uses = uses .. "\nKillks: " .. self.kills
   end
   if self.projectile_name then
     local projectile = projectiles[self.projectile_name]
-    uses = uses .. "\nProjectile: " .. ucfirst(projectile.name)
-    uses = uses .. "\n" .. projectile.description
+    uses = uses .. "\n\nProjectile: " .. ucfirst(projectile.name) .. " (" .. projectile.description .. ")"
     if projectile.damage then uses = uses .. "\nDamage: " .. projectile.damage .. (projectile.damage_type and " (" .. projectile.damage_type .. ")" or "") end
   end
   if self.info then
@@ -93,7 +90,6 @@ function Item:get_info()
   end
   local enches = self:get_enchantments()
   if count(enches) > 0 then
-    uses = uses .. "\n\nEnchantments:"
     for ench,turns in pairs(enches) do
       local enchantment = enchantments[ench]
       uses = uses .. "\n\n" .. ucfirst(enchantment.name) .. ((enchantment.removal_type and turns ~= -1) and " (" .. turns .. " " .. enchantment.removal_type .. "s remaining)" or "") .. "\n" .. enchantment.description

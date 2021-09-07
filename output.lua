@@ -460,7 +460,7 @@ function output:scrollbar(x,startY,endY,scrollPerc,useScaling)
     local elevatorY = startY+32+round(scrollPerc*(endY-startY-96))
     if mouseX > x and mouseX < x+32 and mouseY > elevatorY and mouseY < elevatorY+32 then love.graphics.draw(images.uiscrollelevatorhighlight,x,elevatorY)
     else love.graphics.draw(images.uiscrollelevator,x,elevatorY) end
-    return {upArrow={startX=x*uiScale,endX=(x+32)*uiScale,startY=startY*uiScale,endY=(startY+32)*uiScale},downArrow={startX=x*uiScale,endX=(x+32)*uiScale,startY=(endY-32)*uiScale,endY=endY*uiScale},elevator={startX=x*uiScale,endX=(x+32)*uiScale,startY=elevatorY*uiScale,endY=(elevatorY+32)*uiScale}} -- return positions, for clicking
+    return {upArrow={startX=x,endX=(x+32),startY=startY,endY=(startY+32)},downArrow={startX=x,endX=(x+32),startY=(endY-32),endY=endY},elevator={startX=x,endX=(x+32),startY=elevatorY,endY=(elevatorY+32)}} -- return positions, for clicking
   else --ASCII scroll
     setColor(200,200,200,255)
     for y = startY+14,endY-14,28 do
@@ -475,7 +475,7 @@ function output:scrollbar(x,startY,endY,scrollPerc,useScaling)
     love.graphics.print("#",x+6,elevatorY-7)
     love.graphics.print("#",x+6,elevatorY+7)
     setColor(255,255,255,255)
-    return {upArrow={startX=x*uiScale,endX=(x+21)*uiScale,startY=startY*uiScale,endY=(startY+21)*uiScale},downArrow={startX=x*uiScale,endX=(x+21)*uiScale,startY=endY*uiScale,endY=(endY+21)*uiScale},elevator={startX=x*uiScale,endX=(x+21)*uiScale,startY=(elevatorY-7)*uiScale,endY=(elevatorY+21)*uiScale}}
+    return {upArrow={startX=x,endX=(x+21),startY=startY,endY=(startY+21)},downArrow={startX=x,endX=(x+21),startY=endY,endY=(endY+21)},elevator={startX=x,endX=(x+21),startY=(elevatorY-7),endY=(elevatorY+21)}}
   end
 end
 
@@ -499,7 +499,7 @@ function output:button(x,y,width,small,special,text,useScaling)
   if prefs['noImages'] ~= true then
     local buttonname = (small and "smallbutton" or "button")
     local image = (special and images[buttonname][special] or images[buttonname].image)
-    if mouseX > x and mouseX < x+math.max(width,64) and mouseY>y and mouseY<y+(small and 16 or 32) then
+    if mouseX > x and mouseX < x+math.max(width,64) and mouseY>y and mouseY<y+(small and 16 or 32) and special ~= false then
       if not special then image = images[buttonname].hover end
       hover = true
     end
@@ -518,7 +518,7 @@ function output:button(x,y,width,small,special,text,useScaling)
       love.graphics.printf(text,math.floor(x),math.floor(y-3),width,"center")
       love.graphics.setFont(fonts.textFont)
     end
-    return {minX=x*uiScale,maxX=(x+math.max(width,64))*uiScale,minY=y*uiScale,maxY=(y+(small and 16 or 32))*uiScale,hover=hover}
+    return {minX=x,maxX=(x+math.max(width,64)),minY=y,maxY=(y+(small and 16 or 32)),hover=hover}
   else --imageless buttons
     if (mouseX > x and mouseX < x+math.max(width,64) and mouseY>y and mouseY<y+(small and 16 or 32)) or special == "hover" then
       hover = true
@@ -536,7 +536,7 @@ function output:button(x,y,width,small,special,text,useScaling)
       love.graphics.printf(text,math.floor(x),math.floor(y+4),width,"center")
       love.graphics.setFont(fonts.textFont)
     end
-    return {minX=x*uiScale,maxX=(x+math.max(width,64))*uiScale,minY=y*uiScale,maxY=(y+(small and 16 or 32))*uiScale,hover=hover}
+    return {minX=x,maxX=(x+math.max(width,64)),minY=y,maxY=(y+(small and 16 or 32)),hover=hover}
   end
 end
 
@@ -583,7 +583,7 @@ function output:largebutton(x,y,width,special)
     love.graphics.rectangle('fill',x,y,math.max(width,128),64)
     setColor(255,255,255,255)
     love.graphics.rectangle('line',x,y,math.max(width,128),64)
-    return {minX=x*uiScale,maxX=x+(math.max(width,128))*uiScale,minY=y*uiScale,maxY=(y+64)*uiScale,hover=hover}
+    return {minX=x,maxX=x+(math.max(width,128)),minY=y,maxY=(y+64),hover=hover}
   end
 end
 
@@ -624,7 +624,7 @@ function output:closebutton(x,y,hover,useScaling,imageBase)
     setColor(255,255,255,255)
     love.graphics.rectangle('line',x,y,fontSize+2,fontSize+2)
     love.graphics.printf("X",x,y,fontSize,"center")
-    return {minX=x*uiScale,maxX=(x+fontSize+2)*uiScale,minY=y*uiScale,maxY=(y+fontSize+2)*uiScale,hover=hover}
+    return {minX=x,maxX=(x+fontSize+2),minY=y,maxY=(y+fontSize+2),hover=hover}
   end
 end
 
@@ -646,7 +646,7 @@ function output:tinybutton(x,y,small,hover,text,useScaling)
   if prefs['noImages'] ~= true then
     local buttonname = (small and "smallbutton" or "button")
     local image = images[buttonname].image
-    if hover or (mouseX > x and mouseX < x+32 and mouseY>y and mouseY<y+(small and 16 or 32)) then
+    if hover or (mouseX > x and mouseX < x+32 and mouseY>y and mouseY<y+(small and 16 or 32) and hover ~= false) then
       image = images[buttonname].hover
       hover = true
     end
@@ -656,9 +656,9 @@ function output:tinybutton(x,y,small,hover,text,useScaling)
       love.graphics.printf(text,math.floor(x),math.floor(y-3),32,"center")
       love.graphics.setFont(fonts.textFont)
     end
-    return {minX=x*uiScale,maxX=(x+32)*uiScale,minY=y*uiScale,maxY=(y+(small and 16 or 32))*uiScale,hover=hover}
+    return {minX=x,maxX=(x+32),minY=y,maxY=(y+(small and 16 or 32)),hover=hover}
   else --imageless buttons
-    if hover or (mouseX > x and mouseX < x+(small and 16 or 32) and mouseY>y and mouseY<y+(small and 16 or 32)) then
+    if hover or (mouseX > x and mouseX < x+(small and 16 or 32) and mouseY>y and mouseY<y+(small and 16 or 32) and hover ~= false) then
       hover = true
     end
     if hover then
@@ -674,7 +674,7 @@ function output:tinybutton(x,y,small,hover,text,useScaling)
       love.graphics.printf(text,math.floor(x),math.floor(y+4),(small and 16 or 32),"center")
       love.graphics.setFont(fonts.textFont)
     end
-    return {minX=x*uiScale,maxX=(x+(small and 16 or 32))*uiScale,minY=y*uiScale,maxY=(y+(small and 16 or 32))*uiScale,hover=hover}
+    return {minX=x,maxX=(x+(small and 16 or 32)),minY=y,maxY=(y+(small and 16 or 32)),hover=hover}
   end
 end
 
