@@ -66,7 +66,7 @@ function storescreen:draw()
     printY=printY+#wrappedtext*fontSize
   end
   
-  if not self.store.noBuy or count(self.store.offers_services) > 0 then
+  if not self.store.noBuy or count(self.store.offers_services) or count(self.store.teaches_spells) > 0 then
     printY=printY+fontSize
     local padX = 8
     local buybuttonW = fonts.buttonFont:getWidth("Buying")+padding
@@ -83,7 +83,7 @@ function storescreen:draw()
     if count(self.store.teaches_spells) > 0 then
       totalButtons = totalButtons+1
     end
-    local buttonX = windowX+math.floor((windowWidth/2)-(totalButtons/2)*biggestButton)+padding
+    local buttonX = windowX+math.floor(windowWidth/2-padding-(totalButtons/2)*biggestButton)+padding
     if self.screen == "Buy" then setColor(150,150,150,255) end
     self.buyButton = output:button(buttonX-padX,printY,buybuttonW+padX,false,((self.cursorX == 1 and self.cursorY == 1) and "hover" or nil),"Buying",true)
     self.navButtons[#self.navButtons+1] = self.buyButton
@@ -113,7 +113,7 @@ function storescreen:draw()
     printY = printY+padding
   end
   printY=printY+8
-  love.graphics.line(printX,printY,printX+windowWidth,printY)
+  love.graphics.line(printX,printY,printX+windowWidth-padding,printY)
   printY=printY+8
   
   --Draw the screens:
@@ -464,7 +464,7 @@ function storescreen:draw()
             love.graphics.printf((text or "You're unable to learn this ability."),windowX,printY,windowWidth,"center")
             printY=printY+fontSize
           else
-            local spellW = fonts.textFont:getWidth("Learn " .. spell.name)+padding
+            local spellW = fonts.buttonFont:getWidth("Learn " .. spell.name)+padding
             local buttonX = math.floor(midX/uiScale-spellW/2)
             local buttonHi = false
             if mouseX > buttonX and mouseX < buttonX+spellW and mouseY > printY-self.scrollY and mouseY < printY+32-self.scrollY then
