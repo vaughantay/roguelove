@@ -8,7 +8,7 @@ local killtownies = {
 function killtownies:start()
   local godname = currWorld.factions['barbariangod'].name
   output:out(godname .. " roars in approval.")
-  return godname .. "roars in approval."
+  return godname .. " roars in approval."
 end
 function killtownies:kills(killer,victim)
   if killer == player and victim.id == "townsperson" then
@@ -47,6 +47,9 @@ local killdemons = {
   description = "Prove you have what it takes to be a demonslayer. Kill 5 demons.",
   finished_description = "You have proven your worth as a demonslayer, but many unholy beasts still infest this world.",
 }
+function killdemons:start()
+  return "You pledge to kill 5 demons."
+end
 function killdemons:kills(killer,victim)
   if killer == player and victim:is_type('demon') then
     local demons = update_mission_status('killdemons',1)

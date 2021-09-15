@@ -3,9 +3,8 @@ possibleServices = {}
 local healing = Service({
   name = "Healing",
   description = "Heal all your damage.",
-  cost = "$100",
 })
-function healing:get_cost()
+function healing:get_cost_text()
   local amt = (player:get_mhp() - player.hp)
   return "$1 per HP" .. (amt > 0 and ", " .. amt .. " Total" or "")
 end
@@ -26,9 +25,8 @@ possibleServices['healing'] = healing
 local healing_church = Service({
   name = "Healing",
   description = "Heal all your damage.",
-  cost = "10 Favor",
 })
-function healing_church:get_cost()
+function healing_church:get_cost_text()
   local amt = (player:get_mhp() - player.hp)
   return "1 favor per HP" .. (amt > 0 and ", " .. amt .. " Total" or "")
 end
@@ -52,17 +50,18 @@ possibleServices['healing_church'] = healing_church
 local blessing = Service({
   name = "Blessing",
   description = "Receive a blessing.",
-  cost = "10 Favor",
 })
-function blessing:requires()
-  if not player:is_faction_member('lightchurch') then
-    return false,"This service is only available to Church members."
-  else
-    return true
-  end
-end
 function blessing:use(user)
   user:give_condition('blessed',5)
   return true,"You feel #blessed."
 end
 possibleServices['blessing'] = blessing
+
+local exorcism = Service({
+  name = "Exorcism",
+  description = "Receive an exorcism.",
+})
+function exorcism:use(user)
+  return true,"There are no more demons in you."
+end
+possibleServices['exorcism'] = exorcism

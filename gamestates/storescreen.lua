@@ -47,9 +47,9 @@ function storescreen:draw()
   love.graphics.translate(0,height*(self.yModPerc/100))
   local padding = (prefs['noImages'] and 16 or 32)
   local fontSize = prefs['fontSize']+2
-  local windowX = math.floor(width/4/uiScale)
-  local windowWidth = math.floor(width/2/uiScale)
-  local midX = math.floor(width/2)
+  local windowWidth = math.floor((width*.75)/uiScale)
+  local midX = math.floor(width/2/uiScale)
+  local windowX = math.floor(midX-windowWidth/2)
   output:draw_window(windowX,1,windowX+windowWidth,math.floor(height/uiScale-padding))
   local printX = windowX+fontSize
   --Basic header display:
@@ -239,8 +239,6 @@ function storescreen:draw()
     --Scrollbars
     if lastY*uiScale > height-padding then
       self.scrollMax = math.ceil((lastY-(listStartY+(height/uiScale-listStartY))+padding))
-      love.graphics.print(self.scrollMax)
-      love.graphics.print(lastY*uiScale,20,20)
       local scrollAmt = self.scrollY/self.scrollMax
       self.scrollPositions = output:scrollbar(windowX+windowWidth,listStartY,math.floor((height-padding)/uiScale),scrollAmt,true)
     else
@@ -356,8 +354,6 @@ function storescreen:draw()
     --Scrollbars
     if lastY*uiScale > height-padding then
       self.scrollMax = math.ceil((lastY-(listStartY+(height/uiScale-listStartY))+padding))
-      love.graphics.print(self.scrollMax)
-      love.graphics.print(lastY*uiScale,20,20)
       local scrollAmt = self.scrollY/self.scrollMax
       self.scrollPositions = output:scrollbar(windowX+windowWidth,listStartY,math.floor((height-padding)/uiScale),scrollAmt,true)
     else
@@ -379,17 +375,21 @@ function storescreen:draw()
     love.graphics.stencil(stencilFunc,"replace",1)
     love.graphics.setStencilTest("greater",0)
     love.graphics.translate(0,-self.scrollY)
-    for i,servID in ipairs(services) do
+    for i,servData in ipairs(services) do
       serviceCount = serviceCount+1
+      local servID = servData.service
       local service = possibleServices[servID]
-      local costText = service:get_cost(player)
+      local costText = service:get_cost_text(player) or servData.costText or service.costText or (servData.cost and "$" .. servData.cost or nil)
       local serviceText = service.name .. (costText and " (Cost: " .. costText .. ")" or "") .. "\n" .. service.description
       local __, wrappedtext = fonts.textFont:getWrap(serviceText, windowWidth)
       love.graphics.printf(serviceText,windowX,printY,windowWidth,"center")
       printY=printY+(#wrappedtext)*fontSize
       
       local canDo,canDoText = nil,nil
-      if not service.requires then
+      if servData.cost and player.money < servData.cost then
+        canDoText = "You don't have enough money."
+        canDo = false
+      elseif not service.requires then
         canDo=true
       else
         canDo,canDoText = service:requires(player)
@@ -402,7 +402,7 @@ function storescreen:draw()
         self.serviceButtons[#self.serviceButtons+1] = false
       else
         local serviceW = fonts.textFont:getWidth("Select " .. service.name)+padding
-        local buttonX = math.floor(midX/uiScale-serviceW/2)
+        local buttonX = math.floor(midX-serviceW/2)
         local buttonHi = false
         if mouseX > buttonX and mouseX < buttonX+serviceW and mouseY > printY-self.scrollY and mouseY < printY+32-self.scrollY then
           buttonHi = true
@@ -421,8 +421,6 @@ function storescreen:draw()
     --Scrollbars
     if lastY*uiScale > height-padding then
       self.scrollMax = math.ceil((lastY-(listStartY+(height/uiScale-listStartY))+padding))
-      love.graphics.print(self.scrollMax)
-      love.graphics.print(lastY*uiScale,20,20)
       local scrollAmt = self.scrollY/self.scrollMax
       self.scrollPositions = output:scrollbar(windowX+windowWidth,listStartY,math.floor((height-padding)/uiScale),scrollAmt,true)
     else
@@ -448,14 +446,14 @@ function storescreen:draw()
         spellCount = spellCount + 1
         local spell = possibleSpells[spellDef.spell]
         local costText = nil
-        if spellDef.moneyCost then
-          costText = " (Cost: $" .. spellDef.moneyCost .. ")"
+        if spellDef.cost then
+          costText = " (Cost: $" .. spellDef.cost .. ")"
         end
         local spellText = spell.name .. (costText or "") .. "\n" .. spell.description
         local __, wrappedtext = fonts.textFont:getWrap(spellText, windowWidth)
         love.graphics.printf(spellText,windowX,printY,windowWidth,"center")
         printY=printY+(#wrappedtext)*fontSize
-        if spellDef.moneyCost and player.money < spellDef.moneyCost then
+        if spellDef.cost and player.money < spellDef.cost then
           love.graphics.printf("You don't have enough money to learn this ability.",windowX,printY,windowWidth,"center")
           printY=printY+fontSize
         else
@@ -465,7 +463,7 @@ function storescreen:draw()
             printY=printY+fontSize
           else
             local spellW = fonts.buttonFont:getWidth("Learn " .. spell.name)+padding
-            local buttonX = math.floor(midX/uiScale-spellW/2)
+            local buttonX = math.floor(midX-spellW/2)
             local buttonHi = false
             if mouseX > buttonX and mouseX < buttonX+spellW and mouseY > printY-self.scrollY and mouseY < printY+32-self.scrollY then
               buttonHi = true
@@ -488,8 +486,6 @@ function storescreen:draw()
     --Scrollbars
     if lastY*uiScale > height-padding then
       self.scrollMax = math.ceil((lastY-(listStartY+(height/uiScale-listStartY))+padding))
-      love.graphics.print(self.scrollMax)
-      love.graphics.print(lastY*uiScale,20,20)
       local scrollAmt = self.scrollY/self.scrollMax
       self.scrollPositions = output:scrollbar(windowX+windowWidth,listStartY,math.floor((height-padding)/uiScale),scrollAmt,true)
     else
@@ -526,9 +522,14 @@ function storescreen:keypressed(key)
       end
     elseif self.screen == "Services" then
       if self.cursorY > 1 and self.serviceButtons[self.cursorY-1] then
-        local service = possibleServices[self.store.offers_services[self.cursorY-1]]
+        local serviceData = self.store.offers_services[self.cursorY-1]
+        local service = possibleServices[serviceData.service]
         local didIt, useText = service:activate(player)
         if useText then self.outText = useText end
+        if serviceData.cost then
+          player.money = player.money - serviceData.cost
+          self.outText = (self.outText .. "\n" or "") .. "You lose $" .. serviceData.cost .. "."
+        end
       end
     elseif self.screen == "Spells" then
       if self.cursorY > 1 and self.spellButtons[self.cursorY-1] then
@@ -668,9 +669,14 @@ function storescreen:mousepressed(x,y,button)
   elseif self.screen == "Services" and self.serviceButtons then --Services:
     for i,button in ipairs(self.serviceButtons) do
       if button and x > button.minX and x < button.maxX and y > button.minY-self.scrollY and y < button.maxY-self.scrollY then
-        local service = possibleServices[self.store.offers_services[i]]
+        local serviceData = self.store.offers_services[i]
+        local service = possibleServices[serviceData.service]
         local didIt, useText = service:activate(player)
         if didIt and useText then self.outText = useText end
+        if serviceData.cost then
+          player.money = player.money - serviceData.cost
+          self.outText = (self.outText .. "\n" or "") .. "You lose $" .. serviceData.cost .. "."
+        end
       end--end button coordinate if
     end--end button for
   elseif self.screen == "Spells" and self.spellButtons then

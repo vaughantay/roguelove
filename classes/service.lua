@@ -27,8 +27,8 @@ end
 
 ---Gets the cost text of the service.
 --@return String. The service's cost text.
-function Service:get_cost()
-  return self.cost
+function Service:get_cost_text()
+  return self.cost_text
 end
 
 --Placeholder for the requires() callback, used to determine if the creature meets the requirements for using the serviec

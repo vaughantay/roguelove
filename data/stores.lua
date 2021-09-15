@@ -8,7 +8,7 @@ local healthstore = {
   noBuy = false, --If the store buys things or not
   buys_items = {healthpotionminor=5,scroll=1},
   buys_tags = {"magic","healing"}, --Tags for non-predefined items that will be bought by the shop
-  offers_services = {"healing"}, --Services that this store offers
+  offers_services = {{service="healing"}}, --Services that this store offers
   teaches_spells = {{spell="heal_other",cost = 100}}, --spells that this store teaches
   tags={"organized"}, --Tags to be used to determine if a store can spawn in a map
   currency_item = nil, --The item to use as currency, instead of money

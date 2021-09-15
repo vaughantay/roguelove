@@ -48,9 +48,9 @@ function factionscreen:draw()
   love.graphics.translate(0,height*(self.yModPerc/100))
   local padding = (prefs['noImages'] and 16 or 32)
   local fontSize = prefs['fontSize']+2
-  local windowWidth = math.floor(width*.75/uiScale)
-  local midX = math.floor(width/2)
-  local windowX = math.floor(midX-windowWidth/2/uiScale)
+  local windowWidth = math.floor((width*.75)/uiScale)
+  local midX = math.floor(width/2/uiScale)
+  local windowX = math.floor(midX-windowWidth/2)
   output:draw_window(windowX,1,windowX+windowWidth,math.floor(height/uiScale-padding))
   local printX = windowX+fontSize
   --Basic header display:
@@ -101,7 +101,7 @@ function factionscreen:draw()
   end
   
   if self.outText then
-    printY=printY+fontSize*2
+    printY=printY+fontSize
     local _, wrappedtext = fonts.textFont:getWrap(self.outText, windowWidth)
     love.graphics.printf(self.outText,printX,printY,windowWidth,"center")
     printY=printY+#wrappedtext*fontSize
@@ -228,8 +228,6 @@ function factionscreen:draw()
     love.graphics.pop()
     if lastY*uiScale > height-padding then
       self.scrollMax = math.ceil((lastY-(listStartY+(height/uiScale-listStartY))+padding))
-      love.graphics.print(self.scrollMax)
-      love.graphics.print(lastY*uiScale,20,20)
       local scrollAmt = self.scrollY/self.scrollMax
       self.scrollPositions = output:scrollbar(windowX+windowWidth,listStartY,math.floor((height-padding)/uiScale),scrollAmt,true)
     else
@@ -251,6 +249,7 @@ function factionscreen:draw()
       printY=printY+8
     end
     local mouseX,mouseY = love.mouse.getPosition()
+    mouseX,mouseY = mouseX/uiScale,mouseY/uiScale
     if self.subScreen == "Buy" then
       local buybuttonW = fonts.textFont:getWidth("Buy")+padding
       local nameX = windowX+padding
@@ -367,8 +366,6 @@ function factionscreen:draw()
       --Scrollbars
       if lastY*uiScale > height-padding then
         self.scrollMax = math.ceil((lastY-(listStartY+(height/uiScale-listStartY))+padding))
-        love.graphics.print(self.scrollMax)
-        love.graphics.print(lastY*uiScale,20,20)
         local scrollAmt = self.scrollY/self.scrollMax
         self.scrollPositions = output:scrollbar(windowX+windowWidth,listStartY,math.floor((height-padding)/uiScale),scrollAmt,true)
       else
@@ -477,8 +474,6 @@ function factionscreen:draw()
       --Scrollbars
       if lastY*uiScale > height-padding then
         self.scrollMax = math.ceil((lastY-(listStartY+(height/uiScale-listStartY))+padding))
-        love.graphics.print(self.scrollMax)
-        love.graphics.print(lastY*uiScale,20,20)
         local scrollAmt = self.scrollY/self.scrollMax
         self.scrollPositions = output:scrollbar(windowX+windowWidth,listStartY,math.floor((height-padding)/uiScale),scrollAmt,true)
       else
@@ -549,7 +544,7 @@ function factionscreen:draw()
         
         if canLearn then
           local spellW = fonts.buttonFont:getWidth("Learn " .. spell.name)+padding
-          local buttonX = math.floor(midX/uiScale-spellW/2+padding/2)
+          local buttonX = math.floor(midX-spellW/2+padding/2)
           local buttonHi = false
           if mouseX > buttonX and mouseX < buttonX+spellW and mouseY > printY-self.scrollY and mouseY < printY+32-self.scrollY then
             buttonHi = true
@@ -571,8 +566,6 @@ function factionscreen:draw()
     --Scrollbars
     if lastY*uiScale > height-padding then
       self.scrollMax = math.ceil((lastY-(listStartY+(height/uiScale-listStartY))+padding))
-      love.graphics.print(self.scrollMax)
-      love.graphics.print(lastY*uiScale,20,20)
       local scrollAmt = self.scrollY/self.scrollMax
       self.scrollPositions = output:scrollbar(windowX+windowWidth,listStartY,math.floor((height-padding)/uiScale),scrollAmt,true)
     else
@@ -597,30 +590,51 @@ function factionscreen:draw()
     love.graphics.stencil(stencilFunc,"replace",1)
     love.graphics.setStencilTest("greater",0)
     love.graphics.translate(0,-self.scrollY)
-    for i,servID in ipairs(services) do
+    for i,servData in ipairs(services) do
+      local servID = servData.service
       serviceCount = serviceCount+1
       local service = possibleServices[servID]
-      local costText = service:get_cost(player)
+      local costText = service:get_cost_text(player) or servData.costText or service.costText
+      if costText == nil then
+        local moneyText = (servData.moneyCost and "$" .. servData.moneyCost or nil)
+        local favorText = (servData.favorCost and servData.favorCost.. " Favor" or nil)
+        if moneyText then
+          costText = moneyText .. (favorText and ", " .. favorText)
+        else
+          costText = favorText
+        end
+      end
       local serviceText = service.name .. (costText and " (Cost: " .. costText .. ")" or "") .. "\n" .. service.description
       local __, wrappedtext = fonts.textFont:getWrap(serviceText, windowWidth)
       love.graphics.printf(serviceText,printX,printY,maxX,"center")
       printY=math.ceil(printY+(#wrappedtext+0.5)*fontSize)
       
       local canDo,canDoText = nil,nil
-      if not service.requires then
+      if servData.membersOnly and not self.playerMember then
+        canDoText = "This service is only provided to members."
+        canDo = false
+      elseif servData.favorCost and favor < servData.favorCost then
+        canDoText = "You don't have enough favor."
+        canDo = false
+      elseif servData.moneyCost and player.money < servData.moneyCost then
+        canDoText = "You don't have enough money."
+        canDo = false
+      elseif not service.requires then
         canDo=true
       else
         canDo,canDoText = service:requires(player)
+        if canDo == false then
+          canDoText = "You're not eligible for this service" .. (canDoText and ": " .. canDoText or ".")
+        end
       end
       if canDo == false then
-        canDoText = "You're not eligible for this service" .. (canDoText and ": " .. canDoText or ".")
         local __, wrappedtext = fonts.textFont:getWrap(canDoText, windowWidth)
         love.graphics.printf(canDoText,printX,printY,maxX,"center")
         printY=printY+(#wrappedtext+1)*fontSize
         self.serviceButtons[#self.serviceButtons+1] = false
       else
         local serviceW = fonts.buttonFont:getWidth("Select " .. service.name)+padding
-        local buttonX = math.floor(midX/uiScale-serviceW/2+padding/2)
+        local buttonX = math.floor(midX-serviceW/2+padding/2)
         local buttonHi = false
         if mouseX > buttonX and mouseX < buttonX+serviceW and mouseY > printY-self.scrollY and mouseY < printY+32-self.scrollY then
           buttonHi = true
@@ -640,8 +654,6 @@ function factionscreen:draw()
     --Scrollbars
     if lastY*uiScale > height-padding then
       self.scrollMax = math.ceil((lastY-(listStartY+(height/uiScale-listStartY))+padding))
-      love.graphics.print(self.scrollMax)
-      love.graphics.print(lastY*uiScale,20,20)
       local scrollAmt = self.scrollY/self.scrollMax
       self.scrollPositions = output:scrollbar(windowX+windowWidth,listStartY,math.floor((height-padding)/uiScale),scrollAmt,true)
     else
@@ -662,7 +674,8 @@ function factionscreen:draw()
     love.graphics.stencil(stencilFunc,"replace",1)
     love.graphics.setStencilTest("greater",0)
     love.graphics.translate(0,-self.scrollY)
-    for i, missionID in ipairs(missions) do
+    for i, mData in ipairs(missions) do
+      local missionID = mData.mission
       local active = currGame.missionStatus[missionID]
       if not currGame.finishedMissions[missionID] and possibleMissions[missionID] then
         missionCount = missionCount+1
@@ -671,7 +684,12 @@ function factionscreen:draw()
         local __, wrappedtext = fonts.textFont:getWrap(missionText, windowWidth)
         love.graphics.printf(missionText,windowX,printY,windowWidth,"center")
         printY=math.ceil(printY+(#wrappedtext+0.5)*fontSize)
-        if active then
+        if mData.membersOnly and not self.playerMember then
+          local __, wrappedtext = fonts.textFont:getWrap("This mission is only offered to members.", windowWidth)
+            love.graphics.printf("This mission is only offered to members.",windowX,printY,windowWidth,"center")
+            printY=printY+(#wrappedtext+1)*fontSize
+            self.missionButtons[#self.missionButtons+1] = false
+        elseif active then
           local canFinish,canFinishText = nil,nil
           if mission.can_finish then
             canFinish,canFinishText = mission:can_finish(player)
@@ -684,7 +702,7 @@ function factionscreen:draw()
             self.missionButtons[#self.missionButtons+1] = false
           else
             local serviceW = fonts.textFont:getWidth("Finish")+padding
-            local buttonX = math.floor(midX/uiScale-serviceW/2)
+            local buttonX = math.floor(midX-serviceW/2)
             local buttonHi = false
             if mouseX > buttonX and mouseX < buttonX+serviceW and mouseY > printY-self.scrollY and mouseY < printY+32-self.scrollY then
               buttonHi = true
@@ -703,7 +721,7 @@ function factionscreen:draw()
             self.missionButtons[#self.missionButtons+1] = false
           else
             local serviceW = fonts.textFont:getWidth("Accept")+padding
-            local buttonX = math.floor(midX/uiScale-serviceW/2)
+            local buttonX = math.floor(midX-serviceW/2)
             local buttonHi = false
             if mouseX > buttonX and mouseX < buttonX+serviceW and mouseY > printY-self.scrollY and mouseY < printY+32-self.scrollY then
               buttonHi = true
@@ -724,8 +742,6 @@ function factionscreen:draw()
     --Scrollbars
     if lastY*uiScale > height-padding then
       self.scrollMax = math.ceil((lastY-(listStartY+(height/uiScale-listStartY))+padding))
-      love.graphics.print(self.scrollMax)
-      love.graphics.print(lastY*uiScale,20,20)
       local scrollAmt = self.scrollY/self.scrollMax
       self.scrollPositions = output:scrollbar(windowX+windowWidth,listStartY,math.floor((height-padding)/uiScale),scrollAmt,true)
     else
@@ -756,13 +772,22 @@ function factionscreen:keypressed(key)
     else --activating something on the screen itself
       if self.screen == "Services" then
         if self.cursorY > 2 and self.serviceButtons[self.cursorY-2] then
-          local service = possibleServices[self.faction.offers_services[self.cursorY-2]]
+          local serviceData = self.faction.offers_services[self.cursorY-2]
+          local service = possibleServices[serviceData.service]
           local didIt, useText = service:activate(player)
           if useText then self.outText = useText end
+          if serviceData.moneyCost then
+            player.money = player.money - serviceData.moneyCost
+            self.outText = (self.outText .. "\n" or "") .. "You lose $" .. serviceData.moneyCost .. "."
+          end
+          if serviceData.favorCost then
+            player.favor[self.faction.id] = player.favor[self.faction.id] - serviceData.favorCost
+            self.outText = (self.outText .. "\n" or "") .. "You lose " .. serviceData.favorCost .. " Favor."
+          end
         end
       elseif self.screen == "Missions" then
         if self.cursorY > 2 and self.missionButtons[self.cursorY-2] then
-          local missionID = self.faction.offers_missions[self.cursorY-2]
+          local missionID = self.faction.offers_missions[self.cursorY-2].mission
           if currGame.missionStatus[missionID] then
             local mission = possibleMissions[missionID]
             if mission.can_finish and mission:can_finish(player) then
@@ -947,15 +972,18 @@ function factionscreen:mousepressed(x,y,button)
     local list = (self.subScreen == "Buy" and self.selling_list or self.buying_list)
     --Item List Buttons:
     for id,listItem in ipairs(list) do
-      if listItem.minX and x > listItem.minX and x < listItem.maxX and y > listItem.minY and y < listItem.maxY then
+      if listItem.minY and y > listItem.minY-self.scrollY and y < listItem.maxY-self.scrollY then
+        self.cursorY = id+2
+        self.cursorX = 1
         local minus,plus,action,numberEntry = listItem.minusButton,listItem.plusButton,listItem.actionButton,listItem.numberEntry
-        if x > minus.minX and x < minus.maxX and y > minus.minY and y < minus.maxY then
+        if x > minus.minX and x < minus.maxX and y > minus.minY-self.scrollY and y < minus.maxY-self.scrollY then
           listItem.buyAmt = math.max(listItem.buyAmt-1,0)
-        elseif x > plus.minX and x < plus.maxX and y > plus.minY and y < plus.maxY then
+          self.cursorX = 2
+        elseif x > plus.minX and x < plus.maxX and y > plus.minY-self.scrollY and y < plus.maxY-self.scrollY then
           listItem.buyAmt = (listItem.amount ~= -1 and math.min(listItem.buyAmt+1,listItem.amount) or listItem.buyAmt+1)
-        elseif x > numberEntry.minX and x < numberEntry.maxX and y > numberEntry.minY and y < numberEntry.maxY then
+          self.cursorX = 4
+        elseif x > numberEntry.minX and x < numberEntry.maxX and y > numberEntry.minY-self.scrollY and y < numberEntry.maxY-self.scrollY then
           self.cursorX = 3
-          self.cursorY = id+2
         end
         break --no reason to continue looking at other list items if we've already seen one
       end --end x/y check
@@ -966,9 +994,18 @@ function factionscreen:mousepressed(x,y,button)
   if self.screen == "Services" and self.serviceButtons then
     for i,button in ipairs(self.serviceButtons) do
       if button and x > button.minX and x < button.maxX and y > button.minY-self.scrollY and y < button.maxY-self.scrollY then
-        local service = possibleServices[self.faction.offers_services[i]]
+        local serviceData = self.faction.offers_services[i]
+        local service = possibleServices[serviceData.service]
         local didIt, useText = service:activate(player)
         if didIt and useText then self.outText = useText end
+        if serviceData.moneyCost then
+          player.money = player.money - serviceData.moneyCost
+          self.outText = (self.outText .. "\n" or "") .. "You lose $" .. serviceData.moneyCost .. "."
+        end
+        if serviceData.favorCost then
+          player.favor[self.faction.id] = player.favor[self.faction.id] - serviceData.favorCost
+          self.outText = (self.outText .. "\n" or "") .. "You lose " .. serviceData.favorCost .. " Favor."
+        end
       end--end button coordinate if
     end--end button for
   elseif self.screen == "Spells" then
@@ -984,7 +1021,7 @@ function factionscreen:mousepressed(x,y,button)
   elseif self.screen == "Missions" then
     for i,button in ipairs(self.missionButtons) do
       if button and x > button.minX and x < button.maxX and y > button.minY-self.scrollY and y < button.maxY-self.scrollY then
-        local missionID = self.faction.offers_missions[i]
+        local missionID = self.faction.offers_missions[i].mission
         if currGame.missionStatus[missionID] then
           local mission = possibleMissions[missionID]
           if mission.can_finish and mission:can_finish(player) then
