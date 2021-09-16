@@ -1,8 +1,10 @@
 gamesettings = {
   name = "Roguelove Example Game",
   id="rogueloveexample",
-  author = "Weirdfellows LLC",
-  version = "1",
+  author = "Weirdfellows",
+  version_text = "In Development Version",
+  copyright_text="Copyright 2019-2021 Weirdfellows",
+  url="http://weirdfellows.com",
   default_starting_branch="town",
   bosses=true,
   inventory=true,

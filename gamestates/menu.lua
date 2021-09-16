@@ -6,20 +6,22 @@ function menu:enter()
 end
 
 function menu:draw()
-  local width, height = love.graphics:getWidth(),love.graphics:getHeight()
+  local uiScale = (prefs['uiScale'] or 1)
+  love.graphics.push()
+  love.graphics.scale(uiScale,uiScale)
+  local width, height = round(love.graphics:getWidth()/uiScale),round(love.graphics:getHeight()/uiScale)
   setColor(255,255,255,255)
 	love.graphics.setFont(fonts.graveFontBig)
-	love.graphics.printf("Roguelove Example Game",14,96,width-28,"center")
+	love.graphics.printf("Roguelove Example Game",14,16,width-28,"center")
 	love.graphics.setFont(fonts.graveFontSmall)
 	love.graphics.setFont(fonts.graveFontBig)
   local spacing = 40
   if (self.cursorY >= 1 and self.cursorY <= 8) and Gamestate.current() == menu then
 		setColor(100,100,100,255)
-		love.graphics.rectangle("fill",width/2-256+80,(self.cursorY*spacing+127),512-161,45)
+		love.graphics.rectangle("fill",width/2-256+80,(self.cursorY*spacing+57),512-161,45)
 	end
   setColor(255,255,255)
-  --output:largebutton(math.floor(width/2-256+80),200,512-161)
-  local printY = 170
+  local printY = 100
   love.graphics.printf("Start a New Game",14,printY,width-28,"center")
   printY = printY + spacing
 	love.graphics.printf("Load a Saved Game",14,printY,width-28,"center")
@@ -37,19 +39,26 @@ function menu:draw()
   love.graphics.printf("Quit",14,printY,width-28,"center")
 	setColor(255,255,255)
 	love.graphics.setFont(fonts.textFont)
-  love.graphics.printf("Version " .. gamesettings.version,16,height-prefs['fontSize']*3,width-14,"center")
-  love.graphics.printf("Copyright 2019-2021 Weirdfellows LLC, http://weirdfellows.com",16,height-prefs['fontSize']*2,width-14,"center")
-  local weirdwidth = fonts.textFont:getWidth("Copyright 2019-2021 Weirdfellows LLC, http://weirdfellows.com")
-  local weirdtextwidth = fonts.textFont:getWidth("Copyright 2019-2021 Weirdfellows LLC, ")
-  local URLwidth = fonts.textFont:getWidth("http://weirdfellows.com")
-  local startX = math.ceil((width+17)/2)-math.ceil(weirdwidth/2)+weirdtextwidth
-  local mouseX,mouseY = love.mouse.getPosition()
-  if mouseY >= height-28 and mouseY <= height-28+14 and mouseX >= startX and mouseX <= startX+URLwidth then
-    love.graphics.line(startX,height-28+16,startX+URLwidth,height-28+16)
+  if gamesettings.version_text then
+    love.graphics.printf(gamesettings.version_text,16,height-prefs['fontSize']*4,width-14,"center")
+  end
+  if gamesettings.copyright_text then
+    love.graphics.printf(gamesettings.copyright_text,16,height-prefs['fontSize']*3,width-14,"center")
+  end
+  if gamesettings.url then
+    love.graphics.printf(gamesettings.url,16,height-prefs['fontSize']*2,width-14,"center")
+    local URLwidth = fonts.textFont:getWidth(gamesettings.url)
+    local startX = math.ceil(width/2-URLwidth/2)+8
+    local mouseX,mouseY = love.mouse.getPosition()
+    mouseX,mouseY = mouseX/uiScale,mouseY/uiScale
+    if mouseY >= height-prefs['fontSize']*2 and mouseY <= height-prefs['fontSize'] and mouseX >= startX and mouseX <= startX+URLwidth then
+      love.graphics.line(startX,height-prefs['fontSize'],startX+URLwidth,height-prefs['fontSize'])
+    end
   end
   setColor(255,255,255,self.whiteAlpha)
   love.graphics.rectangle('fill',0,0,width,height)
   setColor(255,255,255,255)
+  love.graphics.pop()
 end
 
 function menu:keypressed(key)
@@ -100,14 +109,16 @@ function menu:gamepadpressed(joystick,button)
 end
 
 function menu:update(dt)
+  local uiScale = (prefs['uiScale'] or 1)
 	local x,y = love.mouse.getPosition()
+  x,y = x/uiScale, y/uiScale
   local width = love.graphics.getWidth()
-  local startX = width/2-256+80
+  local startX = round(width/uiScale/2)-256+80
 	if y ~= output.mouseY and x > startX and x < startX+512-161 then -- only do this if the mouse has moved
     output.mouseY = y
     local done = false
     for line=1,8,1 do
-      if y > (line*40+127) and y < (line*40+172) then
+      if y > (line*40+57) and y < (line*40+102) then
         self.cursorY = line
         done = true
         break
@@ -118,18 +129,19 @@ function menu:update(dt)
 end
 
 function menu:mousepressed(x,y,button)
-  local startX = love.graphics.getWidth()/2-256+80
+  local uiScale = prefs['uiScale'] or 1
+  local startX = round(love.graphics.getWidth()/uiScale/2-256+80)
+  x,y = x/uiScale,y/uiScale
 	if x > startX and x < startX+512-161 then
     menu:keypressed('return')
   end
-  local weirdwidth = fonts.textFont:getWidth("Copyright 2019-2021 Weirdfellows LLC, http://weirdfellows.com")
-  local weirdtextwidth = fonts.textFont:getWidth("Copyright 2019-2021 Weirdfellows LLC, ")
-  local URLwidth = fonts.textFont:getWidth("http://weirdfellows.com")
-  local startX = math.ceil((love.graphics.getWidth()+17)/2)-math.ceil(weirdwidth/2)+weirdtextwidth
-  local mouseX,mouseY = love.mouse.getPosition()
-  local height = love.graphics.getHeight()
-  if mouseY >= height-28 and mouseY <= height-28+14 and mouseX >= startX and mouseX <= startX+URLwidth then
-    love.system.openURL("http://weirdfellows.com")
+  if gamesettings.url then
+    local URLwidth = fonts.textFont:getWidth(gamesettings.url)
+    local width,height = round(love.graphics.getWidth()/uiScale),round(love.graphics.getHeight()/uiScale)
+    local startX = math.ceil(width/2-URLwidth/2)+8
+    if y >= height-prefs['fontSize']*2 and y <= height-prefs['fontSize'] and x >= startX and x <= startX+URLwidth then
+      love.system.openURL(gamesettings.url)
+    end
   end
 end
 
