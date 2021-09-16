@@ -26,5 +26,6 @@ gamesettings = {
   default_equipment_slots={head=1,torso=1,hands=1,legs=1,feet=1,accessory=3},
   default_inventory_order={'usable','throwable','weapon','offhand','armorhead','armortorso','armorhands','armorlegs','armorfeet','accessory','ammo','other'},
   default_equipment_order={'weapon','offhand','head','torso','hands','legs','feet','accessory','ammo'},
-  default_starting_missions={ascend=0}
+  default_starting_missions={ascend=0},
+  skill_points_per_level=5
 }

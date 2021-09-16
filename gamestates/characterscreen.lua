@@ -8,6 +8,7 @@ function characterscreen:enter()
   self.learnButtons = {}
   self.cursorY = 0
   self.cursorX = 1
+  self.scrollY = 0
   self:refresh_spell_purchase_list()
   self.screen = "character"
 end
@@ -30,72 +31,84 @@ function characterscreen:draw()
   local buttonPad = fontSize
 	love.graphics.printf(player.properName,padding,padding,math.floor(width/uiScale)-44,"center")
   printY = printY + fontSize
-	love.graphics.printf("Level " .. player.level .. " " .. player.name .. " (" .. player.xp .. "/" .. player:get_level_up_cost() .. " XP to level up)",padding,printY,math.floor(width/uiScale)-44,"center")
-  printY = printY + fontSize
+  local levelText = "Level " .. player.level .. " " .. player.name .. " (" .. player.xp .. "/" .. player:get_level_up_cost() .. " XP to level up)"
+	love.graphics.printf(levelText,padding,printY,math.floor(width/uiScale)-44,"center")
+  local _,tlines = fonts.textFont:getWrap(levelText,math.floor(width/uiScale)-44)
+  printY = printY + #tlines*fontSize
   --Buttons:
   local padX = 16
-  local midX = width/2
+  local midX = round(width/2/uiScale)
   local buttonW = math.max(fonts.buttonFont:getWidth("Character")+padding,fonts.buttonFont:getWidth("Factions")+padding,fonts.buttonFont:getWidth("Missions")+padding)
   if self.screen == "character" then setColor(150,150,150,255) end
-  self.charButton = output:button(midX-buttonW-math.floor(buttonW/2)-padX,printY,buttonW+padX,false,((self.cursorX == 1 and self.cursorY == 0) and "hover" or nil),"Character")
+  self.charButton = output:button(midX-buttonW-math.floor(buttonW/2)-padX,printY,buttonW+padX,false,((self.cursorX == 1 and self.cursorY == 0) and "hover" or nil),"Character",true)
   if self.screen == "character" then setColor(255,255,255,255) end
   if self.screen == "factions" then setColor(150,150,150,255) end
-  self.factionButton = output:button(midX-math.floor(buttonW/2),printY,buttonW+padX,false,((self.cursorX == 2 and self.cursorY == 0) and "hover" or nil),"Factions")
+  self.factionButton = output:button(midX-math.floor(buttonW/2),printY,buttonW+padX,false,((self.cursorX == 2 and self.cursorY == 0) and "hover" or nil),"Factions",true)
   if self.screen == "factions" then setColor(255,255,255,255) end
   if self.screen == "missions" then setColor(150,150,150,255) end
-  self.missionButton = output:button(midX+math.floor(buttonW/2)+padX,printY,buttonW+padX,false,((self.cursorX == 3 and self.cursorY == 0) and "hover" or nil),"Missions")
+  self.missionButton = output:button(midX+math.floor(buttonW/2)+padX,printY,buttonW+padX,false,((self.cursorX == 3 and self.cursorY == 0) and "hover" or nil),"Missions",true)
   if self.screen == "missions" then setColor(255,255,255,255) end
   printY=printY+32
+  local screenStartY = printY
+  local lastY = 0
   
   --Display the screens:
+  love.graphics.push()
+  --Create a "stencil" that stops 
+  local function stencilFunc()
+    love.graphics.rectangle("fill",padding,screenStartY,width-padding,height-screenStartY)
+  end
+  love.graphics.stencil(stencilFunc,"replace",1)
+  love.graphics.setStencilTest("greater",0)
+  love.graphics.translate(0,-self.scrollY)
   if self.screen == "character" then
     if skillPoints > 0 then love.graphics.printf(skillPoints .. " skill points remaining",padding,printY,math.floor(width/uiScale)-44,"center") end
     printY = printY + fontSize
-    love.graphics.print("Max HP: " .. player.max_hp,padding,printY)
+    love.graphics.print("Max HP: " .. player.max_hp,printX,printY)
     if skillPoints > 0 then
-      self.skillButtons[buttonY] = output:tinybutton(padding,printY,true,self.cursorY==buttonY,"+",true)
+      self.skillButtons[buttonY] = output:tinybutton(printX-32,printY,true,self.cursorY==buttonY,"+",true)
       self.skillButtons[buttonY].skill = "max_hp"
       buttonY = buttonY+1
     end
     printY = printY + fontSize
-    love.graphics.print("Max MP: " .. player.max_mp,padding,printY)
+    love.graphics.print("Max MP: " .. player.max_mp,printX,printY)
     if skillPoints > 0 then
-      self.skillButtons[buttonY] = output:tinybutton(padding,printY,true,self.cursorY==buttonY,"+",true)
+      self.skillButtons[buttonY] = output:tinybutton(printX-32,printY,true,self.cursorY==buttonY,"+",true)
       self.skillButtons[buttonY].skill = "max_mp"
       buttonY = buttonY+1
     end
     printY = printY + fontSize
     love.graphics.print("Strength: " .. player.strength,printX,printY)
     if skillPoints > 0 then
-      self.skillButtons[buttonY] = output:tinybutton(padding,printY,true,self.cursorY==buttonY,"+",true)
+      self.skillButtons[buttonY] = output:tinybutton(printX-32,printY,true,self.cursorY==buttonY,"+",true)
       self.skillButtons[buttonY].skill = "strength"
       buttonY = buttonY+1
     end
     printY = printY + fontSize
-    love.graphics.print("Melee Skill: " .. player.melee .. " (" .. math.ceil(math.min(math.max(70 + (player.melee - player.level*5-5),25),95)) .. "% chance to hit average level " .. player.level .. " creature)",printX,printY)
+    love.graphics.print("Melee Skill: " .. player.melee,printX,printY)
     if skillPoints > 0 then
-      self.skillButtons[buttonY] = output:tinybutton(padding,printY,true,self.cursorY==buttonY,"+",true)
+      self.skillButtons[buttonY] = output:tinybutton(printX-32,printY,true,self.cursorY==buttonY,"+",true)
       self.skillButtons[buttonY].skill = "melee"
       buttonY = buttonY+1
     end
     printY = printY + fontSize
-    love.graphics.print("Ranged Skill: " .. player.ranged .. " (" .. math.ceil(math.min(math.max(70 + (player.melee - player.level*5-5),25),95)) .. "% chance to hit average level " .. player.level .. " creature)",printX,printY)
+    love.graphics.print("Ranged Skill: " .. player.ranged,printX,printY)
     if skillPoints > 0 then
-      self.skillButtons[buttonY] = output:tinybutton(padding,printY,true,self.cursorY==buttonY,"+",true)
+      self.skillButtons[buttonY] = output:tinybutton(printX-32,printY,true,self.cursorY==buttonY,"+",true)
       self.skillButtons[buttonY].skill = "ranged"
       buttonY = buttonY+1
     end
     printY = printY + fontSize
     love.graphics.print("Magic Skill: " .. player.magic,printX,printY)
     if skillPoints > 0 then
-      self.skillButtons[buttonY] = output:tinybutton(padding,printY,true,self.cursorY==buttonY,"+",true)
+      self.skillButtons[buttonY] = output:tinybutton(printX-32,printY,true,self.cursorY==buttonY,"+",true)
       self.skillButtons[buttonY].skill = "magic"
       buttonY = buttonY+1
     end
     printY = printY + fontSize
-    love.graphics.print("Dodge Skill: " .. player.dodging .. " (" .. math.ceil(math.min(math.max(70 + (5+player.level*5 - player.dodging),25),95)) .. "% chance to be hit by average level " .. player.level .. " creature)",printX,printY)
+    love.graphics.print("Dodge Skill: " .. player.dodging,printX,printY)
     if skillPoints > 0 then
-      self.skillButtons[buttonY] = output:tinybutton(padding,printY,true,self.cursorY==buttonY,"+",true)
+      self.skillButtons[buttonY] = output:tinybutton(printX-32,printY,true,self.cursorY==buttonY,"+",true)
       self.skillButtons[buttonY].skill = "dodging"
       buttonY = buttonY+1
     end
@@ -142,8 +155,8 @@ function characterscreen:draw()
       love.graphics.printf("Abilities Available to Learn:",padding,printY,math.floor(width/uiScale)-padding,"center")
       printY = printY+fontSize*2
       for _,info in ipairs(self.spell_purchases) do
+        local spell = possibleSpells[info.spell]
         if not player:has_spell(info.spell) then
-          local spell = possibleSpells[info.spell]
           self.learnButtons[buttonY] = output:button(padding,printY,60,true,(self.cursorY == buttonY and "hover" or false),"Learn",true)
           self.learnButtons[buttonY].info = info
           local text = spell.name .. (spell.target_type == "passive" and " (Passive)" or "") .. " - " .. spell.description .. " (" .. info.cost .. " Skill Points)"
@@ -176,6 +189,7 @@ function characterscreen:draw()
     printY = printY + fontSize
     love.graphics.print("Kills this game: " .. (currGame.stats.kills or 0),padding,printY)
     printY = printY + fontSize
+    lastY = printY
   elseif self.screen == "factions" then
     local memberFacs = {}
     if count(player.factions) > 0 then
@@ -184,8 +198,10 @@ function characterscreen:draw()
       for _,fid in ipairs(player.factions) do
         memberFacs[fid] = true
         local fac = currWorld.factions[fid]
-        love.graphics.print(fac.name .. ": " .. (player.favor[fid] or 0) .. " Favor",padding,printY)
-        printY = printY + fontSize
+        local facText = fac.name .. ": " .. (player.favor[fid] or 0) .. " Favor"
+        love.graphics.print(facText,padding,printY)
+        local _,tlines = fonts.textFont:getWrap(facText,math.floor(width/uiScale)-padding*2)
+        printY = printY + round((#tlines+0.5)*fontSize)
       end
       printY = printY + fontSize*2
     end
@@ -195,10 +211,13 @@ function characterscreen:draw()
       local fac = currWorld.factions[fid]
       if not memberFacs[fid] and not fac.hidden then
         local attitude = (fac:is_enemy(player) and "Hostile" or (fac:is_friend(player) and "Friendly" or "Neutral"))
-        love.graphics.print(fac.name .. ": " .. (player.favor[fid] or 0) .. " Favor (" .. attitude .. ")",padding,printY)
-        printY = printY + fontSize
+        local facText = fac.name .. ": " .. (player.favor[fid] or 0) .. " Favor (" .. attitude .. ")"
+        love.graphics.printf(facText,padding,printY,math.floor(width/uiScale)-padding*2)
+        local _,tlines = fonts.textFont:getWrap(facText,math.floor(width/uiScale)-padding*2)
+        printY = printY + round((#tlines+0.5)*fontSize)
       end
     end --end favor for
+    lastY = printY
   elseif self.screen == "missions" then
     love.graphics.printf("Active Missions: ",padding,printY,math.floor(width/uiScale)-padding*2,"center")
     printY = printY+fontSize*2
@@ -208,7 +227,7 @@ function characterscreen:draw()
         local statusText = (mission.get_status and mission:get_status(get_status)) or (mission.status_text and mission.status_text[status]) or nil
         local totalText = mission.name .. "\n" .. mission.description .. (statusText and "\nStatus: " .. statusText or "")
         love.graphics.printf(totalText,padding,printY,math.floor(width/uiScale)-padding*2,"center")
-        local _, wrappedtext = fonts.textFont:getWrap(totalText, math.floor(width/uiScale))
+        local _, wrappedtext = fonts.textFont:getWrap(totalText, math.floor(width/uiScale)-padding*2)
         printY=printY+(#wrappedtext+1)*fontSize
       end
     else
@@ -223,11 +242,22 @@ function characterscreen:draw()
         local mission = possibleMissions[mid]
         local totalText = mission.name .. "\n" .. (mission.finished_description or mission.description)
         love.graphics.printf(totalText,padding,printY,math.floor(width/uiScale)-padding*2,"center")
-        local _, wrappedtext = fonts.textFont:getWrap(totalText, math.floor(width/uiScale))
+        local _, wrappedtext = fonts.textFont:getWrap(totalText, math.floor(width/uiScale)-padding*2)
         printY=printY+(#wrappedtext+1)*fontSize
       end
     end
+    lastY = printY
   end --end which screen if
+  love.graphics.setStencilTest()
+  love.graphics.pop()
+  --Scrollbars
+  if lastY*uiScale > height-padding then
+    self.scrollMax = math.ceil((lastY-(screenStartY+(height/uiScale-screenStartY))+padding))
+    local scrollAmt = self.scrollY/self.scrollMax
+    self.scrollPositions = output:scrollbar(math.floor(width/uiScale-padding),screenStartY,math.floor((height-padding)/uiScale),scrollAmt,true)
+  else
+    self.scrollMax = 0
+  end
   self.closebutton = output:closebutton(24,24,nil,true)
   love.graphics.pop()
 end
@@ -247,10 +277,13 @@ function characterscreen:keypressed(key)
     if self.cursorY == 0 then
       if self.cursorX == 1 then
         self.screen = "character"
+        self.scrollY=0
       elseif self.cursorX == 2 then
         self.screen = "factions"
+        self.scrollY=0
       elseif self.cursorX == 3 then
         self.screen = "missions"
+        self.scrollY=0
       end
     elseif self.skillButtons[self.cursorY] then
       self:use_skillButton(self.skillButtons[self.cursorY].skill)
@@ -268,7 +301,8 @@ end
 
 function characterscreen:mousepressed(x,y,button)
   local uiScale = (prefs['uiScale'] or 1)
-  if button == 2 or (x/uiScale > self.closebutton.minX and x/uiScale < self.closebutton.maxX and y/uiScale > self.closebutton.minY and y/uiScale < self.closebutton.maxY) then
+  x,y = x/uiScale,y/uiScale
+  if button == 2 or (x > self.closebutton.minX and x < self.closebutton.maxX and y > self.closebutton.minY and y < self.closebutton.maxY) then
     return self:switchBack()
   end
   for id,button in ipairs(self.skillButtons) do
@@ -283,10 +317,16 @@ function characterscreen:mousepressed(x,y,button)
   end
   if x > self.charButton.minX and x < self.charButton.maxX and y > self.charButton.minY and y < self.charButton.maxY then
     self.screen = "character"
+    self.cursorX,self.cursorY=1,0
+    self.scrollY=0
   elseif x > self.factionButton.minX and x < self.factionButton.maxX and y > self.factionButton.minY and y < self.factionButton.maxY then
     self.screen = "factions"
+    self.cursorX,self.cursorY=2,0
+    self.scrollY=0
   elseif x > self.missionButton.minX and x < self.missionButton.maxX and y > self.missionButton.minY and y < self.missionButton.maxY then
     self.screen = "missions"
+    self.cursorX,self.cursorY=3,0
+    self.scrollY=0
   end
 end
 
@@ -337,10 +377,52 @@ function characterscreen:update(dt)
     Gamestate.update(dt)
     return
   end
+  if (love.mouse.isDown(1)) and self.scrollPositions then
+    local uiScale = (prefs['uiScale'] or 1)
+    local x,y = love.mouse.getPosition()
+    x,y = x/uiScale,y/uiScale
+    local upArrow = self.scrollPositions.upArrow
+    local downArrow = self.scrollPositions.downArrow
+    local elevator = self.scrollPositions.elevator
+    if x>upArrow.startX and x<upArrow.endX and y>upArrow.startY and y<upArrow.endY then
+      self:scrollUp()
+    elseif x>downArrow.startX and x<downArrow.endX and y>downArrow.startY and y<downArrow.endY then
+      self:scrollDown()
+    elseif x>elevator.startX and x<elevator.endX and y>upArrow.endY and y<downArrow.startY then
+      if y<elevator.startY then self:scrollUp()
+      elseif y>elevator.endY then self:scrollDown() end
+    end --end clicking on arrow
+  end
 end
 
 function characterscreen:switchBack()
   tween(0.2,self,{yModPerc=100})
   output:sound('stoneslideshortbackwards',2)
   Timer.after(0.2,function() self.switchNow=true end)
+end
+
+function characterscreen:wheelmoved(x,y)
+  if y > 0 then
+    self:scrollUp()
+	elseif y < 0 then
+    self:scrollDown()
+  end --end button type if
+end
+
+function characterscreen:scrollUp()
+  if self.scrollY > 0 then
+    self.scrollY = self.scrollY - prefs.fontSize
+    if self.scrollY < prefs.fontSize then
+      self.scrollY = 0
+    end
+  end
+end
+
+function characterscreen:scrollDown()
+  if self.scrollMax and self.scrollY < self.scrollMax then
+    self.scrollY = self.scrollY+prefs.fontSize
+    if self.scrollMax-self.scrollY < prefs.fontSize then
+      self.scrollY = self.scrollMax
+    end
+  end
 end

@@ -2208,9 +2208,8 @@ function Creature:level_up(force)
   end
   self.level = self.level + 1
   if self == player and not prefs.autoLevel then
-    self.skillPoints = (self.skillPoints or 0) + 5
+    self.skillPoints = (self.skillPoints or 0) + gamesettings.skill_points_per_level
   else
-    local points = 5
     local hpInc = random(2,6)
     self.max_hp = self.max_hp + hpInc
     self.hp = self.hp + hpInc
