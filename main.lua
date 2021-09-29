@@ -275,6 +275,7 @@ function load_data()
   require "gamestates.menu"
   require "gamestates.newgame"
   require "gamestates.pausemenu"
+  require "gamestates.pronoun_entry"
   require "gamestates.settings"
   require "gamestates.spells"
   require "gamestates.storescreen"

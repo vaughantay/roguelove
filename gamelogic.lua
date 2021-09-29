@@ -68,6 +68,7 @@ function initialize_player(creatureID,class,name,gender,pronouns)
 	player.isPlayer = true
   player.playerAlly = true
 	if gender then player.gender = gender end
+  if gender == "custom" then player.pronouns = pronouns end
   if name ~= nil then
     player.properName=name
   end
