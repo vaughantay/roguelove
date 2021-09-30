@@ -1,7 +1,6 @@
 loadsaves = {}
 
 function loadsaves:enter()
-  local width, height = love.graphics:getWidth(),love.graphics:getHeight()
   self.saves = load_all_saves()
   self.scroll = 0
   self.cursorX = 1
@@ -17,7 +16,9 @@ end
 
 function loadsaves:create_coordinates()
   --Create y-coordinates for all saves:
+  local uiScale = (prefs['uiScale'] or 1)
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
+  width,height = round(width/uiScale),round(height/uiScale)
   local padding = (prefs['noImages'] and 16 or 32)
   local sidebarX = round(width/3)*2+padding
   self.saveCoordinates = {}
@@ -34,7 +35,10 @@ function loadsaves:draw()
   menu:draw()
   setColor(255,255,255,255)
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
+  local uiScale = (prefs['uiScale'] or 1)
+  width,height = round(width/uiScale),round(height/uiScale)
   love.graphics.push()
+  love.graphics.scale(uiScale,uiScale)
   love.graphics.translate(0,height*(self.yModPerc/100))
   local padding = (prefs['noImages'] and 16 or 32)
 	love.graphics.setFont(fonts.textFont)
@@ -49,6 +53,7 @@ function loadsaves:draw()
   --Draw the actual saves:
   love.graphics.push()
   local mouseX,mouseY = love.mouse.getPosition()
+  mouseX,mouseY = round(mouseX/uiScale),round(mouseY/uiScale)
   mouseY=mouseY+self.scroll
   local function stencilFunc()
     local startY = padding*2
@@ -82,7 +87,7 @@ function loadsaves:draw()
   if maxY > height-padding then
     self.maxScroll = maxY-(height-padding)
     local scrollAmt = self.scroll/self.maxScroll
-    self.scrollPositions = output:scrollbar(round(sidebarX-padding*1.75),padding*2,height-padding,scrollAmt)
+    self.scrollPositions = output:scrollbar(round(sidebarX-padding*1.75),padding*2,height-padding,scrollAmt,true)
   end
   
   --Display selected save, if any
@@ -93,42 +98,35 @@ function loadsaves:draw()
     
     if self.cursorY and self.saves[self.cursorY] then
       if not self.currSave or self.currSave.fileName ~= self.saves[self.cursorY].fileName then
-        self.currSave = load_save_info(self.saves[self.cursorY].fileName)
+        local status,s = pcall(load_save_info,self.saves[self.cursorY].fileName)
+        self.currSave = s
       end
       local save = self.currSave
       if save then
+        love.graphics.setFont(fonts.buttonFont)
+        self.loadbutton = output:button(sidebarX+padding,printY,75,false,((self.cursorX == 2 and self.deletewarning == false) and "hover" or nil),nil,true)
+        love.graphics.printf("Load",sidebarX+padding,printY+4,75,"center")
+        self.deletebutton = output:button(round(endX-padding*(prefs['noImages'] and 5 or 2.5)),printY,75,false,((self.cursorX == 3 and self.deletewarning == false) and "hover" or nil),nil,true)
+        love.graphics.printf("Delete",round(endX-padding*(prefs['noImages'] and 5 or 2.5)),printY+4,75,"center")
+        love.graphics.setFont(fonts.textFont)
+        printY = printY+38
         if save.screenshot then
           local ratio = (endX-sidebarX-padding)/save.screenshot:getWidth()
           local ssheight = save.screenshot:getHeight()*ratio
-          love.graphics.draw(save.screenshot,sidebarX+padding,padding,0,ratio,ratio)
-          love.graphics.rectangle("line",sidebarX+padding,padding,endX-sidebarX-padding,ssheight)
+          love.graphics.draw(save.screenshot,sidebarX+padding,printY,0,ratio,ratio)
+          love.graphics.rectangle("line",sidebarX+padding,printY,endX-sidebarX-padding,ssheight)
           printY=round(printY+ssheight+prefs['fontSize'])
         end
-        local _,nameLines = fonts.textFont:getWrap(save.player.properName,endX-sidebarX-padding)
-        love.graphics.printf(save.player.properName,sidebarX+padding,printY,endX-sidebarX-padding,"center")
+        local _,nameLines = fonts.textFont:getWrap(save.player.properName .. "\n" .. ucfirst(save.player.name),endX-sidebarX-padding)
+        love.graphics.printf(save.player.properName .. "\n" .. save.player.name,sidebarX+padding,printY,endX-sidebarX-padding,"center")
         save.currGame.stats = save.currGame.stats or {}
         printY = printY+padY*#nameLines
-        local _,depthLines = fonts.textFont:getWrap("Depth " .. 11-save.currMap.depth .. (save.currMap.name and ": " .. save.currMap.name or ""),endX-sidebarX-padding)
-        love.graphics.printf("Depth " .. 11-save.currMap.depth .. ": " .. (save.currMap.name and ": " .. save.currMap.name or ""),sidebarX+padding,printY,endX-sidebarX-padding,"center")
+        local _,depthLines = fonts.textFont:getWrap("Depth " .. save.currMap.depth .. (save.currMap.name and ": " .. save.currMap.name or ""),endX-sidebarX-padding)
+        love.graphics.printf("Depth " .. save.currMap.depth .. (save.currMap.name and ": " .. save.currMap.name or ""),sidebarX+padding,printY,endX-sidebarX-padding,"center")
         printY = printY+padY*#depthLines
-        love.graphics.printf("Current Body: " .. ucfirst(save.player.name),sidebarX+padding,printY,endX-sidebarX-padding,"center")
-        printY = printY+padY*2
         love.graphics.printf("Turns: " .. (save.currGame.stats.turns or 0),sidebarX+padding,printY,endX-sidebarX-padding,"center")
-        printY = printY+padY
-        love.graphics.printf("Kills: " .. (save.currGame.stats.kills or 0),sidebarX+padding,printY,endX-sidebarX-padding,"center")
-        printY = printY+padY
-        love.graphics.printf("Possessions: " .. (save.currGame.stats.total_possessions or 0),sidebarX+padding,printY,endX-sidebarX-padding,"center")
-        printY = printY+padY
-        love.graphics.printf("Explosions: " .. (save.currGame.stats.explosions or 0),sidebarX+padding,printY,endX-sidebarX-padding,"center")
         --check game ID and game version
-        printY = printY+padY*3
         setColor(255,255,255,255)
-        love.graphics.setFont(fonts.buttonFont)
-        self.loadbutton = output:button(sidebarX+padding,printY,75,false,((self.cursorX == 2 and self.deletewarning == false) and "hover" or "image"))
-        love.graphics.printf("Load",sidebarX+padding,printY+4,75,"center")
-        self.deletebutton = output:button(round(endX-padding*(prefs['noImages'] and 5 or 2.5)),printY,75,false,((self.cursorX == 3 and self.deletewarning == false) and "hover" or "image"))
-        love.graphics.printf("Delete",round(endX-padding*(prefs['noImages'] and 5 or 2.5)),printY+4,75,"center")
-        love.graphics.setFont(fonts.textFont)
         if not save.gameDefinition or (save.gameDefinition.name ~= gamesettings.name) then
           printY = printY+padY*3
           setColor(255,0,0,255)
@@ -137,7 +135,7 @@ function loadsaves:draw()
         elseif save.gameDefinition.version ~= gamesettings.version then
           printY = printY+padY*3
           setColor(255,0,0,255)
-          love.graphics.printf("WARNING! This save file could be from a different version! This save is for version " .. (save.gameDefinition and save.gameDefinition.version or "Unknown") .. ", current game version " .. gamesettings.version .. ". If you load this save, it might not work correctly or may crash.",sidebarX+padding,printY,endX-sidebarX-padding,"center")
+          love.graphics.printf("WARNING! This save file could be from a different version! This save is for version " .. (save.gameDefinition and save.gameDefinition.version_text or "Unknown") .. ", current game version " .. gamesettings.version_text .. ". If you load this save, it might not work correctly or may crash.",sidebarX+padding,printY,endX-sidebarX-padding,"center")
           printY = printY+padY*3
         end
       else --if save isn't found
@@ -151,23 +149,24 @@ function loadsaves:draw()
   if self.deletewarning then
     local sizeX = 350
     local sizeY = 150
-    local startX = round(love.graphics.getWidth()/2-sizeX/2)
-    local startY = round(love.graphics.getHeight()/2-sizeY)
+    local startX = round(width/2-sizeX/2)
+    local startY = round(height/2-sizeY)
     output:draw_window(startX,startY,startX+sizeX,startY+sizeY)
     love.graphics.printf("Are you sure you want to delete " .. self.currSave.player.properName .. "?",startX+padding,startY+padding,sizeX-padding,"center")
     love.graphics.setFont(fonts.buttonFont)
-    self.yesbutton = output:button(startX+padding,startY+sizeY-padding-(prefs['noImages'] and padding or 0),75,false,(self.cursorX == 1 and "hover" or "image"))
+    self.yesbutton = output:button(startX+padding,startY+sizeY-padding-(prefs['noImages'] and padding or 0),75,false,(self.cursorX == 1 and "hover" or nil),nil,true)
     love.graphics.printf("(Y)es",startX+padding,startY+sizeY-padding-(prefs['noImages'] and padding or 0),75,"center")
-    self.nobutton = output:button(startX+sizeX-75,startY+sizeY-padding-(prefs['noImages'] and padding or 0),75,false,(self.cursorX == 2 and "hover" or "image"))
+    self.nobutton = output:button(startX+sizeX-75,startY+sizeY-padding-(prefs['noImages'] and padding or 0),75,false,(self.cursorX == 2 and "hover" or nil),nil,true)
     love.graphics.printf("(N)o",startX+sizeX-75,startY+sizeY-padding-(prefs['noImages'] and padding or 0),75,"center")
     love.graphics.setFont(fonts.textFont)
   end
-  self.closebutton = output:closebutton((prefs['noImages'] and 16 or 24),(prefs['noImages'] and 16 or 24))
+  self.closebutton = output:closebutton((prefs['noImages'] and 16 or 24),(prefs['noImages'] and 16 or 24),nil,true)
   love.graphics.pop()
 end
 
 function loadsaves:update(dt)
   local padding = (prefs['noImages'] and 16 or 32)
+  local uiScale = prefs['uiScale'] or 1
   local height = love.graphics.getHeight()
   if self.switchNow == true then
     self.switchNow = nil
@@ -179,7 +178,7 @@ function loadsaves:update(dt)
     self.cursorY = 0
   elseif self.saveCoordinates[self.cursorY] and self.saveCoordinates[self.cursorY].y-self.scroll <= padding*3 then
     self:scrollUp()
-  elseif self.saveCoordinates[self.cursorY] and self.saveCoordinates[self.cursorY].maxY-self.scroll > height-padding then
+  elseif self.saveCoordinates[self.cursorY] and self.saveCoordinates[self.cursorY].maxY-self.scroll > height/uiScale-padding then
     self:scrollDown()
   end
   if self.cursorY > #self.saves then
@@ -191,6 +190,7 @@ function loadsaves:update(dt)
   --Scrolling:
   if self.scrollPositions and (love.mouse.isDown(1)) then
     local x,y = love.mouse.getPosition()
+    x,y = round(x/uiScale),round(y/uiScale)
     local upArrow = self.scrollPositions.upArrow
     local downArrow = self.scrollPositions.downArrow
     local elevator = self.scrollPositions.elevator
@@ -220,16 +220,17 @@ function loadsaves:keypressed(key, isRepeat)
       end
     elseif key == "west" then
       self.cursorX = math.max(self.cursorX - 1,1)
-    elseif key == "east" then
+    elseif key == "east" and self.currSave then
       self.cursorX = math.min (self.cursorX + 1,3)
     elseif key == "return" or key == "wait" then
-      if self.cursorX == 1 then
+      if self.cursorX == 1 and self.saves[self.cursorY] and self.currSave then
         self.cursorX = 2
-      elseif self.cursorX == 2 and self.cursorY ~= 0 and self.saves[self.cursorY] then
+      elseif self.cursorX == 2 and self.cursorY ~= 0 and self.saves[self.cursorY] and self.currSave then
+        --TODO: add a check to make sure loading this save won't crash?
         load_game("saves/" .. self.saves[self.cursorY].fileName)
         Gamestate.switch(game)
         game:show_map_description()
-      elseif self.cursorX == 3 then
+      elseif self.cursorX == 3 and self.currSave then
         self.deletewarning = true
         self.cursorX = 2
       end
@@ -299,6 +300,8 @@ function loadsaves:scrollDown()
 end
   
 function loadsaves:mousepressed(x,y,button)
+  local uiScale = (prefs['uiScale'] or 1)
+  x,y = round(x/uiScale),round(y/uiScale)
   if self.deletewarning == false then
     if button == 2 or (x > self.closebutton.minX and x < self.closebutton.maxX and y > self.closebutton.minY and y < self.closebutton.maxY) then 
       self:switchBack()

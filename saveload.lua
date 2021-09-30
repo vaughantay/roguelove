@@ -75,7 +75,7 @@ end
 function load_save_info(fileName)
   if love.filesystem.getInfo("saves/" .. fileName) then
     local sd = {}
-    sd.player,sd.maps,sd.currMap,sd.currGame,sd.gameDefinition = Lady.load_all("saves/" .. fileName)
+    sd.player,sd.maps,sd.currMap,sd.currGame,sd.currGame,sd.gameDefinition = Lady.load_all("saves/" .. fileName)
     sd.fileName = fileName
     local info = love.filesystem.getInfo("saves/" .. fileName)
     sd.date = info.modtime
