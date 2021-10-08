@@ -43,6 +43,7 @@ function new_game(mapSeed,playTutorial,cheats,branch)
   output.buffer = {}
   output.toDisp = {{1},{},{}}
   output:set_camera(player.x,player.y,true)
+  update_stat('branch_reached',currMap.branch)
   update_stat('map_reached',currMap.id)
 end
 
@@ -181,6 +182,9 @@ function advance_turn()
   --Update stats:
   update_stat('turns')
   update_stat('turns_as_creature',player.id)
+  update_stat('turns_as_class',player.class)
+  update_stat('turns_as_creature_class_combo',player.id .. "_" .. player.class)
+  update_stat('turns_on_branch',currMap.branch)
   update_stat('turns_on_map',currMap.id)
   
   player:advance()
@@ -316,10 +320,14 @@ function goToMap(depth,branch,force)
     update_stat('map_beaten',currMap.id)
     achievements:check('map_end')
     currMap.creatures[player] = nil
-    if not maps[branch] then maps[branch] = {} end
+    if not maps[branch] then
+      maps[branch] = {}
+      update_stat('branch_reached',branch)
+    end
 		if (maps[branch][depth] == nil) then
 			maps[branch][depth] = mapgen:generate_map(branch,depth)
       firstTime = true
+      update_stat('map_reached',currMap.id)
 		end
 		currMap.contents[player.x][player.y][player] = nil
 		currMap=maps[branch][depth]
@@ -350,7 +358,6 @@ function goToMap(depth,branch,force)
     output:set_camera(player.x,player.y,true)
     --Handle music:
     output:play_playlist(currMap.playlist)
-    update_stat('map_reached',currMap.id)
     currGame.autoSave=true
     player.sees = nil
     run_all_events_of_type('enter_map')
@@ -675,13 +682,13 @@ function player_dies()
     show_tutorial('death')
   end
   if not currGame.cheats.regenMapOnDeath then
-    save_graveyard(player.properName,currMap.depth,currMap.branch,player.killer,currMap.name,currGame.stats)
+    save_graveyard(player,currMap,player.killer,currGame.stats)
     update_stat('losses')
     delete_save(currGame.fileName,true)
   end
 end
 
----Function that causes things to happen during "downtime." What that means and when that happens is up to you.
+---Function that causes things to happen during "downtime." What that means and when that happens is up to you, this is just an example.
 function downtime()
   --Max out HP and MP
   player.hp = player.max_hp
@@ -692,7 +699,7 @@ function downtime()
       player:cure_condition(condition)
     end
   end
-  --Repopulate dungeons:
+  --Repopulate dungeons, restock stores and factions:
   for _, branch in pairs(maps) do
     for _, m in pairs(branch) do
       m:populate_creatures()

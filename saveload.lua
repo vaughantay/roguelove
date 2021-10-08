@@ -200,25 +200,17 @@ function load_prefs()
   end
 end
 
-function save_graveyard(name,depth,branch,killer,mapname,stats)
+function save_graveyard(creature,map,killer,stats)
   require "lib.serialize"
   local graves = load_graveyard()
-  if name ~= nil and depth ~= nil then
-    if graves[branch] == nil then
-      graves[branch] = {}
-    end
-    if graves[branch][depth] == nil then
-      graves[branch][depth] = {}
-    end
-    if killer and killer.baseType == "creature" then
-      if killer.properName then killer = killer.properName .. (vowel(killer.name) and ", an " or (", a ")) .. killer.name
-      else killer = (killer.properNamed and "" or (vowel(killer.name) and "an " or "a ")) .. killer.name end
-    else
-      killer = "an unknown scary thing"
-    end
-    graves[branch][depth][#graves[branch][depth]+1] = {name=name,date=os.time(),killer = killer,mapname=mapname,stats=stats}
-    love.filesystem.write("graveyard.sav",serialize(graves))
+  if killer and killer.baseType == "creature" then
+    if killer.properName then killer = killer.properName .. (vowel(killer.name) and ", an " or (", a ")) .. killer.name
+    else killer = (killer.properNamed and "" or (vowel(killer.name) and "an " or "a ")) .. killer.name end
+  else
+    killer = "an unknown scary thing"
   end
+  graves[#graves+1] = {properName=creature.properName,name=creature.name,date=os.time(),killer = killer,mapname=map:get_name(),stats=stats,branch=map.branch,depth=map.depth}
+  love.filesystem.write("graveyard.sav",serialize(graves))
 end
 
 function load_graveyard()
@@ -235,7 +227,7 @@ end
 function save_win()
   require "lib.serialize"
   local wins = load_wins()
-  wins[#wins+1] = {name=player.properName,date=os.time(),stats=currGame.stats,player={properName=player.properName,name=player.name}} --TODO: Save more player info in a way that doesn't break the game
+  wins[#wins+1] = {properName=player.properName,name=player.name,date=os.time(),stats=currGame.stats,player={properName=player.properName,name=player.name,class=player.class,species=player.id}} --TODO: Save more player info in a way that doesn't break the game
   love.filesystem.write("wins.sav",serialize(wins))
 end
 

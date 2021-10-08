@@ -1124,3 +1124,24 @@ function Map:populate_factions(forceGeneric)
     end
   end
 end
+
+---Gets the full name string of the map (eg The Wilds Depth 2: The Forest of Horror)
+--@param noBranch Boolean. Optional, if set to true, only returns the base name of the map without depth and branch info
+function Map:get_name(noBranch)
+  local branch = currWorld.branches[self.branch]
+  local name = ""
+  if not noBranch then
+    if not branch.hideName and branch.name then
+      name = name .. branch.name
+    end
+    if not branch.hideDepth then
+      name = name .. " " .. (branch.depthName or "Depth") .. " " .. self.depth
+    end
+    if self.name and name ~= "" then
+      name = name .. ": "
+    end
+  end
+  
+  name = name .. (self.name or "")
+  return name
+end

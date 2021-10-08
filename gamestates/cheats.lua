@@ -19,36 +19,21 @@ function cheats:make_controls()
   local fontSize = prefs['fontSize']
   local wrapL = math.ceil(width/uiScale/2)-padding-(self.scrollPositions and padding or 0)
   self.labels = {}
-  local _, tlines = fonts.textFont:getWrap("These cheats make the game a bit easier without changing too much:",wrapL)
-  local settingY = 145+(#tlines)*fontSize
+  local settingY = 145
   local yAdd = math.max(fontSize,25)
-  self.labels[1] = Setting('text',"These cheats make the game a bit easier without changing too much:",startX,settingY,nil,true,wrapL)
+  
+  self.labels[1] = Setting('text',"The game is meant to be played with permadeath, but this will change it so when you die, the map you're on will regenerate instead:",startX,settingY,nil,true,wrapL)
   settingY=settingY+math.max(yAdd,self.labels[1].height)
-  self.labels[2] = Setting('twoHitGhost',"Ghost dies in two hits instead of one",startX,settingY,(newgame.cheats['twoHitGhost'] and true or false),false,wrapL)
-  settingY=settingY+math.max(yAdd,self.labels[2].height)
-  self.labels[3] = Setting('easierPossession',"Easier possessions",startX,settingY,(newgame.cheats['easierPossession'] and true or false),false,wrapL)
+  self.labels[2] = Setting('regenMapOnDeath',"Regenerate map on death, instead of Game Over",startX,settingY,(newgame.cheats['regenMapOnDeath'] and true or false),false,wrapL)
+  settingY=settingY+math.max(yAdd,self.labels[2].height)+yAdd
+  
+  self.labels[3] = Setting('text',"These will let you see more of the map. They're really more for testing than for use playing the game:",startX,settingY,nil,true,wrapL)
   settingY=settingY+math.max(yAdd,self.labels[3].height)
-  self.labels[4] = Setting('quickPossessionCooldown',"Half-length cooldowns for Possession",startX,settingY,(newgame.cheats['quickPossessionCooldown'] and true or false),false,wrapL)
+  self.labels[4] = Setting('fullMap',"Reveal entire map layout",startX,settingY,(newgame.cheats['fullMap'] and true or false),false,wrapL) 
   settingY=settingY+math.max(yAdd,self.labels[4].height)
-  self.labels[5] = Setting('noPossessionCooldown',"No cooldowns for Possession",startX,settingY,(newgame.cheats['noPossessionCooldown'] and true or false),false,wrapL)
+  self.labels[5] = Setting('seeAll',"See everything, all the time",startX,settingY,(newgame.cheats['seeAll'] and true or false),false,wrapL)
   settingY=settingY+math.max(yAdd,self.labels[5].height)+yAdd
   
-  self.labels[6] = Setting('text',"The game is meant to be played with permadeath, but this will change it so when you die, the map you're on will regenerate instead:",startX,settingY,nil,true,wrapL)
-  settingY=settingY+math.max(yAdd,self.labels[6].height)
-  self.labels[7] = Setting('regenMapOnDeath',"Regenerate map on death, instead of Game Over",startX,settingY,(newgame.cheats['regenMapOnDeath'] and true or false),false,wrapL)
-  settingY=settingY+math.max(yAdd,self.labels[7].height)+yAdd
-  
-  self.labels[8] = Setting('text',"These will let you see more of the map. They're really more for testing than for use playing the game:",startX,settingY,nil,true,wrapL)
-  settingY=settingY+math.max(yAdd,self.labels[8].height)
-  self.labels[9] = Setting('fullMap',"Reveal entire map layout",startX,settingY,(newgame.cheats['fullMap'] and true or false),false,wrapL) 
-  settingY=settingY+math.max(yAdd,self.labels[9].height)
-  self.labels[10] = Setting('seeAll',"See everything, all the time",startX,settingY,(newgame.cheats['seeAll'] and true or false),false,wrapL)
-  settingY=settingY+math.max(yAdd,self.labels[10].height)+yAdd
-  
-  self.labels[11] = Setting('text',"The game originally launched with maps that were 75 x 75 tiles, but the maps seemed too big, so they were changed to 60 x 60. But the option's here if you prefered the larger size:",startX,settingY,nil,true,wrapL)
-  settingY=settingY+math.max(yAdd,self.labels[11].height)
-  self.labels[12] = Setting('largeMaps',"Larger maps",startX,settingY,(newgame.cheats['largeMaps'] and true or false),false,wrapL)
-  settingY=settingY+math.max(yAdd,self.labels[12].height)
   self.maxY = settingY-math.ceil(love.graphics.getHeight()/uiScale-padding*2)
 end
 
@@ -112,8 +97,8 @@ function cheats:draw()
     self.scrollPositions = output:scrollbar(endX-padding,startY+padding,endY,scrollAmt,true)
     if redo then self:make_controls() end
   end
+  self.closebutton = output:closebutton(math.floor(width/uiScale/4+padding/2),math.floor(padding*1.5),nil,true)
   love.graphics.pop()
-  self.closebutton = output:closebutton(width/uiScale/4+padding,padding*2,self.cursorY == 0)
 end
 
 function cheats:update(dt)
@@ -169,10 +154,8 @@ function cheats:keypressed(key)
         setting.checkbox = not setting.checkbox
         newgame.cheats[setting.id] = setting.checkbox
         --Uncheck any cheats that contradict this one:
-        if setting.id == "fullMap" and newgame.cheats["seeAll"] then newgame.cheats["seeAll"] = false self.labels[7].checkbox = false
-        elseif setting.id == "seeAll" and newgame.cheats["fullMap"] then newgame.cheats["fullMap"] = false self.labels[6].checkbox = false
-        elseif setting.id == "quickPossessionCooldown" and newgame.cheats["quickPossessionCooldown"] then newgame.cheats["noPossessionCooldown"] = false self.labels[4].checkbox = false
-        elseif setting.id == "noPossessionCooldown" and newgame.cheats["noPossessionCooldown"] then newgame.cheats["quickPossessionCooldown"] = false self.labels[3].checkbox = false
+        if setting.id == "fullMap" and newgame.cheats["seeAll"] then newgame.cheats["seeAll"] = false self.labels[5].checkbox = false
+        elseif setting.id == "seeAll" and newgame.cheats["fullMap"] then newgame.cheats["fullMap"] = false self.labels[4].checkbox = false
         end
       end --end checkbox if
     end --end setting if

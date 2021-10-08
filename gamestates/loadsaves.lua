@@ -118,11 +118,12 @@ function loadsaves:draw()
           printY=round(printY+ssheight+prefs['fontSize'])
         end
         local _,nameLines = fonts.textFont:getWrap(save.player.properName .. "\n" .. ucfirst(save.player.name),endX-sidebarX-padding)
-        love.graphics.printf(save.player.properName .. "\n" .. save.player.name,sidebarX+padding,printY,endX-sidebarX-padding,"center")
+        love.graphics.printf(save.player.properName .. "\n" .. ucfirst(save.player.name),sidebarX+padding,printY,endX-sidebarX-padding,"center")
         save.currGame.stats = save.currGame.stats or {}
         printY = printY+padY*#nameLines
-        local _,depthLines = fonts.textFont:getWrap("Depth " .. save.currMap.depth .. (save.currMap.name and ": " .. save.currMap.name or ""),endX-sidebarX-padding)
-        love.graphics.printf("Depth " .. save.currMap.depth .. (save.currMap.name and ": " .. save.currMap.name or ""),sidebarX+padding,printY,endX-sidebarX-padding,"center")
+        local mapName = (save.currMap.fullName or "Depth " .. save.currMap.depth .. (save.currMap.name and ": " .. save.currMap.name or ""))
+        local _,depthLines = fonts.textFont:getWrap(mapName,endX-sidebarX-padding)
+        love.graphics.printf(mapName,sidebarX+padding,printY,endX-sidebarX-padding,"center")
         printY = printY+padY*#depthLines
         love.graphics.printf("Turns: " .. (save.currGame.stats.turns or 0),sidebarX+padding,printY,endX-sidebarX-padding,"center")
         --check game ID and game version

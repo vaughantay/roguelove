@@ -53,6 +53,7 @@ function mapgen:generate_map(branchID, depth,force)
   --End initialization
   --Pull over the mapType's info
   if not branch.noMapNames then build.name = whichMap.name or (whichMap.generateName and whichMap.generateName()) or (whichMap.nameType and namegen:generate_name(whichMap.nameType)) or false end
+  build.fullName = build:get_name()
   build.description = whichMap.description or (whichMap.generateDesc and whichMap.generateDesc()) or (whichMap.descType and namegen:generate_description(whichMap.descType)) or false
   build.bossID = whichMap.boss
   build.tileset = whichMap.tileset
@@ -682,20 +683,26 @@ function mapgen:get_stair_location(map)
   return x,y
 end
 
----Add tombstones to the map of previous player characters who have died here. TODO: This probably doesn't work with branches!
+---Add tombstones to the map of previous player characters who have died here.
 --@param map Map. The map to add the tombstones to.
 function mapgen:addTombstones(map)
-  local graves = load_graveyard()
-  if graves[map.depth] == nil then return false end
-  for i=1,random(#graves[map.depth]),1 do
-    local grave = get_random_element(graves[map.depth])
+  local allGraves = load_graveyard()
+  local graves = {}
+  for _,g in pairs(allGraves) do
+    if g.branch == map.branch and g.depth == map.depth then
+      graves[#graves+1] = g
+    end
+  end
+  if #graves < 1 then return end
+  for i=1,random(#graves),1 do
+    local grave = get_random_element(graves)
     local x,y = random(2,map.width-1),random(2,map.height-1)
     local tries = 0
     while map:isEmpty(x,y,true) == false and tries < 100 do
       x,y = random(2,map.width-1),random(2,map.height-1)
       tries = tries+1
     end
-    local text = (random(0,1) == 1 and "R.I.P " or "Here Lies ") .. grave.name .. "\n" .. os.date("%x",grave.date)
+    local text = (random(0,1) == 1 and "R.I.P " or "Here Lies ") .. grave.properName .. ", " .. grave.name .. "\n" .. os.date("%x",grave.date)
     if grave.killer then
       text = text .. "\n Killed by " .. grave.killer
     end

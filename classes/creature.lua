@@ -1033,6 +1033,8 @@ function Creature:die(killer)
     if self.playerAlly == true and self ~= player then
       update_stat('ally_deaths')
       update_stat('ally_deaths_as_creature',player.id)
+      update_stat('ally_deaths_as_class',player.class)
+      update_stat('ally_deaths_as_creature_class_combo',player.id .. "_" .. player.class)
       update_stat('creature_ally_deaths',self.id)
     end
     if (self.killer and self.killer.baseType == "creature") then
@@ -1043,14 +1045,18 @@ function Creature:die(killer)
         if self.killer == player then
           update_stat('kills')
           update_stat('kills_as_creature',player.id)
+          update_stat('kills_as_class',player.class)
+          update_stat('kills_as_creature_class_combo',player.id .. "_" .. player.class)
           update_stat('creature_kills',self.id)
+          update_stat('branch_kills',currMap.branch)
           update_stat('map_kills',currMap.id)
-          currGame.stats['kills_in_current_body'] = (currGame.stats['kills_in_current_body'] or 0)+1
           achievements:check('kill')
           output:out("You kill " .. self:get_name() .. "!" .. (xp > 0 and " You gain " .. xp .. " XP!" or ""))
         else
           update_stat('ally_kills')
           update_stat('ally_kills_as_creature',player.id)
+          update_stat('ally_kills_as_class',player.class)
+          update_stat('ally_kills_as_creature_class_combo',player.id .. "_" .. player.class)
           update_stat('allied_creature_kills',self.killer.id)
           update_stat('creature_kills_by_ally',self.id)
           output:out(self.killer:get_name() .. " kills " .. self:get_name() .. "!" .. (xp > 0 and " You gain " .. xp .. " XP!" or ""))

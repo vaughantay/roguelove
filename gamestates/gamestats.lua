@@ -31,7 +31,9 @@ function gamestats:enter(previous)
   end
   
   --Deal with Stats:
-  self.stats[1] = {id="achievements",header="Achievements",label = "Achievements",stats={},expand=true}
+  if count(achievementList) > 0 then
+    self.stats[1] = {id="achievements",header="Achievements",label = "Achievements",stats={},expand=true}
+  end
   
   local abilityStats = {}
   if totalstats.ability_used then
@@ -45,35 +47,7 @@ function gamestats:enter(previous)
     table.sort(abilityStats,sortByMost)
     local whichAbil = abilityStats[1] and (abilityStats[1].ability == "Possession" or abilityStats[1].ability == "Repair Body") and (abilityStats[2] and (abilityStats[2].ability == "Possession" or abilityStats[2].ability == "Repair Body") and 3 or 2) or 1
   end
-  self.stats[2] = {id="abilities",header="Ability Usage",label = (abilityStats[whichAbil] and "Favorite Ability: " .. abilityStats[whichAbil].ability .. " (" .. abilityStats[whichAbil].uses .. " uses)" or "Favorite Abilities"),stats=abilityStats,expand=true}
-  
-  local creatTurns,fav=0,nil
-  local creatureStats = {}
-  if totalstats.turns_as_creature then
-    for creat,turns in pairs(totalstats.turns_as_creature) do
-      if possibleMonsters[creat] then --check to make sure this creature exists (it might not due to mods loaded)
-        local id = #creatureStats+1
-        creatureStats[id] = {}
-        creatureStats[id].creat = creat
-        creatureStats[id].turns = turns
-        if creat ~= "ghost" then
-          creatureStats[id].kills = (totalstats.kills_as_creature and totalstats.kills_as_creature[creat] or 0)
-          creatureStats[id].possessions = (totalstats.creature_possessions and totalstats.creature_possessions[creat] or 0)
-          creatureStats[id].explosions = (totalstats.exploded_creatures and totalstats.exploded_creatures[creat] or 0)
-          creatureStats[id].explosionPercent = round((creatureStats[id].explosions / creatureStats[id].possessions)*100)
-          local ratio = round(turns/(totalstats.creature_possessions[creat] or 1))
-          creatureStats[id].ratio = ratio
-          creatureStats[id].sortBy = ratio
-          creatureStats[id].killRatio = round((creatureStats[id].kills or 0)/((creatureStats[id].possessions and creatureStats[id].possessions > 0 and creatureStats[id].possessions) or 1))
-          if ratio > creatTurns or fav==nil then
-            creatTurns,fav=ratio,creat
-          end
-        end --end if creat ~= ghost
-      end --end check that creature exists
-    end --end creat for
-    table.sort(creatureStats,sortByMost)
-  end
-  self.stats[3] = {id="creatures",header="Creature Possession Stats",label = (fav and possibleMonsters[fav] and "Favorite Creature: " ..  ucfirst(possibleMonsters[fav].name) .. " (" .. creatTurns .. " average turns per possession)" or "Favorite Creatures"),stats=creatureStats,expand=true}
+  self.stats[#self.stats+1] = {id="abilities",header="Ability Usage",label = (abilityStats[whichAbil] and "Favorite Ability: " .. abilityStats[whichAbil].ability .. " (" .. abilityStats[whichAbil].uses .. " uses)" or "Favorite Abilities"),stats=abilityStats,expand=true}
   
   local killStats = {}
   if totalstats.creature_kills then
@@ -86,45 +60,7 @@ function gamestats:enter(previous)
     end
     table.sort(killStats,sortByMost)
   end
-  self.stats[4] = {id="kills",header="Creature Kills",label=(killStats[1] and "Most Killed Creature: " .. ucfirst(possibleMonsters[killStats[1].creat].name) .. " (" .. killStats[1].kills .. " kills)" or "Kills"),stats=killStats,expand=true}
-  
-  --[[local explosionStats = {}
-  for creat,explosions in pairs(totalstats.exploded_creatures) do
-    local id = #explosionStats+1
-    explosionStats[id] = {}
-    explosionStats[id].creat = creat
-    explosionStats[id].explosions = explosions
-    explosionStats[id].sortBy = explosions
-  end
-  table.sort(explosionStats,sortByMost)
-  self.stats[5] = {id="explosions",header="Creature Explosions",label=(killStats[1] and "Most Exploded Creature: " .. ucfirst(possibleMonsters[explosionStats[1].creat].name) .. " (" .. explosionStats[1].explosions .. " explosions)" or "Explosions"),stats=explosionStats,expand=true}]]
-  
-  local leaderStats = {}
-  if totalstats.ally_kills_as_creature then
-    for leader,kills in pairs(totalstats.ally_kills_as_creature) do
-      if leader ~= "ghost" then
-        local id = #leaderStats+1
-        local deaths = (totalstats.ally_deaths_as_creature and totalstats.ally_deaths_as_creature[leader] or 0)
-        local possessions = (totalstats.creature_possessions and totalstats.creature_possessions[leader] or 1)
-        local thralls = (totalstats.thralls_by_body and totalstats.thralls_by_body[leader] or 1)
-        local killsPerPossession = round(kills/(possessions or 1))
-        local thrallsPerPossession = round(thralls/(possessions or 1))
-        local killsPerFollower = round(kills/(thralls or 1))
-        leaderStats[id] = {}
-        leaderStats[id].creat = leader
-        leaderStats[id].kills = kills
-        leaderStats[id].thralls = thralls
-        leaderStats[id].followerDeaths = deaths
-        leaderStats[id].possessions = possessions
-        leaderStats[id].killsPerFollower = killsPerFollower
-        leaderStats[id].killsPerPossession = killsPerPossession
-        leaderStats[id].thrallsPerPossession = thrallsPerPossession
-        leaderStats[id].sortBy = killsPerFollower
-      end
-    end
-    table.sort(leaderStats,sortByMost)
-  end
-  self.stats[5] = {id="leader_kills",header = "Follower Kills as Leader",label=(leaderStats[1] and "Most Effective Leader Body: " .. ucfirst(possibleMonsters[leaderStats[1].creat].name) .. " (" .. leaderStats[1].killsPerFollower .. " Average Follower Kills)" or "Follower Kills as Leader"),stats=leaderStats,expand=true}
+  self.stats[#self.stats+1] = {id="kills",header="Creature Kills",label=(killStats[1] and "Most Killed Creature: " .. ucfirst(possibleMonsters[killStats[1].creat].name) .. " (" .. killStats[1].kills .. " kills)" or "Kills"),stats=killStats,expand=true}
   
   local followerStats = {}
   if totalstats.thralls then
@@ -143,94 +79,30 @@ function gamestats:enter(previous)
     end
     table.sort(followerStats,sortByMost)
   end
-  self.stats[6] = {id="follower_kills",header="Kills by Followers",label=(followerStats[1] and "Most Effective Follower: " .. ucfirst(possibleMonsters[followerStats[1].creat].name) .. " (" .. followerStats[1].kills .. " Average Kills per Follower)" or "Kills by Followers"),stats=followerStats,expand=true}
+  self.stats[#self.stats+1] = {id="follower_kills",header="Kills by Followers",label=(followerStats[1] and "Most Effective Follower: " .. ucfirst(possibleMonsters[followerStats[1].creat].name) .. " (" .. followerStats[1].kills .. " Average Kills per Follower)" or "Kills by Followers"),stats=followerStats,expand=true}
   
-  
-  local levelStats = {}
-  if totalstats.level_reached then
-    for level,reached in pairs(totalstats.level_reached) do
-      if type(level) == "string" then
-        local id = #levelStats+1
-        levelStats[#levelStats+1] = {}
-        local beaten = (totalstats.level_beaten and totalstats.level_beaten[level] or 0)
-        local turns = (totalstats.turns_on_level and totalstats.turns_on_level[level] or 0)
-        levelStats[id].reached = reached
-        levelStats[id].beaten = beaten
-        levelStats[id].losses = (totalstats.losses_per_level and totalstats.losses_per_level[level] or 0)
-        levelStats[id].beatPercent = round((beaten/reached or 1)*100)
-        levelStats[id].turns = turns
-        levelStats[id].avgTurns = round(turns/(reached or 1))
-        levelStats[id].avgTurnsBeat = beaten > 0 and round(turns/beaten) or "N/A"
-        levelStats[id].name = (specialLevels[level] and (specialLevels[level].genericName or specialLevels[level].generateName()) or false)
-        levelStats[id].depth = (specialLevels[level] and specialLevels[level].depth or false)
-        if not levelStats[id].name then
-          local depth = string.sub(level,8)
-          levelStats[id].name = "Non-Special Level"
-          levelStats[id].depth = tonumber(depth)
-        end
-        levelStats[id].sortBy = levelStats[id].depth
-      end
-    end
-    table.sort(levelStats,sortByLeast)
-  end
-  self.stats[7] = {id="levels",label="Stats by Level",header="Stats by Level",stats=levelStats,expand=true}
-  
-  self.stats[8] = {id="games",label="Total Games Started: " .. (totalstats.games or 0)}
-  self.stats[9] = {id="wins",label="Games Won: " .. (totalstats.wins or 0)}
-  self.stats[10] = {id="losses",label="Games Lost: " .. (totalstats.losses or 0)}
-  self.stats[11] = {id="turns",label="Total Turns Played: " .. (totalstats.turns or 0)}
-  self.stats[12] = {id="turnspergame",label="Average Turns/Game: " .. round((totalstats.turns or 0)/(totalstats.games or 1))}
+  self.stats[#self.stats+1] = {id="games",label="Total Games Started: " .. (totalstats.games or 0)}
+  self.stats[#self.stats+1] = {id="wins",label="Games Won: " .. (totalstats.wins or 0)}
+  self.stats[#self.stats+1] = {id="losses",label="Games Lost: " .. (totalstats.losses or 0)}
+  self.stats[#self.stats+1] = {id="turns",label="Total Turns Played: " .. (totalstats.turns or 0)}
+  self.stats[#self.stats+1] = {id="turnspergame",label="Average Turns/Game: " .. round((totalstats.turns or 0)/(totalstats.games or 1))}
   
   
   --Deal with Wins:
   for _, win in pairs(wins) do
     self.wins[#self.wins+1] = win
-    if win.stats and win.stats.turns_as_creature then
-      win.stats.turns_as_creature.ghost = nil
-      win.stats.favoriteCreatTurns,win.stats.favoriteCreat = get_largest(win.stats.turns_as_creature)
-      if win.stats.creature_possessions then win.stats.favoriteCreatPossessions = win.stats.creature_possessions[win.stats.favoriteCreat] end
-    end
     if win.stats and win.stats.ability_used then
-      win.stats.ability_used.Possession = nil
-      win.stats.ability_used['Repair Body'] = nil
       win.stats.favoriteAbilityTurns,win.stats.favoriteAbility = get_largest(win.stats.ability_used)
     end
-    if win.stats and win.stats.turns_on_level then
-        win.stats.favoriteLevelTurns,win.stats.favoriteLevelID = get_largest(win.stats.turns_on_level)
-        win.stats.favoriteLevel = (specialLevels[win.stats.favoriteLevelID] and specialLevels[win.stats.favoriteLevelID].generateName() or false)
-        if not win.stats.favoriteLevel then
-          local depth = (type(level) == "string" and string.sub(win.stats.favoriteLevelID,8) or win.stats.favoriteLevelID)
-          win.stats.favoriteLevel = "Generic Level " .. tostring(depth)
-        end
-      end
-    win.stats.killPossessionAverage = (win.stats.total_possessions and round((win.stats.kills or 0)/win.stats.total_possessions) or "N/A")
   end
   table.sort(self.wins,sortByDate)
   
   --Deal with Deaths:
-  for depth,level in pairs(graveyard) do
-    for _, grave in pairs(level) do
-      grave.saying = gravesayings[random(#gravesayings)]
-      grave.depth = depth
-      self.graveyard[#self.graveyard+1] = grave
-      if grave.stats and grave.stats.turns_as_creature then
-        grave.stats.turns_as_creature.ghost = nil
-        grave.stats.favoriteCreatTurns,grave.stats.favoriteCreat = get_largest(grave.stats.turns_as_creature)
-        if grave.stats.creature_possessions then grave.stats.favoriteCreatPossessions = grave.stats.creature_possessions[grave.stats.favoriteCreat] end
-      end
-      if grave.stats and grave.stats.ability_used then
-        grave.stats.ability_used.Possession = nil
-        grave.stats.favoriteAbilityTurns,grave.stats.favoriteAbility = get_largest(grave.stats.ability_used)
-      end
-      if grave.stats and grave.stats.turns_on_level then
-        grave.stats.favoriteLevelTurns,grave.stats.favoriteLevelID = get_largest(grave.stats.turns_on_level)
-        grave.stats.favoriteLevel = (specialLevels[grave.stats.favoriteLevelID] and specialLevels[grave.stats.favoriteLevelID].generateName() or false)
-        if not grave.stats.favoriteLevel then
-          local depth = (type(level) == "string" and string.sub(grave.stats.favoriteLevelID,8) or grave.stats.favoriteLevelID)
-          grave.stats.favoriteLevel = "Generic Level " .. depth
-        end
-      end
-      grave.stats.killPossessionAverage = (grave.stats.total_possessions and round((grave.stats.kills or 0)/grave.stats.total_possessions) or "N/A")
+  for i,grave in pairs(graveyard) do
+    grave.saying = gravesayings[random(#gravesayings)]
+    self.graveyard[#self.graveyard+1] = grave
+    if grave.stats and grave.stats.ability_used then
+      grave.stats.favoriteAbilityTurns,grave.stats.favoriteAbility = get_largest(grave.stats.ability_used)
     end
   end
   table.sort(self.graveyard,sortByDate)
@@ -240,20 +112,24 @@ function gamestats:enter(previous)
   for _,win in pairs(self.wins) do
     totalWinTurns = totalWinTurns+(win.stats.turns or 0)
   end
-  self.stats[13] = {id="turnsperwin",label="Average Turns/Win: " .. (totalstats.wins and round(totalWinTurns/totalstats.wins) or "N/A"),stats={}}
+  self.stats[#self.stats+1] = {id="turnsperwin",label="Average Turns/Win: " .. (totalstats.wins and round(totalWinTurns/totalstats.wins) or "N/A"),stats={}}
   local totalLossTurns = 0
   for _,grave in pairs(self.graveyard) do
-    totalLossTurns = totalLossTurns+grave.stats.turns
+    totalLossTurns = totalLossTurns+(grave.stats and grave.stats.turns or 0)
   end
-  self.stats[14] = {id="turnsperloss",label="Average Turns/Loss: " .. round(totalLossTurns/(totalstats.losses or 1)),stats={}}
+  self.stats[#self.stats+1] = {id="turnsperloss",label="Average Turns/Loss: " .. round(totalLossTurns/(totalstats.losses or 1)),stats={}}
 end
 
 function gamestats:draw()
   self.previous:draw()
-  local width, height = love.graphics:getWidth(),love.graphics:getHeight()
   local padding=prefs['noImages'] and 14 or 32
   local fontSize = prefs['fontSize']
+  local uiScale = prefs['uiScale'] or 1
+  local width, height = math.floor(love.graphics:getWidth()/uiScale),math.floor(love.graphics:getHeight()/uiScale)
+  local mouseX,mouseY = love.mouse.getPosition()
+  mouseX,mouseY = math.floor(mouseX/uiScale),math.floor(mouseY/uiScale)
   love.graphics.push()
+  love.graphics.scale(uiScale,uiScale)
   love.graphics.translate(0,height*(self.yModPerc/100))
   --Draw top nav bar:
   
@@ -261,32 +137,11 @@ function gamestats:draw()
   self.closebutton = output:closebutton(math.floor(padding/2),math.floor(padding/2))
   love.graphics.setFont(fonts.graveFontBig)
   local buttonWidth = fonts.graveFontBig:getWidth("Stats")
-  self.statsbutton = output:button(padding,padding,buttonWidth,false,(self.cursorY == 1 and self.cursorX == 1 and "hover" or nil),"Stats")
+  self.statsbutton = output:button(padding,padding,buttonWidth,false,(self.cursorY == 1 and self.cursorX == 1 and "hover" or nil),"Stats",true)
   buttonWidth = fonts.graveFontBig:getWidth("Wins" .. (totalstats.wins and "(" .. totalstats.wins .. ")" or ""))
-  self.winsbutton = output:button(math.floor((width-padding-buttonWidth)/2),padding,buttonWidth,false,(self.cursorY == 1 and self.cursorX == 2 and "hover" or nil),"Wins" .. (totalstats.wins and "(" .. totalstats.wins .. ")" or ""))
+  self.winsbutton = output:button(math.floor((width-padding-buttonWidth)/2),padding,buttonWidth,false,(self.cursorY == 1 and self.cursorX == 2 and "hover" or nil),"Wins" .. (totalstats.wins and "(" .. totalstats.wins .. ")" or ""),true)
   buttonWidth = fonts.graveFontBig:getWidth("Losses" .. (totalstats.losses and "(" .. totalstats.losses .. ")" or ""))
-  self.lossesbutton = output:button(width-padding-buttonWidth,padding,buttonWidth,false,(self.cursorY == 1 and self.cursorX == 3 and "hover" or nil),"Losses" .. (totalstats.losses and "(" .. totalstats.losses .. ")" or ""))
-  --[[if self.cursorY == 1 and self.cursorX == 1 then
-    local w = fonts.graveFontBig:getWidth("Stats")
-    setColor(100,100,100,255)
-    love.graphics.rectangle("fill",math.floor(padding/3)*2,math.floor(padding/3)*2,w+math.floor(padding/3)*2,48)
-    setColor(255,255,255,255)
-  end
-  love.graphics.printf("Stats",padding,math.floor(padding/3)*2,width-padding*2,"left")
-  if self.cursorY == 1 and self.cursorX == 2 then
-    local w = fonts.graveFontBig:getWidth("Wins (" .. (totalstats.wins or 0) .. ")")
-    setColor(100,100,100,255)
-    love.graphics.rectangle("fill",math.floor(width/2)-w,math.floor(padding/3)*2,w+padding,48)
-    setColor(255,255,255,255)
-  end
-  love.graphics.printf("Wins (" .. (totalstats.wins or 0) .. ")",padding,math.floor(padding/3)*2,width-padding*2,"center")
-  if self.cursorY == 1 and self.cursorX == 3 then
-    local w = fonts.graveFontBig:getWidth("Losses (" .. (totalstats.losses or 0) .. ")")
-    setColor(100,100,100,255)
-    love.graphics.rectangle("fill",width-(w+math.floor(padding/3)*2)-padding,math.floor(padding/3)*2,w+padding,48)
-    setColor(255,255,255,255)
-  end
-  love.graphics.printf("Losses (" .. (totalstats.losses or 0) .. ")",padding,math.floor(padding/3)*2,width-padding*2,"right")]]
+  self.lossesbutton = output:button(width-padding-buttonWidth,padding,buttonWidth,false,(self.cursorY == 1 and self.cursorX == 3 and "hover" or nil),"Losses" .. (totalstats.losses and "(" .. totalstats.losses .. ")" or ""),true)
   if self.screen == "stats" then
     local w1end,w2start,w2end = math.floor(width/2),math.ceil(width/2)+padding,math.ceil(width/2)+math.floor(width/2)-padding
     local windowY = 64+padding
@@ -299,7 +154,7 @@ function gamestats:draw()
     love.graphics.setFont(fonts.textFont)
     if self.maxTransY < 0 then
       local scrollAmt = self.transY / self.maxTransY
-      self.scrollPositions = output:scrollbar(w1end-padding,96+padding*2,height-padding,scrollAmt)
+      self.scrollPositions = output:scrollbar(w1end-padding,96+padding*2,height-padding,scrollAmt,true)
     end
     love.graphics.push()
     local function stencilFunc()
@@ -309,7 +164,6 @@ function gamestats:draw()
     love.graphics.setStencilTest("greater",0)
     love.graphics.translate(0,self.transY)
     local printY = 80+padding*3
-    local mouseX,mouseY = love.mouse.getPosition()
     
     --Display the stat list:
     for id,stat in ipairs(self.stats) do
@@ -347,10 +201,10 @@ function gamestats:draw()
       end
       love.graphics.stencil(stencilFunc,"replace",1)
       love.graphics.setStencilTest("greater",0)
-      if stat.id == "achievements" then
+      if stat.id == "achievements" and count(achievementList) > 0 then
         if self.maxSideTransY < 0 then
           local scrollAmt = self.sideTransY / self.maxSideTransY
-          self.sideScrollPositions = output:scrollbar(width-padding*2,96+padding*2,height-padding,scrollAmt)
+          self.sideScrollPositions = output:scrollbar(width-padding*2,96+padding*2,height-padding,scrollAmt,true)
         end
         love.graphics.push()
         love.graphics.translate(0,self.sideTransY)
@@ -444,7 +298,7 @@ function gamestats:draw()
       elseif stat.id == "abilities" then
         if self.maxSideTransY < 0 then
           local scrollAmt = self.sideTransY / self.maxSideTransY
-          self.sideScrollPositions = output:scrollbar(width-padding*2,96+padding*2,height-padding,scrollAmt)
+          self.sideScrollPositions = output:scrollbar(width-padding*2,96+padding*2,height-padding,scrollAmt,true)
         end
         love.graphics.push()
         love.graphics.translate(0,self.sideTransY)
@@ -463,7 +317,7 @@ function gamestats:draw()
             setColor(255,255,255,255)
           end
           local scrollAmt = self.sideTransY / self.maxSideTransY
-          self.sideScrollPositions = output:scrollbar(width-padding*2,96+padding*2,height-padding,scrollAmt)
+          self.sideScrollPositions = output:scrollbar(width-padding*2,96+padding*2,height-padding,scrollAmt,true)
         end
         love.graphics.push()
         love.graphics.translate(0,self.sideTransY)
@@ -517,7 +371,7 @@ function gamestats:draw()
             setColor(255,255,255,255)
           end
           local scrollAmt = self.sideTransY / self.maxSideTransY
-          self.sideScrollPositions = output:scrollbar(width-padding*2,96+padding*2,height-padding,scrollAmt)
+          self.sideScrollPositions = output:scrollbar(width-padding*2,96+padding*2,height-padding,scrollAmt,true)
         end
         love.graphics.push()
         love.graphics.translate(0,self.sideTransY)
@@ -548,7 +402,7 @@ function gamestats:draw()
             setColor(255,255,255,255)
           end
           local scrollAmt = self.sideTransY / self.maxSideTransY
-          self.sideScrollPositions = output:scrollbar(width-padding*2,96+padding*2,height-padding,scrollAmt)
+          self.sideScrollPositions = output:scrollbar(width-padding*2,96+padding*2,height-padding,scrollAmt,true)
         end
         love.graphics.push()
         love.graphics.translate(0,self.sideTransY)
@@ -587,7 +441,7 @@ function gamestats:draw()
             setColor(255,255,255,255)
           end
           local scrollAmt = self.sideTransY / self.maxSideTransY
-          self.sideScrollPositions = output:scrollbar(width-padding*2,96+padding*2,height-padding,scrollAmt)
+          self.sideScrollPositions = output:scrollbar(width-padding*2,96+padding*2,height-padding,scrollAmt,true)
         end
         love.graphics.push()
         love.graphics.translate(0,self.sideTransY)
@@ -620,7 +474,7 @@ function gamestats:draw()
             setColor(255,255,255,255)
           end
           local scrollAmt = self.sideTransY / self.maxSideTransY
-          self.sideScrollPositions = output:scrollbar(width-padding*2,96+padding*2,height-padding,scrollAmt)
+          self.sideScrollPositions = output:scrollbar(width-padding*2,96+padding*2,height-padding,scrollAmt,true)
         end
         love.graphics.push()
         love.graphics.translate(0,self.sideTransY)
@@ -657,7 +511,7 @@ function gamestats:draw()
     love.graphics.setFont(fonts.textFont)
     if self.maxTransY < 0 then
       local scrollAmt = self.transY / self.maxTransY
-      self.scrollPositions = output:scrollbar(w1end-padding,96+padding*2,height-padding,scrollAmt)
+      self.scrollPositions = output:scrollbar(w1end-padding,96+padding*2,height-padding,scrollAmt,true)
     end
     love.graphics.push()
     local function stencilFunc()
@@ -668,8 +522,8 @@ function gamestats:draw()
     love.graphics.translate(0,self.transY)
     local printY = windowY+padding*2
     for id,grave in ipairs(self.wins) do
-      local dateWidth = fonts.textFont:getWidth("Won " .. os.date("%H:%M, %b %d, %Y",grave.date))
-      local _,tlines = fonts.textFont:getWrap(grave.name,w1end-padding-dateWidth)
+      local dateWidth = fonts.textFont:getWidth(os.date("%H:%M, %b %d, %Y",grave.date))
+      local _,tlines = fonts.textFont:getWrap(grave.properName .. ", " .. ucfirst(grave.name),w1end-padding-dateWidth)
       if self.cursorY-1 == id then
         setColor(100,100,100,255)
         love.graphics.rectangle("fill",padding,printY,w1end-padding*2,math.ceil(2+fontSize*#tlines*1.15))
@@ -683,8 +537,8 @@ function gamestats:draw()
         end
       end
       grave.printY = printY
-      love.graphics.printf(grave.name .. (grave.maxY or ""),padding,printY,w1end-padding-dateWidth,"left")
-      love.graphics.printf(os.date("%H:%M, %b %d, %Y",grave.date),w1end-padding-dateWidth,printY,dateWidth,"right")
+      love.graphics.printf(grave.properName .. ", " .. ucfirst(grave.name),padding,printY,w1end-padding-dateWidth,"left")
+      love.graphics.printf(os.date("%H:%M, %b %d, %Y",grave.date),w1end-padding*2-dateWidth,printY,dateWidth,"right")
       printY = math.ceil(printY+fontSize*#tlines*1.25)
       grave.maxY = printY
     end
@@ -695,8 +549,8 @@ function gamestats:draw()
       local win = self.wins[self.cursorY-1]
       local printY = windowY+math.floor(padding/2)
       love.graphics.setFont(fonts.graveFontBig)
-      love.graphics.printf(win.name,w2start,printY,w2end-w2start,"center")
-      local _,lines = fonts.graveFontBig:getWrap(win.name,w2end-w2start+padding)
+      love.graphics.printf(win.properName .. "\n" .. ucfirst(win.name),w2start,printY,w2end-w2start,"center")
+      local _,lines = fonts.graveFontBig:getWrap(win.properName .. "\n" .. ucfirst(win.name),w2end-w2start+padding)
       printY = printY+padding*#lines
       love.graphics.setFont(fonts.graveFontSmall)
       love.graphics.printf(os.date("%H:%M, %b %d, %Y",win.date),w2start,printY,w2end-w2start,"center")
@@ -705,12 +559,7 @@ function gamestats:draw()
         love.graphics.setFont(fonts.textFont)
         local winText = "Turns played: " .. (win.stats.turns or 0)
         winText = winText .. "\nKills: " .. (win.stats.kills or 0)
-        winText = winText .. "\nPossessions: " .. (win.stats.total_possessions or 0)
-        winText = winText .. "\nAverage Kills per Body: " .. (win.stats.killPossessionAverage or 0)
-        winText = winText .. "\nBodies exploded: " .. (win.stats.explosions or 0)
-        winText = winText .. "\nMost Time As: " .. (win.stats.favoriteCreat and ucfirst(possibleMonsters[win.stats.favoriteCreat].name) .. " (" .. win.stats.favoriteCreatTurns .. " turns, " .. (win.stats.favoriteCreatPossessions or "Unknown") .. " possessions)" or "Unknown")
         winText = winText .. "\nFavorite Ability: " .. (win.stats.favoriteAbility and win.stats.favoriteAbility .. " (" .. win.stats.favoriteAbilityTurns .. " uses)" or "Unknown")
-        winText = winText .. "\nMost Time Spent On: " .. (win.stats.favoriteLevel and win.stats.favoriteLevel .. " (" .. win.stats.favoriteLevelTurns .. " turns)" or "Unknown")
         love.graphics.printf(winText,w2start+padding,printY,w2end-w2start-padding,"left")
       end
     end
@@ -725,7 +574,7 @@ function gamestats:draw()
     love.graphics.setFont(fonts.textFont)
     if self.maxTransY < 0 then
       local scrollAmt = self.transY / self.maxTransY
-      self.scrollPositions = output:scrollbar(w1end-padding,96+padding*2,height-padding,scrollAmt)
+      self.scrollPositions = output:scrollbar(w1end-padding,96+padding*2,height-padding,scrollAmt,true)
     end
     love.graphics.push()
     local function stencilFunc()
@@ -737,21 +586,20 @@ function gamestats:draw()
     local printY = windowY+padding*2
     for id,grave in ipairs(self.graveyard) do
       local dateWidth = fonts.textFont:getWidth(os.date("%H:%M, %b %d, %Y",grave.date))
-      local _,tlines = fonts.textFont:getWrap(grave.name,w1end-padding-dateWidth)
+      local _,tlines = fonts.textFont:getWrap(grave.properName .. ", " .. ucfirst(grave.name),w1end-padding-dateWidth)
       if self.cursorY-1 == id then
         setColor(100,100,100,255)
         love.graphics.rectangle("fill",padding,printY,w1end-padding*2,math.ceil(2+fontSize*#tlines*1.15))
         setColor(255,255,255,255)
       else
-        local mouseX,mouseY = love.mouse.getPosition()
-        if mouseY-self.transY > printY and mouseY-self.transY < printY+fontSize*#tlines*1.25 and mouseX > padding and mouseX < w1end-padding then
+        if mouseY-self.transY > printY and mouseY-self.transY < printY+fontSize*(#tlines*1.25) and mouseX > padding and mouseX < w1end-padding then
           setColor(66,66,66,255)
           love.graphics.rectangle("fill",padding,printY,w1end-padding*2,math.ceil(2+fontSize*#tlines*1.15))
           setColor(255,255,255,255)
         end
       end
       grave.printY = printY
-      love.graphics.printf(grave.name,padding,printY,w1end-padding-dateWidth,"left")
+      love.graphics.printf(grave.properName .. ", " .. ucfirst(grave.name),padding,printY,w1end-padding*2-dateWidth,"left")
       love.graphics.printf(os.date("%H:%M, %b %d, %Y",grave.date),w1end-padding-dateWidth,printY,dateWidth,"right")
       printY = printY+math.ceil(fontSize*#tlines*1.25)
       grave.maxY = printY
@@ -765,8 +613,8 @@ function gamestats:draw()
       love.graphics.setFont(fonts.graveFontBig)
       love.graphics.printf(grave.saying,w2start,printY,w2end-w2start,"center")
       printY = printY+padding
-      love.graphics.printf(grave.name,w2start,printY,w2end-w2start,"center")
-      local _,lines = fonts.graveFontBig:getWrap(grave.name,w2end-w2start+padding)
+      love.graphics.printf(grave.properName .. "\n" .. ucfirst(grave.name),w2start,printY,w2end-w2start,"center")
+      local _,lines = fonts.graveFontBig:getWrap(grave.properName .. "\n" .. ucfirst(grave.name),w2end-w2start+padding)
       printY = printY+padding*#lines
       love.graphics.setFont(fonts.graveFontSmall)
       love.graphics.printf("Killed by " .. grave.killer,w2start,printY,w2end-w2start,"center")
@@ -775,18 +623,13 @@ function gamestats:draw()
       love.graphics.printf("at " .. os.date("%H:%M, %b %d, %Y",grave.date),w2start,printY,w2end-w2start,"center")
       _,lines = fonts.graveFontBig:getWrap("at " .. os.date("%H:%M, %b %d, %Y",grave.date),w2end-w2start+padding)
       printY = printY+math.floor(padding/3)*2*#lines
-      love.graphics.printf((grave.levelname and grave.levelname .. ", " or "") .. "Depth " .. grave.depth,w2start,printY,w2end-w2start,"center")
+      love.graphics.printf((grave.mapname and grave.mapname or ""),w2start,printY,w2end-w2start,"center")
       printY = printY+padding
       if grave.stats then
         love.graphics.setFont(fonts.textFont)
         local graveText = "Turns played: " .. (grave.stats.turns or 0)
         graveText = graveText .. "\nKills: " .. (grave.stats.kills or 0)
-        graveText = graveText .. "\nPossessions: " .. (grave.stats.total_possessions or 0)
-        graveText = graveText .. "\nAverage Kills per Body: " .. (grave.stats.killPossessionAverage or 0)
-        graveText = graveText .. "\nBodies exploded: " .. (grave.stats.explosions or 0)
-        graveText = graveText .. "\nMost Time As: " .. (grave.stats.favoriteCreat and ucfirst(possibleMonsters[grave.stats.favoriteCreat].name) .. " (" .. grave.stats.favoriteCreatTurns .. " turns, " .. (grave.stats.favoriteCreatPossessions or "Unknown") .. " possessions)" or "Unknown")
         graveText = graveText .. "\nFavorite Ability: " .. (grave.stats.favoriteAbility and grave.stats.favoriteAbility .. " (" .. grave.stats.favoriteAbilityTurns .. " uses)" or "Unknown")
-        graveText = graveText .. "\nMost Time Spent On: " .. (grave.stats.favoriteLevel and grave.stats.favoriteLevel .. " (" .. grave.stats.favoriteLevelTurns .. " turns)" or "Unknown")
         love.graphics.printf(graveText,w2start+padding,printY,w2end-w2start-padding,"left")
       end
     end
@@ -931,6 +774,7 @@ function gamestats:sidebarScrollUp()
 end
 
 function gamestats:update(dt)
+  local uiScale = prefs['uiScale'] or 1
   if self.switchNow == true then
     self.switchNow = nil
     Gamestate.switch(self.previous)
@@ -938,9 +782,10 @@ function gamestats:update(dt)
     return
   end
   
-   --Handle scrolling:
+  --Handle scrolling:
+  local x,y = love.mouse.getPosition()
+  x,y = math.floor(x/uiScale),math.floor(y/uiScale)
   if (love.mouse.isDown(1)) and self.sideScrollPositions then
-    local x,y = love.mouse.getPosition()
     local upArrow = self.sideScrollPositions.upArrow
     local downArrow = self.sideScrollPositions.downArrow
     local elevator = self.sideScrollPositions.elevator
@@ -954,7 +799,6 @@ function gamestats:update(dt)
     end --end clicking on arrow
   end
   if (love.mouse.isDown(1)) and self.scrollPositions then
-    local x,y = love.mouse.getPosition()
     local upArrow = self.scrollPositions.upArrow
     local downArrow = self.scrollPositions.downArrow
     local elevator = self.scrollPositions.elevator
@@ -976,6 +820,8 @@ function gamestats:switchBack()
 end
 
 function gamestats:mousepressed(x,y,button)
+  local uiScale = prefs['uiScale'] or 1
+  x,y = math.floor(x/uiScale),math.floor(y/uiScale)
   if button == 2 or (x > self.closebutton.minX and x < self.closebutton.maxX and y > self.closebutton.minY and y < self.closebutton.maxY) then
     self:switchBack()
   elseif x > self.statsbutton.minX and x < self.statsbutton.maxX and y > self.statsbutton.minY and y < self.statsbutton.maxY then
@@ -983,16 +829,19 @@ function gamestats:mousepressed(x,y,button)
     self.transY = 0
     self.cursorY = 1
     self.cursorX = 1
+    return
   elseif x > self.winsbutton.minX and x < self.winsbutton.maxX and y > self.winsbutton.minY and y < self.winsbutton.maxY then
     self.screen = "wins"
     self.transY = 0
     self.cursorY = 1
     self.cursorX = 2
+    return
   elseif x > self.lossesbutton.minX and x < self.lossesbutton.maxX and y > self.lossesbutton.minY and y < self.lossesbutton.maxY then
     self.screen = "losses"
     self.transY = 0
     self.cursorY = 1
     self.cursorX = 3
+    return
   end 
    
   local padding=prefs['noImages'] and 14 or 32

@@ -51,7 +51,7 @@ function menu:draw()
     local startX = math.ceil(width/2-URLwidth/2)+8
     local mouseX,mouseY = love.mouse.getPosition()
     mouseX,mouseY = mouseX/uiScale,mouseY/uiScale
-    if mouseY >= height-prefs['fontSize']*2 and mouseY <= height-prefs['fontSize'] and mouseX >= startX and mouseX <= startX+URLwidth then
+    if Gamestate.current() == menu and mouseY >= height-prefs['fontSize']*2 and mouseY <= height-prefs['fontSize'] and mouseX >= startX and mouseX <= startX+URLwidth then
       love.graphics.line(startX,height-prefs['fontSize'],startX+URLwidth,height-prefs['fontSize'])
     end
   end

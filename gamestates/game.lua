@@ -37,8 +37,8 @@ function game:draw()
   setColor(0,0,0,100)
   love.graphics.rectangle('fill',0,0,width,16)
   setColor(255,255,255,255)
-  local branch = currWorld.branches[currMap.branch]
-  love.graphics.printf((not branch.hideName and branch.name or "") .. (not branch.hideDepth and " " .. (branch.depthName or "Depth") .. " " .. currMap.depth or "") .. (currMap.name and (not branch.hideName or not branch.hideDepth) and ": " or "") .. (currMap.name or ""),0,0,width,"center")
+  local mapName = currMap:get_name()
+  love.graphics.printf(mapName,0,0,width,"center")
   self.menuButton = output:closebutton(8,8,false,true,'menu')
   if action == "targeting" then
     local text = "Select Target"
@@ -1953,7 +1953,7 @@ local Popup = Class{}
 function game:show_map_description()
   local _, count = string.gsub(currMap.description, "\n", "\n")
   local branch = currWorld.branches[currMap.branch]
-  self.popup = Popup(currMap.description,(not branch.hideName and branch.name or "") .. (not branch.hideDepth and " " .. (branch.depthName or "Depth") .. " " .. currMap.depth or "") .. (currMap.name and (not branch.hideName or not branch.hideDepth) and "\n" or "") .. (currMap.name or "") .. "\n" .. " ",4+count,true)
+  self.popup = Popup(currMap.description,currMap:get_name() .. "\n" .. " ",4+count,true)
   output:sound('interface_bang')
 end
 
