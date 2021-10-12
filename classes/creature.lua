@@ -544,7 +544,7 @@ function Creature:callbacks(callback_type,...)
       if type(possibleItems[equip.id][callback_type]) == "function" then
         local status,r = pcall(possibleItems[equip.id][callback_type],equip,self,unpack({...}))
         if status == false then
-          output:out("Error in spell " .. possibleSpells[spell].name .. " callback \"" .. callback_type .. "\": " .. r)
+          output:out("Error in item " .. possibleItems[equip.id].name .. " callback \"" .. callback_type .. "\": " .. r)
         end
         if (r == false) then return false end
         if r ~= nil and type(r) ~= "boolean" then table.insert(ret,r) end
@@ -553,7 +553,7 @@ function Creature:callbacks(callback_type,...)
         if type(enchantments[ench][callback_type]) == "function" then
           local status,r = pcall(enchantments[ench][callback_type],equip,self,unpack({...}))
           if status == false then
-            output:out("Error in spell " .. possibleSpells[spell].name .. " callback \"" .. callback_type .. "\": " .. r)
+            output:out("Error in enchantment " .. enchantments[ench].name .. " callback \"" .. callback_type .. "\": " .. r)
           end
           if (r == false) then return false end
           if r ~= nil and type(r) ~= "boolean" then table.insert(ret,r) end
@@ -1038,8 +1038,8 @@ function Creature:die(killer)
       update_stat('creature_ally_deaths',self.id)
     end
     if (self.killer and self.killer.baseType == "creature") then
-      local xp = math.max(0,10-(self.level-self.killer.level))
-      self.killer:give_xp(xp)
+      local xp = math.max(0,10-(self.killer.level-self.level))
+      if xp > 0 then self.killer:give_xp(xp) end
       local favor = self:get_kill_favor()
       if (self.killer.playerAlly == true) then
         if self.killer == player then
@@ -2229,6 +2229,13 @@ function Creature:level_up(force)
       local mpInc = random(2,6)
       self.max_mp = self.max_mp + mpInc
       self.mp = self.mp + mpInc
+    end
+  end
+  if self.extra_stats then
+    for stat_id,stat in pairs(self.extra_stats) do
+      if stat.increase_per_level then
+        stat.max = stat.max+stat.increase_per_level
+      end
     end
   end
   if self.class and playerClasses[self.class].learns_spells then

@@ -77,6 +77,13 @@ demondamager2 = Spell({
     else
       return damage
     end
+  end,
+  learn_requires = function(self,learner)
+    if learner:has_spell('demondamager') then
+      return true
+    else
+      return false,"You need to know the basics about hurting demons before you can learn this."
+    end
   end
 }),
 

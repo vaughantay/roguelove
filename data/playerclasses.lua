@@ -8,7 +8,7 @@ playerClasses = {
     items={{item="holywater",amount=2},{item="scroll",passed_info={'holy'},displayName = "3 Random Holy Scrolls",amount=3}}, --These items will be granted on game start
     equipment={{item="dagger",enchantment="blessed",enchantment_turns=5,displayName="Blessed Dagger"}}, --These items will be equipped on game start
     learns_spells={{spell="smite",level=2}}, --These spells will be automatically granted once a certain level is reached
-    spell_purchases={{spell="summonangel",level=1,cost=5}, {spell="smite",level=1,cost=5}, {spell="demondamager2",level=1,cost=1,requires="demondamager",replaces="demondamager"}}, --These spells will show up as options to learn (requiring spending points on them)
+    spell_purchases={{spell="summonangel",level=1,cost=5}, {spell="smite",level=1,cost=5}, {spell="demondamager2",level=1,cost=1}}, --These spells will show up as options to learn (requiring spending points on them)
     spell_choices={}, --These spells will show up as options when you reach their level, and you can choose one of them
     weaknesses={}, --These will be added to the characters' base weaknesses
     resistances={holy=25}, --These will be added the the characters' base resistances
@@ -38,7 +38,7 @@ playerClasses = {
     favor={village=-1,barbariangod=100}, --List of favor scores the character starts with
     factions={"barbariangod"}, --List of factions the character begins as a member of
     stat_modifiers={strength=10,melee=10,armor=2}, --These values will be added to the characters' base stats
-    extra_stats={fury={name="Fury",value=0,min=0,max=100,bar_color={r=255,g=255,b=0,a=255}}},
+    extra_stats={fury={name="Fury",value=0,min=0,max=100,can_increase_with_points=true,increase_per_level=10,increase_per_point=10,bar_color={r=255,g=255,b=0,a=255}}},
     starting_branch="wilderness",
     placed = function(creature,map)
       for x=2,map.width,1 do
