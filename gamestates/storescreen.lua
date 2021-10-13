@@ -379,19 +379,24 @@ function storescreen:draw()
       serviceCount = serviceCount+1
       local servID = servData.service
       local service = possibleServices[servID]
-      local costText = service:get_cost_text(player) or servData.costText or service.costText or (servData.cost and "$" .. servData.cost or nil)
+      local costText = service:get_cost_text(player) or servData.costText or service.costText or (servData.cost and (self.currency_item and servData.cost .. " " .. (self.currency_item.pluralName or " x " .. self.currency_item.name) or "$" .. servData.cost) or nil)
       local serviceText = service.name .. (costText and " (Cost: " .. costText .. ")" or "") .. "\n" .. service.description
       local __, wrappedtext = fonts.textFont:getWrap(serviceText, windowWidth)
       love.graphics.printf(serviceText,windowX,printY,windowWidth,"center")
       printY=printY+(#wrappedtext)*fontSize
       
-      local canDo,canDoText = nil,nil
-      if servData.cost and player.money < servData.cost then
-        canDoText = "You don't have enough money."
-        canDo = false
-      elseif not service.requires then
-        canDo=true
-      else
+      local canDo,canDoText = true,nil
+      if servData.cost then
+        local playerItem = (self.currency_item and player:has_item(self.store.currency_item) or nil)
+        if self.currency_item and (not playerItem or playerItem.amount < servData.cost) then
+          canDoText = "You don't have enough " .. (self.currency_item.pluralName or self.currency_item.name) .. "."
+          canDo = false
+        elseif player.money < servData.cost then
+          canDoText = "You don't have enough money."
+          canDo = false
+        end
+      end
+      if canDo ~= false and service.requires then
         canDo,canDoText = service:requires(player)
       end
       if canDo == false then
@@ -441,20 +446,29 @@ function storescreen:draw()
     love.graphics.stencil(stencilFunc,"replace",1)
     love.graphics.setStencilTest("greater",0)
     love.graphics.translate(0,-self.scrollY)
+    
     for i,spellDef in ipairs(self.store.teaches_spells or {}) do
       if not player:has_spell(spellDef.spell) then
         spellCount = spellCount + 1
         local spell = possibleSpells[spellDef.spell]
         local costText = nil
         if spellDef.cost then
-          costText = " (Cost: $" .. spellDef.cost .. ")"
+          if self.currency_item then
+            costText = " (Cost: " .. spellDef.cost .. " " .. (self.currency_item.pluralName or self.currency_Item.name) .. ")"
+          else
+            costText = " (Cost: $" .. spellDef.cost .. ")"
+          end
         end
         local spellText = spell.name .. (costText or "") .. "\n" .. spell.description
         local __, wrappedtext = fonts.textFont:getWrap(spellText, windowWidth)
         love.graphics.printf(spellText,windowX,printY,windowWidth,"center")
         printY=printY+(#wrappedtext)*fontSize
-        if spellDef.cost and player.money < spellDef.cost then
+        local playerItem = (self.currency_item and player:has_item(self.store.currency_item) or nil)
+        if spellDef.cost and not self.currency_item and player.money < spellDef.cost then
           love.graphics.printf("You don't have enough money to learn this ability.",windowX,printY,windowWidth,"center")
+          printY=printY+fontSize
+        elseif spellDef.cost and self.currency_item and (not playerItem or playerItem.amount < spellDef.cost) then
+          love.graphics.printf("You don't have enough " .. (self.currency_item.pluralName or self.currency_item.name) .. " to learn this ability.",windowX,printY,windowWidth,"center")
           printY=printY+fontSize
         else
           local ret,text = player:can_learn_spell(spellDef.spell)
@@ -527,8 +541,13 @@ function storescreen:keypressed(key)
         local didIt, useText = service:activate(player)
         if useText then self.outText = useText end
         if serviceData.cost then
-          player.money = player.money - serviceData.cost
-          self.outText = (self.outText .. "\n" or "") .. "You lose $" .. serviceData.cost .. "."
+          if self.currency_item then
+            local creatureItem = player:has_item(self.store.currency_item)
+            player:delete_item(creatureItem,serviceData.cost)
+          else
+            player.money = player.money - serviceData.cost
+            self.outText = (self.outText .. "\n" or "") .. "You lose $" .. serviceData.cost .. "."
+          end
         end
       end
     elseif self.screen == "Spells" then
@@ -674,8 +693,13 @@ function storescreen:mousepressed(x,y,button)
         local didIt, useText = service:activate(player)
         if didIt and useText then self.outText = useText end
         if serviceData.cost then
-          player.money = player.money - serviceData.cost
-          self.outText = (self.outText .. "\n" or "") .. "You lose $" .. serviceData.cost .. "."
+          if self.currency_item then
+            local creatureItem = player:has_item(self.store.currency_item)
+            player:delete_item(creatureItem,serviceData.cost)
+          else
+            player.money = player.money - serviceData.cost
+            self.outText = (self.outText .. "\n" or "") .. "You lose $" .. serviceData.cost .. "."
+          end
         end
       end--end button coordinate if
     end--end button for

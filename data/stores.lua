@@ -12,7 +12,7 @@ local healthstore = {
   teaches_spells = {{spell="heal_other",cost = 100}}, --spells that this store teaches
   tags={"organized"}, --Tags to be used to determine if a store can spawn in a map
   currency_item = nil, --The item to use as currency, instead of money
-  multiple_locations=true --If this is set to true, this store can spawn in multiple locations. The locations will share inventory. If not set, the store can only spawn once per game
+  multiple_locations=true --If this is set to true, this store can spawn in multiple locations, each with separate inventory. If not set, the store can only spawn once per game
 }
 function healthstore:generate_items()
 end
