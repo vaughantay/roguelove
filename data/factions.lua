@@ -21,6 +21,8 @@ possibleFactions['lightchurch'] = {
   enter_threshold = 0, --The amount of favor below which you're not allowed to do business with the faction
   join_threshold = 100, --The amount of favor you need to be eligible to join the faction
   banish_threshold=0, --If your favor falls below this, you'll be kicked out of the faction
+  faction_cost_modifiers={lightchurch=-10,grievers=-5}, --table of percentages by which monetary (not favor!) costs of goods and services are increased/decreased based on faction membership. Does not stack with multiple factions; the highest absolute value is used. Does stack with favor cost modifier.
+  favor_cost_modifiers={[0]=10,[50]=0,[100]=-5,[150]=-10,[200]=-15}, --table of percentages by which monetary (not favor!) costs of goods and services are increased/decreased based on favor with this faction. Stacks with faction cost modifier. The highest absolute value is used.
   sells_items = {{item="holywater",favorCost=5,moneyCost=50,amount=10,restock_amount=2,restock_to=5}, {item="dagger",favorCost=250,amount=1,membersOnly=true,artifact=true},{item="dagger",favorCost=10,amount=5,enchantments={"blessed"}},{item="scroll",favorCost=1,moneyCost=5,amount=5,restock_amount=1}}, --pre-defined items that this faction sells to friendly players
   sells_tags = {"holy"}, --Tags for randomly-generated items that will be sold by the shop
   passedTags = {"holy"}, --These tags will be given priority for enchantments applied to items, and passed to items to do with what they will (ex: scrolls, to put preference on spells with these tags)

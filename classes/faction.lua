@@ -188,7 +188,7 @@ function Faction:teach_spell(spellID,creature)
   
   --Pay the price:
   if spellInfo.moneyCost then
-    creature.money = creature.money - spellInfo.moneyCost
+    creature.money = creature.money - (spellInfo.moneyCost+round(spellInfo.moneyCost*(self.costMod/100)))
   end
   if spellInfo.favorCost then
     creature.favor[self.id] = creature.favor[self.id] - spellInfo.favorCost
@@ -515,4 +515,32 @@ function Faction:get_possible_random_items()
     end
     if not item.amount then item.amount = 1 end --This is here because non-stackable items don't generate with amounts
     self:add_item(item,{randomly_generated=true,delete_on_restock=self.delete_random_items_on_restock})
+  end
+  
+  ---Gets the modifier for items sold in the faction store
+  function Faction:get_cost_modifier(creature)
+    creature = creature or player
+    local finalMod = 0
+    if self.faction_cost_modifiers then
+      for faction,mod in pairs(self.faction_cost_modifiers) do
+        if creature:is_faction_member(faction) then
+          if math.abs(mod) > math.abs(finalMod) then
+            finalMod = mod
+          end
+        end
+      end --end faction for
+    end --end if faction cost modifiers
+    if self.favor_cost_modifiers then
+      local creatFavor = creature.favor[self.id] or 0
+      local highest = nil
+      local tempMod = 0
+      for favor,mod in pairs(self.favor_cost_modifiers) do
+        if creatFavor >= favor and (not highest or favor > highest) then
+          highest = favor
+          tempMod = mod
+        end
+      end --end favor for
+      finalMod = finalMod + tempMod
+    end --end if favor cost modifiers
+    return finalMod+creature:get_bonus('cost_modifier')
   end

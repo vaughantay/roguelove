@@ -15,6 +15,8 @@ function factionscreen:enter(_,whichFac)
   self.subScreen="Buy"
   self.outText = nil
   self.totalCost = {favor=0,money=0}
+  self.costMod = self.faction:get_cost_modifier(player)
+  print('costmod:',self.costMod)
   self:refresh_store_lists()
   self.lineCountdown = .5
 end
@@ -25,11 +27,11 @@ function factionscreen:refresh_store_lists()
 
   for _,ilist in pairs(self.faction:get_inventory()) do
     local item = ilist.item
-    self.selling_list[#self.selling_list+1] = {name=item:get_name(true,1),description=item:get_description(),info=item:get_info(),moneyCost=ilist.moneyCost,favorCost=ilist.favorCost,membersOnly=ilist.membersOnly,amount=item.amount,buyAmt=0,item=item}
+    self.selling_list[#self.selling_list+1] = {name=item:get_name(true,1),description=item:get_description(),info=item:get_info(),moneyCost=(ilist.moneyCost and ilist.moneyCost+round(ilist.moneyCost*(self.costMod/100)) or nil),favorCost=ilist.favorCost,membersOnly=ilist.membersOnly,amount=item.amount,buyAmt=0,item=item}
   end
   for _,ilist in pairs(self.faction:get_buy_list()) do
     local item = ilist.item
-    self.buying_list[#self.buying_list+1] = {name=item:get_name(true,1),description=item:get_description(),info=item:get_info(),moneyCost=ilist.moneyCost,favorCost=ilist.favorCost,amount=item.amount,buyAmt=0,item=item}
+    self.buying_list[#self.buying_list+1] = {name=item:get_name(true,1),description=item:get_description(),info=item:get_info(),moneyCost=(ilist.moneyCost and ilist.moneyCost-round(ilist.moneyCost*(self.costMod/100)) or nil),favorCost=ilist.favorCost,amount=item.amount,buyAmt=0,item=item}
   end
 end
 
@@ -504,7 +506,7 @@ function factionscreen:draw()
         local spell = possibleSpells[spellDef.spell]
         local costText = nil
         if spellDef.moneyCost then
-          costText = " (Cost: $" .. spellDef.moneyCost
+          costText = " (Cost: $" .. spellDef.moneyCost+round(spellDef.moneyCost*(self.costMod/100))
         end
         if spellDef.favorCost then
           if costText == nil then
@@ -525,7 +527,7 @@ function factionscreen:draw()
         elseif spellDef.favorCost and favor < spellDef.favorCost then
           reasonText = "You don't have enough favor to learn this ability."
           canLearn = false
-        elseif spellDef.moneyCost and player.money < spellDef.moneyCost then
+        elseif spellDef.moneyCost and player.money < spellDef.moneyCost+round(spellDef.moneyCost*(self.costMod/100)) then
           reasonText = "You don't have enough money to learn this ability."
           canLearn = false
         else
@@ -596,7 +598,7 @@ function factionscreen:draw()
       local service = possibleServices[servID]
       local costText = service:get_cost_text(player) or servData.costText or service.costText
       if costText == nil then
-        local moneyText = (servData.moneyCost and "$" .. servData.moneyCost or nil)
+        local moneyText = (servData.moneyCost and "$" .. servData.moneyCost+round(servData.moneyCost*(self.costMod/100)) or nil)
         local favorText = (servData.favorCost and servData.favorCost.. " Favor" or nil)
         if moneyText then
           costText = moneyText .. (favorText and ", " .. favorText)
@@ -616,7 +618,7 @@ function factionscreen:draw()
       elseif servData.favorCost and favor < servData.favorCost then
         canDoText = "You don't have enough favor."
         canDo = false
-      elseif servData.moneyCost and player.money < servData.moneyCost then
+      elseif servData.moneyCost and player.money < servData.moneyCost+round(servData.moneyCost*(self.costMod/100)) then
         canDoText = "You don't have enough money."
         canDo = false
       elseif not service.requires then
@@ -777,8 +779,8 @@ function factionscreen:keypressed(key)
           local didIt, useText = service:activate(player)
           if useText then self.outText = useText end
           if serviceData.moneyCost then
-            player.money = player.money - serviceData.moneyCost
-            self.outText = (self.outText .. "\n" or "") .. "You lose $" .. serviceData.moneyCost .. "."
+            player.money = player.money - (serviceData.moneyCost+round(serviceData.moneyCost*(self.costMod/100)))
+            self.outText = (self.outText .. "\n" or "") .. "You lose $" .. serviceData.moneyCost+round(serviceData.moneyCost*(self.costMod/100)) .. "."
           end
           if serviceData.favorCost then
             player.favor[self.faction.id] = player.favor[self.faction.id] - serviceData.favorCost
@@ -999,8 +1001,8 @@ function factionscreen:mousepressed(x,y,button)
         local didIt, useText = service:activate(player)
         if didIt and useText then self.outText = useText end
         if serviceData.moneyCost then
-          player.money = player.money - serviceData.moneyCost
-          self.outText = (self.outText .. "\n" or "") .. "You lose $" .. serviceData.moneyCost .. "."
+          player.money = player.money - (serviceData.moneyCost+round(serviceData.moneyCost*(self.costMod/100)))
+          self.outText = (self.outText .. "\n" or "") .. "You lose $" .. serviceData.moneyCost+round(serviceData.moneyCost*(self.costMod/100)) .. "."
         end
         if serviceData.favorCost then
           player.favor[self.faction.id] = player.favor[self.faction.id] - serviceData.favorCost
