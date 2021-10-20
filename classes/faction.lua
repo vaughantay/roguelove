@@ -188,7 +188,7 @@ function Faction:teach_spell(spellID,creature)
   
   --Pay the price:
   if spellInfo.moneyCost then
-    creature.money = creature.money - (spellInfo.moneyCost+round(spellInfo.moneyCost*(self.costMod/100)))
+    creature.money = creature.money - (spellInfo.moneyCost+round(spellInfo.moneyCost*(self:get_cost_modifier(player)/100)))
   end
   if spellInfo.favorCost then
     creature.favor[self.id] = creature.favor[self.id] - spellInfo.favorCost

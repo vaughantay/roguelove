@@ -2386,8 +2386,11 @@ local store = {
           break
         end
       end
+    elseif type(storeID) == "number" then
+      whichStore = currWorld.stores[storeID]
     end
     if not whichStore then
+      print('Store feature created with storeID ' .. tostring(storeID) .. " which doesn't correspond to any store. Randomizing.")
       whichStore = get_random_element(currWorld.stores)
     end
     self.store = whichStore

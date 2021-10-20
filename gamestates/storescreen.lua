@@ -10,12 +10,18 @@ function storescreen:enter(_,whichStore)
   self.store = whichStore
   self.screen="Buy"
   self.outText = nil
-  self:refresh_lists()
   self.lineCountdown = 0.5
   self.totalCost = 0
   self.scrollY=0
   self.scrollMax=1000
   self.currency_item = self.store.currency_item and possibleItems[self.store.currency_item]
+  self.costMod = 0
+  if self.store.faction then
+    self.faction = currWorld.factions[self.store.faction]
+    self.playerMember = player:is_faction_member(self.store.faction)
+    self.costMod = self.faction:get_cost_modifier(player)
+  end
+  self:refresh_lists()
 end
 
 function storescreen:refresh_lists()
@@ -24,11 +30,11 @@ function storescreen:refresh_lists()
 
   for _,ilist in pairs(self.store:get_inventory()) do
     local item = ilist.item
-    self.selling_list[#self.selling_list+1] = {name=item:get_name(true,1),description=item:get_description(),info=item:get_info(),cost=ilist.cost,amount=(item.amount or 1),buyAmt=0,item=item}
+    self.selling_list[#self.selling_list+1] = {name=item:get_name(true,1),description=item:get_description(),info=item:get_info(),cost=(ilist.cost and ilist.cost+round(ilist.cost*(self.costMod/100)) or 0),amount=(item.amount or 1),buyAmt=0,item=item}
   end
   for _,ilist in pairs(self.store:get_buy_list()) do
     local item = ilist.item
-    self.buying_list[#self.buying_list+1] = {name=item:get_name(true,1),description=item:get_description(),info=item:get_info(),cost=ilist.cost,amount=(item.amount or 1),buyAmt=0,item=item}
+    self.buying_list[#self.buying_list+1] = {name=item:get_name(true,1),description=item:get_description(),info=item:get_info(),cost=(ilist.cost and ilist.cost-round(ilist.cost*(self.costMod/100)) or 0),amount=(item.amount or 1),buyAmt=0,item=item}
   end
 end
 
@@ -66,7 +72,22 @@ function storescreen:draw()
     printY=printY+#wrappedtext*fontSize
   end
   
-  if not self.store.noBuy or count(self.store.offers_services) or count(self.store.teaches_spells) > 0 then
+  local canEnter = true
+  local reasonText = nil
+  
+  if self.faction then
+    if self.faction.enter_threshold and (player.favor[self.faction.id] or 0) < self.faction.enter_threshold then
+      canEnter = false
+      reasonText = "Your favor with " .. self.faction.name .. " is too low to enter this store."
+    end
+  end
+  if canEnter and possibleStores[storeID].enter_requires then
+    local canDo,reqText = possibleStores[storeID].enter_requires(store,player)
+    if canDo == false then canEnter = false end
+    if reqText then reasonText = reqText end
+  end
+  
+  if canEnter and (not self.store.noBuy or count(self.store.offers_services) or count(self.store.teaches_spells) > 0) then
     printY=printY+fontSize
     local padX = 8
     local buybuttonW = fonts.buttonFont:getWidth("Buying")+padding
@@ -119,7 +140,10 @@ function storescreen:draw()
   --Draw the screens:
   local mouseX,mouseY = love.mouse.getPosition()
   mouseX,mouseY=mouseX/uiScale,mouseY/uiScale
-  if self.screen == "Buy" then
+  if not canEnter then
+    if not reasonText then reasonText = "You're currently unable to buy or sell at this store." end
+    love.graphics.printf(reasonText,windowX+padding,printY,windowWidth-(padding*2),"center")
+  elseif self.screen == "Buy" then
     local buybuttonW = fonts.buttonFont:getWidth("Buy")+padding
     local nameX = windowX+padding
     local costX = 0
@@ -379,7 +403,7 @@ function storescreen:draw()
       serviceCount = serviceCount+1
       local servID = servData.service
       local service = possibleServices[servID]
-      local costText = service:get_cost_text(player) or servData.costText or service.costText or (servData.cost and (self.currency_item and servData.cost .. " " .. (self.currency_item.pluralName or " x " .. self.currency_item.name) or "$" .. servData.cost) or nil)
+      local costText = service:get_cost_text(player) or servData.costText or service.costText or (servData.cost and (self.currency_item and servData.cost+round(servData.cost*(self.costMod/100)) .. " " .. (self.currency_item.pluralName or " x " .. self.currency_item.name) or "$" .. servData.cost+round(servData.cost*(self.costMod/100))) or nil)
       local serviceText = service.name .. (costText and " (Cost: " .. costText .. ")" or "") .. "\n" .. service.description
       local __, wrappedtext = fonts.textFont:getWrap(serviceText, windowWidth)
       love.graphics.printf(serviceText,windowX,printY,windowWidth,"center")
@@ -388,10 +412,10 @@ function storescreen:draw()
       local canDo,canDoText = true,nil
       if servData.cost then
         local playerItem = (self.currency_item and player:has_item(self.store.currency_item) or nil)
-        if self.currency_item and (not playerItem or playerItem.amount < servData.cost) then
+        if self.currency_item and (not playerItem or playerItem.amount < servData.cost+round(servData.cost*(self.costMod/100))) then
           canDoText = "You don't have enough " .. (self.currency_item.pluralName or self.currency_item.name) .. "."
           canDo = false
-        elseif player.money < servData.cost then
+        elseif player.money < servData.cost+round(servData.cost*(self.costMod/100)) then
           canDoText = "You don't have enough money."
           canDo = false
         end
@@ -454,9 +478,9 @@ function storescreen:draw()
         local costText = nil
         if spellDef.cost then
           if self.currency_item then
-            costText = " (Cost: " .. spellDef.cost .. " " .. (self.currency_item.pluralName or self.currency_Item.name) .. ")"
+            costText = " (Cost: " .. spellDef.cost+round(spellDef.cost*(self.costMod/100)) .. " " .. (self.currency_item.pluralName or self.currency_Item.name) .. ")"
           else
-            costText = " (Cost: $" .. spellDef.cost .. ")"
+            costText = " (Cost: $" .. spellDef.cost+round(spellDef.cost*(self.costMod/100)) .. ")"
           end
         end
         local spellText = spell.name .. (costText or "") .. "\n" .. spell.description
@@ -464,10 +488,10 @@ function storescreen:draw()
         love.graphics.printf(spellText,windowX,printY,windowWidth,"center")
         printY=printY+(#wrappedtext)*fontSize
         local playerItem = (self.currency_item and player:has_item(self.store.currency_item) or nil)
-        if spellDef.cost and not self.currency_item and player.money < spellDef.cost then
+        if spellDef.cost and not self.currency_item and player.money < spellDef.cost+round(spellDef.cost*(self.costMod/100)) then
           love.graphics.printf("You don't have enough money to learn this ability.",windowX,printY,windowWidth,"center")
           printY=printY+fontSize
-        elseif spellDef.cost and self.currency_item and (not playerItem or playerItem.amount < spellDef.cost) then
+        elseif spellDef.cost and self.currency_item and (not playerItem or playerItem.amount < spellDef.cost+round(spellDef.cost*(self.costMod/100))) then
           love.graphics.printf("You don't have enough " .. (self.currency_item.pluralName or self.currency_item.name) .. " to learn this ability.",windowX,printY,windowWidth,"center")
           printY=printY+fontSize
         else
@@ -545,8 +569,8 @@ function storescreen:keypressed(key)
             local creatureItem = player:has_item(self.store.currency_item)
             player:delete_item(creatureItem,serviceData.cost)
           else
-            player.money = player.money - serviceData.cost
-            self.outText = (self.outText .. "\n" or "") .. "You lose $" .. serviceData.cost .. "."
+            player.money = player.money - serviceData.cost+round(serviceData.cost*(self.costMod/100))
+            self.outText = (self.outText .. "\n" or "") .. "You lose $" .. serviceData.cost+round(serviceData.cost*(self.costMod/100)) .. "."
           end
         end
       end
@@ -697,8 +721,8 @@ function storescreen:mousepressed(x,y,button)
             local creatureItem = player:has_item(self.store.currency_item)
             player:delete_item(creatureItem,serviceData.cost)
           else
-            player.money = player.money - serviceData.cost
-            self.outText = (self.outText .. "\n" or "") .. "You lose $" .. serviceData.cost .. "."
+            player.money = player.money - serviceData.cost+round(serviceData.cost*(self.costMod/100))
+            self.outText = (self.outText .. "\n" or "") .. "You lose $" .. serviceData.cost+round(serviceData.cost*(self.costMod/100)) .. "."
           end
         end
       end--end button coordinate if

@@ -16,7 +16,6 @@ function factionscreen:enter(_,whichFac)
   self.outText = nil
   self.totalCost = {favor=0,money=0}
   self.costMod = self.faction:get_cost_modifier(player)
-  print('costmod:',self.costMod)
   self:refresh_store_lists()
   self.lineCountdown = .5
 end

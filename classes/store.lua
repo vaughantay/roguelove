@@ -304,11 +304,15 @@ function Store:teach_spell(spellID,creature)
   
   --Pay the price:
   if spellInfo.cost then
+    local costMod = 0
+    if self.faction then
+      costMod = self.faction:get_cost_modifier(creature)
+    end
     if self.currency_item then
       local creatureItem = player:has_item(self.currency_item)
-      creature:delete_item(creatureItem,spellInfo.cost)
+      creature:delete_item(creatureItem,spellInfo.cost+round(spellInfo.cost*(costMod/100)))
     else
-      creature.money = creature.money - spellInfo.cost
+      creature.money = creature.money - spellInfo.cost+round(spellInfo.cost*(costMod/100))
     end
   end
   

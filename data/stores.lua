@@ -18,6 +18,11 @@ function healthstore:generate_items()
 end
 function healthstore:restock()
 end
+function healthstore:enter_requires(creature)
+  if creature:is_type('undead') then
+    return false,"The undead are not welcome in this place of healing."
+  end
+end
 possibleStores['healthstore'] = healthstore
 
 local weaponstore = {

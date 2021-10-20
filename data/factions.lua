@@ -147,7 +147,10 @@ possibleFactions['village'] = {
   attack_enemy_player_only = true,
   hostile_threshold = 0,
   friendly_threshold = -1,
-  kill_favor_factions = {village=-1}
+  kill_favor_factions = {village=-1},
+  faction_cost_modifiers={lightchurch=-5,grievers=-5},
+  favor_cost_modifiers={[-25]=20,[-10]=10,[0]=0},
+  enter_threshold=-25
 }
 
 possibleFactions['chaos'] = {

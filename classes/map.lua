@@ -892,7 +892,7 @@ function Map:get_store_list(force)
     end --end tags if
     if done then
       if not store_list then store_list = {} end
-      store_list[#store_list+1] = sid
+      if not in_table(sid,store_list) then store_list[#store_list+1] = sid end
     end
   end --end store for
   self.store_list = store_list

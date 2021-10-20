@@ -91,8 +91,8 @@ function town.create(map,width,height)
 end
 function town.check_building_footprint(ix,iy,map) --This is not a "normal" function for mapTypes, this is special to this one, called in its custom populate_factions and populate_stores code
   local midX, midY = round(map.width/2),round(map.height/2)
-  for x=ix-2,ix+2,1 do
-    for y=iy-2,iy+2,1 do
+  for x=ix-3,ix+3,1 do
+    for y=iy-3,iy+3,1 do
       if not map:isClear(x,y) or (x > midX-2 and x < midX+2 and y>midY-2 and y<midY-2) then
         return false
       end
@@ -137,6 +137,7 @@ function town.populate_stores(map)
   local newStores = {}
   for _,store in pairs(map:get_store_list()) do
     local s = Feature('store',store)
+    if not currWorld.stores[store].faction then currWorld.stores[store].faction = "village" end
     local tries = 0
     local ix,iy = random(4,map.width-3),random(4,map.height-3)
     while (town.check_building_footprint(ix,iy,map) == false) do
@@ -161,7 +162,7 @@ function town.populate_stores(map)
       newStores[#newStores+1] = s
     end --end tries if
   end
-  return s
+  return newStores
 end
 mapTypes['town'] = town
 
