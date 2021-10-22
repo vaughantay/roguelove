@@ -788,6 +788,15 @@ local heroskey = {
 }
 possibleItems['heroskey'] = heroskey
 
+local treasure = {
+  name = "Treasure",
+  description = "A priceless treasure.",
+  symbol="!",
+  color={r=255,g=255,b=0,a=255},
+  itemType="other"
+}
+possibleItems['treasure'] = treasure
+
 local money = {
   name = "$1",
   description = "A pile of coins.",

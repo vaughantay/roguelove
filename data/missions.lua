@@ -88,3 +88,51 @@ local ascend = {
   status_text = {[0] = "Unlock the first Valhalla Gate with a Hero's Key.", [1] = "Unlock the second Valhalla Gate with a Hero's Key.",[2] = "Ascend to Valhalla as a True Hero."}
 }
 possibleMissions['ascend'] = ascend
+
+local findtreasure = {
+  name = "Treasure Hunting",
+  description = "Seek out a hidden treasure.",
+  repeating = true
+}
+function findtreasure:start()
+  local treasure = Item('treasure')
+  treasure.properName = namegen:generate_weapon_name()
+  set_mission_data('findtreasure','item',treasure)
+  return "You seek " .. treasure:get_name() .. "."
+end
+function findtreasure:get_status()
+  local treasure = get_mission_data('findtreasure','item')
+  local source = get_mission_data('findtreasure','source')
+  if not player:has_specific_item(treasure) then
+    return "You seek " .. treasure:get_name() .. "."
+  else
+    return "You've acquired " .. treasure:get_name() .. ". Return it to " .. (source.baseType == "creature" and source:get_name() or source.name) .. "."
+  end
+end
+function findtreasure:enter_map()
+  local treasure = get_mission_data('findtreasure','item')
+  if not treasure.placed then
+    currMap:add_item(treasure,player.x,player.y)
+    treasure.placed=true
+  end
+end
+function findtreasure:can_finish()
+  local treasure = get_mission_data('findtreasure','item')
+  if player:has_specific_item(treasure) then
+    return true
+  else
+    return false,"You seek " .. treasure:get_name() .. "."
+  end
+end
+function findtreasure:finish()
+  local treasure = get_mission_data('findtreasure','item')
+  treasure:delete()
+  local favor = nil
+  local source = get_mission_data('findtreasure','source')
+  if source and source.baseType == "faction" then
+    favor = 100
+    player.favor[source.id] = player.favor[source.id]+favor
+  end
+  return "You turn in " .. treasure:get_name() .. (favor and " for " .. favor .. " favor." or ".")
+end
+possibleMissions['findtreasure'] = findtreasure

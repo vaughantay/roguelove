@@ -788,7 +788,8 @@ function factionscreen:keypressed(key)
         end
       elseif self.screen == "Missions" then
         if self.cursorY > 2 and self.missionButtons[self.cursorY-2] then
-          local missionID = self.faction.offers_missions[self.cursorY-2].mission
+          local missionData = self.faction.offers_missions[self.cursorY-2]
+          local missionID = missionData.mission
           if currGame.missionStatus[missionID] then
             local mission = possibleMissions[missionID]
             if mission.can_finish and mission:can_finish(player) then
@@ -796,7 +797,7 @@ function factionscreen:keypressed(key)
               if type(useText) == "string" then self.outText = useText end
             end
           else
-            local useText = start_mission(missionID)
+            local useText = start_mission(missionID,missionData.starting_status,self.faction,missionData.starting_data)
             if type(useText) == "string" then self.outText = useText end
           end
         end
@@ -1022,7 +1023,8 @@ function factionscreen:mousepressed(x,y,button)
   elseif self.screen == "Missions" then
     for i,button in ipairs(self.missionButtons) do
       if button and x > button.minX and x < button.maxX and y > button.minY-self.scrollY and y < button.maxY-self.scrollY then
-        local missionID = self.faction.offers_missions[i].mission
+        local missionData = self.faction.offers_missions[i]
+        local missionID = missionData.mission
         if currGame.missionStatus[missionID] then
           local mission = possibleMissions[missionID]
           if mission.can_finish and mission:can_finish(player) then
@@ -1030,7 +1032,7 @@ function factionscreen:mousepressed(x,y,button)
             if type(useText) == "string" then self.outText = useText end
           end
         else
-          local useText = start_mission(missionID)
+          local useText = start_mission(missionID,missionData.starting_status,self.faction,missionData.starting_data)
           if type(useText) == "string" then self.outText = useText end
         end --end active or not if
       end--end button coordinate if

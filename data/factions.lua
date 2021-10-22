@@ -36,7 +36,7 @@ possibleFactions['lightchurch'] = {
   only_pays_favor = true, --When buying non-predefined items, don't pay money for them, just favor
   teaches_spells = {{spell="demondamager",favorCost=100,moneyCost = 100}, {spell="summonangel",favorCost=100,membersOnly=true}}, --spells that this faction teaches to friendly players
   offers_services = {{service="healing_church"},{service="blessing",favorCost=10,moneyCost=10,membersOnly=true},{service="exorcism"}}, --services that this faction offers to friendly players
-  offers_missions = {{mission='killdemons'}}, --missions that this faction offers to friendly players
+  offers_missions = {{mission='killdemons'},{mission='findtreasure',membersOnly=true}}, --missions that this faction offers to friendly players
   possible_inventory = {{item="scroll",chance=100}}, --items that all members of this faction might drop
   hidden = false, --If set to true, this faction won't appear on the faction list page
   never_join = false, --If set to true, this faction cannot be joined
@@ -98,7 +98,7 @@ possibleFactions['barbariangod'] = {
   only_pays_favor = true, --When buying non-predefined items, don't pay money for them, just favor
   teaches_spells = {}, --spells that this faction teaches to friendly players
   offers_services = {}, --services that this faction offers to friendly players
-  offers_missions = {"killtownies"}, --missions that this faction offers to friendly players
+  offers_missions = {{mission="killtownies"}}, --missions that this faction offers to friendly players
   generateName = function(self)
     local name = namegen:generate_guttural_name()
     self.map_name = "Altar to " .. name .. ", God of Destruction"

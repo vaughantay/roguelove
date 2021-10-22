@@ -257,9 +257,10 @@ function characterscreen:draw()
     printY = printY+fontSize*2
     if count(currGame.missionStatus) > 0 then
       for mid,status in pairs(currGame.missionStatus) do
+        local source = get_mission_data(mid,'source')
         local mission = possibleMissions[mid]
         local statusText = (mission.get_status and mission:get_status(get_status)) or (mission.status_text and mission.status_text[status]) or nil
-        local totalText = mission.name .. "\n" .. mission.description .. (statusText and "\nStatus: " .. statusText or "")
+        local totalText = mission.name .. "\n" .. (source and "(Given by " .. (source.baseType == "creature" and source:get_name() or source.name) ..")\n" or "") .. mission.description .. (statusText and "\nStatus: " .. statusText or "")
         love.graphics.printf(totalText,padding,printY,math.floor(width/uiScale)-padding*2,"center")
         local _, wrappedtext = fonts.textFont:getWrap(totalText, math.floor(width/uiScale)-padding*2)
         printY=printY+(#wrappedtext+1)*fontSize

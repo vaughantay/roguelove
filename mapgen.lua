@@ -161,7 +161,7 @@ function mapgen:generate_creature(level,list,allowAll)
   if not list then
     local noCreatures = true
     for _,creat in pairs(possibleMonsters) do
-      if creat.level == level or (creat.maxLevel or 0) <= level then noCreatures = false break end
+      if creat.level == level or (creat.maxLevel and (creat.maxLevel <= level) or false) then noCreatures = false break end
     end
     if noCreatures == true then return false end
   end
@@ -169,7 +169,7 @@ function mapgen:generate_creature(level,list,allowAll)
 	-- This selects a random creature from the table of possible creatures, and compares the desired creature level to this creature's level. If it's a match, continue, otherwise select another one
 	while (1 == 1) do -- endless loop, broken by the "return"
 		local n = (list and get_random_element(list) or get_random_key(possibleMonsters))
-		if (list or possibleMonsters[n].level == level or (possibleMonsters[n].maxLevel or 0) <= level) and possibleMonsters[n].isBoss ~= true and possibleMonsters[n].neverSpawn ~= true and (allowAll or list or possibleMonsters[n].specialOnly ~= true) and (random(1,100) >= (possibleMonsters[n].rarity or 0)) then
+		if (list or possibleMonsters[n].level == level or (possibleMonsters[n].maxLevel and (possibleMonsters[n].maxLevel <= level) or false) and possibleMonsters[n].isBoss ~= true and possibleMonsters[n].neverSpawn ~= true and (allowAll or list or possibleMonsters[n].specialOnly ~= true) and (random(1,100) >= (possibleMonsters[n].rarity or 0))) then
 			return Creature(n,level)
 		end
 	end

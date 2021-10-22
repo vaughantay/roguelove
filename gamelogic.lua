@@ -361,8 +361,10 @@ function goToMap(depth,branch,force)
     currGame.autoSave=true
     player.sees = nil
     run_all_events_of_type('enter_map')
+    player:callbacks('enter_map')
     if firstTime then
       run_all_events_of_type('enter_map_first_time')
+      player:callbacks('enter_map_first_time')
     end
     currMap:refresh_lightMap(true) -- refresh the lightmap, forcing it to refresh all lights
     refresh_player_sight()
@@ -736,10 +738,12 @@ end
 
 ---Starts a mission at 0 and runs its begin() code
 --@param missionID String. The ID of the mission. Can either be a pre-defined mission, or you can use any ad-hoc value if you want to use this to track something that's not an actual mission.
---@param startVal Anything. The starting status of the mission(Optional, defaults to 0)
+--@param startVal Anything. The starting status of the mission (Optional, defaults to 0)
+--@param source Object. Where the mission came from (Optional)
+--@param values Table. A table of values to store in the mission table in the format {index=value,index2=value2}
 --@param skipFunc Boolean. Whether to skip the start() function (assuming the mission actually has one) (Optional)
 --@return Anything. Either false if the mission didn't start, the returned value of the start() function if there was one, or true.
-function start_mission(missionID,startVal,skipFunc)
+function start_mission(missionID,startVal,source,values,skipFunc)
   local mission = possibleMissions[missionID]
   local ret = true
   if not skipFunc and mission and mission.start then
@@ -747,6 +751,14 @@ function start_mission(missionID,startVal,skipFunc)
   end
   if ret ~= false then --If the mission isn't pre-defined or doesn't have a finish() code
     set_mission_status(missionID,startVal or 0)
+    if source then
+      set_mission_data(missionID,'source',source)
+    end
+    if values then
+      for i,v in pairs(values) do
+        set_mission_data(missionID,i,v)
+      end
+    end
   end
   return ret
 end
@@ -755,14 +767,33 @@ end
 --@param missionID String. The ID of the mission. Can either be a pre-defined mission, or you can use any ad-hoc value if you want to use this to track something that's not an actual mission.
 --@return Anything. The status of the mission.
 function get_mission_status(missionID)
-  return currGame.missionStatus[missionID]
+  return (currGame.missionStatus[missionID] and currGame.missionStatus[missionID].status or nil)
 end
 
 ---Sets a the status value of a mission to a specific value.
---@param missionID String. The ID of the mission. Can either be a pre-defined mission, or you can use any ad-hoc value if you want to use this to track something that's not an actual mission.
+--@param missionID String. The ID of the mission. Can either be a pre-defined mission, or you can use any ad-hoc value if you want to use this to track something that's not a pre-defined mission.
 --@param value Anything. The value you'd like to store.
 function set_mission_status(missionID,val)
-  currGame.missionStatus[missionID] = val
+  if not currGame.missionStatus[missionID] then currGame.missionStatus[missionID] = {} end
+  currGame.missionStatus[missionID].status = val
+  return val
+end
+
+---Gets the value of an index of a given mission.
+--@param missionID String. The ID of the mission. Can either be a pre-defined mission, or you can use any ad-hoc value if you want to use this to track something that's not a pre-defined mission.
+--@param index String. The string that used as the index to search
+--@return Anything. The value stored in the index given
+function get_mission_data(missionID,index)
+  return (currGame.missionStatus[missionID] and currGame.missionStatus[missionID][index] or nil)
+end
+
+---Sets a particular index of a mission to a specific value.
+--@param missionID String. The ID of the mission. Can either be a pre-defined mission, or you can use any ad-hoc value if you want to use this to track something that's not an actual mission.
+--@param index String. The string that will be used as the index to store this value
+--@param value Anything. The value you'd like to store.
+function set_mission_data(missionID,index,val)
+  if not currGame.missionStatus[missionID] then currGame.missionStatus[missionID] = {} end
+  currGame.missionStatus[missionID][index] = val
   return val
 end
 
@@ -770,7 +801,7 @@ end
 --@param missionID String. The ID of the mission. Can either be a pre-defined mission, or you can use any ad-hoc value if you want to use this to track something that's not an actual mission.
 --@param amt Number. The amount to increase the status by. (optional, defaults to 1)
 function update_mission_status(missionID,amt)
-  local f = currGame.missionStatus[missionID]
+  local f = (currGame.missionStatus[missionID] and currGame.missionStatus[missionID].status or nil)
   amt = amt or 1
   local newVal = nil
   if type(f) == "number" then
@@ -794,7 +825,8 @@ function finish_mission(missionID,endVal,skipFunc)
     ret = mission.finish(endVal)
   end
   if ret ~= false then --If the mission isn't pre-defined or doesn't have a finish() code
-    currGame.finishedMissions[missionID] = endVal or true
+    currGame.finishedMissions[missionID] = currGame.missionStatus[missionID]
+    currGame.finishedMissions[missionID].status = endVal or true
     currGame.missionStatus[missionID] = nil
   end
   return ret

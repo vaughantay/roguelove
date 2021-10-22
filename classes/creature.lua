@@ -1294,7 +1294,7 @@ function Creature:delete_item(item,amt)
 end
   
 ---Check if a creature has an instance of an item ID
---@param item Item. The item ID to check for
+--@param item String. The item ID to check for
 --@param sortBy Text. What the "sortBy" value you're checking is
 --@param enchantments Table. The table of echantments to match (optional)
 --@return either Boolean or Item. False, or the specific item they have in their inventory
@@ -1320,6 +1320,20 @@ function Creature:has_item(itemID,sortBy,enchantments)
       if matchEnch == true then
         return it,id,it.amount
       end
+		end
+	end --end inventory for
+	return false
+end
+
+---Check if a creature has a specific item
+--@param item Item. The item to check for
+--@return either Boolean or Item. False, or the specific item they have in their inventory
+--@return either nil or Number. The index of the item in the inventory
+--@return either nil or Number. The amount of the item the player has
+function Creature:has_specific_item(item)
+	for id, it in ipairs(self.inventory) do
+    if item == it then
+      return it,id,it.amount
 		end
 	end --end inventory for
 	return false
