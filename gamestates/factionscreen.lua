@@ -678,10 +678,10 @@ function factionscreen:draw()
     for i, mData in ipairs(missions) do
       local missionID = mData.mission
       local active = currGame.missionStatus[missionID]
-      if not currGame.finishedMissions[missionID] and possibleMissions[missionID] then
+      local mission = possibleMissions[missionID]
+      if possibleMissions[missionID] and (not currGame.finishedMissions[missionID] or (mission.repeatable and (not mission.repeat_limit or currGame.finishedMissions[missionID].repetitions < mission.repeat_limit)))  then
         missionCount = missionCount+1
-        local mission = possibleMissions[missionID]
-        local missionText = mission.name .. "\n" .. mission.description
+        local missionText = mission.name .. "\n" .. (get_mission_data(missionID,'description') or mission.description)
         local __, wrappedtext = fonts.textFont:getWrap(missionText, windowWidth)
         love.graphics.printf(missionText,windowX,printY,windowWidth,"center")
         printY=math.ceil(printY+(#wrappedtext+0.5)*fontSize)

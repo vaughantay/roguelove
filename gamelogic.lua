@@ -825,8 +825,9 @@ function finish_mission(missionID,endVal,skipFunc)
     ret = mission.finish(endVal)
   end
   if ret ~= false then --If the mission isn't pre-defined or doesn't have a finish() code
-    currGame.finishedMissions[missionID] = currGame.missionStatus[missionID]
+    if not currGame.finishedMissions[missionID] then currGame.finishedMissions[missionID] = currGame.missionStatus[missionID] end
     currGame.finishedMissions[missionID].status = endVal or true
+    currGame.finishedMissions[missionID].repetitions = (currGame.finishedMissions[missionID].repetitions or 0)+1
     currGame.missionStatus[missionID] = nil
   end
   return ret

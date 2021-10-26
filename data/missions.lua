@@ -92,19 +92,22 @@ possibleMissions['ascend'] = ascend
 local findtreasure = {
   name = "Treasure Hunting",
   description = "Seek out a hidden treasure.",
-  repeating = true
+  repeatable = true,
+  repeat_limit=2
 }
 function findtreasure:start()
   local treasure = Item('treasure')
   treasure.properName = namegen:generate_weapon_name()
   set_mission_data('findtreasure','item',treasure)
-  return "You seek " .. treasure:get_name() .. "."
+  local text = "You seek " .. treasure:get_name() .. "."
+  set_mission_data('findtreasure','description',text)
+  return text
 end
 function findtreasure:get_status()
   local treasure = get_mission_data('findtreasure','item')
   local source = get_mission_data('findtreasure','source')
   if not player:has_specific_item(treasure) then
-    return "You seek " .. treasure:get_name() .. "."
+    return nil
   else
     return "You've acquired " .. treasure:get_name() .. ". Return it to " .. (source.baseType == "creature" and source:get_name() or source.name) .. "."
   end
@@ -121,7 +124,7 @@ function findtreasure:can_finish()
   if player:has_specific_item(treasure) then
     return true
   else
-    return false,"You seek " .. treasure:get_name() .. "."
+    return false
   end
 end
 function findtreasure:finish()
