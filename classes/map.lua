@@ -967,8 +967,11 @@ function Map:populate_creatures(creatTotal,forceGeneric)
   if not self.noCreatures and creatTotal > 0 then
     local newCreats = {}
     local specialCreats = self:get_creature_list()
+    local branch_level = branch.starting_level or 1
+    local min_level = round((branch.min_level_base or 1)+(self.depth-1)*(branch.level_increase_per_depth or 1))
+    local max_level = round((branch.max_level_base or 1)+(self.depth-1)*(branch.level_increase_per_depth or 1))
 		for creat_amt=1,creatTotal,1 do
-			local nc = mapgen:generate_creature(self.depth,specialCreats)
+			local nc = mapgen:generate_creature(min_level,max_level,specialCreats)
       if nc == false then break end
       local cx,cy = random(2,self.width-1),random(2,self.height-1)
       local tries = 0

@@ -20,7 +20,7 @@ local demons_demonattack = {
         local x,y = random(player.x-5,player.x+5),random(player.y-5,player.y+5)
         if currMap:isClear(x,y) then
           local imp = Creature('imp')
-          while imp.level < math.min(player.level,imp.maxLevel) do
+          while imp.level < math.min(player.level,imp.max_level) do
             imp:level_up(true)
           end
           currMap:add_creature(imp,x,y)
@@ -76,7 +76,7 @@ local town_guards = {
         local x,y = random(player.x-5,player.x+5),random(player.y-5,player.y+5)
         if currMap:isClear(x,y) then
           local guard = Creature('townguard')
-          while guard.level < math.min(player.level,guard.maxLevel) do
+          while guard.level < math.min(player.level,guard.max_level) do
             guard:level_up(true)
           end
           currMap:add_creature(guard,x,y)

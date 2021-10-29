@@ -13,7 +13,10 @@ local main = {
   allMapsUnique=true, --If this is set to true, map types will not be repeated when maps are created for this level
   noBacktrack=false, --If this is set to true, exits leading back to previous levels will not be created
   event_chance=50,
-  event_cooldown=10
+  event_cooldown=10,
+  min_level_base=1,
+  max_level_base=3,
+  level_increase_per_depth=1,
 }
 dungeonBranches['main'] = main
 
@@ -25,7 +28,10 @@ local town = {
   forceMapTypes={[1]="town"},
   possibleExits = {{branch="main",depth=1,replace_downstairs=true},{branch="wilderness",depth=1}},
   creatures={"townsperson"},
-  factionTags={"organized"}
+  factionTags={"organized"},
+  min_level_base=0,
+  max_level_base=0,
+  level_increase_per_depth=0
 }
 dungeonBranches['town'] = town
 
@@ -42,6 +48,9 @@ local demonruins = {
   creatures = {}, --These specific creatures will be added to the list of potential creatures in this branch
   items = {}, --These specific items will be added to the list of potential items in this branch
   bosses = {},
+  min_level_base=3,
+  max_level_base=5,
+  level_increase_per_depth=2,
   noBacktrack=false
 }
 dungeonBranches['demonruins'] = demonruins

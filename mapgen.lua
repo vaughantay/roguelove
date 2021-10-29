@@ -83,7 +83,7 @@ function mapgen:generate_map(branchID, depth,force)
     end
   end
   if success == false then
-    print('failed to do modifier, regening')
+    print('failed to do modifier, regenerating')
     currGame.seedState = mapRandom:getState()
     random = love.math.random
     return mapgen:generate_map(branchID, depth,force)
@@ -151,25 +151,30 @@ function mapgen:generate_map(branchID, depth,force)
 end
 
 ---Initializes and creates a new creature at the given level. The creature itself must then actually be added to a map using Map:add_creature()
---@param level The level of the desired creature
+--@param min_level The lower level limit of the desired creature
+--@param max_level The upper level limit of the desired creature
 --@param list Table. A specific list of creatures to choose from. Optional
 --@param allowAll Boolean. If True, creatures with the specialOnly flag can still be chosen (but bosses or creatures with the neverSpawn flag set still cannot). Optional
 --@return Creature. The new creature
-function mapgen:generate_creature(level,list,allowAll)
+function mapgen:generate_creature(min_level,max_level,list,allowAll)
+  list = list or possibleMonsters
+  
   --Prevent an infinite loop if there are no creatures of a given level:
-  level = math.max(0,tweak(level))
-  if not list then
-    local noCreatures = true
-    for _,creat in pairs(possibleMonsters) do
-      if creat.level == level or (creat.maxLevel and (creat.maxLevel <= level) or false) then noCreatures = false break end
+  local noCreatures = true
+  for _,cid in pairs(list) do
+    local creat = (type(cid) == "string" and possibleMonsters[cid] or cid)
+    if (creat.level >= min_level and creat.level <= max_level) or (creat.max_level and creat.max_level >= min_level and creat.max_level <= max_level) then 
+      noCreatures = false break
     end
-    if noCreatures == true then return false end
   end
+  if noCreatures == true then return false end
   
 	-- This selects a random creature from the table of possible creatures, and compares the desired creature level to this creature's level. If it's a match, continue, otherwise select another one
 	while (1 == 1) do -- endless loop, broken by the "return"
-		local n = (list and get_random_element(list) or get_random_key(possibleMonsters))
-		if (list or possibleMonsters[n].level == level or (possibleMonsters[n].maxLevel and (possibleMonsters[n].maxLevel <= level) or false) and possibleMonsters[n].isBoss ~= true and possibleMonsters[n].neverSpawn ~= true and (allowAll or list or possibleMonsters[n].specialOnly ~= true) and (random(1,100) >= (possibleMonsters[n].rarity or 0))) then
+		local n = get_random_element(list)
+    local creat = possibleMonsters[n]
+		if ((creat.level >= min_level and creat.level <= max_level) or (creat.max_level and creat.max_level >= min_level and creat.max_level <= max_level)) and creat.isBoss ~= true and creat.neverSpawn ~= true and (allowAll or list or possibleMonsters[n].specialOnly ~= true) and random(1,100) >= (creat.rarity or 0) then
+      local level = random(math.max(creat.level,min_level),math.min(creat.max_level or creat.level,max_level))
 			return Creature(n,level)
 		end
 	end
