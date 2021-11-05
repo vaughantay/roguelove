@@ -88,6 +88,9 @@ function town.create(map,width,height)
   --Add gates to the wilderness:
   local gates = Feature('exit',{branch="wilderness",exitName="Gate"})
   map:change_tile(gates,midX,height-1)
+  
+  --Add spawn points to corners (silly, but demonstrates the use of spawn points)
+  map.spawn_points = {{x=2,y=2},{x=width-1,y=2},{x=2,y=height-1},{x=width-1,y=height-1}}
 end
 function town.check_building_footprint(ix,iy,map) --This is not a "normal" function for mapTypes, this is special to this one, called in its custom populate_factions and populate_stores code
   local midX, midY = round(map.width/2),round(map.height/2)

@@ -970,20 +970,44 @@ function Map:populate_creatures(creatTotal,forceGeneric)
     local branch_level = branch.starting_level or 1
     local min_level = round((branch.min_level_base or 1)+(self.depth-1)*(branch.level_increase_per_depth or 1))
     local max_level = round((branch.max_level_base or 1)+(self.depth-1)*(branch.level_increase_per_depth or 1))
+    local allSpawnsUsed = false
 		for creat_amt=1,creatTotal,1 do
 			local nc = mapgen:generate_creature(min_level,max_level,specialCreats)
       if nc == false then break end
-      local cx,cy = random(2,self.width-1),random(2,self.height-1)
-      local tries = 0
-      while (self:is_passable_for(cx,cy,nc.pathType) == false or self:tile_has_feature(cx,cy,'door') or self:tile_has_feature(cx,cy,'gate') or calc_distance(cx,cy,self.stairsDown.x,self.stairsDown.y) < 3) or self[cx][cy] == "<" do
-        cx,cy = random(2,self.width-1),random(2,self.height-1)
-        tries = tries+1
-        if tries > 100 then break end
+      local placed = false
+      --Spawn in designated spawn points first:
+      if not allSpawnsUsed and self.spawn_points and #self.spawn_points > 0 then
+        for i,sp in ipairs(self.spawn_points) do
+          if not sp.used then
+            if self:is_passable_for(sp.x,sp.y,nc.pathType) and not self:tile_has_feature(sp.x,sp.y,'door') and not self:tile_has_feature(sp.x,sp.y,'gate') and not self:tile_has_feature(sp.x,sp.y,'exit') and self:isClear(sp.x,sp.y,nc.pathType) then
+              if random(1,4) == 1 then nc:give_condition('asleep',random(10,100)) end
+              newCreats[#newCreats+1] = self:add_creature(nc,sp.x,sp.y)
+              placed = true
+              break
+            else
+              sp.used = true
+              if i == #self.spawn_points then
+                allSpawnsUsed = true
+              end
+            end
+          end
+        end
       end
-      if tries ~= 100 then 
-        if random(1,4) == 1 then nc:give_condition('asleep',random(10,100)) end
-        newCreats[#newCreats+1] = self:add_creature(nc,cx,cy)
-      end --end tries if
+      --If we weren't able to spawn in a spawn point, spawn randomly
+      local cx,cy = random(2,self.width-1),random(2,self.height-1)
+      if placed == false then
+        local tries = 0
+        while self:is_passable_for(cx,cy,nc.pathType) == false or self:tile_has_feature(cx,cy,'door') or self:tile_has_feature(cx,cy,'gate') or self:tile_has_feature(cx,cy,'exit') or not self:isClear(cx,cy,nc.pathType) do
+          cx,cy = random(2,self.width-1),random(2,self.height-1)
+          tries = tries+1
+          if tries > 100 then break end
+        end
+        if tries ~= 100 then 
+          if random(1,4) == 1 then nc:give_condition('asleep',random(10,100)) end
+          newCreats[#newCreats+1] = self:add_creature(nc,cx,cy)
+          placed = true
+        end --end tries if
+      end
 		end --end creature for
     return newCreats
 	end --end if not noCreatures
