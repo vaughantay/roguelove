@@ -85,7 +85,7 @@ local poisonedProjectile = {
   removal_type="hit",
   description = "Poisons the target on a successful hit.",
   hit_conditions={{condition='poisoned',chance=100,minTurns=2,maxTurns=4}},
-  itemTypes={"thrown","ammo"},
+  itemTypes={"throwable","ammo"},
   requires_tags={"sharp"}
 }
 enchantments['poisoned_projectile'] = poisonedProjectile
