@@ -20,6 +20,7 @@ prefs={
   statsOnSidebar=false,
   plainFonts=false,
   bigButtons=false,
+  healthbars=true,
   minimap=true,
   lastMods={},
   uiScale=1,

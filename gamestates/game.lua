@@ -731,10 +731,29 @@ function game:display_map(map)
                 end
                 --love.graphics.draw(img,printX+16,printY+16,0,1,1,16,16)
               end
-            else
-              if seen == false then setColor(50,50,50,255)
-              else setColor(255,255,255,255) end
-              love.graphics.print(map[x][y],printX,printY)
+            else --don't have an image
+              love.graphics.setFont(fonts.mapFontWithImages)
+              if (type(map[x][y]) == "string") then --if there are no creatures or features, just print the tile
+                if seen == false and map[x][y] ~= "<" then
+                  setColor(50,50,50,255)
+                elseif map[x][y] == "<" then
+                  setColor(255,255,0,255)
+                elseif map.tileset and map[x][y] == "." and tilesets[map.tileset].floorColor then
+                  local tc = tilesets[map.tileset].floorColor
+                  setColor(tc.r,tc.g,tc.b,tc.a)
+                elseif map.tileset and map[x][y] == "#" and tilesets[map.tileset].wallColor then
+                  local tc = tilesets[map.tileset].wallColor
+                  setColor(tc.r,tc.g,tc.b,tc.a)
+                elseif map.tileset and tilesets[map.tileset].textColor then
+                  local tc = tilesets[map.tileset].textColor
+                  setColor(tc.r,tc.g,tc.b,tc.a)
+                else
+                  setColor(255,255,255,255)
+                end
+                  love.graphics.print(map[x][y],printX,printY)
+              else
+                output.display_entity(map[x][y],printX,printY,seen)
+              end
             end --end tile set or not if
             --pClock:flag('after batching etc')
               
@@ -846,6 +865,19 @@ function game:display_map(map)
   --pClock:flag('feature display')
   for creat,args in pairs(creaturesToDisplay) do
     output.display_entity(creat,args[1],args[2],args[3],nil,(currGame.zoom or 1))
+    local mhp = creat:get_mhp()
+    if prefs['healthbars'] and creat.hp < mhp then
+      local tileSize = output:get_tile_size()
+      local barHeight = 8
+      local ratio = creat.hp/mhp
+      local hpR = 200-(200*ratio)
+      local hpG = 200*ratio
+      setColor(hpR,hpG,0,100)
+      love.graphics.rectangle('fill',args[1],args[2]+tileSize-barHeight,round(tileSize*ratio),barHeight)
+      setColor(255,255,255,100)
+      love.graphics.rectangle('line',args[1],args[2]+tileSize-barHeight,tileSize,barHeight)
+      setColor(255,255,255,255)
+    end
   end
   --stats = love.graphics.getStats()
   --print('draw calls after creatures: ' .. tostring(stats.drawcalls))

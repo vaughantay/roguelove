@@ -65,7 +65,7 @@ function love.load(arg)
     miniMapFont = love.graphics.newFont("VeraMono.ttf",8),
     mapFont = love.graphics.newFont("VeraMono.ttf",prefs['asciiSize']),
     --mapFontDys = love.graphics.newFont("OpenDyslexic-Regular.otf",prefs['asciiSize']),
-    mapFontWithImages = love.graphics.newFont("VeraMono.ttf",24),
+    mapFontWithImages = love.graphics.newFont("VeraMono.ttf",output:get_tile_size()),
     textFont = love.graphics.newFont(prefs['fontSize']),
     descFont = love.graphics.newFont(prefs['descFontSize']),
     menuFont = love.graphics.newFont(24),
