@@ -107,7 +107,7 @@ function mapgen:generate_map(branchID, depth,force)
   --Add exits:
   if not build.noExits then
     --Do generic up and down stairs first, although they may be replaced by other exits later:
-    if build.depth > 1 then
+    if build.depth > 1 and not branch.noBacktrack then
       local upStairs = Feature('exit',{branch=build.branch,depth=build.depth-1})
       build:change_tile(upStairs,build.stairsUp.x,build.stairsUp.y)
     end

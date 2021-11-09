@@ -2474,7 +2474,7 @@ function exit:placed(map)
 end
 function exit:action(entity,action)
   if not self.locked then
-    goToMap(self.depth,self.branch)
+    goToMap(self.depth,self.branch,(self.most_recent and true or false))
   end
 end
 possibleFeatures['exit'] = exit

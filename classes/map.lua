@@ -712,8 +712,9 @@ end
 ---Get a list of possible creatures to spawn on this map. Stores the list, so when this is called in the future it just returns the list.
 --@param self Map. The map to check
 --@param force Boolean. Whether to force recalculation of the creature list (otherwise will return the stored list if it's already been calculated)
+--@param allowAll Boolean. If True, creatures with the specialOnly flag can still be chosen based on their tags/factions/types. If not, they won't be chosen (unless already listed specifically in the map/branch lists)
 --@return Table or nil. Either a table of creature IDs, or nil if there are no possible creatures
-function Map:get_creature_list(force)
+function Map:get_creature_list(force,allowAll)
   if self.creature_list and not force then
     return self.creature_list
   end
@@ -767,7 +768,7 @@ function Map:get_creature_list(force)
     local done = false
     if cTypes then
       for _,cType in pairs(cTypes) do
-        if Creature.is_type(creat,cType) then
+        if (allowAll or not creat.specialOnly) and Creature.is_type(creat,cType) then
           done = true
           break
         end
@@ -776,7 +777,7 @@ function Map:get_creature_list(force)
     end --end cType if
     if cFactions and not done then
       for _,cFac in pairs(cFactions) do
-        if Creature.is_faction_member(creat,cFac) then
+        if (allowAll or not creat.specialOnly) and Creature.is_faction_member(creat,cFac) then
           done = true
           break
         end
@@ -785,7 +786,7 @@ function Map:get_creature_list(force)
     end --end faction if
     if cTags and not done then
       for _,cTag in pairs(cTags) do
-        if Creature.has_tag(creat,cTag) then
+        if (allowAll or not creat.specialOnly) and Creature.has_tag(creat,cTag) then
           done = true
           break
         end

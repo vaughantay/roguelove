@@ -203,7 +203,7 @@ local cave = function(build,hazard)
       fires = fires-1
       build:add_feature(Feature('campfire'),cx,cy)
       local creatID = nil
-      local creats = build:get_creature_list() or possibleMonsters
+      local creats = build:get_creature_list() or {}
       for id,creat in pairs(creats) do
         if creat.level == build.depth and not creat.isBoss and not creat.neverSpawn and not creat.specialOnly then
           creatID = id

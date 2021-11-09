@@ -333,8 +333,10 @@ function goToMap(depth,branch,force)
 		currMap=maps[branch][depth]
     local playerX,playerY = nil,nil
     for _,exit in pairs(currMap.exits) do
+      exit.most_recent = false
       if exit.branch == oldBranch and exit.depth == oldDepth then
         playerX,playerY = exit.x,exit.y
+        exit.most_recent=true
         break
       end
     end --end exit for
@@ -370,6 +372,7 @@ function goToMap(depth,branch,force)
     refresh_player_sight()
 	else
 		output:out("You can't leave until you defeat " .. currMap.boss:get_name(nil,true) .. ".")
+    return false
 	end
 end
 
@@ -377,7 +380,7 @@ end
 function regen_map()
   print('regening')
   currMap = mapgen:generate_map(currMap.branch,currMap.depth,currMap.mapType)
-  maps[currMap.depth] = currMap
+  maps[currMap.branch][currMap.depth] = currMap
   player.x,player.y = currMap.stairsDown.x,currMap.stairsDown.y
   currMap.contents[currMap.stairsDown.x][currMap.stairsDown.y][player]=player
   currMap.creatures[player] = player
@@ -405,34 +408,56 @@ end
 
 ---Generates the boss for the map.
 function generate_boss()
-  achievements:check('boss')
-  local alreadyThere = false
-  if currMap.boss then
-    alreadyThere = true
-  else
-    player.sees = nil
-    if currMap.mapID and mapTypes[currMap.mapID].generate_boss then --if the map has special boss code, run that
-      return mapTypes[currMap.mapID]:generate_boss()
-    elseif currMap.bossID then --if the map has a special boss set, use that as the boss
-      currMap.boss = Creature(currMap.bossID,possibleMonsters[currMap.bossID].level)
-    else --if none of those are true
-      for id,c in pairs(possibleMonsters) do
-        --TODO: Redo normal bosses for to account for branches
-        --[[if (c.level == currMap.depth and c.isBoss == true and not c.specialOnly) then
-          currMap.boss = Creature(id,c.level)
-          break
-        end -- end level if]]
-      end --end monster for
-      if not currMap.boss then
-        currMap.boss = -1
-        return false
-      end --if there's no boss for this map, just ingore it
-    end --end bossID vs generic boss if
+  if currMap.noBoss or currMap.bossID == false then
+    currMap.boss = -1
+    return false
   end
+  achievements:check('boss')
+  if currMap.boss then
+    return
+  end
+    
+  player.sees = nil
+  if currMap.mapID and mapTypes[currMap.mapID].generate_boss then --if the map has special boss code, run that
+    return mapTypes[currMap.mapID]:generate_boss()
+  elseif currMap.bossID then --if the map has a special boss set, use that as the boss
+    currMap.boss = Creature(currMap.bossID,possibleMonsters[currMap.bossID].level)
+  else --if a specific boss isn't set, make one
+    --First look through the list of possible creatures who can spawn here and pick one that's got the boss flag set
+    local madeBoss = false
+    for id,cid in pairs(currMap:get_creature_list()) do
+      local c = possibleMonsters[cid]
+      if c.isBoss == true then
+        local canDo = true
+        if not c.repeatableBoss then --unless this boss says it can repeat, check that it hasn't already been used
+          for branch,branchMaps in pairs(maps) do
+            for depth,branchMap in pairs(branchMaps) do
+              if branchMap ~= currMap and (branchMap.bossID == id or (branchMap.boss and branchMap.boss ~= -1 and branchMap.boss.id == cid)) then
+                canDo = false
+                break
+              end --end bossID check
+            end --end map for
+          end --end branch for
+        end --end repeatable boss if
+        if canDo then
+          currMap.boss = Creature(cid,c.level)
+          madeBoss = true
+          break
+        end
+      end -- end level if
+    end --end monster for
+    if not madeBoss then -- TODO: if a boss hasn't been generated, generate a random applicable creature and make a boss out of it
+      
+    end
+    if not madeBoss then --if a boss still hasn't been generated, just ignore it
+      currMap.boss = -1
+      return false
+    end
+  end --end bossID vs generic boss if
   
-  if currMap.boss and currMap.boss.bossText then
+  if currMap.boss and currMap.boss ~= -1 and currMap.boss.bossText then
     game:show_popup(currMap.boss.bossText)
-  else
+  elseif currMap.boss ~= -1 then
     local text = "As you're about to go up the stairs, a gate suddenly clangs shut in front of them!\nYou realize that you are being stalked by" .. (currMap.boss.properNamed ~= true and " a " or " ") .. currMap.boss.name .. "!"
     game:show_popup(text)
   end
@@ -444,8 +469,6 @@ function generate_boss()
   if playlist then
     output:play_playlist(playlist)
   end]]
-  
-  if alreadyThere then return end
   
   local x,y = random(player.x-5,player.x+5),random(player.y-5,player.y+5)
   while (x<2 or y<2 or x>=currMap.width or y>=currMap.height or currMap.boss:can_move_to(x,y) == false or player:can_see_tile(x,y) == false) do

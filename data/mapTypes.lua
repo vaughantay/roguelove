@@ -63,6 +63,7 @@ local town = {
   height=25,
   noItems=true, --If true, no items will generate on this level
   noExits=true, --If true, the automatic code to generate exits won't run on this level. You should manually put in exits in the create() code or something, or the player will get stuck
+  noBoss=true, --If true, the game will not attempt to generate a boss when the player leaves this map
   lit=true, --If true, the entire level will count as lit. Perception distance won't matter
   creature_density=10, --How many creatures should be generated per 100 tiles
   event_chance=100, --Likelihood that a non-faction random event will occur. Overrides the event_chance values in gamesettings and in the branch
