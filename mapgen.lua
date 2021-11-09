@@ -17,18 +17,16 @@ function mapgen:generate_map(branchID, depth,force)
   if not forceMapType and force then forceMapType = force end --game will default to the branch's forced maps. But if the game definition has no forced map, then you can potentially pass in a forced map instead
   local whichMap = nil
   local id = nil
+  local mapTypeIndex
   if forceMapType then --If forced map creation, assign the ID as appropriate
     if forceMapType and mapTypes[forceMapType] then -- if the branch is forcing us to use a specific map
       id = forceMapType
     end
     whichMap = mapTypes[id]
   else --Non-forced map generation:
-    local index = get_random_key(branch.mapTypes)
-    id = branch.mapTypes[index]
+    mapTypeIndex = get_random_key(branch.mapTypes)
+    id = branch.mapTypes[mapTypeIndex]
     whichMap = mapTypes[id]
-    if branch.allMapsUnique then --if the branch doesn't allow repeated levels
-      table.remove(branch.mapTypes,index)
-    end
   end
 
   --Figure out width and height. Order of preference: 1) mapType's dimensions, 2) branch's map dimensions, 3) game's default map dimensions
@@ -55,7 +53,7 @@ function mapgen:generate_map(branchID, depth,force)
   if not branch.noMapNames then build.name = whichMap.name or (whichMap.generateName and whichMap.generateName()) or (whichMap.nameType and namegen:generate_name(whichMap.nameType)) or false end
   build.fullName = build:get_name()
   build.description = whichMap.description or (whichMap.generateDesc and whichMap.generateDesc()) or (whichMap.descType and namegen:generate_description(whichMap.descType)) or false
-  build.bossID = whichMap.boss
+  build.bossID = whichMap.bossID or (branch.bossIDs and branch.bossIDs[depth])
   build.tileset = whichMap.tileset
   build.playlist = whichMap.playlist or id
   build.bossPlaylist = whichMap.bossPlaylist or id .. "boss"
@@ -65,6 +63,7 @@ function mapgen:generate_map(branchID, depth,force)
   build.noStores = whichMap.noStores or branch.noStores
   build.noFactions = whichMap.noFactions or branch.noFactions
   build.noExits = whichMap.noExits
+  build.noBoss = whichMap.noBoss or branch.noBosses
   build.event_chance = whichMap.event_chance or branch.event_chance
   build.event_cooldown = whichMap.event_cooldown or branch.event_cooldown
   build.tags = merge_tables(whichMap.tags or {},branch.tags or {})
@@ -143,6 +142,11 @@ function mapgen:generate_map(branchID, depth,force)
   
   if whichMap.start_revealed or branch.start_revealed then
     build:reveal()
+  end
+  
+  --if the branch doesn't allow repeated levels
+  if branch.allMapsUnique then
+    table.remove(branch.mapTypes,mapTypeIndex)
   end
   
   currGame.seedState = mapRandom:getState()
