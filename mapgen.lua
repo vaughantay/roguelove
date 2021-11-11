@@ -64,6 +64,7 @@ function mapgen:generate_map(branchID, depth,force)
   build.noFactions = whichMap.noFactions or branch.noFactions
   build.noExits = whichMap.noExits
   build.noBoss = whichMap.noBoss or branch.noBosses
+  build.generate_boss_on_entry = whichMap.generate_boss_on_entry or branch.generate_boss_on_entry
   build.event_chance = whichMap.event_chance or branch.event_chance
   build.event_cooldown = whichMap.event_cooldown or branch.event_cooldown
   build.tags = merge_tables(whichMap.tags or {},branch.tags or {})

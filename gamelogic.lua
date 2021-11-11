@@ -47,8 +47,8 @@ function new_game(mapSeed,playTutorial,cheats,branch)
   update_stat('map_reached',currMap.id)
 end
 
----Figures out which level to load based on a given string. Used for level-skip cheats. TODO: Redo this for branches (probably just remove it entirely)
---@param name String. The name of the level to load, or "level#" to load any level at a given depth, or "generic#" to load the generic level at the given depth.
+---Figures out which level to load based on a given string. Used for level-skip cheats.
+--@param name String. If it matches a branch ID, start at that branch
 function parse_name_for_level(name)
   if dungeonBranches[name] then
     print(name)
@@ -368,6 +368,9 @@ function goToMap(depth,branch,force)
       run_all_events_of_type('enter_map_first_time')
       player:callbacks('enter_map_first_time')
     end
+    if currMap.generate_boss_on_entry then
+      generate_boss(true) --TODO: don't generate it near the player maybe?
+    end
     currMap:refresh_lightMap(true) -- refresh the lightmap, forcing it to refresh all lights
     refresh_player_sight()
 	else
@@ -407,7 +410,8 @@ function regen_map()
 end
 
 ---Generates the boss for the map.
-function generate_boss()
+--@param silent Boolean. If true, don't display any text when generating the boss
+function generate_boss(silent)
   if currMap.noBoss or currMap.bossID == false then
     currMap.boss = -1
     return false
@@ -440,7 +444,8 @@ function generate_boss()
           end --end branch for
         end --end repeatable boss if
         if canDo then
-          currMap.boss = Creature(cid,c.level)
+          local level = (c.max_level and math.min(c.max_level,currMap:get_max_level()) or c.level) --If the boss can level, level it to either its maximum level or the map's maximum level, whichever is lower
+          currMap.boss = Creature(cid,level)
           madeBoss = true
           break
         end
@@ -455,11 +460,13 @@ function generate_boss()
     end
   end --end bossID vs generic boss if
   
-  if currMap.boss and currMap.boss ~= -1 and currMap.boss.bossText then
-    game:show_popup(currMap.boss.bossText)
-  elseif currMap.boss ~= -1 then
-    local text = "As you're about to go up the stairs, a gate suddenly clangs shut in front of them!\nYou realize that you are being stalked by" .. (currMap.boss.properNamed ~= true and " a " or " ") .. currMap.boss.name .. "!"
-    game:show_popup(text)
+  if not silent then
+    if currMap.boss and currMap.boss ~= -1 and currMap.boss.bossText then
+      game:show_popup(currMap.boss.bossText)
+    elseif currMap.boss ~= -1 then
+      local text = "As you're about to go up the stairs, a gate suddenly clangs shut in front of them!\nYou realize that you are being stalked by" .. (currMap.boss.properNamed ~= true and " a " or " ") .. currMap.boss.name .. "!"
+      game:show_popup(text)
+    end
   end
   
   --Boss music:
@@ -470,13 +477,33 @@ function generate_boss()
     output:play_playlist(playlist)
   end]]
   
-  local x,y = random(player.x-5,player.x+5),random(player.y-5,player.y+5)
-  while (x<2 or y<2 or x>=currMap.width or y>=currMap.height or currMap.boss:can_move_to(x,y) == false or player:can_see_tile(x,y) == false) do
+  --Place the actual boss:
+  local placed = false
+  local x,y = currMap.stairsDown.x,currMap.stairsDown.y
+  if currMap.spawn_points and #currMap.spawn_points > 0 then
+    for i,sp in ipairs(currMap.spawn_points) do
+      if sp.boss and currMap.boss:can_move_to(sp.x,sp.y) then
+        local currCreat = currMap:get_tile_creature(sp.x,sp.y)
+        if currCreat then
+          --TODO: make the current creature move
+        end
+        x,y = sp.x,sp.y
+        placed = true
+      end --end sp.boss if
+    end --end spawn points for
+  end --end if we have spawn points if
+
+  --If boss placement hasn't happened yet, put it randomly near the player
+  if placed == false then
     x,y = random(player.x-5,player.x+5),random(player.y-5,player.y+5)
+    while (x<2 or y<2 or x>=currMap.width or y>=currMap.height or currMap.boss:can_move_to(x,y) == false or player:can_see_tile(x,y) == false) do
+      x,y = random(player.x-5,player.x+5),random(player.y-5,player.y+5)
+    end
   end
   currMap:add_creature(currMap.boss,x,y)
   currMap.boss:notice(player)
   currMap.boss:become_hostile(player)
+  return currMap.boss
 end
 
 ---Update a game statistic (like turns played, creatures killed, etc.). Increments the given stat by 1.

@@ -968,9 +968,8 @@ function Map:populate_creatures(creatTotal,forceGeneric)
   if not self.noCreatures and creatTotal > 0 then
     local newCreats = {}
     local specialCreats = self:get_creature_list()
-    local branch_level = branch.starting_level or 1
-    local min_level = round((branch.min_level_base or 1)+(self.depth-1)*(branch.level_increase_per_depth or 1))
-    local max_level = round((branch.max_level_base or 1)+(self.depth-1)*(branch.level_increase_per_depth or 1))
+    local min_level = self:get_min_level()
+    local max_level = self:get_max_level()
     local allSpawnsUsed = false
 		for creat_amt=1,creatTotal,1 do
 			local nc = mapgen:generate_creature(min_level,max_level,specialCreats)
@@ -979,7 +978,7 @@ function Map:populate_creatures(creatTotal,forceGeneric)
       --Spawn in designated spawn points first:
       if not allSpawnsUsed and self.spawn_points and #self.spawn_points > 0 then
         for i,sp in ipairs(self.spawn_points) do
-          if not sp.used then
+          if not sp.used and not sp.boss then
             if self:is_passable_for(sp.x,sp.y,nc.pathType) and not self:tile_has_feature(sp.x,sp.y,'door') and not self:tile_has_feature(sp.x,sp.y,'gate') and not self:tile_has_feature(sp.x,sp.y,'exit') and self:isClear(sp.x,sp.y,nc.pathType) then
               if random(1,4) == 1 then nc:give_condition('asleep',random(10,100)) end
               newCreats[#newCreats+1] = self:add_creature(nc,sp.x,sp.y)
@@ -1026,7 +1025,7 @@ function Map:populate_items(itemTotal,forceGeneric)
   if not itemTotal then
     local density = mapType.item_density or branch.item_density or gamesettings.item_density
     local itemMax = math.ceil((self.width*self.height)*(density/100))
-    itemTotal = itemMax --TODO: 
+    itemTotal = tweak(itemMax)
   end
   
   --Do special code if the mapType has it:
@@ -1172,4 +1171,16 @@ function Map:get_name(noBranch)
   
   name = name .. (self.name or "")
   return name
+end
+
+---Get the minimum creature level for this map
+function Map:get_min_level()
+  local branch = currWorld.branches[self.branch]
+  return round((branch.min_level_base or 1)+(self.depth-1)*(branch.level_increase_per_depth or 1))
+end
+
+---Get the maximum creature level for this map
+function Map:get_max_level()
+  local branch = currWorld.branches[self.branch]
+  return round((branch.max_level_base or 1)+(self.depth-1)*(branch.level_increase_per_depth or 1))
 end

@@ -19,7 +19,7 @@ function Creature:init(creatureType,level,noItems)
     self.gender = "neuter"
   end
   self.id = creatureType
-	self.level = level or self.level or currMap.depth
+  self.level = self.level or 0
   self.max_hp = tweak(self.max_hp)
 	self.hp = self.max_hp
   self.mp = self.max_mp
@@ -125,6 +125,15 @@ function Creature:init(creatureType,level,noItems)
       end --end if type is defined
     end --end ctype for
   end --end if self.types
+  --Level up if necessary:
+  if level and level > self.level then
+    if self.max_level and level > self.max_level then
+      level = self.max_level
+    end
+    for i=self.level+1,level,1 do
+      self:level_up(true)
+    end
+	end
 	return self
 end
 
