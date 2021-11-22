@@ -310,6 +310,9 @@ function goToMap(depth,branch,force)
       depth = 1
     end
   end
+  if not gamesettings.bosses then
+    force = true
+  end
   
 	if (currMap.boss == nil and force ~= true) then
     if generate_boss() == false then
@@ -412,7 +415,7 @@ end
 ---Generates the boss for the map.
 --@param silent Boolean. If true, don't display any text when generating the boss
 function generate_boss(silent)
-  if currMap.noBoss or currMap.bossID == false then
+  if currMap.noBoss or currMap.bossID == false or not gamesettings.bosses then
     currMap.boss = -1
     return false
   end

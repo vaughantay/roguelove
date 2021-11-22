@@ -10,6 +10,7 @@ gamesettings = {
   inventory=true,
   crafting=true,
   craft_anywhere=true,
+  xp=true,
   leveling=true,
   events=true,
   player_tombstones=true,

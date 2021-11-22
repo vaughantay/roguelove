@@ -2217,11 +2217,15 @@ end
 ---Grant XP to a creature
 --@param xp Number. The amount of XP to give
 function Creature:give_xp(xp)
-  self.xp = self.xp+xp
-  if self.xp >= self:get_level_up_cost() then self:level_up() end
+  if gamesettings.xp then
+    self.xp = self.xp+xp
+    if self.xp >= self:get_level_up_cost() and gamesettings.leveling then
+      self:level_up()
+    end
+  end
 end
 
----How much XP do you need to level up?
+---How much XP do you need to level up? TODO: Replace with better formula
 --@return Number. The XP required to level up
 function Creature:get_level_up_cost()
   return self.level*1
@@ -2236,22 +2240,21 @@ function Creature:level_up(force)
     self.xp = self.xp - cost
   end
   self.level = self.level + 1
-  if self == player and not prefs.autoLevel then
-    self.skillPoints = (self.skillPoints or 0) + gamesettings.skill_points_per_level
-  else
-    local hpInc = random(2,6)
-    self.max_hp = self.max_hp + hpInc
-    self.hp = self.hp + hpInc
-    self.strength = self.strength + random(1,2)
-    self.dodging = self.dodging + random(1,2)
-    self.melee = self.melee + random(1,2)
-    if self.magic and self.magic > 0 then self.magic = self.magic + random(1,2) end
-    if self.ranged and self.ranged > 0 then self.ranged = self.ranged + random(1,2) end
-    if self.stealth and self.stealth > 0 then self.stealth = self.stealth + 1 end
-    if self.max_mp and self.max_mp > 0 then
-      local mpInc = random(2,6)
-      self.max_mp = self.max_mp + mpInc
-      self.mp = self.mp + mpInc
+  self.skillPoints = (self.skillPoints or 0) + gamesettings.skill_points_per_level
+  if self ~= player or not prefs.autoLevel then
+    local stats = {'max_hp','strength','dodging','melee'}
+    if self.magic and self.magic > 0 then stats[#stats+1]='magic' end
+    if self.ranged and self.ranged > 0 then stats[#stats+1]='ranged' end
+    if self.stealth and self.stealth > 0 then stats[#stats+1]='stealth' end
+    if self.max_mp and self.max_mp > 0 then stats[#stats+1]='max_mp' end
+    for i=1,self.skillPoints,1 do
+      local skill = get_random_element(stats)
+      if skill == "max_hp" or skill == "max_mp" then
+        self[skill] = self[skill]+2
+        self[(skill == "max_hp" and "hp" or "mp")] = self[(skill == "max_hp" and "hp" or "mp")]+2
+      else
+        self[skill] = self[skill]+1
+      end
     end
   end
   if self.extra_stats then
@@ -2259,6 +2262,11 @@ function Creature:level_up(force)
       if stat.increase_per_level then
         stat.max = stat.max+stat.increase_per_level
       end
+    end
+  end
+  if self.stats_per_level then
+    for stat_id,value in pairs(self.stats_per_level) do
+      self[stat_id] = (self[stat_id] or 0)+value
     end
   end
   if self.class and playerClasses[self.class].learns_spells then
