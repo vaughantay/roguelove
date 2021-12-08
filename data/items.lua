@@ -122,16 +122,24 @@ function scroll:new(spell)
     if #possibles == 0 then possibles = allPossibles end
     spell = get_random_element(possibles)
     self.spell = spell
+    self.target_type = possibleSpells[spell].target_type
   end --end spell provided or not if
   
 	self.name = "scroll of " .. possibleSpells[spell].name
   self.pluralName = "scrolls of " .. possibleSpells[spell].name
+  self.description = "\n" .. possibleSpells[spell].description
   if possibleSpells[spell].tags then self:add_tags(possibleSpells[spell].tags) end
+end
+function scroll:target(target,user)
+  action="targeting"
+  actionResult=possibleSpells[self.spell]
+  actionItem=self
+  actionIgnoreCooldown = true
 end
 function scroll:use(target,user)
   if possibleSpells[self.spell].target_type == "self" then
     target = user
-    possibleSpells[self.spell]:use(target,user,true)
+    possibleSpells[self.spell]:use(target,user,true,true)
     user:delete_item(self)
   else
     action="targeting"
@@ -222,6 +230,7 @@ local weaponPoison = {
 	itemType="usable",
   usable=true,
   useVerb="apply",
+  stacks=true,
   tags={'liquid'},
   value=100
 }

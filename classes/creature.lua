@@ -1293,6 +1293,11 @@ function Creature:delete_item(item,amt)
 	if (id) then
     if amt == -1 or amt >= (item.amount or 0) then
       table.remove(self.inventory,id)
+      for hkid,hkinfo in pairs(self.hotkeys) do
+        if hkinfo.type == "item" and hkinfo.item == item then
+          self.hotkeys[hkid] = nil
+        end
+      end
     else
       item.amount = item.amount - amt
     end

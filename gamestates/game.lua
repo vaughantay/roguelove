@@ -305,31 +305,7 @@ function game:print_sidebar()
   self.spellButtons = {}
   local descBox = false
   local buttonPadding = (smallButtons and 20 or 36)
-  --Button for inventory:
-  if gamesettings.inventory then
-    local invWidth = whichFont:getWidth(keybindings.inventory .. ") Inventory")
-    local minX,minY=printX+xPad-2,printY
-    local maxX,maxY=minX+invWidth+4,minY+(smallButtons and 16 or 32)
-    self.spellButtons["inventory"] = output:button(minX,minY+2,(maxX-minX),smallButtons,nil,nil,true)
-    if self.spellButtons["inventory"].hover == true then
-      descBox = {desc="View and use items and equipment.",x=minX,y=minY}
-    end
-    love.graphics.print(keybindings.inventory .. ") Inventory",printX+xPad,printY-2+yBonus)
-    printY = printY+buttonPadding
-  end
-  if gamesettings.crafting and gamesettings.craft_anywhere then
-    local invWidth = whichFont:getWidth(keybindings.crafting .. ") Crafting")
-    local minX,minY=printX+xPad-2,printY
-    local maxX,maxY=minX+invWidth+4,minY+16
-    self.spellButtons["crafting"] = output:button(minX,minY+2,(maxX-minX),smallButtons,nil,nil,true)
-    if self.spellButtons["crafting"].hover == true then
-      descBox = {desc="Make new items.",x=minX,y=minY}
-    end
-    love.graphics.print(keybindings.crafting .. ") Crafting",printX+xPad,printY-2+yBonus)
-    printY = printY+buttonPadding
-  end
-  
- --Buttons for ranged attacks:
+  --Buttons for ranged attacks:
  local ranged_attacks = player:get_ranged_attacks()
   if #ranged_attacks > 0 then
     local ranged_text = keybindings.ranged .. ") Ranged: "
@@ -377,6 +353,43 @@ function game:print_sidebar()
     end]]
     printY = printY+buttonPadding
   end
+  --Button for abilities:
+  if count(player:get_spells()) > 0 then
+    local buttonWidth = whichFont:getWidth(keybindings.spell .. ") Abilities")
+    local minX,minY=printX+xPad-2,printY
+    local maxX,maxY=minX+buttonWidth+4,minY+16
+    self.allSpellsButton = output:button(minX,minY+2,(maxX-minX),smallButtons,nil,nil,true)
+    love.graphics.print(keybindings.spell .. ") Abilities",printX+xPad,printY-2+yBonus)
+    if self.allSpellsButton.hover == true then
+      descBox = {desc="View and use abilities you have.",x=minX,y=minY}
+    end
+    printY=printY+buttonPadding
+  end
+  --Button for inventory:
+  if gamesettings.inventory then
+    local invWidth = whichFont:getWidth(keybindings.inventory .. ") Inventory")
+    local minX,minY=printX+xPad-2,printY
+    local maxX,maxY=minX+invWidth+4,minY+(smallButtons and 16 or 32)
+    self.spellButtons["inventory"] = output:button(minX,minY+2,(maxX-minX),smallButtons,nil,nil,true)
+    if self.spellButtons["inventory"].hover == true then
+      descBox = {desc="View and use items and equipment.",x=minX,y=minY}
+    end
+    love.graphics.print(keybindings.inventory .. ") Inventory",printX+xPad,printY-2+yBonus)
+    printY = printY+buttonPadding
+  end
+  if gamesettings.crafting and gamesettings.craft_anywhere then
+    local invWidth = whichFont:getWidth(keybindings.crafting .. ") Crafting")
+    local minX,minY=printX+xPad-2,printY
+    local maxX,maxY=minX+invWidth+4,minY+16
+    self.spellButtons["crafting"] = output:button(minX,minY+2,(maxX-minX),smallButtons,nil,nil,true)
+    if self.spellButtons["crafting"].hover == true then
+      descBox = {desc="Make new items.",x=minX,y=minY}
+    end
+    love.graphics.print(keybindings.crafting .. ") Crafting",printX+xPad,printY-2+yBonus)
+    printY = printY+buttonPadding
+  end
+  
+ --Button for feature actions:
   local featureActions = currMap:get_tile_actions(player.x,player.y,true)
   if #featureActions > 0 then
     local picktext = keybindings.action .. ") " .. (#featureActions > 1 and "Nearby Actions" or featureActions[1].text)
@@ -388,8 +401,8 @@ function game:print_sidebar()
       descBox = {desc=(#featureActions > 1 and "Select a nearby action to perform." or featureActions[1].description),x=minX,y=minY}
     end
     love.graphics.print(picktext,printX+xPad,printY-2+yBonus)
+    printY = printY+buttonPadding
   end
-  printY = printY+buttonPadding
   local items = currMap:get_tile_items(player.x,player.y,true)
   if #items > 0 then
     local picktext = keybindings.pickup .. ") Pick Up " .. (#items > 1 and "Items" or items[1]:get_name())
@@ -404,7 +417,48 @@ function game:print_sidebar()
     printY = printY+buttonPadding
   end
   
-  local spellcount = 1
+  --Buttons for hotkeys:
+  local hkcount = 0
+  for i = 1,10,1 do
+    if player.hotkeys[i] then
+      hkcount = hkcount+1
+      local hotkeyInfo = player.hotkeys[i]
+      local name = ""
+      local canUse = true
+      local canUseText = nil
+      local hotkeyItem = nil
+      if hotkeyInfo.type == "spell" then
+        hotkeyItem = possibleSpells[hotkeyInfo.id]
+        name = hotkeyItem.name .. (player.cooldowns[hotkeyItem.name] and " (" .. player.cooldowns[hotkeyItem.name] .. " turns to recharge)" or "")
+        canUse = not player.cooldowns[hotkeyItem.name] and hotkeyItem:requires(player)
+      elseif hotkeyInfo.type == "item" then
+        hotkeyItem = hotkeyInfo.item or player:has_item(hotkeyItem.id)
+        name = hotkeyItem:get_name(true)
+        canUse,canUseText = player:can_use_item(hotkeyItem)
+      end
+      local description = hotkeyItem:get_description()
+      
+      --Draw the actual button:
+      local spellwidth = whichFont:getWidth((i == 10 and 0 or i) .. ") " .. name)
+      local minX,minY=printX+xPad-2,printY+buttonPadding*(hkcount-1)
+      local maxX,maxY=minX+spellwidth+4,minY+(smallButtons and 16 or 32)
+      local buttonType = ((canUse == false) and "disabled" or (actionResult and actionResult == hotkeyItem and "hover" or nil))
+      self.spellButtons[i] = output:button(minX,minY+2,(maxX-minX),smallButtons,buttonType,nil,true)
+      if self.spellButtons[i].hover == true then
+        descBox = {desc=description .. (canUseText and "\n" .. canUseText or ""),x=minX,y=minY}
+      end
+      if canUse == false then
+        setColor(200,200,200,255)
+      end
+      love.graphics.print((i == 10 and 0 or i) .. ") " .. name,printX+xPad,printY+buttonPadding*(hkcount-1)-2+yBonus)
+      if canUse == false then
+        setColor(255,255,255,255)
+      end
+    end
+  end
+  printY = printY+buttonPadding*hkcount
+  
+  --[[local spellcount = 1
   for _,spellID in pairs(player:get_spells()) do
     local spell = possibleSpells[spellID]
     if spell.innate ~= true and spell.target_type ~= "passive" then
@@ -443,7 +497,7 @@ function game:print_sidebar()
       spellcount = spellcount + 1
     end
   end
-  printY = printY+(buttonPadding*spellcount)
+  printY = printY+(buttonPadding*spellcount)]]
 	
 	if (next(player.conditions) ~= nil) then
     love.graphics.printf("Conditions:",printX,printY,335,"center")
@@ -1353,7 +1407,18 @@ function game:mousepressed(x,y,button)
           elseif spell == "action" then
             self:keypressed(keybindings.action)
           else
-           possibleSpells[spell]:target(target,player)
+            local hotkeyInfo = player.hotkeys[spell]
+            local hotkeyItem = nil
+            if hotkeyInfo.type == "spell" then
+              hotkeyItem = possibleSpells[hotkeyInfo.id]
+            elseif hotkeyInfo.type == "item" then
+              hotkeyItem = hotkeyInfo.item or player:has_item(hotkeyItem.id)
+            end
+            if (hotkeyItem.target_type == "self" or not hotkeyItem.target_type) and hotkeyItem:use(player,player) ~= false then
+              advance_turn()
+            elseif (hotkeyItem.target_type and hotkeyItem.target_type ~= "self") then
+              hotkeyItem:target(target,player)
+            end
           end
           return
         end
@@ -1684,8 +1749,8 @@ function game:keypressed(key,scancode,isRepeat)
       end
       Gamestate.switch(multiselect,list,"Select an Action",true,true)
     end
-  elseif tonumber(key) and prefs.spellShortcuts then
-    local spellcount = 1
+  elseif player.hotkeys and (player.hotkeys[key] or player.hotkeys[tonumber(key)] or (key == 0 and player.hotkeys[10])) then
+    --[[local spellcount = 1
     for _,spellID in pairs(player:get_spells()) do
       local spell = possibleSpells[spellID]
       if spell.innate ~= true and spell.target_type ~= "passive" then
@@ -1698,7 +1763,21 @@ function game:keypressed(key,scancode,isRepeat)
         end
         spellcount = spellcount+1
       end --end innate/passive
-    end --end spell for
+    end --end spell for]]
+    local hotkeyInfo = player.hotkeys[key] or player.hotkeys[tonumber(key)]
+    local hotkeyItem = nil
+    if hotkeyInfo.type == "spell" then
+      hotkeyItem = possibleSpells[hotkeyInfo.id]
+    elseif hotkeyInfo.type == "item" then
+      hotkeyItem = hotkeyInfo.item or player:has_item(hotkeyItem.id)
+    end
+    if action == "targeting" and actionResult == hotkeyItem then
+      setTarget(output.cursorX,output.cursorY)
+    elseif (hotkeyItem.target_type == "self" or not hotkeyItem.target_type) and hotkeyItem:use(player,player) ~= false then
+      advance_turn()
+    elseif (hotkeyItem.target_type and hotkeyItem.target_type ~= "self") then
+      hotkeyItem:target(target,player)
+    end
   end -- end key if
 end -- end function
 

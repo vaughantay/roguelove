@@ -263,6 +263,7 @@ function load_data()
   require "gamestates.factionscreen"
   require "gamestates.game"
   require "gamestates.help"
+  require "gamestates.hotkey"
   require "gamestates.inventory"
   require "gamestates.gamestats"
   require "gamestates.loading"

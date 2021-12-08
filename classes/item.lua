@@ -363,7 +363,13 @@ function Item:attack(target,wielder,forceHit,ignore_callbacks,forceBasic)
 end
 
 ---Set the item as the thing currently being used to target (so it'll display as targeting in the game UI)
-function Item:target()
+--@param target Entity. The target of the item
+--@param user User. The owner and user of the item
+--@param skip Boolean. Whether to skip item-specific targetting code and go straight to the generic (optional)
+function Item:target(target,user,skip)
+  if not skip and possibleItems[self.id].target then
+    return possibleItems[self.id].target(self,target,user)
+  end
   action = "targeting"
   actionResult = self
   actionItem = self

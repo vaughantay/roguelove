@@ -16,8 +16,11 @@ function inventory:enter(previous,whichType,action)
     padX,padY=20,20
   end
   self.padX,self.padY = padX,padY
-  self.yModPerc = 100
-  tween(0.2,self,{yModPerc=0})
+  self.yModPerc = 0
+  if previous == game then
+    self.yModPerc = 100
+    tween(0.2,self,{yModPerc=0})
+  end
   output:sound('stoneslideshort',2)
   self.buttons = {}
   self.yHold = 1
@@ -319,6 +322,15 @@ function inventory:draw()
       buttonX = buttonX+buttonWidth+25
       buttonCursorX = buttonCursorX+1
     end
+    if item.equippable == true or item.usable == true then
+      local hotkey = item.hotkey
+      local hotkeyText = (hotkey and "Change Hotkey" or "Assign Hotkey")
+      local buttonWidth = fonts.buttonFont:getWidth(hotkeyText)+25
+      self.buttons.hotkey = output:button(buttonX,buttonY,buttonWidth,false,(self.cursorX == buttonCursorX and "hover" or nil),hotkeyText)
+      self.buttons.xValues[buttonCursorX] = "hotkey"
+      buttonX = buttonX+buttonWidth+25
+      buttonCursorX = buttonCursorX+1
+    end
     local dropText = "Drop (" .. keybindings.drop .. ")"
     local buttonWidth = fonts.buttonFont:getWidth(dropText)+25
     self.buttons.drop = output:button(buttonX,buttonY,buttonWidth,false,(self.cursorX == buttonCursorX and "hover" or nil),dropText)
@@ -378,6 +390,8 @@ function inventory:keypressed(key)
           self:dropItem()
         elseif self.buttons.xValues[self.cursorX] == "throw" then
           self:throwItem()
+        elseif self.buttons.xValues[self.cursorX] == "hotkey" then
+          if self.selectedItem then Gamestate.switch(hotkey,self.selectedItem) end
         end
       end --end cursorX == 1 if
     end --end cursorY == 0 if
@@ -496,6 +510,8 @@ function inventory:mousepressed(x,y,button)
     return self:dropItem()
   elseif self.buttons.throw and self.selectedItem and x/uiScale > self.buttons.throw.minX and x/uiScale < self.buttons.throw.maxX and y/uiScale > self.buttons.throw.minY and y/uiScale < self.buttons.throw.maxY then
     return self:throwItem()
+  elseif self.buttons.hotkey and self.selectedItem and x/uiScale > self.buttons.hotkey.minX and x/uiScale < self.buttons.hotkey.maxX and y/uiScale > self.buttons.hotkey.minY and y/uiScale < self.buttons.hotkey.maxY then
+    if self.selectedItem then Gamestate.switch(hotkey,self.selectedItem) end
   end
   
   --Filter buttons:

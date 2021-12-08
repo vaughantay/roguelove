@@ -63,8 +63,9 @@ end
 --@param target Entity. The target of the spell.
 --@param caster Creature. The caster of the spell.
 --@param ignoreCooldowns Boolean. If set to true, this will ignore whether or not the spell is on a cooldown.
+--@param ignoreMP Boolean. If set to true, this will make the spell not use MP when cast
 --@return Boolean. Whether the spell was successfully able to be cast or not.
-function Spell:use(target, caster, ignoreCooldowns)
+function Spell:use(target, caster, ignoreCooldowns, ignoreMP)
   local req, reqtext = self:requires(caster)
 	if (not ignoreCooldowns and caster.cooldowns[self.name]) then
 		if (caster == player) then output:out("You can't use that ability again for another " .. caster.cooldowns[self.name] .. " turns.") end
@@ -72,7 +73,7 @@ function Spell:use(target, caster, ignoreCooldowns)
   elseif req == false then
     if (caster == player) then output:out((reqtext or "You can't use that ability right now.")) end
     return false
-  elseif caster.mp and self.cost and self.cost > caster.mp then
+  elseif not ignoreCooldowns and caster.mp and self.cost and self.cost > caster.mp then
     if (caster == player) then output:out("You don't have enough magic points to use that ability.") end
 		return false
 	elseif self.cast then
@@ -89,7 +90,7 @@ function Spell:use(target, caster, ignoreCooldowns)
       if self.cooldown and self.cooldown > 0 and not ignoreCooldowns then 
         caster.cooldowns[self.name] = (caster ~= player and self.AIcooldown or self.cooldown)
       end
-      if caster.mp and self.cost then
+      if not ignoreMP and caster.mp and self.cost then
         caster.mp = caster.mp - self.cost
       end
     end --end false/nil if
