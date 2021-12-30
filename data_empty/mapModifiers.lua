@@ -1,0 +1,3 @@
+require "mapgen"
+
+mapModifiers = {}

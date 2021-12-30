@@ -1,7 +1,7 @@
 # roguelove
 Roguelike code written in Lua, based on [Possession](http://possessiongame.com/ "Possession"). Designed to be used with the [LÖVE](http://love2d.org/ "LÖVE") game framework (http://love2d.org)
 
-Currently not a full game, but has some test content.
+Currently not a full game, but has some test content. If you want to start from scratch, rename or remove the data/ directory, and rename the data_empty/ directory to data/
 
 Features that have been added that weren't in Possession:
 * Items and inventory

@@ -748,7 +748,7 @@ function game:display_map(map)
             --Display order: 1) Base tile, 2)Features, 3)Creature
             -- Display tile first:
             local img = false
-            if tilesets[map.tileset].tilemap and map.images[x][y] and map.images[x][y].image then
+            if tilesets[map.tileset] and tilesets[map.tileset].tilemap and map.images[x][y] and map.images[x][y].image then
               img = images[map.images[x][y].image]
             else
               img = images[map.images[x][y]]

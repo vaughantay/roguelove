@@ -572,6 +572,7 @@ function Map:refresh_tile_image(x,y)
   local name = ""
   local directions = ""
   local tileset = tilesets[self.tileset]
+  if not tileset then return false end
   if type(self[x][y]) == "table" then
     self[x][y]:refresh_image_name()
     name = "floor"
