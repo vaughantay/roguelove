@@ -162,7 +162,7 @@ end
 --@param allowAll Boolean. If True, creatures with the specialOnly flag can still be chosen (but bosses or creatures with the neverSpawn flag set still cannot). Optional
 --@return Creature. The new creature
 function mapgen:generate_creature(min_level,max_level,list,allowAll)
-  if not list then return false end
+  if not list then list = possibleMonsters end
   
   --Prevent an infinite loop if there are no creatures of a given level:
   local noCreatures = true
@@ -177,6 +177,7 @@ function mapgen:generate_creature(min_level,max_level,list,allowAll)
 	-- This selects a random creature from the table of possible creatures, and compares the desired creature level to this creature's level. If it's a match, continue, otherwise select another one
 	while (1 == 1) do -- endless loop, broken by the "return"
 		local n = get_random_element(list)
+    local creat = (type(n) == "string" and possibleMonsters[n] or n)
 		if ((creat.level >= min_level and creat.level <= max_level) or (creat.max_level and creat.max_level >= min_level and creat.max_level <= max_level)) and creat.isBoss ~= true and creat.neverSpawn ~= true and (allowAll or list or possibleMonsters[n].specialOnly ~= true) and random(1,100) >= (creat.rarity or 0) then
       local level = random(math.max(creat.level,min_level),math.min(creat.max_level or creat.level,max_level))
 			return Creature(n,level)
