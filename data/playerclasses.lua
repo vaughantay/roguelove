@@ -57,7 +57,7 @@ playerClasses = {
     description="Studies those pesky demons.",
     favor={lightchurch=-25}, --List of favor scores the character starts with
     spells={"demondamager"}, --These are spells the character will start with
-    items={{item="holywater"},{item="bloodextractor"},{item="soul",amount=2}}, --These items will be granted on game start
+    items={{item="holywater"},{item="bloodextractor"},{item="soul",amount=2},{item="demonblood"},{item="healthpotionminor",amount=2}}, --These items will be granted on game start
     equipment={{item="dagger",enchantment="sharpened",enchantment_turns=5,displayName="Sharpened Dagger"}}, --These items will be equipped on game start
     learns_spells={}, --These spells will be automatically granted once a certain level is reached
     spell_purchases={}, --These spells will show up as options to learn (requiring spending points on them)

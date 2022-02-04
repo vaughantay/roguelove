@@ -194,9 +194,10 @@ local demonbrute = {
 possibleMonsters['demonbrute'] = demonbrute
 
 local dragonfly = {
-  name = "dragonfly",
+  name = "dragon fly",
   description = "This brightly-colored insect eats mosquitos and breathes fire.",
-  types={"animal","flyer","bug"},
+  types={"animal","flyer","bug","fire"},
+  possible_death_items={{item="insectwing",chance=75,max_amt=2},{item="dragonflyheart",change=100}},
   ranged_attack="smallfireball",
   pathType = "flyer",
   symbol = "d",
@@ -249,6 +250,7 @@ local shroomman = {
   name = "mellow mushroom man",
   description = "A foot-tall semi-sentient fungus!",
   types={"mindless","plant","bloodless"},
+  possible_death_items={{item="spores",chance=50},{item="mushroomcap",chance=75}},
   tags={"poison"},
   symbol = "p",
   melee = 20,
@@ -284,6 +286,7 @@ local mosquito = {
   name = "giant mosquito",
   description = "A giant bloodsucking pest.",
   types={"animal","flyer","bug"},
+  possible_death_items={{item="insectwing",chance=75,max_amt=2}},
   pathType = "flyer",
   symbol = "Q",
   soundgroup="giantbug",

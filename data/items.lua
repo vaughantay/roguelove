@@ -16,12 +16,84 @@ local healthPotionMinor = {
 }
 function healthPotionMinor:use(user)
 	user = user or player
-	local heal = tweak(5)
+	local healPerc = tweak(20)
+  local heal = math.max(5,math.ceil(user:get_mhp()*(healPerc/100)))
 	output:out(user.name .. " drinks a Potion of Minor Healing and regains " .. heal .. " HP!")
 	user:updateHP(heal)
 	user:delete_item(self)
 end
 possibleItems['healthpotionminor'] = healthPotionMinor
+
+local healthPotionModerate = {
+  name = "potion of moderate healing",
+  pluralName = "potions of moderate healing",
+	description = "A crimson liquid swirls in this flask.",
+	symbol = "!",
+	color = {r=255,g=0,b=0,a=255},
+	itemType="usable",
+	stacks = true,
+  usable=true,
+  useVerb="drink",
+  consumed=true,
+  tags={'liquid','healing'},
+  value=5
+}
+function healthPotionModerate:use(user)
+	user = user or player
+	local healPerc = tweak(34)
+  local heal = math.max(10,math.ceil(user:get_mhp()*(healPerc/100)))
+	output:out(user.name .. " drinks a Potion of Moderate Healing and regains " .. heal .. " HP!")
+	user:updateHP(heal)
+	user:delete_item(self)
+end
+possibleItems['healthpotionmoderate'] = healthPotionModerate
+
+local magicPotionMinor = {
+  name = "potion of minor magic",
+  pluralName = "potions of minor magic",
+	description = "A azure liquid swirls in this flask.",
+	symbol = "!",
+	color = {r=0,g=0,b=255,a=255},
+	itemType="usable",
+	stacks = true,
+  usable=true,
+  useVerb="drink",
+  consumed=true,
+  tags={'liquid','magic'},
+  value=5
+}
+function magicPotionMinor:use(user)
+	user = user or player
+	local healPerc = tweak(15)
+  local heal = math.max(5,math.ceil(user:get_max_mp()*(healPerc/100)))
+	output:out(user.name .. " drinks a Potion of Minor Magic and regains " .. heal .. " MP!")
+  user.mp = math.min(user:get_max_mp(),user.mp+heal)
+	user:delete_item(self)
+end
+possibleItems['healthpotionminor'] = healthPotionMinor
+
+local herbs = {
+  name = "medicinal herb",
+  pluralName = "medicinal herbs",
+	description = "A small herb with medicinal properties.",
+	symbol = "!",
+	color = {r=0,g=150,b=0,a=255},
+	itemType="usable",
+	stacks = true,
+  usable=true,
+  useVerb="eat",
+  consumed=true,
+  tags={'food','healing','nature'},
+  value=5
+}
+function herbs:use(user)
+	user = user or player
+	local heal = tweak(2)
+	output:out(user.name .. " eats a medicinal herb and regains " .. heal .. " HP!")
+	user:updateHP(heal)
+	user:delete_item(self)
+end
+possibleItems['herbs'] = herbs
 
 local blood = {
   name = "blood vial",
@@ -751,6 +823,68 @@ function explosivebolt:new()
   self.amount = tweak(100)
 end
 possibleItems['explosivebolt'] = explosivebolt
+
+
+local alcahest = {
+  name = "alcahest vial",
+  plural_name = "alcahest vials",
+  description = "A universal alchemical ingredient.",
+  symbol = "!",
+  itemType="other",
+  color={r=255,g=255,b=255,a=255},
+  tags={'alchemy'}
+  }
+possibleItems['alcahest'] = alcahest
+
+local insectwing = {
+  name = "insect wing",
+  plural_name = "insect wings",
+  description = "The wing of a giant insect.",
+  symbol = "%",
+  itemType="other",
+  color={r=255,g=255,b=255,a=255},
+  tags={'insect','bodypart'},
+  neverSpawn=true
+  }
+possibleItems['insectwing'] = insectwing
+
+local dragonflyheart = {
+  name = "dragon fly heart",
+  plural_name = "dragon fly hearts",
+  description = "The heart of a dragon fly. It's warm.",
+  symbol = "%",
+  itemType="other",
+  color={r=255,g=0,b=0,a=255},
+  tags={'insect','bodypart','fire'},
+  neverSpawn=true
+  }
+possibleItems['dragonflyheart'] = dragonflyheart
+
+local spores = {
+  name = "handful of mushroom spores",
+  plural_name = "handfuls of mushroom spores",
+  description = "A small pile of mushroom spores.",
+  symbol = "%",
+  itemType="other",
+  color={r=150,g=150,b=150,a=255},
+  tags={'fungus','nature'},
+  neverSpawn=true
+  }
+possibleItems['insectwing'] = insectwing
+
+local mushroomcap = {
+  name="mushroom cap",
+	description="The top of a mushroom. Large enough to be worn on your own head.",
+	symbol="]",
+	itemType="armor",
+  subType="head",
+  equippable=true,
+  equipSlot="head",
+	color={r=255,g=0,b=0,a=0},
+  tags={'bodypart','nature'},
+  neverSpawn=true
+}
+possibleItems['mushroomcap'] = mushroomcap
 
 local bloodextractor = {
   name = "blood extractor",

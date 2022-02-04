@@ -33,6 +33,7 @@ function Creature:init(creatureType,level,noItems)
   self.extra_stats = self.extra_stats or {}
   self.forbidden_spell_tags = self.forbidden_spell_tags or self.forbidden_tags or {}
   self.forbidden_item_tags = self.forbidden_item_tags or self.forbidden_tags or {}
+  self.known_recipes = self.known_recipes or {}
   self.money = tweak(self.money or 0)
   self.xp = 0
   self.favor = self.favor or {}
@@ -1336,7 +1337,7 @@ function Creature:has_item(itemID,sortBy,enchantments)
       end
 		end
 	end --end inventory for
-	return false
+	return false,nil,0
 end
 
 ---Check if a creature has a specific item
@@ -2497,12 +2498,15 @@ function Creature:has_tag(tag)
 end
 
 ---Get all possible recipes the creature can craft
+--@param hide_uncraftable Boolean. If true, only show recipes that are currently craftable. If false or nil, show all known crafts even if they can't be crafted right now (optional)
 --@return Table. A table with the IDs of all craftable recipes
-function Creature:get_all_possible_recipes()
+function Creature:get_all_possible_recipes(hide_uncraftable)
   local canCraft = {}
   for id,recipe in pairs(possibleRecipes) do
-    if self:can_craft_recipe(id) then
+    local known = self.known_recipes and self.known_recipes[id]
+    if self:can_craft_recipe(id) or (known and not hide_uncraftable) then
       canCraft[#canCraft+1] = id
+      self:learn_recipe(id)
     end
   end
   return canCraft
@@ -2511,8 +2515,15 @@ end
 ---Check if it's possible to craft a recipe
 --@param recipeID String. The ID of the recipe
 --@return Boolean. Whether or not the recipe can be crafted
+--@return Text. A description of why you can't craft the recipe.
 function Creature:can_craft_recipe(recipeID)
+  if 1 == 1 then return true end
   local recipe = possibleRecipes[recipeID]
+  local no_auto_learn = recipe.no_auto_learn or (not gamesettings.auto_learn_possible_crafts)
+  local known = self.known_recipes and self.known_recipes[id]
+  if no_auto_learn and not known then
+    return false
+  end
   if recipe.requires then
     if not recipe:requires(self) then return false end
   end
@@ -2529,6 +2540,10 @@ function Creature:can_craft_recipe(recipeID)
       if not self:has_item(tool) then return false end
     end
   end
+  for item,amt in pairs(recipe.ingredients) do
+    local i = self:has_item(item)
+    if not i or (i.amount or 1) < amt then return false end
+  end
   if recipe.tool_tags then
     for _,tag in ipairs(recipe.tool_tags) do
       local has = false
@@ -2541,9 +2556,15 @@ function Creature:can_craft_recipe(recipeID)
       if not has then return false end
     end --end tag for
   end
-  for item,amt in pairs(recipe.ingredients) do
-    local i = self:has_item(item)
-    if not i or (i.amount or 1) < amt then return false end
+  if recipe.required_level and player.level < recipe.required_level then
+    return false
+  end
+  if recipe.stat_requirements then
+    for stat,requirement in pairs(recipe.stat_requirements) do
+      if self:get_stat(stat,true) < requirement and self:get_bonus_stat(stat,true) < requirement then
+        return false
+      end
+    end
   end
   return true --if no requirements have been false, we should be good to go
 end
@@ -2566,5 +2587,12 @@ function Creature:craft_recipe(recipeID)
   local text = recipe.result_text or "You make stuff."
   output:out(text)
   update_stat('recipes_crafted',recipeID)
+  self:learn_recipe(recipeID)
   return true,text
+end
+
+---Learn a recipe
+--@param recipeID Text. The ID of the recipe to learn
+function Creature:learn_recipe(recipeID)
+  self.known_recipes[recipeID] = true
 end
