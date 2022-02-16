@@ -1357,15 +1357,10 @@ function game:mousepressed(x,y,button)
     if self.warning then
       local yes = self.warning.yesButton
       local no = self.warning.noButton
-      if x > yes.minX and x < yes.maxX and y > yes.minY and y < yes.maxY then
-        if self.warning.possession then
-          player.possessTarget = self.warning.danger
-          possibleSpells['possession']:cast(self.warning.danger,player)
-        else
-          move_player(self.warning.tile.x,self.warning.tile.y,true)
-        end
+      if x/uiScale > yes.minX and x/uiScale < yes.maxX and y/uiScale > yes.minY and y/uiScale < yes.maxY then
+        move_player(self.warning.tile.x,self.warning.tile.y,true)
         self.warning = nil
-      elseif x > no.minX and x < no.maxX and y > no.minY and y < no.maxY then
+      elseif x/uiScale > no.minX and x/uiScale < no.maxX and y/uiScale > no.minY and y/uiScale < no.maxY then
         self.warning = nil
       end
       return
@@ -1989,16 +1984,19 @@ end
 -- Warning bullshit:
 local Warning = Class{}
 
-function game:warn_player(x,y,creat,possession)
-  local w = Warning(x,y,creat,possession)
-  if w.possession or w.danger then self.warning = w end
+function game:warn_player(x,y,creat)
+  local w = Warning(x,y,creat)
+  if w.danger then self.warning = w end
 end
 
-function Warning:init(x,y,creat,possession)
+function Warning:init(x,y,creat)
+  local uiScale = prefs['uiScale']
+  local fontSize = prefs['fontSize']
   self.tile={x=x,y=y}
-  if possession then self.possession = true end
+  self.text = nil
   if creat then
     self.danger = creat
+    self.text = "Are you sure you want to move next to " .. self.danger:get_name() .. "?"
   elseif type(currMap[x][y]) == "table" and currMap[x][y].baseType == "feature" and currMap[x][y]:is_hazardous_for(player.pathType) then
     self.danger = currMap[x][y]
   else  --if the tile is a boring old square, or nonthreatening feature
@@ -2015,47 +2013,28 @@ function Warning:init(x,y,creat,possession)
       end --end hazard if
     end --end effect for
   end --end feature if
-  self.x,self.y=round(love.graphics.getWidth()/2-100),round(love.graphics.getHeight()/2-50)
+  if self.danger and self.danger.baseType == "feature" or self.danger.baseType == "effect" then
+    self.text = "Are you sure you want to step into the " .. self.danger.name .. "?"
+  end
+  self.x,self.y=round(love.graphics.getWidth()/uiScale/2-100),round(love.graphics.getHeight()/uiScale/2-50)
+  self.width = math.ceil(love.graphics.getWidth()/uiScale/2)
+  local _,hlines = fonts.textFont:getWrap(self.text,self.width)
+  self.height = #hlines*(fontSize+1)+32
   if not self.danger then return false end
 end
 
 function Warning:draw()
+  local uiScale = prefs['uiScale']
+  local fontSize = prefs['fontSize']
+  love.graphics.push()
+  love.graphics.scale(uiScale,uiScale)
   love.graphics.setFont(fonts.textFont)
-  if prefs['noImages'] ~= true then
-    setColor(20,20,20,150)
-    love.graphics.rectangle("fill",self.x,self.y,200,93+(self.possession and 32 or 0))
-    setColor(255,255,255,255)
-    for x=self.x,self.x+182,32 do
-      love.graphics.draw(images.borders.borderImg,images.borders.u,x,self.y-18)
-      love.graphics.draw(images.borders.borderImg,images.borders.d,x,self.y+75+(self.possession and 32 or 0))
-    end
-    for y=self.y,self.y+(self.possession and 96 or 64),32 do
-      love.graphics.draw(images.borders.borderImg,images.borders.l,self.x-18,y)
-      love.graphics.draw(images.borders.borderImg,images.borders.r,self.x+182,y)
-    end
-    love.graphics.draw(images.borders.borderImg,images.borders.ul,self.x-18,self.y-18)
-    love.graphics.draw(images.borders.borderImg,images.borders.ur,self.x+182,self.y-18)
-    love.graphics.draw(images.borders.borderImg,images.borders.ll,self.x-18,self.y+75+(self.possession and 32 or 0))
-    love.graphics.draw(images.borders.borderImg,images.borders.lr,self.x+182,self.y+75+(self.possession and 32 or 0))
-  else
-    setColor(20,20,20,150)
-    love.graphics.rectangle("fill",self.x-8,self.y,208,(self.possession and 136 or 104))
-    setColor(255,255,255,255)
-    love.graphics.rectangle("line",self.x-8,self.y-8,208,(self.possession and 136 or 104)) -- warning outline
-  end
-  if self.possession == true then
-    love.graphics.printf("If you fail this possession, a nearby enemy could hit you and send you back to the Nether Regions. Are you sure you want to try?",self.x,self.y,190,"center")
-  else
-    if self.danger.baseType == "creature" then
-      love.graphics.printf("Are you sure you want to move next to " .. self.danger:get_name() .. "?",self.x,self.y,190,"center")
-    else
-      love.graphics.printf("Are you sure you want to step into the " .. self.danger.name .. "?",self.x,self.y,190,"center")
-    end
-  end
-  self.yesButton = output:button(self.x+20,self.y+55+(self.possession and 32 or 0),32)
-  love.graphics.print("(Y)es",self.x+30,self.y+60+(self.possession and 32 or 0))
-  self.noButton = output:button(self.x+120,self.y+55+(self.possession and 32 or 0),32)
-  love.graphics.print("(N)o",self.x+130,self.y+60+(self.possession and 32 or 0))
+  output:draw_window(self.x,self.y,self.x+self.width,self.y+self.height)
+  love.graphics.printf(self.text,self.x,self.y,self.width,"center")
+  local buttonW = math.max(fonts.buttonFont:getWidth("(Y)es"),fonts.buttonFont:getWidth("(N)o"))
+  self.yesButton = output:button(round(self.x+(self.width)/2)-buttonW,self.y+self.height-8,buttonW,nil,nil,"(Y)es",true)
+  self.noButton = output:button(round(self.x+(self.width)/2)+buttonW,self.y+self.height-8,buttonW,nil,nil,"(N)o",true)
+  love.graphics.pop()
 end
 
 --Popup stuff:
@@ -2074,29 +2053,33 @@ function game:show_popup(text,header,extraLines,blackout,enterOnly,afterFunc,sou
 end
 
 function Popup:init(text,header,extraLines,blackout,enterOnly,afterFunc)
+  local uiScale = prefs['uiScale']
   self.text,self.header=text,(header or "")
   self.blackout,self.enterOnly = blackout,enterOnly
-  self.width = math.ceil(love.graphics.getWidth()/2)
+  self.width = math.ceil(love.graphics.getWidth()/uiScale/2)
   self.padding = (prefs['noImages'] and 8 or 16)
   self.afterFunc = afterFunc
   extraLines = extraLines or 4
+  self.exitText = (self.enterOnly and "Press enter or click to continue..." or "Press any key or click to continue...")
   local _,hlines = fonts.textFont:getWrap(self.header,self.width)
   local _,tlines = fonts.textFont:getWrap(text,self.width)
+  local _,elines = fonts.textFont:getWrap(self.exitText,self.width)
   self.headerHeight = #hlines*prefs['fontSize']
   self.height = (#tlines+extraLines)*prefs['fontSize']+self.headerHeight
-  self.x,self.y=round(love.graphics.getWidth()/4),round(love.graphics.getHeight()/2-self.height/2)
+  self.x,self.y=round(love.graphics.getWidth()/uiScale/4),round(love.graphics.getHeight()/uiScale/2-self.height/uiScale/2)
+  self.exitHeight = self.y+self.height-(#elines*prefs['fontSize'])
 end
 
 function Popup:draw()
+  local uiScale = prefs['uiScale']
+  love.graphics.push()
+  love.graphics.scale(uiScale,uiScale)
   output:draw_window(self.x,self.y,self.x+self.width,self.y+self.height)
   love.graphics.setFont(fonts.textFont)
   if self.header then
     love.graphics.printf(self.header,self.x+self.padding,self.y+self.padding,self.width-self.padding,"center")
   end
   love.graphics.printf(self.text,self.x+self.padding+5,self.y+self.padding+self.headerHeight+5,self.width-self.padding,"left")
-  if self.enterOnly then
-    love.graphics.printf("Press enter or click to continue...",self.x,self.y+self.height-(prefs['noImages'] and 10 or 5),self.width,"center")
-  else
-    love.graphics.printf("Press any key or click to continue...",self.x,self.y+self.height-(prefs['noImages'] and 10 or 5),self.width,"center")
-  end
+  love.graphics.printf(self.exitText,self.x,self.exitHeight,self.width,"center")
+  love.graphics.pop()
 end

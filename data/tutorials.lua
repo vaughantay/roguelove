@@ -1,6 +1,6 @@
 tutorials = {
 
-firstTurn=[[It's the first turn!.]],
+firstTurn=[[It's the first turn!]],
 
 lowHealth=[[You're low on health!]],
 

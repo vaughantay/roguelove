@@ -496,6 +496,9 @@ function output:button(x,y,width,small,special,text,useScaling)
     mouseX,mouseY = math.ceil(mouseX/uiScale),math.ceil(mouseY/uiScale)
   end
   local hover = false
+  if not width and text then
+    width = fonts.buttonFont:getWidth(text)
+  end
   if prefs['noImages'] ~= true then
     local buttonname = (small and "smallbutton" or "button")
     local image = (special and images[buttonname][special] or images[buttonname].image)
