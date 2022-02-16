@@ -2517,7 +2517,7 @@ end
 --@return Boolean. Whether or not the recipe can be crafted
 --@return Text. A description of why you can't craft the recipe.
 function Creature:can_craft_recipe(recipeID)
-  if 1 == 1 then return true end
+  if debugMode then return true end
   local recipe = possibleRecipes[recipeID]
   local no_auto_learn = recipe.no_auto_learn or (not gamesettings.auto_learn_possible_crafts)
   local known = self.known_recipes and self.known_recipes[id]
