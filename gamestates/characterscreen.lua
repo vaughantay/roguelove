@@ -326,7 +326,7 @@ function characterscreen:keypressed(key)
     else
       self:scrollDown()
     end
-  elseif key == "return" or key == "wait" then
+  elseif key == "enter" or key == "wait" then
     if self.cursorY == 0 then
       if self.cursorX == 1 then
         self.screen = "character"

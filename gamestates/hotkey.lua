@@ -61,7 +61,7 @@ function hotkey:keypressed(key)
   local hotkeyItem = self.hotkeyItem
   local origKey = key
   key = input:parse_key(key)
-  if (origKey == "escape") or key == "return" then
+  if (origKey == "escape") or key == "enter" then
     self:switchBack()
   elseif tonumber(key) then
     for i=1,10 do

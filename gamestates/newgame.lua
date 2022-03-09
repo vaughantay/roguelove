@@ -697,7 +697,7 @@ function newgame:keypressed(key)
   key = input:parse_key(key)
   local screen = self:getScreen()
   if self.blackAmt then return false end
-  if key == "return" or key == "wait" then
+  if key == "enter" or key == "wait" then
     if screen == "species" or screen == "classes" then
       if screen == "classes" then
         self.player.class = self.classes[self.cursorY].classID

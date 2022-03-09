@@ -295,7 +295,7 @@ function inventory:draw()
     end
     if item ~= self.selectedItem then setColor(100,100,100,255) end
     if item.usable==true then
-      local useText = (item.useVerb and ucfirst(item.useVerb) or "Use") .. " (" .. keybindings.use .. ")"
+      local useText = (item.useVerb and ucfirst(item.useVerb) or "Use") .. " (" .. keybindings.use[1] .. ")"
       local buttonWidth = fonts.buttonFont:getWidth(useText)+25
       self.buttons.use = output:button(buttonX,buttonY,buttonWidth,false,(self.cursorX == buttonCursorX and "hover" or nil),useText)
       self.buttons.xValues[buttonCursorX] = "use"
@@ -304,7 +304,7 @@ function inventory:draw()
       buttonCursorX = buttonCursorX+1
     end
     if item.throwable==true then
-      local useText = "Throw (" .. keybindings.throw .. ")"
+      local useText = "Throw (" .. keybindings.throw[1] .. ")"
       local buttonWidth = fonts.buttonFont:getWidth(useText)+25
       self.buttons.throw = output:button(buttonX,buttonY,buttonWidth,false,(self.cursorX == buttonCursorX and "hover" or nil),useText)
       self.buttons.xValues[buttonCursorX] = "throw"
@@ -314,7 +314,7 @@ function inventory:draw()
     end
     if item.equippable==true then
       local equipped = player:is_equipped(item)
-      local useText = (equipped and "Unequip" or "Equip") .. " (" .. keybindings.equip .. ")"
+      local useText = (equipped and "Unequip" or "Equip") .. " (" .. keybindings.equip[1] .. ")"
       local buttonWidth = fonts.buttonFont:getWidth(useText)+25
       self.buttons.equip = output:button(buttonX,buttonY,buttonWidth,false,(self.cursorX == buttonCursorX and "hover" or nil),useText)
       self.buttons.xValues[buttonCursorX] = "equip"
@@ -331,7 +331,7 @@ function inventory:draw()
       buttonX = buttonX+buttonWidth+25
       buttonCursorX = buttonCursorX+1
     end
-    local dropText = "Drop (" .. keybindings.drop .. ")"
+    local dropText = "Drop (" .. keybindings.drop[1] .. ")"
     local buttonWidth = fonts.buttonFont:getWidth(dropText)+25
     self.buttons.drop = output:button(buttonX,buttonY,buttonWidth,false,(self.cursorX == buttonCursorX and "hover" or nil),dropText)
     self.buttons.xValues[buttonCursorX] = "drop"
@@ -352,7 +352,7 @@ function inventory:keypressed(key)
     else
       self:switchBack()
     end
-	elseif (key == "return") or key == "wait" then
+	elseif (key == "enter") or key == "wait" then
     if self.cursorY == 0 then --sorting buttons
       if self.filterButtons[self.cursorX] then
         self.filter = self.filterButtons[self.cursorX].filter

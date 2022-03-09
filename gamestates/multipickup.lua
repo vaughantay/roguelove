@@ -139,7 +139,7 @@ function multipickup:keypressed(key)
   key = input:parse_key(key)
 	if (key == "escape") then
 		self:switchBack()
-	elseif (key == "return") or key == "wait" then
+	elseif (key == "enter") or key == "wait" then
 		if self.items[self.cursorY] then
       self:pickup(self.items[self.cursorY])
     end

@@ -165,7 +165,7 @@ function spellscreen:keypressed(key)
   local playerSpells = player:get_spells()
 	if (key == "escape") then
 		self:switchBack()
-	elseif (key == "return") or key == "wait" then
+	elseif (key == "enter") or key == "wait" then
 		if (possibleSpells[playerSpells[self.cursorY]] and possibleSpells[playerSpells[self.cursorY]]:target(target,player) ~= false) then
 			advance_turn()
 		end

@@ -75,7 +75,7 @@ function pausemenu:keypressed(key,isRepeat)
     self.cursorY = (self.cursorY == 1 and 5 or self.cursorY-1)
   elseif key == "south" then
     self.cursorY = (self.cursorY == 5 and 1 or self.cursorY+1)
-  elseif key == "return" or key == "wait" then
+  elseif key == "enter" or key == "wait" then
     self:mousepressed(1,1,1)
   end --end key if
 end

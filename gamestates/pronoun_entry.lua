@@ -142,7 +142,7 @@ function pronoun_entry:keypressed(key)
   elseif key == "north" then
     self.cursorY = self.cursorY-1
     if self.cursorY < 1 then self.cursorY = 3 end
-  elseif key == "return" then
+  elseif key == "enter" then
     self.cursorY = self.cursorY + 1
     if self.cursorY > 3 then
       self:switchBack()

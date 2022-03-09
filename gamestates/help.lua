@@ -76,7 +76,7 @@ end
 
 function help:keypressed(key)
   key = input:parse_key(key)
-  if key == "escape" or key == "return" or key == "wait" then
+  if key == "escape" or key == "enter" or key == "wait" then
     self:switchBack()
   elseif key == "south" then
     self:scrollDown()

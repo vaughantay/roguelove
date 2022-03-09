@@ -162,13 +162,13 @@ end
 
 function modloader:keypressed(key, isRepeat)
   key = input:parse_key(key)
-  if key == "escape" then
-    --go to "no mods" button
+  if key == "escape" then --go to no mods button
+    self.cursorX=3
+    self.cursorY=0
   elseif key == "north" then
     if self.cursorY > 0 then
       self.cursorY = self.cursorY-1
       self.cursorX = 2
-      
     end
   elseif key == "south" then
     if self.cursorY < #self.mods then
@@ -179,7 +179,7 @@ function modloader:keypressed(key, isRepeat)
     self.cursorX = math.max(self.cursorX - 1,1)
   elseif key == "east" then
     self.cursorX = math.min (self.cursorX + 1,3)
-  elseif key == "return" or key == "wait" then
+  elseif key == "enter" or key == "wait" then
     if self.cursorY == 0 then
       if self.cursorX == 1 then --select all
         local which = true

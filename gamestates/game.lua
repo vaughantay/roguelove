@@ -2,7 +2,7 @@ game = {spellButtons={},sidebarCreats={},hoveringCreat=nil,hp=0,playerID=nil,eve
 
 function game:enter()
   love.graphics.setFont(fonts.mapFontWithImages)
-  love.mouse.setGrabbed(true)
+  if prefs.captureMouse then love.mouse.setGrabbed(true) end
 end
   
 function game:leave()
@@ -248,13 +248,13 @@ function game:print_sidebar()
 	love.graphics.printf(player.properName,printX,printY-4+yBonus,335,"center")
   local skillPoints = ""
   if player.skillPoints and player.skillPoints > 0 then skillPoints = " (+)" end
-  local buttonWidth = whichFont:getWidth(keybindings.charScreen .. ") Level " .. player.level .. " " .. player.name .. skillPoints)
+  local buttonWidth = whichFont:getWidth(keybindings.charScreen[1] .. ") Level " .. player.level .. " " .. player.name .. skillPoints)
 
   local middleX = round(printX+335/2)
   printY=printY+fontPad
   self.characterButton = output:button(round(middleX-buttonWidth/2)-8,printY,buttonWidth+16,smallButtons,nil,nil,true)
 	if skillPoints ~= "" then setColor(255,255,0,255) end
-  love.graphics.printf(keybindings.charScreen .. ") Level " .. player.level .. " " .. player.name .. skillPoints,printX,printY+yBonus,335,"center")
+  love.graphics.printf(keybindings.charScreen[1] .. ") Level " .. player.level .. " " .. player.name .. skillPoints,printX,printY+yBonus,335,"center")
   setColor(255,255,255,255) 
   if output.shakeTimer > 0 then
     love.graphics.push()
@@ -308,7 +308,7 @@ function game:print_sidebar()
   --Buttons for ranged attacks:
  local ranged_attacks = player:get_ranged_attacks()
   if #ranged_attacks > 0 then
-    local ranged_text = keybindings.ranged .. ") Ranged: "
+    local ranged_text = keybindings.ranged[1] .. ") Ranged: "
     local ranged_description_box = ""
     for i,attack_instance in ipairs(ranged_attacks) do
       local attack = rangedAttacks[attack_instance.attack]
@@ -355,11 +355,11 @@ function game:print_sidebar()
   end
   --Button for abilities:
   if count(player:get_spells()) > 0 then
-    local buttonWidth = whichFont:getWidth(keybindings.spell .. ") Abilities")
+    local buttonWidth = whichFont:getWidth(keybindings.spell[1] .. ") Abilities")
     local minX,minY=printX+xPad-2,printY
     local maxX,maxY=minX+buttonWidth+4,minY+16
     self.allSpellsButton = output:button(minX,minY+2,(maxX-minX),smallButtons,nil,nil,true)
-    love.graphics.print(keybindings.spell .. ") Abilities",printX+xPad,printY-2+yBonus)
+    love.graphics.print(keybindings.spell[1] .. ") Abilities",printX+xPad,printY-2+yBonus)
     if self.allSpellsButton.hover == true then
       descBox = {desc="View and use abilities you have.",x=minX,y=minY}
     end
@@ -367,32 +367,32 @@ function game:print_sidebar()
   end
   --Button for inventory:
   if gamesettings.inventory then
-    local invWidth = whichFont:getWidth(keybindings.inventory .. ") Inventory")
+    local invWidth = whichFont:getWidth(keybindings.inventory[1] .. ") Inventory")
     local minX,minY=printX+xPad-2,printY
     local maxX,maxY=minX+invWidth+4,minY+(smallButtons and 16 or 32)
     self.spellButtons["inventory"] = output:button(minX,minY+2,(maxX-minX),smallButtons,nil,nil,true)
     if self.spellButtons["inventory"].hover == true then
       descBox = {desc="View and use items and equipment.",x=minX,y=minY}
     end
-    love.graphics.print(keybindings.inventory .. ") Inventory",printX+xPad,printY-2+yBonus)
+    love.graphics.print(keybindings.inventory[1] .. ") Inventory",printX+xPad,printY-2+yBonus)
     printY = printY+buttonPadding
   end
   if gamesettings.crafting and gamesettings.craft_anywhere then
-    local invWidth = whichFont:getWidth(keybindings.crafting .. ") Crafting")
+    local invWidth = whichFont:getWidth(keybindings.crafting[1] .. ") Crafting")
     local minX,minY=printX+xPad-2,printY
     local maxX,maxY=minX+invWidth+4,minY+16
     self.spellButtons["crafting"] = output:button(minX,minY+2,(maxX-minX),smallButtons,nil,nil,true)
     if self.spellButtons["crafting"].hover == true then
       descBox = {desc="Make new items.",x=minX,y=minY}
     end
-    love.graphics.print(keybindings.crafting .. ") Crafting",printX+xPad,printY-2+yBonus)
+    love.graphics.print(keybindings.crafting[1] .. ") Crafting",printX+xPad,printY-2+yBonus)
     printY = printY+buttonPadding
   end
   
  --Button for feature actions:
   local featureActions = currMap:get_tile_actions(player.x,player.y,true)
   if #featureActions > 0 then
-    local picktext = keybindings.action .. ") " .. (#featureActions > 1 and "Nearby Actions" or featureActions[1].text)
+    local picktext = keybindings.action[1] .. ") " .. (#featureActions > 1 and "Nearby Actions" or featureActions[1].text)
     local spellwidth = whichFont:getWidth(picktext)
     local minX,minY=printX+xPad-2,printY
     local maxX,maxY=minX+spellwidth+4,minY+16
@@ -405,7 +405,7 @@ function game:print_sidebar()
   end
   local items = currMap:get_tile_items(player.x,player.y,true)
   if #items > 0 then
-    local picktext = keybindings.pickup .. ") Pick Up " .. (#items > 1 and "Items" or items[1]:get_name())
+    local picktext = keybindings.pickup[1] .. ") Pick Up " .. (#items > 1 and "Items" or items[1]:get_name())
     local spellwidth = whichFont:getWidth(picktext)
     local minX,minY=printX+xPad-2,printY
     local maxX,maxY=minX+spellwidth+4,minY+16
@@ -1394,13 +1394,13 @@ function game:mousepressed(x,y,button)
               advance_turn()
             end
           elseif spell == "pickup" then
-            self:keypressed(keybindings.pickup)
+            self:keypressed(keybindings.pickup[1])
           elseif spell == "inventory" then
-            self:keypressed(keybindings.inventory)
+            self:keypressed(keybindings.inventory[1])
           elseif spell == "crafting" then
-            self:keypressed(keybindings.crafting)
+            self:keypressed(keybindings.crafting[1])
           elseif spell == "action" then
-            self:keypressed(keybindings.action)
+            self:keypressed(keybindings.action[1])
           else
             local hotkeyInfo = player.hotkeys[spell]
             local hotkeyItem = nil
@@ -1492,7 +1492,7 @@ function game:keypressed(key,scancode,isRepeat)
   key,scancode,isRepeat = input:parse_key(key,scancode,isRepeat)
   --Pie:keypressed(key)
   if self.popup then
-    if not self.popup.enterOnly or key == "return" then
+    if not self.popup.enterOnly or key == "enter" then
       if self.popup.afterFunc then self.popup.afterFunc() end
       self.popup = nil
       if self.blackAmt and action ~= "winning" and not self.blackOutTween then
@@ -1514,15 +1514,10 @@ function game:keypressed(key,scancode,isRepeat)
 		player.path = nil
 		action = "moving"
   elseif self.warning then
-    if key == "y" or key == "return" then
-      if self.warning.possession then
-        player.possessTarget = self.warning.danger
-        possibleSpells['possession']:cast(self.warning.danger,player)
-      else
-        move_player(self.warning.tile.x,self.warning.tile.y,true)
-      end
+    if key == "yes" or key == "enter" then
+      move_player(self.warning.tile.x,self.warning.tile.y,true)
       self.warning = nil
-    elseif key == "n" or key == "escape" then
+    elseif key == "no" or key == "escape" then
       self.warning = nil
     end
 	elseif key == "north" or key == "south" or key == "east" or key == "west" or key == "northwest" or key == "northeast" or key == "southwest" or key == "southeast" then
@@ -1687,7 +1682,7 @@ function game:keypressed(key,scancode,isRepeat)
 		end
 	elseif key == "messages" then
 		Gamestate.switch(messages)
-	elseif key == "return" then
+	elseif key == "enter" then
     if self.contextualMenu and self.contextualMenu.selectedItem then
       self.contextualMenu:click()
     elseif (action == "targeting") then

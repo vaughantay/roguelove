@@ -125,8 +125,8 @@ function cheats:update(dt)
 	end
 end
 
-function cheats:keypressed(key)
-  key = input:parse_key(key)
+function cheats:keypressed(key,scancode,isRepeat,noParse)
+  if not noParse then key = input:parse_key(key) end
   if (key == "escape") then
     self:switchBack()
   elseif (key == "north") then
@@ -143,7 +143,7 @@ function cheats:keypressed(key)
         self.cursorY = self.cursorY+1
       end
     end
-  elseif key == "return" or key == "wait" then
+  elseif key == "enter" or key == "wait" then
     local setting = nil
     if self.labels[self.cursorY] then
       setting = self.labels[self.cursorY]
@@ -168,7 +168,7 @@ function cheats:mousepressed(x,y,button)
   if button == 2 or (x/uiScale > self.closebutton.minX and x/uiScale < self.closebutton.maxX and y/uiScale > self.closebutton.minY and y/uiScale < self.closebutton.maxY) or x < math.ceil(width/4) or x > math.ceil(width/4+width/2) then 
     self:switchBack()
   else
-    self:keypressed("return")
+    self:keypressed("enter",true)
   end
 end
 

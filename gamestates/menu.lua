@@ -61,8 +61,8 @@ function menu:draw()
   love.graphics.pop()
 end
 
-function menu:keypressed(key)
-  key = input:parse_key(key)
+function menu:keypressed(key,scancode,isRepeat,noParse)
+  if not noParse then key = input:parse_key(key) end
 	if key == "escape" then
     self.cursorY = 0
 	elseif key == "north" then
@@ -71,7 +71,7 @@ function menu:keypressed(key)
 	elseif key == "south" then
 		self.cursorY = self.cursorY+1
     if self.cursorY > 8 then self.cursorY = 1 end
-	elseif key == "return" or key == "wait" then
+	elseif key == "enter" or key == "wait" then
 		if (self.cursorY == 1) then
       Gamestate.switch(newgame)
       self.cursorY = 1
@@ -104,7 +104,7 @@ end
 function menu:gamepadpressed(joystick,button)
   local command = input:parse_gamepadbutton(joystick,button)
   if command == "select" then
-    self:keypressed("return")
+    self:keypressed("enter",true)
   end
 end
 
@@ -133,7 +133,7 @@ function menu:mousepressed(x,y,button)
   local startX = round(love.graphics.getWidth()/uiScale/2-256+80)
   x,y = x/uiScale,y/uiScale
 	if x > startX and x < startX+512-161 then
-    menu:keypressed('return')
+    menu:keypressed('return',true)
   end
   if gamesettings.url then
     local URLwidth = fonts.textFont:getWidth(gamesettings.url)

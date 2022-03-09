@@ -3,21 +3,21 @@ local Setting = Class{}
 
 function settings:enter(previous)
   self.previous = previous
-  output:setCursor(1,1)
   self:make_controls()
   self.screen = "controls"
   self.yModPerc = 100
   self.blackScreenAlpha=0
+  self.cursorX,self.cursorY=1,1
+  self.scrollY = 0
+  self.scrollMax = 0
   tween(0.2,self,{yModPerc=0,blackScreenAlpha=125})
   output:sound('stoneslideshort',2)
 end
 
-function settings:leave()
-  output:setCursor(0,0)
-end
-
 function settings:make_controls()
+  local uiScale = prefs['uiScale']
   local width = love.graphics:getWidth()
+  width = round(width/uiScale)
   local size=250
   local startX=math.floor(width/3)
   local keyStartX=math.floor(width/2)-size+15
@@ -25,66 +25,76 @@ function settings:make_controls()
     controls = {},
     graphics = {}
   }
-  --[[local size=250
-    local startX=math.floor(width/2)-size+15
-    love.graphics.rectangle('line',startX,330,size,135)
-    love.graphics.line(startX+75,330,startX+75,465)
-    love.graphics.rectangle('line',startX+255,330,size,150)
-    love.graphics.line(startX+350,330,startX+350,480)
-    for y = 345,450,15 do
-      love.graphics.line(startX,y,startX+size,y)
-      love.graphics.line(startX+255,y,startX+255+size,y)
-    end
-    love.graphics.line(startX+255,465,startX+255+size,465)]]
   local startY = 100
+  self.startY = startY
   local fontSize = prefs['fontSize']
   local increase = fontSize+6
-  local controlIncrease = fontSize+2
-  local controlStartY=startY+increase*5
+  local controlIncrease = fontSize+4
+  
   self.labels.controls[1] = {}
-  self.labels.controls[1][1] = Setting('screen:controls','Controls',math.floor(width/4)+32,50,nil,false,nil,nil,fonts.menuFont,true)
-  local gwidth = fonts.menuFont:getWidth('Graphics/Sound')
-  self.labels.controls[1][2] = Setting('screen:graphics','Graphics/Sound',(width/4*3)-gwidth,50,nil,false,nil,nil,fonts.menuFont,true)
+  local cwidth = fonts.menuFont:getWidth('Controls')
+  local gwidth = fonts.menuFont:getWidth("Graphics/Sound")
+  local twidth = round(cwidth+gwidth)/2
+  self.labels.controls[1][1] = Setting('screen:controls','Controls',math.floor(width/2)-twidth,50,nil,false,nil,nil,fonts.menuFont,true)
+  self.labels.controls[1][2] = Setting('screen:graphics','Graphics/Sound',(width/2),50,nil,false,nil,nil,fonts.menuFont,true)
   self.labels.controls[1][1].disabled = true
   self.labels.controls[2] = Setting('mouseMovesMap',"Mouse on Screen Edge Scrolls Map",startX,startY,prefs['mouseMovesMap'],true,startX)
-  self.labels.controls[3] = Setting('spellShortcuts',"Use 1-9 as Spell Shortcuts",startX,startY+increase,prefs['spellShortcuts'],true,startX)
-  self.labels.controls[4] = Setting('arrowKeys',"Use Arrow Keys to Move",startX,startY+increase*2,prefs['arrowKeys'],true,startX)
-  self.labels.controls[5] = Setting('autoLevel',"Auto-assign Stat Increases on Kill",startX,startY+increase*3,prefs['autoLevel'],true,startX)
-  local biggestLeft = fonts.textFont:getWidth('Right Arrow or ' .. keybindings['east'])+8
-  local biggestLeftLabel = fonts.textFont:getWidth('Northwest')+8
-  local leftColumnX = math.floor(width/2)-(biggestLeftLabel+biggestLeft)-4
-  local leftW = biggestLeft+biggestLeftLabel
-  self.labels.controls[6] = {Setting('keybindings:northwest',"Northwest",leftColumnX,controlStartY-2,nil,nil,leftW)}
-  self.labels.controls[7] = {Setting('keybindings:north','North',leftColumnX,controlStartY+controlIncrease-2,nil,nil,leftW)}
-  self.labels.controls[8] = {Setting('keybindings:northeast','Northeast',leftColumnX,controlStartY+controlIncrease*2-2,nil,nil,leftW)}
-  self.labels.controls[9] = {Setting('keybindings:east','East',leftColumnX,controlStartY+controlIncrease*3-2,nil,nil,leftW)}
-  self.labels.controls[10] = {Setting('keybindings:southeast','Southeast',leftColumnX,controlStartY+controlIncrease*4-2,nil,nil,leftW)}
-  self.labels.controls[11] = {Setting('keybindings:south','South',leftColumnX,controlStartY+controlIncrease*5-2,nil,nil,leftW)}
-  self.labels.controls[12] = {Setting('keybindings:southwest','Southwest',leftColumnX,controlStartY+controlIncrease*6-2,nil,nil,leftW)}
-  self.labels.controls[13] = {Setting('keybindings:west','West',leftColumnX,controlStartY+controlIncrease*7-2,nil,nil,leftW)}
-  self.labels.controls[14] = {Setting('keybindings:wait','Wait',leftColumnX,controlStartY+controlIncrease*8-2,nil,nil,leftW)}
-  local rightColumnX = math.floor(width/2)+4
-  local biggestRight = fonts.textFont:getWidth('Space Bar')+4
-  local biggestRightLabel = fonts.textFont:getWidth('Message History')+4
-  local rightColumnLineX = math.floor(width/2)+biggestRightLabel
-  local rightW = biggestRight+biggestRightLabel
-  self.labels.controls[6][2] = Setting('keybindings:spell','See Abilities',rightColumnX,controlStartY-2,nil,nil,rightW)
-  self.labels.controls[7][2] = Setting('keybindings:charScreen','Game Stats',rightColumnX,controlStartY+controlIncrease-2,nil,nil,rightW)
-  self.labels.controls[8][2] = Setting('keybindings:examine','Examine',rightColumnX,controlStartY+controlIncrease*2-2,nil,nil,rightW)
-  self.labels.controls[9][2] = Setting('keybindings:messages','Message History',rightColumnX,controlStartY+controlIncrease*3-2,nil,nil,rightW)
-  self.labels.controls[10][2] = Setting('keybindings:stairsUp','Use Stairs',rightColumnX,controlStartY+controlIncrease*4-2,nil,nil,rightW)
-  self.labels.controls[11][2] = Setting('keybindings:ranged','Ranged Attack',rightColumnX,controlStartY+controlIncrease*5-2,nil,nil,rightW)
-  self.labels.controls[12][2] = Setting('keybindings:recharge','Reload',rightColumnX,controlStartY+controlIncrease*6-2,nil,nil,rightW)
-  self.labels.controls[13][2] = Setting('keybindings:possess','Possession',rightColumnX,controlStartY+controlIncrease*7-2,nil,nil,rightW)
-  self.labels.controls[14][2] = Setting('keybindings:heal','Heal Body',rightColumnX,controlStartY+controlIncrease*8-2,nil,nil,rightW)
-  self.labels.controls[15] = Setting('keybindings:nextTarget','Switch Target',rightColumnX,controlStartY+controlIncrease*9-2,nil,nil,rightW)
-  self.labels.controls[16] = Setting('keybindings:zoomIn','Zoom In',rightColumnX,controlStartY+controlIncrease*10-2,nil,nil,rightW)
-  self.labels.controls[17] = Setting('keybindings:zoomOut','Zoom Out',rightColumnX,controlStartY+controlIncrease*11-2,nil,nil,rightW)
-  self.labels.controls[18] = Setting('defaultkeys',"Restore Default Keys",startX,controlStartY+controlIncrease*13-2,nil,true,startX,nil,fonts.menuFont,true)
+  self.labels.controls[3] = Setting('captureMouse',"Capture Mouse While on Game Screen",startX,startY+increase,prefs['captureMouse'],true,startX)
+  local controlStartY=startY+increase*(#self.labels.controls+1)
+  
+  --Sort out the keybindings first:
+  local sortedKB = {}
+  local biggestCommand = "Northwest"
+  for command,info in pairs(keybindings) do
+    local category = info.category or "Miscellaneous"
+    if not sortedKB[category] then sortedKB[category] = {} end
+    sortedKB[category][command] = info
+    if string.len(info.description) > string.len(biggestCommand) then
+      biggestCommand = info.description
+    end
+  end
+  self.keybindings = {}
+  for _,category in ipairs(keybindings_order) do
+    if sortedKB[category] then
+      self.keybindings[#self.keybindings+1] = sortedKB[category]
+    end
+  end
+  
+  --Draw the keybinding settings:
+  local biggestLeft = fonts.textFont:getWidth('Right Arrow')+8
+  local biggestLeftLabel = fonts.textFont:getWidth(biggestCommand)+8
+  local leftColumnX = math.floor(width/2 - ((biggestLeftLabel+biggestLeft*2)/2)-4)
+  local leftW = biggestLeft*2+biggestLeftLabel
+  local leftColumnLineX = leftColumnX+biggestLeftLabel
+  local rightColumnLineX = leftColumnLineX+biggestLeft
+  local totalW = biggestLeft*2+biggestLeftLabel
+  local kb = 4
+  local printY = controlStartY-2
+  self.controlStartY=printY
+  
+  for _,kb_category in ipairs(self.keybindings) do
+    printY=printY+controlIncrease
+    for command,info in pairs(kb_category) do
+      self.labels.controls[kb] = {}
+      --self.labels.controls[kb][1] = Setting('keybindings:' .. command,info.description,leftColumnX,printY,nil,nil,leftW)
+      self.labels.controls[kb][1] = Setting('keybindings:' .. command .. ":1",(info[1] or " "),leftColumnLineX,printY,nil,true,biggestLeft)
+      self.labels.controls[kb][1].x,self.labels.controls[kb][1].width = leftColumnLineX,biggestLeft
+      self.labels.controls[kb][1].description = info.description
+      self.labels.controls[kb][2] = Setting('keybindings:' .. command .. ":2",(info[2] or " "),rightColumnLineX,printY,nil,true,biggestLeft)
+      self.labels.controls[kb][2].x,self.labels.controls[kb][2].width = rightColumnLineX,biggestLeft
+      self.labels.controls[kb][2].description = info.description
+      printY=printY+controlIncrease
+      kb=kb+1
+    end
+  end
+  self.controlCount = kb+1
+  self.labels.controls[kb] = Setting('defaultkeys',"Restore Default Keys",startX,printY,nil,true,startX,nil,fonts.menuFont,true)
+  local lastControl = self.labels.controls[#self.labels.controls]
+  self.controlsMaxY = lastControl.maxY
+  
   self.labels.graphics[1] = {}
-  self.labels.graphics[1][1] = Setting('screen:controls','Controls',math.floor(width/4)+32,50,nil,false,nil,nil,fonts.menuFont,true)
-  local gwidth = fonts.menuFont:getWidth('Graphics/Sound')
-  self.labels.graphics[1][2] = Setting('screen:graphics','Graphics/Sound',(width/4*3)-gwidth,50,nil,false,nil,nil,fonts.menuFont,true)
+  self.labels.graphics[1][1] = Setting('screen:controls','Controls',math.floor(width/2)-twidth,50,nil,false,nil,nil,fonts.menuFont,true)
+  self.labels.graphics[1][2] = Setting('screen:graphics','Graphics/Sound',(width/2),50,nil,false,nil,nil,fonts.menuFont,true)
   self.labels.graphics[1][2].disabled = true
   self.labels.graphics[2] = {}
   local soundW = fonts.textFont:getWidth("Sound Volume: " .. prefs['soundVolume'] .. "%")
@@ -108,26 +118,30 @@ function settings:make_controls()
   self.labels.graphics[6][1] = Setting('descFontSizeDown',"-",width/2-plusW,startY+increase*4)
   self.labels.graphics[6][2] = Setting('descFontSizeUp',"+",width/2+plusW,startY+increase*4)
   self.labels.graphics[7] = Setting('minimap',"Mini-map",startX,startY+increase*5,prefs['minimap'],true,startX)
-  self.labels.graphics[8] = Setting('noSmoothCamera',"No Smooth Camera",startX,startY+increase*6,prefs['noSmoothCamera'],true,startX)
-  self.labels.graphics[9] = Setting('noSmoothMovement',"No Smooth Movement",startX,startY+increase*7,prefs['noSmoothMovement'],true,startX)
-  self.labels.graphics[10] = Setting('statsOnSidebar',"Show Creature Attributes on Sidebar",startX,startY+increase*8,prefs['statsOnSidebar'],true,startX)
+  self.labels.graphics[8] = Setting('noSmoothCamera',"Disable Smooth Camera",startX,startY+increase*6,prefs['noSmoothCamera'],true,startX)
+  self.labels.graphics[9] = Setting('noSmoothMovement',"Disable Smooth Movement",startX,startY+increase*7,prefs['noSmoothMovement'],true,startX)
+  self.labels.graphics[10] = Setting('statsOnSidebar',"Show Attributes on Sidebar",startX,startY+increase*8,prefs['statsOnSidebar'],true,startX)
   self.labels.graphics[11] = Setting('plainFonts',"Plain Fonts on Sidebar",startX,startY+increase*9,prefs['plainFonts'],true,startX)
   self.labels.graphics[12] = Setting('bigButtons',"Larger Buttons on Sidebar",startX,startY+increase*10,prefs['bigButtons'],true,startX)
-  self.labels.graphics[13] = Setting('fullscreen',"Fullscreen",startX,startY+increase*11,prefs['fullscreen'],true,startX)
-  self.labels.graphics[14] = Setting('vsync',"Vsync",startX,startY+increase*12,prefs['vsync'],true,startX)
-  self.labels.graphics[15] = Setting('noImages',"ASCII Mode",startX,startY+increase*13,prefs['noImages'],true,startX)
+  self.labels.graphics[13] = Setting('healthbars',"Show Health Bars on Map",startX,startY+increase*11,prefs['healthbars'],true,startX)
+  self.labels.graphics[14] = Setting('fullscreen',"Fullscreen",startX,startY+increase*12,prefs['fullscreen'],true,startX)
+  self.labels.graphics[15] = Setting('vsync',"Vsync",startX,startY+increase*13,prefs['vsync'],true,startX)
+  self.labels.graphics[16] = Setting('noImages',"ASCII Mode",startX,startY+increase*14,prefs['noImages'],true,startX)
   if prefs['noImages'] then
     local asciiW = math.ceil(fonts.textFont:getWidth("ASCII Font Size: " .. prefs['asciiSize'])/2)+16
-    self.labels.graphics[16] = {}
-    self.labels.graphics[16][1] = Setting('asciiSizeDown',"-",width/2-asciiW,startY+increase*14)
-    self.labels.graphics[16][2] = Setting('asciiSizeUp',"+",width/2+asciiW,startY+increase*14)
+    self.labels.graphics[17] = {}
+    self.labels.graphics[17][1] = Setting('asciiSizeDown',"-",width/2-asciiW,startY+increase*15)
+    self.labels.graphics[17][2] = Setting('asciiSizeUp',"+",width/2+asciiW,startY+increase*15)
   else
-    self.labels.graphics[16] = Setting('creatureShadows',"Creature Shadows",startX,startY+increase*14,prefs['creatureShadows'],true,startX)
-    self.labels.graphics[17] = Setting('creatureAnimations',"Creature Animations",startX,startY+increase*15,prefs['creatureAnimations'],true,startX)
+    self.labels.graphics[17] = Setting('creatureShadows',"Creature Shadows",startX,startY+increase*15,prefs['creatureShadows'],true,startX)
+    self.labels.graphics[18] = Setting('creatureAnimations',"Creature Animations",startX,startY+increase*16,prefs['creatureAnimations'],true,startX)
   end
+  local lastGraphic = self.labels.graphics[#self.labels.graphics]
+  self.graphicsMaxY = (lastGraphic.maxY or lastGraphic[1].maxY)
 end
 
 function settings:draw()
+  local uiScale = prefs['uiScale']
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
   love.graphics.setFont(fonts.textFont)
   self.previous:draw()
@@ -135,28 +149,42 @@ function settings:draw()
   love.graphics.rectangle("fill",0,0,width,height)
   setColor(255,255,255,255)
   love.graphics.push()
+  love.graphics.scale(uiScale,uiScale)
+  width,height = round(width/uiScale),round(height/uiScale)
   love.graphics.translate(0,height*(self.yModPerc/100))
   
   local padding = (prefs['noImages'] and 16 or 32)
   output:draw_window(1,1,math.floor(width-padding),math.floor(height-padding))
   
+  --Draw the top buttons before creating stencil/scroll
+  self.labels[self.screen][1][1]:draw()
+  self.labels[self.screen][1][2]:draw()
+  
+  love.graphics.push()
+  --Create a "stencil" that stops 
+  local function stencilFunc()
+    love.graphics.rectangle("fill",1,self.startY,math.floor(width-padding),height-self.startY-4)
+  end
+  love.graphics.stencil(stencilFunc,"replace",1)
+  love.graphics.setStencilTest("greater",0)
+  love.graphics.translate(0,-self.scrollY)
   --Draw the highlight around the active setting:
   local activeSetting = nil
   if self.replaceSetting then
     local setting = self.replaceSetting
     setColor(150,150,150,255)
-    love.graphics.rectangle("fill",setting.x,setting.y,250,setting.height)
+    love.graphics.rectangle("fill",setting.x,setting.y-2,setting.width,setting.height+2)
     setColor(255,255,255,255)
-  elseif self.labels[self.screen][output.cursorY] then
-    local setting = self.labels[self.screen][output.cursorY]
+  elseif self.labels[self.screen][self.cursorY] then
+    local setting = self.labels[self.screen][self.cursorY]
     if setting[1] then
-      setting = (setting[output.cursorX] or setting[1])
+      setting = (setting[self.cursorX] or setting[1])
     end --end cursorX setting check
     if not setting.button then
       setColor(100,100,100,255)
       local split = explode(setting.id,":")
       if split[1] == 'keybindings' then
-        love.graphics.rectangle("fill",setting.x,setting.y,setting.width,setting.height)
+        love.graphics.rectangle("fill",setting.x,setting.y-2,setting.width,setting.height+2)
       else
         love.graphics.rectangle("fill",setting.x-8,setting.y-4,setting.width+16,setting.height+8)
       end
@@ -165,10 +193,10 @@ function settings:draw()
     activeSetting = setting
   end --end active setting check
   --Draw settings:
-  for _,setting in pairs(self.labels[self.screen]) do
+  for id,setting in ipairs(self.labels[self.screen]) do
     if setting[1] then --an array holding more 
       for _,s in pairs(setting) do
-        s:draw()
+        if id ~= 1 then s:draw() end
         if s == activeSetting then
           s.selected = true
         else
@@ -176,11 +204,11 @@ function settings:draw()
         end
       end --end nested for
     else
-      setting:draw()
+      if id ~= 1 then setting:draw() end
       if setting == activeSetting then
         setting.selected = true
       else
-          setting.selected = nil
+        setting.selected = nil
       end
     end --end setting table if
   end --end setting for
@@ -192,113 +220,140 @@ function settings:draw()
   local increase = fontSize+6
   
   if self.screen == "controls" then
-    local controlIncrease = fontSize+2
-    local controlStartY=startY+increase*5
-    local leftControls = 9
-    local rightControls = 12
+    local controlIncrease = fontSize+4
+    local controlCount = self.controlCount
+    
+    local biggestCommand = "Northwest"
+    for command,info in pairs(keybindings) do
+      if string.len(info.description) > string.len(biggestCommand) then
+        biggestCommand = info.description
+      end
+    end
+    local biggestLeft = fonts.textFont:getWidth('Right Arrow')+8
+    local biggestLeftLabel = fonts.textFont:getWidth(biggestCommand)+8
+    local leftColumnX = math.floor(width/2 - ((biggestLeftLabel+biggestLeft*2)/2)-4)
+    local leftW = biggestLeft*2+biggestLeftLabel
+    local leftColumnLineX = leftColumnX+biggestLeftLabel
+    local rightColumnLineX = leftColumnLineX+biggestLeft
+    local totalW = biggestLeft*2+biggestLeftLabel
     
     love.graphics.setFont(fonts.textFont)
     if self.keyError then
-      love.graphics.printf(self.keyError,math.floor(width/4),300,math.floor(width/2)+32,'center')
+      love.graphics.printf(self.keyError,leftColumnX,self.controlStartY-fontSize-4,totalW,'center')
     end
     
-    local biggestLeft = fonts.textFont:getWidth('Right Arrow or ' .. keybindings['east'])+8
-    local biggestLeftLabel = fonts.textFont:getWidth('Northwest')+8
-    local leftColumnX = math.floor(width/2)-(biggestLeftLabel+biggestLeft)-4
-    local leftColumnLineX = leftColumnX+biggestLeftLabel
-    local rightColumnX = math.floor(width/2)+4
-    local biggestRight = fonts.textFont:getWidth('Space Bar')+4
-    local biggestRightLabel = fonts.textFont:getWidth('Message History')+4
-    local rightColumnLineX = math.floor(width/2)+biggestRightLabel
     --Draw the grid for keybindings, starting with the general outline rectangles and the vertical separators
-    love.graphics.line(leftColumnLineX,controlStartY,leftColumnLineX,controlStartY+controlIncrease*leftControls)
-    love.graphics.line(rightColumnLineX,controlStartY,rightColumnLineX,controlStartY+controlIncrease*rightControls)
-    love.graphics.rectangle('line',leftColumnX,controlStartY,biggestLeft+biggestLeftLabel,controlIncrease*leftControls)
-    love.graphics.rectangle('line',rightColumnX,controlStartY,biggestRight+biggestRightLabel,controlIncrease*rightControls)
+    love.graphics.line(leftColumnLineX,self.controlStartY,leftColumnLineX,self.controlStartY+controlIncrease*controlCount)
+    love.graphics.line(rightColumnLineX,self.controlStartY,rightColumnLineX,self.controlStartY+controlIncrease*controlCount)
+    love.graphics.rectangle('line',leftColumnX,self.controlStartY,totalW,controlIncrease*controlCount)
     --Draw the lines for each key:
-    for y = controlStartY+fontSize,controlStartY+controlIncrease*(rightControls-1),controlIncrease do
-      if y <= controlStartY+controlIncrease*(leftControls-1) then love.graphics.line(leftColumnX,y,leftColumnX+biggestLeft+biggestLeftLabel,y) end
-      love.graphics.line(rightColumnX,y,rightColumnX+biggestRight+biggestRightLabel,y)
+    for y = self.controlStartY+fontSize,self.controlStartY+controlIncrease*(controlCount-1),controlIncrease do
+      love.graphics.line(leftColumnX,y+2,leftColumnX+totalW,y+2)
     end
-    --Draw an extra line on the right since there's an extra setting:
     
-    --Print the keys used for each command:
-    love.graphics.printf(keybindings['northwest'],leftColumnLineX,controlStartY-2,biggestLeft,"center")
-    love.graphics.printf((not prefs['arrowKeys'] and '' or 'Up Arrow or ') .. keybindings['north'],leftColumnLineX,controlStartY+controlIncrease-2,biggestLeft,"center")
-    love.graphics.printf(keybindings['northeast'],leftColumnLineX,controlStartY+controlIncrease*2,biggestLeft,"center")
-    love.graphics.printf((not prefs['arrowKeys'] and '' or 'Right Arrow or ') .. keybindings['east'],leftColumnLineX,controlStartY+controlIncrease*3-2,biggestLeft,"center")
-    love.graphics.printf(keybindings['southeast'],leftColumnLineX,controlStartY+controlIncrease*4-2,biggestLeft,"center")
-    love.graphics.printf((not prefs['arrowKeys'] and '' or 'Down Arrow or ') .. keybindings['south'],leftColumnLineX,controlStartY+controlIncrease*5-2,biggestLeft,"center")
-    love.graphics.printf(keybindings['southwest'],leftColumnLineX,controlStartY+controlIncrease*6-2,biggestLeft,"center")
-    love.graphics.printf((not prefs['arrowKeys'] and '' or 'Left Arrow or ') .. keybindings['west'],leftColumnLineX,controlStartY+controlIncrease*7-2,biggestLeft,"center")
-    love.graphics.printf((not prefs['arrowKeys'] and '' or 'Space Bar or ') .. keybindings['wait'],leftColumnLineX,controlStartY+controlIncrease*8-2,biggestLeft,"center")
-    
-    
-    love.graphics.printf(keybindings['spell'],rightColumnLineX,controlStartY-2,biggestRight,"center")
-    love.graphics.printf(keybindings['charScreen'],rightColumnLineX,controlStartY+controlIncrease-2,biggestRight,"center")
-    love.graphics.printf(keybindings['examine'],rightColumnLineX,controlStartY+controlIncrease*2-2,biggestRight,"center")
-    love.graphics.printf(keybindings['messages'],rightColumnLineX,controlStartY+controlIncrease*3-2,biggestRight,"center")
-    love.graphics.printf(keybindings['stairsUp'],rightColumnLineX,controlStartY+controlIncrease*4-2,biggestRight,"center")
-    love.graphics.printf(keybindings['ranged'],rightColumnLineX,controlStartY+controlIncrease*5-2,biggestRight,"center")
-    love.graphics.printf(keybindings['recharge'],rightColumnLineX,controlStartY+controlIncrease*6-2,biggestRight,"center")
-    --love.graphics.printf(keybindings['possess'],rightColumnLineX,controlStartY+controlIncrease*7-2,biggestRight,"center")
-    --love.graphics.printf(keybindings['heal'],rightColumnLineX,controlStartY+controlIncrease*8-2,biggestRight,"center")
-    love.graphics.printf(keybindings['nextTarget'],rightColumnLineX,controlStartY+controlIncrease*9-2,biggestRight,"center")
-    love.graphics.printf(keybindings['zoomIn'],rightColumnLineX,controlStartY+controlIncrease*10-2,biggestRight,"center")
-    love.graphics.printf(keybindings['zoomOut'],rightColumnLineX,controlStartY+controlIncrease*11-2,biggestRight,"center")
+    local printY = self.controlStartY
+    for _,kb_category in ipairs(self.keybindings) do
+      local category_printed = false
+      for command,info in pairs(kb_category) do
+        if not category_printed then
+          love.graphics.rectangle("line",leftColumnX,printY,totalW,fontSize)
+          setColor(50,50,50,255)
+          love.graphics.rectangle("fill",leftColumnX,printY,totalW,fontSize)
+          setColor(255,255,255,255)
+          love.graphics.printf(info.category,leftColumnX,printY,totalW,"center")
+          printY=printY+controlIncrease
+          category_printed=true
+        end
+        love.graphics.printf(info.description,leftColumnX,printY,biggestLeftLabel,"center")
+        printY=printY+controlIncrease
+      end
+    end
   elseif self.screen == "graphics" then
     love.graphics.printf("Sound Volume: " .. prefs['soundVolume'] .. "%",math.floor(width/4),startY,math.floor(width/4*2),"center")
     love.graphics.printf("Music Volume: " .. prefs['musicVolume'] .. "%",math.floor(width/4),startY+increase,math.floor(width/4*2),"center")
     love.graphics.printf("UI Scaling: " .. prefs['uiScale']*100 .. "%",math.floor(width/4),startY+increase*2,math.floor(width/4*2),"center")
     love.graphics.printf("Font Size: " .. prefs['fontSize'],math.floor(width/4),startY+increase*3,math.floor(width/4*2),"center")
     love.graphics.printf("Tooltip Font Size: " .. prefs['descFontSize'],math.floor(width/4),startY+increase*4,math.floor(width/4*2),"center")
-    if prefs['noImages'] then love.graphics.printf("ASCII Font Size: " .. prefs['asciiSize'],math.floor(width/4),startY+increase*14,math.floor(width/4*2),"center") end
+    if prefs['noImages'] then love.graphics.printf("ASCII Font Size: " .. prefs['asciiSize'],math.floor(width/4),startY+increase*15,math.floor(width/4*2),"center") end
     --add special code here
   end
-  self.closebutton = output:closebutton((prefs['noImages'] and 8 or 24),24)
+  love.graphics.setStencilTest()
+  love.graphics.pop()
+  --Scrollbars
+  local maxY = (self.screen == "controls" and self.controlsMaxY or self.graphicsMaxY)
+  if maxY*uiScale > height-startY then
+    self.scrollMax = math.ceil((maxY-(startY+(height-startY))+padding))
+    if self.scrollMax < 0 then --I don't know why this is sometimes the case but I'm too tired to figure it out, and this fixes the problem so...
+      self.scrollMax = 0
+    else
+      local scrollAmt = self.scrollY/self.scrollMax
+      self.scrollPositions = output:scrollbar(width-32,startY,math.floor((height-32)),scrollAmt,true)
+    end
+  else
+    self.scrollMax = 0
+  end
+  self.scrollY = math.min(self.scrollY,self.scrollMax)
+  
+  self.closebutton = output:closebutton((prefs['noImages'] and 8 or 24),24,nil,true)
   love.graphics.pop()
 end --end draw
 
-function settings:keypressed(key)
+function settings:keypressed(key,scancode,isRepeat,noParse)
+  local width, height = love.graphics:getWidth(),love.graphics:getHeight()
+  local uiScale = (prefs['uiScale'] or 1)
+  width,height = round(width/uiScale),round(height/uiScale)
   if (action == "setKeys") then
-    if key ~= "escape" then
+    local possibleParse = input:parse_key(key)
+    if possibleParse ~= "escape" then
       for k, val in pairs(keybindings) do
-        if val == key or (key == "return" or key == "kpenter") or ((key == "up" or key == "down" or key == "left" or key == "right" or key == "space") and prefs['arrowKeys']) or (prefs['spellShortcuts'] and tonumber(key) ~= nil) then
+        if val == key or val[1] == key or val[2] == key then
           self.keyError = "Key " .. key .. " already in use!"
           return
         end
        end -- end for loop
-        keybindings[self.replaceKey] = key
-        self:make_controls() --refresh all the control labels
-        self.replaceKey = nil
-        self.replaceSetting = nil
-        self.keyError=nil
-        action = "moving"
-      elseif key == "escape" then
-        self:make_controls() --refresh all the control labels
-        self.replaceKey = nil
-        self.replaceSetting = nil
-        self.keyError=nil
-        action = "moving"
+      keybindings[self.replaceKey][self.replaceWhich] = key
+      self:make_controls() --refresh all the control labels
+      self.replaceKey = nil
+      self.replaceWhich = nil
+      self.replaceSetting = nil
+      self.keyError=nil
+      action = "moving"
+    elseif possibleParse == "escape" then
+      self:make_controls() --refresh all the control labels
+      self.replaceKey = nil
+      self.replaceWhich = nil
+      self.replaceSetting = nil
+      self.keyError=nil
+      action = "moving"
     end -- end check that makes sure it's not a reserved key
   else -- end setting keys
-    key = input:parse_key(key)
+    if not noParse then key = input:parse_key(key) end
     if (key == "escape") then
       self:switchBack()
     elseif (key == "north") then
-      if output.cursorY > 1 then output:moveCursor(0,-1) end
+      if self.cursorY > 1 then
+        self.cursorY = self.cursorY-1
+        if (not self.labels[self.screen][self.cursorY-1]) or (self.labels[self.screen][self.cursorY-1].y or self.labels[self.screen][self.cursorY-1][1].y)-self.scrollY < self.startY then
+          self:scrollUp()
+        end
+      end
     elseif (key == "south") then
-      output:moveCursor(0,1)
+      if self.labels[self.screen][self.cursorY+1] ~= nil then
+        self.cursorY = self.cursorY+1
+        if (not self.labels[self.screen][self.cursorY+1]) or (self.labels[self.screen][self.cursorY+1].maxY or self.labels[self.screen][self.cursorY+1][1].maxY)-self.scrollY > height then
+          self:scrollDown()
+        end
+      end
     elseif (key == "west") then
-      if output.cursorX > 1 then output:moveCursor(-1,0) end
+      if self.cursorX > 1 then self.cursorX=self.cursorX-1 end
     elseif (key == "east") then
-      output:moveCursor(1,0)
-    elseif (key == "return") or key == "wait" then -- this is the big one
+      self.cursorX = self.cursorX+1
+    elseif (key == "enter") or key == "wait" then -- this is the big one
       local setting = nil
-      if self.labels[self.screen][output.cursorY][output.cursorX] then
-        setting = self.labels[self.screen][output.cursorY][output.cursorX]
-      elseif self.labels[self.screen][output.cursorY] then
-        setting = self.labels[self.screen][output.cursorY]
+      if self.labels[self.screen][self.cursorY][self.cursorX] then
+        setting = self.labels[self.screen][self.cursorY][self.cursorX]
+      elseif self.labels[self.screen][self.cursorY] then
+        setting = self.labels[self.screen][self.cursorY]
       end
       
       if setting and not setting.disabled then
@@ -313,7 +368,8 @@ function settings:keypressed(key)
           action = "setKeys"
           self.replaceSetting = setting
           self.replaceKey = split[2]
-          self.keyError = "Choose a key for " .. setting.label .. ":"
+          self.replaceWhich = tonumber(split[3])
+          self.keyError = "Choose a key for " .. setting.description .. ":"
         elseif setting.id == "noImages" then
           self:make_controls() -- swap shadows/font size
           if prefs['noImages'] then
@@ -330,6 +386,7 @@ function settings:keypressed(key)
           require "keybindings"
           self:make_controls() --redraw all settings to show default keys
           self.replaceKey = nil
+          self.replaceWhich = nil
           self.replaceSetting = nil
           self.keyError=nil
           action = "moving"
@@ -349,7 +406,9 @@ function settings:keypressed(key)
           self:make_controls()
         elseif split[1] == "screen" then
           self.screen = split[2]
+          self.scrollY = 0
           self.replaceKey = nil
+          self.replaceWhich = nil
           self.replaceSetting = nil
           self.keyError=nil
           action = "moving"
@@ -371,8 +430,10 @@ function settings:keypressed(key)
           soundTags.music.volume = prefs['musicVolume']/100
         elseif setting.id == "uiScaleUp" then
           prefs['uiScale'] = prefs['uiScale'] + .1
+          self:make_controls()
         elseif setting.id == "uiScaleDown" then
           prefs['uiScale'] = prefs['uiScale'] - .1
+          self:make_controls()
         elseif setting.id == "asciiSizeUp" then
           prefs['asciiSize'] = prefs['asciiSize'] + 1
           fonts.mapFont = love.graphics.newFont("VeraMono.ttf",prefs['asciiSize'])
@@ -403,19 +464,21 @@ function settings:keypressed(key)
 end -- end function
 
 function settings:mousepressed(x,y,button)
+  local uiScale = (prefs['uiScale'] or 1)
   local width = love.graphics.getWidth()
+  width = round(width/uiScale)
+  x,y = round(x/uiScale),round(y/uiScale)
   if button == 2 or (x > self.closebutton.minX and x < self.closebutton.maxX and y > self.closebutton.minY and y < self.closebutton.maxY) then 
     self:switchBack()
   elseif action == "setKeys" then
     self:make_controls() --refresh all the control labels
     self.replaceKey = nil
+    self.replaceWhich = nil
     self.replaceSetting = nil
     action = "moving"
-    self:keypressed("return")
+    self:keypressed("enter",true)
   elseif x > width/4+16 and x < (width/4)*3 then
-    self:keypressed("return")
-  else
-    self:switchBack()
+    self:keypressed("enter",true)
   end
 end
 
@@ -428,30 +491,53 @@ function settings:update(dt)
   end
   --Mouse highlighting setting code:
 	local x,y = love.mouse.getPosition()
+  local uiScale = (prefs['uiScale'] or 1)
+  x,y = round(x/uiScale), round(y/uiScale)
 	if (y ~= output.mouseY or x ~= output.mouseX) then -- only do this if the mouse has moved
 		output.mouseY = y
     output.mouseX = x
     for sy,setting in pairs(self.labels[self.screen]) do
       local stop = false
+      local scrollY = (sy ~= 1 and self.scrollY or 0)
       if setting[1] then
         for sx,s in pairs(setting) do
-          if x > s.x-8 and x < s.x+s.width+8 and y > s.y-4 and y < s.y+s.height+4 then
-            output.cursorX,output.cursorY = sx,sy
+          if x > s.x-8 and x < s.x+s.width+8 and y+scrollY > s.y-4 and y+scrollY < s.y+s.height+4 then
+            self.cursorX,self.cursorY = sx,sy
             stop = true
           end --end x setting check if
         end --end x setting for
-      elseif x > setting.x-8 and x < setting.x+setting.width+8 and y > setting.y-4 and y < setting.y+setting.height+4 then
-        output.cursorY = sy
+      elseif x > setting.x-8 and x < setting.x+setting.width+8 and y+scrollY > setting.y-4 and y+scrollY < setting.y+setting.height+4 then
+        self.cursorY = sy
         stop = true
       end --end y setting check if
       if stop == true then break end
     end --end y setting for
 	end
-  --Set the 
-  if output.cursorX < 1 then output.cursorX = 1 end
-  if output.cursorY > #self.labels[self.screen] then output.cursorY = #self.labels[self.screen] end
-  if self.labels[self.screen][output.cursorY][1] then
-    if output.cursorX > #self.labels[self.screen][output.cursorY] then output.cursorX = #self.labels[self.screen][output.cursorY] end
+  --Set the cursor within bounds
+  if self.cursorX < 1 then self.cursorX = 1 end
+  if self.cursorY > #self.labels[self.screen] then self.cursorY = #self.labels[self.screen] end
+  if self.labels[self.screen][self.cursorY][1] then
+    if self.cursorX > #self.labels[self.screen][self.cursorY] then self.cursorX = #self.labels[self.screen][self.cursorY] end
+  end
+  --Scrollbars:
+  if (love.mouse.isDown(1)) and self.scrollPositions then
+    local upArrow = self.scrollPositions.upArrow
+    local downArrow = self.scrollPositions.downArrow
+    local elevator = self.scrollPositions.elevator
+    if x>upArrow.startX and x<upArrow.endX and y>upArrow.startY and y<upArrow.endY then
+      self:scrollUp()
+    elseif x>downArrow.startX and x<downArrow.endX and y>downArrow.startY and y<downArrow.endY then
+      self:scrollDown()
+    elseif x>elevator.startX and x<elevator.endX and y>upArrow.endY and y<downArrow.startY then
+      if y<elevator.startY then
+        self:scrollUp()
+      elseif y>elevator.endY then
+        self:scrollDown()
+      end
+    end --end clicking on arrow
+  end
+  if self.scrollY > self.scrollMax then
+    self.scrolLY = self.scrollMax
   end
 end
 
@@ -460,9 +546,45 @@ function settings:switchBack()
   output:sound('stoneslideshortbackwards',2)
   self.replaceKey = nil
   self.replaceSetting = nil
+  self.replaceWhich = nil
   self.keyError=nil
   action = "moving"
   Timer.after(0.2,function() self.switchNow=true end)
+end
+
+function settings:wheelmoved(x,y)
+  if y > 0 then
+    self:scrollUp()
+	elseif y < 0 then
+    self:scrollDown()
+  end --end button type if
+end
+
+function settings:scrollUp()
+  local height = love.graphics:getHeight()
+  local uiScale = (prefs['uiScale'] or 1)
+  height = round(height/uiScale)
+  if self.scrollY > 0 then
+    self.scrollY = self.scrollY - prefs.fontSize*2
+    if self.scrollY < prefs.fontSize*2 then
+      self.scrollY = 0
+    end
+    if self.labels[self.screen][self.cursorY] and (self.labels[self.screen][self.cursorY].y or self.labels[self.screen][self.cursorY][1].y)-self.scrollY > height then
+      self.cursorY = self.cursorY-1
+    end
+  end
+end
+
+function settings:scrollDown()
+  if self.scrollMax and self.scrollY < self.scrollMax then
+    self.scrollY = self.scrollY+prefs.fontSize*2
+    if self.scrollMax-self.scrollY < prefs.fontSize then
+      self.scrollY = self.scrollMax
+    end
+    if self.labels[self.screen][self.cursorY] and (self.labels[self.screen][self.cursorY].y or self.labels[self.screen][self.cursorY][1].y)-self.scrollY < self.startY then
+      self.cursorY = self.cursorY+1
+    end
+  end
 end
 
 function Setting:init(id,label,x,y,checkbox,center,width,xMod,font,button)
@@ -472,8 +594,10 @@ function Setting:init(id,label,x,y,checkbox,center,width,xMod,font,button)
   self.label = label
   self.checkbox = checkbox
   self.button = button
+  self.center = center
   self.y = math.floor(y)
   self.height = math.floor(self.image and images[self.image]:getHeight() or self.font:getHeight())
+  self.maxY = self.y+self.height
   local textWidth = self.font:getWidth(label)
   if center or not width then
     self.width = math.floor(textWidth + (checkbox ~= nil and 32 or 0))
@@ -492,9 +616,13 @@ function Setting:draw()
   if self.checkbox == nil then
     if self.disabled then setColor(150,150,150,255) end
     if self.button then
-      output:button(self.x,self.y,self.width,(self.button == "small" and "small" or nil),(self.selected and "hover" or nil),self.label)
+      output:button(self.x,self.y,self.width,(self.button == "small" and "small" or nil),(self.selected and "hover" or nil),self.label,true)
     else
-      love.graphics.print(self.label,self.x,self.y)
+      if self.center then
+        love.graphics.printf(self.label,self.x,self.y,self.width,"center")
+      else
+        love.graphics.print(self.label,self.x,self.y)
+      end
     end
     if self.disabled then setColor(255,255,255,255) end
   else
@@ -507,7 +635,7 @@ function Setting:draw()
     end
     if self.disabled then setColor(150,150,150,255) end
     if self.button then
-      output:button(self.x,self.y,self.width,(self.button == "small" and "small" or nil),(self.selected and "hover" or nil),self.label)
+      output:button(self.x,self.y,self.width,(self.button == "small" and "small" or nil),(self.selected and "hover" or nil),self.label,true)
     else
       love.graphics.print(self.label,self.x+32,self.y)
     end

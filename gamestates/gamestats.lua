@@ -718,7 +718,7 @@ function gamestats:keypressed(key)
         self.cursorX = 3
       end
     end
-  elseif key == "return" or key == "wait" then
+  elseif key == "enter" or key == "wait" then
     if self.cursorY == 1 then
       if self.cursorX == 1 then
         self.screen = "stats"

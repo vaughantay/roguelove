@@ -411,7 +411,7 @@ function crafting:keypressed(key)
   key = input:parse_key(key)
 	if (key == "escape") then
 		self:switchBack()
-	elseif (key == "return") or key == "wait" then
+	elseif (key == "enter") or key == "wait" then
     if self.cursorX == 1 then
       if self.cursorY == 0 then
         self.hideUncraftable = not self.hideUncraftable

@@ -223,7 +223,7 @@ function loadsaves:keypressed(key, isRepeat)
       self.cursorX = math.max(self.cursorX - 1,1)
     elseif key == "east" and self.currSave then
       self.cursorX = math.min (self.cursorX + 1,3)
-    elseif key == "return" or key == "wait" then
+    elseif key == "enter" or key == "wait" then
       if self.cursorX == 1 and self.saves[self.cursorY] and self.currSave then
         self.cursorX = 2
       elseif self.cursorX == 2 and self.cursorY ~= 0 and self.saves[self.cursorY] and self.currSave then
@@ -245,16 +245,16 @@ function loadsaves:keypressed(key, isRepeat)
       self.cursorX = 1
     elseif key == "east" then
       self.cursorX = 2
-    elseif key == "y" then
+    elseif key == "yes" then
       delete_save(self.saves[self.cursorY].fileName)
       local y,scroll = self.cursorY,self.scroll
       Gamestate.switch(loadsaves)
       loadsaves.cursorY,loadsaves.scroll = y,scroll
-    elseif key == "n" then
+    elseif key == "nes" then
       self.deletewarning = false
       self.yesbutton,self.nobutton = nil,nil
       self.cursorX = 3
-    elseif key == "return" or key == "wait" then
+    elseif key == "enter" or key == "wait" then
       if self.cursorX == 1 then
         delete_save(self.saves[self.cursorY].fileName)
         local y,scroll = self.cursorY,self.scroll

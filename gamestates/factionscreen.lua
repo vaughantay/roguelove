@@ -758,7 +758,7 @@ function factionscreen:keypressed(key)
   key = input:parse_key(key)
   if key == "escape" then
     self:switchBack()
-  elseif (key == "return" or key == "wait") then
+  elseif (key == "enter" or key == "wait") then
     if self.cursorY == 1 then --join button
       if self.faction:can_join(player) then
         self.faction:join(player)

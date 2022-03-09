@@ -129,7 +129,7 @@ function multiselect:keypressed(key)
   key = input:parse_key(key)
 	if (key == "escape") then
 		self:switchBack()
-	elseif (key == "return") or key == "wait" then
+	elseif (key == "enter") or key == "wait" then
 		if self.list[self.cursorY] then
       self:select(self.list[self.cursorY])
     end
