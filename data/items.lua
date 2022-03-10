@@ -870,7 +870,7 @@ local spores = {
   tags={'fungus','nature'},
   neverSpawn=true
   }
-possibleItems['insectwing'] = insectwing
+possibleItems['spores'] = spores
 
 local mushroomcap = {
   name="mushroom cap",

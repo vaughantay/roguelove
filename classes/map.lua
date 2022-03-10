@@ -361,12 +361,14 @@ end --end function
 --@param x Number. The x-coordinate
 --@param y Number. The y-coordinate
 --@param ignoreFunc Boolean. Whether to ignore the creature's new() function (optional)
+--@return Creature. The creature placed
 function Map:add_creature(creature,x,y,ignoreFunc)
 	creature.x, creature.y = x,y
 	self.contents[x][y][creature] = creature
 	self.creatures[creature] = creature
   if not ignoreFunc and possibleMonsters[creature.id].new then possibleMonsters[creature.id].new(creature,self) end
   if creature.castsLight then self.lights[creature] = creature end
+  return creature
 end
 
 ---Add a feature to a tile
@@ -973,6 +975,7 @@ function Map:populate_creatures(creatTotal,forceGeneric)
     local max_level = self:get_max_level()
     local allSpawnsUsed = false
 		for creat_amt=1,creatTotal,1 do
+      if creat_amt > creatTotal then break end --creatTotal is decreased when group spawning happens, but the for loop still tries to run to its original value, so we're checking here to make sure whether or not it should still be running
 			local nc = mapgen:generate_creature(min_level,max_level,specialCreats)
       if nc == false then break end
       local placed = false
@@ -982,8 +985,9 @@ function Map:populate_creatures(creatTotal,forceGeneric)
           if not sp.used and not sp.boss then
             if self:is_passable_for(sp.x,sp.y,nc.pathType) and not self:tile_has_feature(sp.x,sp.y,'door') and not self:tile_has_feature(sp.x,sp.y,'gate') and not self:tile_has_feature(sp.x,sp.y,'exit') and self:isClear(sp.x,sp.y,nc.pathType) then
               if random(1,4) == 1 then nc:give_condition('asleep',random(10,100)) end
-              newCreats[#newCreats+1] = self:add_creature(nc,sp.x,sp.y)
-              placed = true
+              local creat = self:add_creature(nc,sp.x,sp.y)
+              newCreats[#newCreats+1] = creat
+              placed = creat
               break
             else
               sp.used = true
@@ -1005,9 +1009,32 @@ function Map:populate_creatures(creatTotal,forceGeneric)
         end
         if tries ~= 100 then 
           if random(1,4) == 1 then nc:give_condition('asleep',random(10,100)) end
-          newCreats[#newCreats+1] = self:add_creature(nc,cx,cy)
-          placed = true
+          local creat = self:add_creature(nc,cx,cy)
+          newCreats[#newCreats+1] = creat
+          placed = creat
         end --end tries if
+      end
+      --Place group spawns:
+      if placed and (nc.group_spawn or nc.group_spawn_max) then
+        local spawn_amt = (nc.group_spawn or random((nc.group_spawn_min or 1),nc.group_spawn_max))
+        if not nc.group_spawn_no_tweak then spawn_amt = tweak(spawn_amt) end
+        if spawn_amt < 1 then spawn_amt = 1 end
+        local x,y = placed.x,placed.y
+        for i=1,spawn_amt,1 do
+          local tries = 1
+          local cx,cy = random(x-tries,x+tries),random(y-tries,y+tries)
+          while self:is_passable_for(cx,cy,nc.pathType) == false or self:tile_has_feature(cx,cy,'door') or self:tile_has_feature(cx,cy,'gate') or self:tile_has_feature(cx,cy,'exit') or not self:isClear(cx,cy,nc.pathType) do
+            cx,cy = random(x-tries,x+tries),random(y-tries,y+tries)
+            tries = tries + 1
+            if tries > 10 then break end
+          end --end while
+          if tries <= 10 then
+            local creat = mapgen:generate_creature(min_level,max_level,{nc.id})
+            self:add_creature(creat,cx,cy)
+            newCreats[#newCreats+1] = creat
+            creatTotal = creatTotal-0.5 --a group spawned creature only counts as half a creature for the purposes of creature totals, so group spawns won't eat up all the creature slots but also won't overwhelm the map
+          end
+        end
       end
 		end --end creature for
     return newCreats
