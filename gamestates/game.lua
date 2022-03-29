@@ -1370,6 +1370,7 @@ function game:mousepressed(x,y,button)
     local uiScale = (prefs['uiScale'] or 1)
     local sideBarX = (math.ceil(love.graphics:getWidth()/uiScale)-365)*uiScale
     if x >= sideBarX then
+      x,y=round(x/uiScale),round(y/uiScale)
       local asb = self.allSpellsButton
       if asb and x >= asb.minX and x <= asb.maxX and y >= asb.minY and y <= asb.maxY then
         Gamestate.switch(spellscreen)
@@ -1420,7 +1421,7 @@ function game:mousepressed(x,y,button)
       end
       
       for creat,coords in pairs(self.sidebarCreats) do
-        if x >= coords.minX and x <= coords.maxX and y >= coords.minY and y <= coords.maxY then
+        if x*uiScale >= coords.minX and x*uiScale <= coords.maxX and y*uiScale >= coords.minY and y*uiScale <= coords.maxY then
           setTarget(creat.x,creat.y)
         end
       end

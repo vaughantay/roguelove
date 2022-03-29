@@ -260,6 +260,7 @@ function load_data()
   require "gamestates.cheats"
   require "gamestates.crafting"
   require "gamestates.credits"
+  require "gamestates.examine_item"
   require "gamestates.factionscreen"
   require "gamestates.game"
   require "gamestates.help"
