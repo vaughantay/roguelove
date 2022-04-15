@@ -1,14 +1,20 @@
 inventory = {}
---TODO: make it scroll when moving up/down list
+--TODO: Scrolling for equipment
 
-function inventory:enter(previous,whichType,action)
+function inventory:enter(previous,whichFilter,action)
   if previous == game then
     self.cursorY = 0
     self.cursorX = 1
     self.scroll=0
+    self.scrollMax=0
     self.yHold = 1
     self.xHold = 1
     self.text = nil
+    self.filterScroll=0
+    self.filterScrollMax=0
+    self.filter = nil
+    self.filterButtons = nil
+    self.action = nil
   end
   self.biggestY=0
   self.action=action or self.action
@@ -21,6 +27,7 @@ function inventory:enter(previous,whichType,action)
   else
     padX,padY=20,20
   end
+  self.padding = (prefs['noImages'] and 16 or 32)
   self.padX,self.padY = padX,padY
   self.yModPerc = 0
   if previous == game then
@@ -29,19 +36,19 @@ function inventory:enter(previous,whichType,action)
   end
   output:sound('stoneslideshort',2)
   self.buttons = {}
-  self.filter = whichType or self.filter
+  self.filter = (whichFilter and whichFilter) or self.filter
   self.sidebarX = round(width/2)+(prefs['noImages'] and 16 or 32)
   self:sort()
 end
 
 function inventory:sort()
-  --Item types: Usable, Throwable, Equipment, Other
   local fontSize = prefs['fontSize']
   --First, sort by type:
   local sorted = {}
   for i,item in ipairs(player.inventory) do
     if not player:is_equipped(item) then
-      if (self.filter == nil) or (item[self.filter] == true) then
+      local filter_info = self.filter
+      if (filter_info == nil) or ((not filter_info.filter or item[filter_info.filter] == true) and (not filter_info.itemType or item.itemType == filter_info.itemType) and (not filter_info.subType or item.subType == filter_info.subType)) then
         local iType = item.itemType or "other"
         local subType = item.subType or ""
         if not sorted[iType .. subType] then
@@ -129,7 +136,7 @@ function inventory:draw()
   local fontSize = prefs['fontSize']
 	
   self.screenMax = round(height/(fontSize+2)/2)
-  local padding = (prefs['noImages'] and 16 or 32)
+  local padding = self.padding
 	love.graphics.setFont(fonts.textFont)
   local sidebarX = self.sidebarX
   output:draw_window(1,1,sidebarX-padding,height-padding)
@@ -151,73 +158,90 @@ function inventory:draw()
   end
   
   --Filter buttons:
-  self.filterButtons = {}
   local boxpadding = (prefs['noImages'] and fontSize or 32)
-  local xAdd = math.floor((sidebarX-padding*2)/4)
-  --All Items Option:
-  local optionX = padding
-  local optionW = fonts.textFont:getWidth("All Items")
-  if (self.cursorY == 0 and self.cursorX == 1) or (mouseY < printY+fontSize+10 and mouseY > printY-4 and mouseX > optionX-4 and mouseX < optionX+boxpadding+optionW+10) then
+  local maxFilterX = sidebarX-padding
+  if not self.filterButtons then
+    self.filterButtons = {}
+    --All Items Option:
+    local optionX = padding
+    local optionW = fonts.textFont:getWidth("All Items")
+    self.filterButtons[#self.filterButtons+1] = {filter=nil,label="All Items", id = "all", minX = optionX, maxX = optionX+boxpadding+optionW,minY=printY-4,maxY=printY+fontSize+10}
+    --Calculate location of all filter buttons:
+    for _,filter_info in pairs(gamesettings.inventory_filters) do
+      local filter = filter_info.filter
+      local itemType = filter_info.itemType
+      local subType = filter_info.subType
+      local label = ucfirst(filter_info.label or filter_info.itemType or filter_info.filter)
+      local fid = (filter or "") .. (itemType or "") .. (subType or "")
+      local previous = self.filterButtons[#self.filterButtons]
+      optionX = previous.maxX+boxpadding
+      optionW = fonts.textFont:getWidth(label)
+      self.filterButtons[#self.filterButtons+1] = {filter=filter, itemType=itemType, subType = subType, label=label, id = fid, minX = optionX, maxX = optionX+boxpadding+optionW,minY=printY-4,maxY=printY+fontSize+10}
+      if self.filter and ((not self.filter.id or self.filter.id == filter_info.id) and ((self.filter.filter == filter_info.filter) and (self.filter.itemType == filter_info.itemType) and (self.filter.subType == filter_info.subType))) then
+        self:scrollToFilter(self.filterButtons[#self.filterButtons])
+        self.cursorX = #self.filterButtons
+        self.filter = self.filterButtons[#self.filterButtons]
+      end
+    end --end for
+  end --end if filters haven't been made yet
+  if not self.filter then self.filter = self.filterButtons[1] end
+  --Draw the filter buttons:
+  love.graphics.push()
+  local function filterStencil()
+    love.graphics.rectangle("fill",padding,printY-4,maxFilterX-padding,fontSize+10)
+  end
+  love.graphics.stencil(filterStencil,"replace",1)
+  love.graphics.setStencilTest("greater",0)
+  love.graphics.translate(self.filterScroll,0)
+  for id,filter in ipairs(self.filterButtons) do
+    local minX,maxX = filter.minX,filter.maxX
+    if (self.cursorY == 0 and self.cursorX == id) or (mouseY < printY+fontSize+10 and mouseY > printY-4 and mouseX-self.filterScroll > minX-4 and mouseX-self.filterScroll < maxX and mouseX > padding and mouseX < maxFilterX) then
+      setColor(100,100,100,125)
+      love.graphics.rectangle("fill",minX-4,printY-4,maxX+10-minX,fontSize+10)
+      setColor(255,255,255,255)
+    end
+    if prefs['noImages'] then
+      love.graphics.print((self.filter and self.filter.id == filter.id and "(X)" or "( )"),minX,printY)
+    else
+      love.graphics.draw((self.filter and self.filter.id == filter.id and images.uicheckboxchecked or images.uicheckbox),minX,printY)
+    end
+    love.graphics.print(filter.label,minX+boxpadding,printY)
+  end
+  self.maxFilterScroll = maxFilterX-self.filterButtons[#self.filterButtons].maxX-6
+  love.graphics.setStencilTest()
+  love.graphics.pop()
+  local w = fonts.textFont:getWidth('>')
+  local leftArrowX = round(padding/2)-4
+  if mouseX > leftArrowX and mouseX < leftArrowX+w and mouseY > printY and mouseY < printY+fontSize then
     setColor(100,100,100,125)
-    love.graphics.rectangle("fill",optionX-4,printY-4,boxpadding+optionW+10,fontSize+10)
+    love.graphics.rectangle('fill',leftArrowX,printY,w,fontSize+4)
     setColor(255,255,255,255)
   end
-  if prefs['noImages'] then
-    love.graphics.print((not self.filter and "(X)" or "( )"),optionX,printY)
-  else
-    love.graphics.draw((not self.filter and images.uicheckboxchecked or images.uicheckbox),optionX,printY)
+  if self.filterScroll == 0 then
+    setColor(100,100,100,255)
   end
-  love.graphics.print("All Items",optionX+boxpadding,printY)
-  self.filterButtons[#self.filterButtons+1] = {filter=nil,minX = optionX, maxX = optionX+boxpadding+optionW,minY=printY-4,maxY=printY+fontSize+10}
-  --Usable Items Option:
-  optionX = padding+xAdd
-  optionW = fonts.textFont:getWidth("Usable")
-  if (self.cursorY == 0 and self.cursorX == 2) or (mouseY < printY+fontSize+10 and mouseY > printY-4 and mouseX > optionX-4 and mouseX < optionX+boxpadding+optionW+10) then
-    setColor(100,100,100,125)
-    love.graphics.rectangle("fill",optionX-4,printY-4,boxpadding+optionW+10,fontSize+10)
+  love.graphics.print("<",leftArrowX,printY)
+  if self.filterScroll == 0 then
     setColor(255,255,255,255)
   end
-  if prefs['noImages'] then
-    love.graphics.print((self.filter == "usable" and "(X)" or "( )"),optionX,printY)
-  else
-    love.graphics.draw((self.filter == "usable" and images.uicheckboxchecked or images.uicheckbox),optionX,printY)
-  end
-  love.graphics.print("Usable",optionX+boxpadding,printY)
-  self.filterButtons[#self.filterButtons+1] = {filter="usable",minX = optionX, maxX = optionX+boxpadding+optionW,minY=printY-4,maxY=printY+fontSize+10}
-  --Throwable Items Option:
-  optionX = padding+xAdd*2
-  optionW = fonts.textFont:getWidth("Throwable")
-  if (self.cursorY == 0 and self.cursorX == 3) or (mouseY < printY+fontSize+10 and mouseY > printY-4 and mouseX > optionX-4 and mouseX < optionX+boxpadding+optionW+10) then
+  local rightArrowX = round(sidebarX-padding+4)
+  if mouseX > rightArrowX and mouseX < rightArrowX+w and mouseY > printY and mouseY < printY+fontSize then
     setColor(100,100,100,125)
-    love.graphics.rectangle("fill",optionX-4,printY-4,boxpadding+optionW+10,fontSize+10)
+    love.graphics.rectangle('fill',rightArrowX,printY,w,fontSize+4)
     setColor(255,255,255,255)
   end
-  if prefs['noImages'] then
-    love.graphics.print((self.filter == "throwable" and "(X)" or "( )"),optionX,printY)
-  else
-    love.graphics.draw((self.filter == "throwable" and images.uicheckboxchecked or images.uicheckbox),optionX,printY)
+  if self.filterScroll == self.maxFilterScroll then
+    setColor(100,100,100,255)
   end
-  love.graphics.print("Throwable",optionX+boxpadding,printY)
-  self.filterButtons[#self.filterButtons+1] = {filter="throwable",minX = optionX, maxX = optionX+boxpadding+optionW,minY=printY-4,maxY=printY+fontSize+10}
-  --Equippable Items Option:
-  optionX = padding+xAdd*3
-  optionW = fonts.textFont:getWidth("Equippable")
-  if (self.cursorY == 0 and self.cursorX == 4) or (mouseY < printY+fontSize+10 and mouseY > printY-4 and mouseX > optionX-4 and mouseX < optionX+boxpadding+optionW+10) then
-    setColor(100,100,100,125)
-    love.graphics.rectangle("fill",optionX-4,printY-4,boxpadding+optionW+10,fontSize+10)
+  love.graphics.print(">",rightArrowX,printY)
+  if self.filterScroll == self.maxFilterScroll then
     setColor(255,255,255,255)
   end
-  if prefs['noImages'] then
-    love.graphics.print((self.filter == "equippable" and "(X)" or "( )"),optionX,printY)
-  else
-    love.graphics.draw((self.filter == "equippable" and images.uicheckboxchecked or images.uicheckbox),optionX,printY)
-  end
-  love.graphics.print("Equipment",optionX+boxpadding,printY)
-  self.filterButtons[#self.filterButtons+1] = {filter="equippable",minX = optionX, maxX = optionX+boxpadding+optionW,minY=printY-4,maxY=printY+fontSize+10}
+  
+  --Item list:
   love.graphics.line(padding,printY+fontSize+14,sidebarX-padding,printY+fontSize+14)
   printY = printY+fontSize*2+14
   self.itemStartY = printY
-
   love.graphics.push()
   local function stencilFunc()
     love.graphics.rectangle("fill",0,self.itemStartY,width,height-self.itemStartY)
@@ -248,8 +272,8 @@ function inventory:draw()
   love.graphics.pop()
   
   if self.biggestY > height then
-    local endY = self.biggestY-self.itemStartY
-    local scrollAmt = self.scroll/endY
+    self.scrollMax = self.biggestY-self.itemStartY
+    local scrollAmt = self.scroll/self.scrollMax
     self.scrollPositions = output:scrollbar(sidebarX-padX*2,self.itemStartY,math.floor(height)-(prefs['noImages'] and 24 or 16),scrollAmt,true)
   end
   
@@ -355,8 +379,10 @@ function inventory:draw()
 end
 
 function inventory:keypressed(key)
+  local uiScale = prefs['uiScale']
   local letter = key
   key = input:parse_key(key)
+  local padding = self.padding
 	if (key == "escape") then
     --[[if self.selectedItem then
       self.selectedItem = nil
@@ -367,7 +393,7 @@ function inventory:keypressed(key)
 	elseif (key == "enter") or key == "wait" then
     if self.cursorY == 0 then --sorting buttons
       if self.filterButtons[self.cursorX] then
-        self.filter = self.filterButtons[self.cursorX].filter
+        self.filter = self.filterButtons[self.cursorX]
         self:sort()
         if self.action and self.action ~= "drop" then self.action = nil end
       end
@@ -426,6 +452,9 @@ function inventory:keypressed(key)
           end --end if item exists here if
         end --end equipment for
       end --end if item exists at next slot if
+      while self.inventory[self.cursorY] and self.inventory[self.cursorY].y+self.itemStartY-self.scroll < self.itemStartY and self.scroll > 0 do
+        self:scrollUp()
+      end
     elseif self.cursorX == 2 and self.cursorY > 1 then
       if self.equipment[self.cursorY-1] and self.equipment[self.cursorY-1].item then
         self.cursorY = self.cursorY-1
@@ -453,6 +482,9 @@ function inventory:keypressed(key)
           end --end if item exists here if
         end --end equipment for
       end --endif item exists and next slot if
+      while self.inventory[self.cursorY].y+self.itemStartY+prefs['fontSize']-self.scroll >= round(love.graphics.getHeight()/uiScale)-32 and self.scroll < self.scrollMax do
+        self:scrollDown()
+      end
     elseif self.cursorX == 2 and self.cursorY < #self.equipment then
       if self.equipment[self.cursorY+1].item then
         self.cursorY = self.cursorY+1
@@ -469,6 +501,7 @@ function inventory:keypressed(key)
     if self.cursorY == 0 then
       if self.cursorX > 1 then
         self.cursorX = self.cursorX-1
+        self:scrollToFilter(self.filterButtons[self.cursorX])
       end
     elseif self.cursorX == 2 then
       self.cursorX = (self.yHold == 0 and #self.filterButtons or 1)
@@ -477,6 +510,7 @@ function inventory:keypressed(key)
   elseif key == "east" then
     if self.cursorY == 0 and self.cursorX < #self.filterButtons then
       self.cursorX = self.cursorX+1
+      self:scrollToFilter(self.filterButtons[self.cursorX])
     elseif self.cursorY == 0 or self.cursorX == 1 then
       self.cursorX = 2
       self.cursorY,self.yHold = self.yHold,self.cursorY
@@ -497,6 +531,27 @@ function inventory:keypressed(key)
     elseif self.cursorX >= 3 and self.cursorX < self.maxButtonCursorX then
       self.cursorX = self.cursorX + 1
     end --end which cursorX if
+  elseif self. cursorX == 1 and self.inventory[self.cursorY] and self.inventory[self.cursorY].item then
+    if key == "use" then
+      self:useItem(self.inventory[self.cursorY].item)
+    elseif key == "equip" then
+      self:equipItem(self.inventory[self.cursorY].item)
+    elseif key == "drop" then
+      self:dropItem(self.inventory[self.cursorY].item)
+    elseif key == "throw" then
+      self:throwItem(self.inventory[self.cursorY].item)
+  end
+  
+    
+    --[[if self.action == "drop" then
+            
+          elseif self.action == "equip" then
+            
+          elseif self.action == "use" then
+            
+          elseif self.action == "throw" then
+            
+          end]]
   --[[elseif self.selectedItem then --only look at item buttons if you've selected an item
     if key == "use" then
       self:useItem()
@@ -512,6 +567,8 @@ end
 
 function inventory:mousepressed(x,y,button)
   local uiScale = (prefs['uiScale'] or 1)
+  local padding = self.padding
+  local maxFilterX = self.sidebarX-padding
   x,y = round(x/uiScale),round(y/uiScale)
   if button == 2 or (x > self.closebutton.minX and x < self.closebutton.maxX and y > self.closebutton.minY and y < self.closebutton.maxY) then
     self:switchBack()
@@ -531,9 +588,31 @@ function inventory:mousepressed(x,y,button)
   
   --Filter buttons:
   if self.filterButtons[1] and y > self.filterButtons[1].minY and y < self.filterButtons[1].maxY then
-    for _,b in ipairs(self.filterButtons) do
-      if x > b.minX and x < b.maxX then
-        self.filter = b.filter
+    if x > padding/2-4 and x < padding then --left arrow
+      local lastID = nil,nil
+      for id,b in ipairs(self.filterButtons) do
+        if b.minX+self.filterScroll <= padding then
+          lastID = id
+        else
+          break
+        end
+      end -- end filterbutton for
+      if lastID and lastID > 1 then
+        self:scrollToFilter(self.filterButtons[lastID-1])
+      end
+    elseif x > self.sidebarX-padding+4 and x < self.sidebarX then -- right arrow
+      for id,b in ipairs(self.filterButtons) do
+        if b.maxX+self.filterScroll > maxFilterX then
+          self:scrollToFilter(b)
+          break
+        end
+      end --end filterbutton for
+    end --end left/right arrow if
+    for id,b in ipairs(self.filterButtons) do
+      if x > b.minX+self.filterScroll and x < b.maxX+self.filterScroll and x > padding and x < self.sidebarX - padding then
+        self.filter = b
+        if self.cursorY == 0 then self.cursorX = id end
+        self:scrollToFilter(b)
         self:sort()
         return
       end
@@ -543,12 +622,11 @@ function inventory:mousepressed(x,y,button)
   --Selecting an item by clicking on it:
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
   width,height=round(width/uiScale),round(height/uiScale)
-  local padding = (prefs['noImages'] and 16 or 32)
   local sidebarX = self.sidebarX
   local equipPrintX = sidebarX+self.padX
   local fontSize = prefs['fontSize']
   
-  if x > padding and x < sidebarX then
+  if x > padding and x < sidebarX-(self.scrollPositions and padding or 0) then
     for i,item in ipairs(self.inventory) do
       if item.item and y+self.scroll > item.y+self.itemStartY and y+self.scroll < item.y+self.itemStartY+fontSize then
         Gamestate.switch(examine_item,item.item)
@@ -598,14 +676,17 @@ end
 
 function inventory:dropItem(item)
   item = item or self.selectedItem
-  player:drop_item(item)
+  local drop,response = player:drop_item(item)
   --self.selectedItem = nil
-  self.cursorX=1
-  self:sort()
-  if self.cursorY > #self.inventory then
-    self.cursorY = #self.inventory
+  if drop ~= false then
+    self.cursorX=1
+    self:sort()
+    if self.cursorY > #self.inventory then
+      self.cursorY = #self.inventory
+    end
+    self.text = "You drop " .. item:get_name() .. "."
+    advance_turn()
   end
-  advance_turn()
 end
 
 function inventory:throwItem(item)
@@ -632,7 +713,7 @@ end
 
 function inventory:scrollDown()
   self.scroll = self.scroll or 0
-  self.scroll = math.min(self.scroll + prefs['fontSize'],(self.biggestY-self.itemStartY))
+  self.scroll = math.min(self.scroll + prefs['fontSize'],self.scrollMax)
 end
 
 function inventory:update(dt)
@@ -664,6 +745,16 @@ function inventory:update(dt)
         self:scrollDown()
       end
     end --end clicking on arrow
+  end
+end
+
+function inventory:scrollToFilter(filter)
+  local padding = self.padding
+  local maxFilterX = self.sidebarX-padding
+  if filter.maxX+self.filterScroll > maxFilterX then
+    self.filterScroll = maxFilterX-filter.maxX-6
+  elseif filter.minX+self.filterScroll < padding then
+    self.filterScroll = padding-filter.minX
   end
 end
 

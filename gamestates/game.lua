@@ -1542,11 +1542,11 @@ function game:keypressed(key,scancode,isRepeat)
   elseif (key == "drop") then
 		Gamestate.switch(inventory,nil,"drop")
   elseif (key == "throw") then
-		Gamestate.switch(inventory,"throwable","throw")
+		Gamestate.switch(inventory,{filter="throwable"},"throw")
   elseif (key == "use") then
-		Gamestate.switch(inventory,"usable","use")
+		Gamestate.switch(inventory,{filter="usable"},"use")
   elseif (key == "equip") then
-		Gamestate.switch(inventory,"equippable","equip")
+		Gamestate.switch(inventory,{filter="equippable"},"equip")
   elseif (key == "crafting" and gamesettings.crafting and gamesettings.craft_anywhere) then
 		Gamestate.switch(crafting)
 	elseif (key == "examine") then
