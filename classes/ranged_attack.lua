@@ -148,7 +148,7 @@ function ranged_attack:recharge(possessor,item)
     return false --don't do anything if the attack is already full
   elseif not recharge_cooldown or recharge_cooldown <= 1 then
     if item then
-      item:reload(possessor)
+      return item:reload(possessor)
     else --end item reloading. Start code for if it's an inborn ranged attack
       possessor.ranged_charges = possessor.ranged_charges + (self.recharge_amount or self.max_charges)
       if possessor.ranged_recharge_countdown and self.active_recharge ~= true and self.recharge_turns and self.recharge_turns > 1 then --if it's an auto-recharge, go ahead and start the countdown for the next one
@@ -164,18 +164,9 @@ function ranged_attack:recharge(possessor,item)
           output:out(possessor:get_name() .. " " .. self.recharge_text)
         end
       end
-      if item then
-        item.recharge_cooldown = nil -- don't start the countdown if it's an active recharge
-      else
-        possessor.ranged_recharge_countdown = nil -- don't start the countdown if it's an active recharge
-      end
+      possessor.ranged_recharge_countdown = nil -- don't start the countdown if it's an active recharge
     end --end if active recharge 
-    if item then
-      if item.charges >= item.max_charges then
-        item.charges = item.max_charges
-        if item.charge_cooldown then item.charge_cooldown = nil end
-      end
-    elseif (possessor.ranged_charges >= self.max_charges) then --if we're fully (or over-)recharged, get rid of the countdown
+    if (possessor.ranged_charges >= self.max_charges) then --if we're fully (or over-)recharged, get rid of the countdown
       possessor.ranged_charges = self.max_charges
       if possessor.ranged_recharge_countdown then possessor.ranged_recharge_countdown = nil end
     end

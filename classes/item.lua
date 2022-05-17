@@ -151,6 +151,7 @@ end
 --@param user Creature. The creature using the item.
 --@return Boolean.Whether the use was successful.
 function Item:use(target,user)
+  if not self.usable then return false end
   local canUse,text = user:can_use_item(self,self.useVerb)
   if canUse == false then return false,text end
 	if possibleItems[self.id].use then
@@ -387,6 +388,7 @@ function Item:reload(possessor)
       possessor:delete_item(it,amt)
       if player:can_sense_creature(possessor) then
         output:out(possessor:get_name() .. " reloads " .. self:get_name() .. " with " .. it:get_name(false,amt) .. ".")
+        output:sound(self.recharge_sound)
       end
     else
       if possessor == player then output:out("You don't have any more of the specific type of ammo that is loaded in" .. self:get_name() .. ".") end
@@ -436,6 +438,7 @@ function Item:reload(possessor)
     self.projectile_enchantments = usedAmmo.enchantments
     if player:can_sense_creature(possessor) then
       output:out(possessor:get_name() .. " reloads " .. self:get_name() .. " with " .. usedAmmo:get_name(false,amt) .. ".")
+      output:sound(self.recharge_sound)
     end
   end --end if using specific ammo
 end

@@ -1768,7 +1768,17 @@ function game:keypressed(key,scancode,isRepeat)
       advance_turn()
     elseif (hotkeyItem.target_type and hotkeyItem.target_type ~= "self") then
       hotkeyItem:target(target,player)
-    end
+    elseif hotkeyItem.throwable then
+      action="targeting"
+      actionResult=rangedAttacks[hotkeyItem.ranged_attack]
+      actionItem=hotkeyItem
+    elseif hotkeyItem.equippable then
+      if not player:is_equipped(hotkeyItem) then
+        local use,response = player:equip(hotkeyItem)
+        output:out(response)
+        if use ~= false then advance_turn() end
+      end --end if it's equipped or not
+    end --end hotkey check
   end -- end key if
 end -- end function
 
