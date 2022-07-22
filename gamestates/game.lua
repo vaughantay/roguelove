@@ -1531,6 +1531,10 @@ function game:keypressed(key,scancode,isRepeat)
     else
       perform_move(key)
     end
+  elseif key == "camera_north" or key == "camera_south" or key == "camera_east" or key == "camera_west" or key == "camera_northwest" or key == "camera_northeast" or key == "camera_southwest" or key == "camera_southeast" then
+    local x = (string.find(key,"east") and 1 or (string.find(key,"west") and -1 or 0))
+    local y = (string.find(key,"south") and 1 or (string.find(key,"north") and -1 or 0))
+    output:move_camera(x,y)
 	elseif (key == "wait") and action=="moving" then
     output:sound('wait',0)
 		advance_turn()

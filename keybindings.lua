@@ -27,7 +27,7 @@ keybindings = {
   crafting={"m",description="View Crafting Screen",category="Inventory"},
   yes={"y",description="Yes/Confirm",category="Miscellaneous"},
   no={"n",description="No/Deny",category="Miscellaneous"},
-  camera_north={description="Move Camera North",category="Camera"}, --TODO: implement camera controls
+  camera_north={description="Move Camera North",category="Camera"},
   camera_northeast={description="Move Camera Northeast",category="Camera"},
   camera_east={description="Move Camera East",category="Camera"},
   camera_southeast={description="Move Camera Southeast",category="Camera"},
