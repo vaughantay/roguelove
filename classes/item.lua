@@ -388,7 +388,7 @@ function Item:reload(possessor)
       possessor:delete_item(it,amt)
       if player:can_sense_creature(possessor) then
         output:out(possessor:get_name() .. " reloads " .. self:get_name() .. " with " .. it:get_name(false,amt) .. ".")
-        output:sound(self.recharge_sound)
+        output:sound(self.recharge_sound or self.id .. "_recharge")
       end
     else
       if possessor == player then output:out("You don't have any more of the specific type of ammo that is loaded in" .. self:get_name() .. ".") end

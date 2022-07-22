@@ -353,6 +353,7 @@ end
 --@param pitchDiff Number. The maximum % by which to randomly shift the pitch up or down. Optional, defaults to 10
 --@return Boolean. Whether or not the sound exists or not
 function output:sound(soundName,pitchDiff)
+  if not soundName then return false end
   if not pitchDiff then pitchDiff = 10 end
     
   -- Load sound first

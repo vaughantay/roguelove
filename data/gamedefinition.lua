@@ -32,5 +32,6 @@ gamesettings = {
   default_equipment_order={'weapon','offhand','head','torso','hands','legs','feet','accessory','ammo'},
   inventory_filters={{filter='usable'},{filter='throwable'},{filter='equippable',itemType="weapon",label="Weapons"},{filter='equippable',itemType="weapon",subType="ranged",label="Ranged Weapons"},{filter='equippable',label="All Equipment"},{itemType="other",label="Miscellaneous"}},
   default_starting_missions={ascend=0},
-  skill_points_per_level=5
+  skill_points_per_level=5,
+  can_pickup_adjacent_items=true
 }

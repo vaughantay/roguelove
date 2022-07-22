@@ -403,7 +403,7 @@ function game:print_sidebar()
     love.graphics.print(picktext,printX+xPad,printY-2+yBonus)
     printY = printY+buttonPadding
   end
-  local items = currMap:get_tile_items(player.x,player.y,true)
+  local items = currMap:get_tile_items(player.x,player.y,gamesettings.can_pickup_adjacent_items)
   if #items > 0 then
     local picktext = keybindings.pickup[1] .. ") Pick Up " .. (#items > 1 and "Items" or items[1]:get_name())
     local spellwidth = whichFont:getWidth(picktext)
@@ -1391,7 +1391,16 @@ function game:mousepressed(x,y,button)
               output:setCursor(player.x,player.y,true,true)
             end
           elseif spell == "recharge" then
-            if rangedAttacks[player.ranged_attack]:recharge(player) then
+            local recharge = false
+            for i, attack_instance in ipairs(player:get_ranged_attacks()) do
+              local attack = rangedAttacks[attack_instance.attack]
+              if (attack_instance.item and type(attack_instance.item.charges) == "number" and not attack_instance.item.cooldown) or (not attack_instance.item and attack.active_recharge) then
+                if attack:recharge(player,attack_instance.item) ~= false then
+                  recharge = true
+                end
+              end
+            end
+            if recharge ~= false then
               advance_turn()
             end
           elseif spell == "pickup" then
@@ -1649,7 +1658,7 @@ function game:keypressed(key,scancode,isRepeat)
       local recharge = false
       for i, attack_instance in ipairs(ranged_attacks) do
         local attack = rangedAttacks[attack_instance.attack]
-        if (attack.active_recharge) then
+        if (attack_instance.item and type(attack_instance.item.charges) == "number" and not attack_instance.item.cooldown) or (not attack_instance.item and attack.active_recharge) then
           if attack:recharge(player,attack_instance.item) ~= false then
             recharge = true
           end
@@ -1716,7 +1725,7 @@ function game:keypressed(key,scancode,isRepeat)
     currGame.zoom = math.max((currGame.zoom or 1)-0.1,0.5)
     output:refresh_coordinate_map()
   elseif key == "pickup" then
-    local items = currMap:get_tile_items(player.x,player.y,true)
+    local items = currMap:get_tile_items(player.x,player.y,gamesettings.can_pickup_adjacent_items)
     if #items == 1 then
       if player:pickup(items[1]) ~= false then
         advance_turn()
@@ -1846,29 +1855,41 @@ function ContextualMenu:init(x,y,printX,printY)
   self.maxX=self.x+self.width
   local fontPadding = prefs['descFontSize']+2
   -- Make the box:
-  self.items = {}
+  self.entries = {}
   local spellY = self.y
   if self.creature then
-    self.items[1] = {name="Set as Target",y=spellY+fontPadding,action="target"}
+    self.entries[1] = {name="Set as Target",y=spellY+fontPadding,action="target"}
     spellY = spellY+fontPadding*2
-    if player.ranged_attack then
-      local attack = rangedAttacks[player.ranged_attack]
-      self.items[2] = {name=attack:get_name(),y=spellY,action=attack,cooldown=player.ranged_recharge_countdown}
+    local ranged_attacks = player:get_ranged_attacks()
+    if #ranged_attacks > 0 then
+      local ranged_text = "Ranged: "
+      for i,attack_instance in ipairs(ranged_attacks) do
+        local attack = rangedAttacks[attack_instance.attack]
+        local item = attack_instance.item or nil
+        ranged_text = ranged_text .. attack:get_name()
+        if attack_instance.charges and attack.hide_charges ~= true then
+          ranged_text = ranged_text .. " (" .. attack_instance.charges .. ")"
+        end
+        if i < #ranged_attacks then ranged_text = ranged_text .. ", " end
+      end --end ranged attack for
+      
+      self.entries[2] = {name=ranged_text,y=spellY,action="ranged",cooldown=player.ranged_recharge_countdown}
       spellY = spellY+fontPadding
-      if attack.active_recharge then
-        self.items[3] = {name="Recharge/Reload",y=spellY,action="recharge"}
+      --[[if attack.active_recharge then
+        self.entries[3] = {name="Recharge/Reload",y=spellY,action="recharge"}
         spellY=spellY+fontPadding
-      end
+      end]]
     end
   else
-    self.items[1] = {name="Move To",y=spellY,action="moveto"}
+    self.entries[1] = {name="Move To",y=spellY,action="moveto"}
     spellY = spellY+fontPadding
   end
-  if currMap:touching(player.x,player.y,x,y) then
+  local touching = currMap:touching(player.x,player.y,x,y)
+  if touching then
     local featureActions = currMap:get_tile_actions(x,y,player,not (x == player.x and y==player.y))
     if #featureActions > 0 then
       for _,action in ipairs(featureActions) do
-        self.items[#self.items+1] = {name=action.text,action="featureAction",entity=action.entity,actionID=action.id,y=spellY}
+        self.entries[#self.entries+1] = {name=action.text,action="featureAction",entity=action.entity,actionID=action.id,y=spellY}
         spellY = spellY+fontPadding
       end
     end
@@ -1876,13 +1897,28 @@ function ContextualMenu:init(x,y,printX,printY)
   for _,spellID in pairs(player:get_spells()) do
     local spell = possibleSpells[spellID]
     if spell.target_type == "tile" or spell.target_type == "self" or (spell.target_type == "creature" and self.creature) then
-      self.items[#self.items+1] = {name=spell.name,y = spellY,action=spell,cooldown=player.cooldowns[spell.name]}
+      self.entries[#self.entries+1] = {name=spell.name,y = spellY,action=spell,cooldown=player.cooldowns[spell.name]}
       spellY = spellY+fontPadding
     end
   end
   if self.creature and totalstats.creature_possessions and totalstats.creature_possessions[self.creature.id] then
-    self.items[#self.items+1] = {name="View in Monsterpedia",y=spellY,action="monsterpedia"}
+    self.entries[#self.entries+1] = {name="View in Monsterpedia",y=spellY,action="monsterpedia"}
     spellY = spellY+fontPadding
+  end
+  local items = currMap:get_tile_items(self.target.x,self.target.y)
+  if #items > 0 then
+    for _,item in pairs(items) do
+      self.entries[#self.entries+1] = {name="Examine " .. item:get_name(),y=spellY,action="examine",item=item}
+      spellY = spellY+fontPadding
+    end
+    if (x == player.x and y == player.y) or (touching and gamesettings.can_pickup_adjacent_items) then
+      if #items > 1 then
+        self.entries[#self.entries+1] = {name="Pick up Items",y=spellY,action="pickup",}
+      else
+        self.entries[#self.entries+1] = {name="Pick up " .. items[1]:get_name(),y=spellY,action="pickup"}
+      end
+      spellY = spellY+fontPadding
+    end
   end
   self.maxY = spellY
   self.height = spellY-self.y
@@ -1891,7 +1927,7 @@ end
 function ContextualMenu:mouseSelect(mouseX,mouseY)
   local fontPadding = prefs['descFontSize']
   if mouseX>=self.x and mouseX<=self.maxX and mouseY>=self.y and mouseY<=self.maxY then
-    for iid,item in ipairs(self.items) do
+    for iid,item in ipairs(self.entries) do
       if mouseY>item.y-1 and mouseY<item.y+fontPadding then
         self.selectedItem = iid
         break
@@ -1910,7 +1946,7 @@ function ContextualMenu:draw()
   
   if self.selectedItem then
     setColor(100,100,100,185)
-    love.graphics.rectangle("fill",self.x,self.items[self.selectedItem].y,self.width+1,fontPadding)
+    love.graphics.rectangle("fill",self.x,self.entries[self.selectedItem].y,self.width+1,fontPadding)
     setColor(255,255,255,255)
   end
   
@@ -1918,7 +1954,7 @@ function ContextualMenu:draw()
     love.graphics.print(self.creature:get_name(true),self.x,self.y)
     love.graphics.line(self.x,self.y+fontPadding,self.x+self.width+1,self.y+fontPadding)
   end
-  for _,item in ipairs(self.items) do
+  for _,item in ipairs(self.entries) do
     if item.cooldown then
       setColor(100,100,100,255)
     end
@@ -1934,9 +1970,9 @@ function ContextualMenu:click(x,y)
   local fontPadding = prefs['descFontSize']
   local useItem = nil
   if self.selectedItem then
-    useItem = self.items[self.selectedItem]
+    useItem = self.entries[self.selectedItem]
   else  
-    for _,item in ipairs(self.items) do
+    for _,item in ipairs(self.entries) do
       if y>item.y-1 and y<item.y+fontPadding then
         useItem = item
         break
@@ -1955,12 +1991,89 @@ function ContextualMenu:click(x,y)
     elseif useItem.action == "monsterpedia" then
       Gamestate.switch(monsterpedia,self.creature.id)
     elseif useItem.action == "recharge" then
-      if rangedAttacks[player.ranged_attack]:recharge(player) then
+      local recharge = false
+      for i, attack_instance in ipairs(player:get_ranged_attacks()) do
+        local attack = rangedAttacks[attack_instance.attack]
+        if (attack_instance.item and type(attack_instance.item.charges) == "number" and not attack_instance.item.cooldown) or (not attack_instance.item and attack.active_recharge) then
+          if attack:recharge(player,attack_instance.item) ~= false then
+            recharge = true
+          end
+        end
+      end
+      if recharge ~= false then
         advance_turn()
       end
     elseif useItem.action == "featureAction" then
       if useItem.entity:action(player,useItem.actionID) ~= false then
         advance_turn()
+      end
+    elseif useItem.action == "examine" then
+      Gamestate.switch(examine_item,useItem.item)
+    elseif useItem.action == "pickup" then
+      local items = currMap:get_tile_items(self.target.x,self.target.y)
+      if #items == 1 then
+        if player:pickup(items[1]) ~= false then
+          advance_turn()
+        end
+      elseif #items > 1 then
+        Gamestate.switch(multipickup)
+      end
+    elseif useItem.action == "ranged" then
+      local ranged_attacks = player:get_ranged_attacks()
+      local anyAvailable = false
+      for i, attack in ipairs(ranged_attacks) do
+        if not attack.charges or attack.charges > 0 then
+          anyAvailable = true
+          break
+        end
+      end --end loopthrough to check charges
+      if anyAvailable then
+        action="targeting"
+        local allAttacks = {}
+        local attackName = ""
+        local min_range,range=nil,nil
+        for i,attack_instance in ipairs(player:get_ranged_attacks()) do
+          local attack = rangedAttacks[attack_instance.attack]
+          attackName = attackName .. (i > 1 and ", " or "") .. attack.name
+          if attack.min_range and (min_range == nil or attack.min_range < min_range) then
+            min_range = attack.min_range
+          end
+          if attack.range and (range == nil or attack.range < range) then
+            range = attack.range
+          end
+        end --end ranged attack for
+        local attackFunction = function(_,target)
+          for i,attack_instance in ipairs(player:get_ranged_attacks()) do
+            local attack = rangedAttacks[attack_instance.attack]
+            if (not attack.charges or attack.charges > 0) and attack:calc_hit_chance(player,target,attack_instance.item) > 0 then
+              local proj = attack:use(target,player,attack_instance.item)
+              if proj and i > 1 then
+                proj.pause = (i-1)/10
+              end
+            end --end can use attack if
+          end --end ranged attack for
+        end --end attackFunction
+        allAttacks.name = attackName
+        allAttacks.use = attackFunction
+        allAttacks.min_range,allAttacks.max_range = min_range,range
+        allAttacks.target_type="creature"
+        actionResult=allAttacks
+        setTarget(self.target.x,self.target.y)
+      else --no attacks available, try to recharge if possible
+        local recharge = false
+        for i, attack_instance in ipairs(ranged_attacks) do
+          local attack = rangedAttacks[attack_instance.attack]
+          if (attack_instance.item and type(attack_instance.item.charges) == "number" and not attack_instance.item.cooldown) or (not attack_instance.item and attack.active_recharge) then
+            if attack:recharge(player,attack_instance.item) ~= false then
+              recharge = true
+            end
+          end
+        end
+        if recharge == false then
+          output:out("You can't use any ranged attacks right now.")
+        else
+           advance_turn()
+        end
       end
     else
       if useItem.action.target_type == "self" then
@@ -1985,7 +2098,7 @@ end
 function ContextualMenu:scrollDown()
   if self.selectedItem then
     self.selectedItem = self.selectedItem + 1
-    if self.selectedItem > #self.items then self.selectedItem = #self.items end
+    if self.selectedItem > #self.entries then self.selectedItem = #self.entries end
   else --if there's no selected item, set it to the first one
     self.selectedItem = 1
   end

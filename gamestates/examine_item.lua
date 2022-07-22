@@ -164,7 +164,7 @@ function examine_item:keypressed(key)
   key = input:parse_key(key)
 	if (key == "escape") then
     self:switchBack()
-	elseif (key == "enter") or key == "wait" then
+	elseif self.has_item and ((key == "enter") or key == "wait") then
     if self.buttons.values[self.cursorY][self.cursorX] == "use" then
       self:switchBack()
       inventory:useItem(self.item)
@@ -186,30 +186,34 @@ function examine_item:keypressed(key)
     self.cursorY = math.min(self.cursorY+1,#self.buttons.values)
   elseif key == "west" then
     self.cursorX = self.cursorX - 1
-    if self.cursorX < 1 and self.cursorY > 1 then
-      self.cursorY = math.max(self.cursorY-1,1)
-      self.cursorX = #self.buttons.values[self.cursorY]
-    else
-      self.cursorX = 1
+    if self.cursorX < 1 then
+      if self.cursorY > 1 then
+        self.cursorY = math.max(self.cursorY-1,1)
+        self.cursorX = #self.buttons.values[self.cursorY]
+      else
+        self.cursorX = 1
+      end
     end
   elseif key == "east" then
     self.cursorX = self.cursorX + 1
-    if self.cursorX > #self.buttons.values[self.cursorY] and self.cursorY < #self.buttons.values then
+    if self.cursorX > #self.buttons.values[self.cursorY] then
+      if self.cursorY < #self.buttons.values then
       self.cursorY = math.min(self.cursorY+1,#self.buttons.values)
       self.cursorX = 1
-    else
-      self.cursorX = #self.buttons.values[self.cursorY]
+      else
+        self.cursorX = #self.buttons.values[self.cursorY]
+      end
     end
-  elseif key == "use" then
+  elseif key == "use" and self.has_item then
     self:switchBack()
     inventory:useItem(self.item)
-  elseif key == "equip" then
+  elseif key == "equip" and self.has_item then
     self:switchBack()
     inventory:equipItem(self.item)
-  elseif key == "drop" then
+  elseif key == "drop" and self.has_item then
     self:switchBack()
     inventory:dropItem(self.item)
-  elseif key == "throw" then
+  elseif key == "throw" and self.has_item then
     self:switchBack()
     inventory:throwItem(self.item)
   end
