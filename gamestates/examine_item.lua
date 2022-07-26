@@ -4,7 +4,7 @@ examine_item = {}
 --TODO: Add stack splitting
 
 function examine_item:enter(previous,item)
-  if previous ~= hotkey then
+  if previous ~= hotkey and previous ~= splitstack then
     local width, height = love.graphics:getWidth(),love.graphics:getHeight()
     local uiScale = (prefs['uiScale'] or 1)
     width,height = round(width/uiScale),round(height/uiScale)
@@ -112,6 +112,21 @@ function examine_item:draw()
       buttonX = buttonX+buttonWidth+25
       buttonCursorX = buttonCursorX+1
     end
+    if item.stacks==true and item.amount and item.amount > 1 then
+      local useText = "Split Stack"
+      local buttonWidth = fonts.buttonFont:getWidth(useText)+25
+      if buttonX+buttonWidth >= buttonMaxX then
+        buttonCursorX=1
+        buttonCursorY=buttonCursorY+1
+        self.buttons.values[buttonCursorY] = {}
+        buttonX = buttonStartX
+        buttonY = buttonY+40
+      end
+      self.buttons.split = output:button(buttonX,buttonY,buttonWidth,false,(self.cursorX == buttonCursorX and self.cursorY == buttonCursorY and "hover" or nil),useText,true)
+      self.buttons.values[buttonCursorY][buttonCursorX] = "split"
+      buttonX = buttonX+buttonWidth+25
+      buttonCursorX = buttonCursorX+1
+    end
     if item.equippable == true or item.usable == true or item.throwable == true then
       local hotkey = item.hotkey
       local hotkeyText = (hotkey and "Change Hotkey" or "Assign Hotkey")
@@ -131,12 +146,12 @@ function examine_item:draw()
     local dropText = "Drop (" .. keybindings.drop[1] .. ")"
     local buttonWidth = fonts.buttonFont:getWidth(dropText)+25
     if buttonX+buttonWidth >= buttonMaxX then
-        buttonCursorX=1
-        buttonCursorY=buttonCursorY+1
-        self.buttons.values[buttonCursorY] = {}
-        buttonX = buttonStartX
-        buttonY = buttonY+40
-      end
+      buttonCursorX=1
+      buttonCursorY=buttonCursorY+1
+      self.buttons.values[buttonCursorY] = {}
+      buttonX = buttonStartX
+      buttonY = buttonY+40
+    end
     self.buttons.drop = output:button(buttonX,buttonY,buttonWidth,false,(self.cursorX == buttonCursorX and self.cursorY == buttonCursorY and "hover" or nil),dropText,true)
     self.buttons.values[buttonCursorY][buttonCursorX] = "drop"
     printY=buttonY+40
@@ -154,9 +169,9 @@ function examine_item:draw()
   if printY > self.height then
     
   end
-  
+  self.closebutton = output:closebutton(self.x+round(padding/2),self.y+round(padding/2),nil,true)
   love.graphics.pop()
-  self.closebutton = output:closebutton(14,14,nil,true)
+  
 end
 
 function examine_item:keypressed(key)
@@ -179,6 +194,8 @@ function examine_item:keypressed(key)
       inventory:throwItem(self.item)
     elseif self.buttons.values[self.cursorY][self.cursorX] == "hotkey" then
       Gamestate.switch(hotkey,self.item)
+    elseif self.buttons.values[self.cursorY][self.cursorX] == "split" then
+      Gamestate.switch(splitstack,self.item)
     end
 	elseif (key == "north") then
     self.cursorY = math.max(self.cursorY-1,1)
@@ -270,8 +287,9 @@ end
 
 function examine_item:mousepressed(x,y,button)
   local uiScale = (prefs['uiScale'] or 1)
+  local padding = prefs['noImages'] and 16 or 32
   x,y = round(x/uiScale),round(y/uiScale)
-  if button == 2 or (x > self.closebutton.minX and x < self.closebutton.maxX and y > self.closebutton.minY and y < self.closebutton.maxY) or (x < self.x or x > self.x+self.width or y < self.y or y > self.y+self.height) then
+  if button == 2 or (x > self.closebutton.minX and x < self.closebutton.maxX and y > self.closebutton.minY and y < self.closebutton.maxY) or (x < self.x or x > self.x+self.width or y < self.y or y > self.y+self.height+padding) then
     self:switchBack()
   end
   --Item use buttons:
@@ -289,6 +307,8 @@ function examine_item:mousepressed(x,y,button)
     inventory:throwItem(self.item)
   elseif self.buttons.hotkey and x > self.buttons.hotkey.minX and x < self.buttons.hotkey.maxX and y > self.buttons.hotkey.minY and y < self.buttons.hotkey.maxY then
     Gamestate.switch(hotkey,self.item)
+  elseif self.buttons.split and x > self.buttons.split.minX and x < self.buttons.split.maxX and y > self.buttons.split.minY and y < self.buttons.split.maxY then
+    Gamestate.switch(splitstack,self.item)
   end
 end
 

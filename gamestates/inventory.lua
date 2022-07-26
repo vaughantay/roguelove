@@ -195,7 +195,7 @@ function inventory:draw()
   love.graphics.translate(self.filterScroll,0)
   for id,filter in ipairs(self.filterButtons) do
     local minX,maxX = filter.minX,filter.maxX
-    if (self.cursorY == 0 and self.cursorX == id) or (mouseY < printY+fontSize+10 and mouseY > printY-4 and mouseX-self.filterScroll > minX-4 and mouseX-self.filterScroll < maxX and mouseX > padding and mouseX < maxFilterX) then
+    if (self.cursorY == 0 and self.cursorX == id) or (Gamestate.current() == inventory and mouseY < printY+fontSize+10 and mouseY > printY-4 and mouseX-self.filterScroll > minX-4 and mouseX-self.filterScroll < maxX and mouseX > padding and mouseX < maxFilterX) then
       setColor(100,100,100,125)
       love.graphics.rectangle("fill",minX-4,printY-4,maxX+10-minX,fontSize+10)
       setColor(255,255,255,255)
@@ -256,7 +256,7 @@ function inventory:draw()
       love.graphics.rectangle("fill",printX-8,printY,sidebarX-printX-padding,fontSize+4)
       setColor(255,255,255,255)
     else]]
-    if line.item and ((self.cursorY == i and self.cursorX == 1) or (mouseX > printX and mouseX < sidebarX and mouseY+self.scroll > printY and mouseY+self.scroll < printY+fontSize)) then
+    if line.item and ((self.cursorY == i and self.cursorX == 1) or (Gamestate.current() == inventory and mouseX > printX and mouseX < sidebarX and mouseY+self.scroll > printY and mouseY+self.scroll < printY+fontSize)) then
       setColor(100,100,100,125)
       love.graphics.rectangle("fill",printX-8,printY,sidebarX-printX-padding,fontSize+4)
       setColor(255,255,255,255)
@@ -293,7 +293,7 @@ function inventory:draw()
       love.graphics.rectangle("fill",equipPrintX+slotWidth+3,equip.y,width-equipPrintX-padding,16)
       setColor(255,255,255,255)
     else]]
-    if (self.cursorY == i and self.cursorX == 2) or (equip.item and mouseX > equipPrintX+3 and mouseX < width-padding and mouseY > equip.y and mouseY < equip.y+16) then
+    if (self.cursorY == i and self.cursorX == 2) or (Gamestate.current() == inventory and equip.item and mouseX > equipPrintX+3 and mouseX < width-padding and mouseY > equip.y and mouseY < equip.y+16) then
       setColor(100,100,100,125)
       love.graphics.rectangle("fill",equipPrintX+slotWidth+3,equip.y,width-equipPrintX-padding,16)
       setColor(255,255,255,255)
@@ -629,6 +629,8 @@ function inventory:mousepressed(x,y,button)
   if x > padding and x < sidebarX-(self.scrollPositions and padding or 0) then
     for i,item in ipairs(self.inventory) do
       if item.item and y+self.scroll > item.y+self.itemStartY and y+self.scroll < item.y+self.itemStartY+fontSize then
+        self.cursorY = i
+        self.cursorX = 1
         Gamestate.switch(examine_item,item.item)
         return
       end
@@ -636,6 +638,8 @@ function inventory:mousepressed(x,y,button)
   elseif x > equipPrintX and x < width-padding then
     for i,item in ipairs(self.equipment) do
       if item.item and y > item.y and y < item.y+fontSize then
+        self.cursorY = i
+        self.cursorX = 2
         Gamestate.switch(examine_item,item.item)
         return
       end
@@ -696,6 +700,21 @@ function inventory:throwItem(item)
     actionResult=rangedAttacks[self.selectedItem.ranged_attack]
     actionItem=item
     self:switchBack()
+  end
+end
+
+function inventory:splitStack(item,amount)
+  item = item or self.selectedItem
+  if item and item.stacks and amount > 0 and amount < item.amount then
+    local oldOwner = item.owner
+    item.owner = nil --This is done because item.owner is the creature who owns the item, and Item:clone() does a deep copy of all tables, which means it will create a copy of the owner, which owns a copy of the item, which is owned by another copy of the owner which owns another copy of the item etc etc leading to a crash
+    local newItem = item:clone()
+    item.amount = item.amount - amount
+    newItem.amount = amount
+    item.owner,newItem.owner = oldOwner
+    newItem.stacks = false
+    player:give_item(newItem)
+    newItem.stacks = true
   end
 end
 
