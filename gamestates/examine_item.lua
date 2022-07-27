@@ -1,10 +1,8 @@
 examine_item = {}
 --TODO: Add scrolling for long descriptions
---TODO: Add renaming
---TODO: Add stack splitting
 
 function examine_item:enter(previous,item)
-  if previous ~= hotkey and previous ~= splitstack then
+  if previous ~= hotkey and previous ~= splitstack and previous ~= nameitem then
     local width, height = love.graphics:getWidth(),love.graphics:getHeight()
     local uiScale = (prefs['uiScale'] or 1)
     width,height = round(width/uiScale),round(height/uiScale)
@@ -112,6 +110,21 @@ function examine_item:draw()
       buttonX = buttonX+buttonWidth+25
       buttonCursorX = buttonCursorX+1
     end
+    if item.equippable==true and not item.stacks then
+      local useText = (item.properName and "Rename" or "Name")
+      local buttonWidth = fonts.buttonFont:getWidth(useText)+25
+      if buttonX+buttonWidth >= buttonMaxX then
+        buttonCursorX=1
+        buttonCursorY=buttonCursorY+1
+        self.buttons.values[buttonCursorY] = {}
+        buttonX = buttonStartX
+        buttonY = buttonY+40
+      end
+      self.buttons.name = output:button(buttonX,buttonY,buttonWidth,false,(self.cursorX == buttonCursorX and self.cursorY == buttonCursorY and "hover" or nil),useText,true)
+      self.buttons.values[buttonCursorY][buttonCursorX] = "name"
+      buttonX = buttonX+buttonWidth+25
+      buttonCursorX = buttonCursorX+1
+    end
     if item.stacks==true and item.amount and item.amount > 1 then
       local useText = "Split Stack"
       local buttonWidth = fonts.buttonFont:getWidth(useText)+25
@@ -196,6 +209,8 @@ function examine_item:keypressed(key)
       Gamestate.switch(hotkey,self.item)
     elseif self.buttons.values[self.cursorY][self.cursorX] == "split" then
       Gamestate.switch(splitstack,self.item)
+    elseif self.buttons.values[self.cursorY][self.cursorX] == "name" then
+      Gamestate.switch(nameitem,self.item)
     end
 	elseif (key == "north") then
     self.cursorY = math.max(self.cursorY-1,1)
@@ -309,6 +324,8 @@ function examine_item:mousepressed(x,y,button)
     Gamestate.switch(hotkey,self.item)
   elseif self.buttons.split and x > self.buttons.split.minX and x < self.buttons.split.maxX and y > self.buttons.split.minY and y < self.buttons.split.maxY then
     Gamestate.switch(splitstack,self.item)
+  elseif self.buttons.name and x > self.buttons.name.minX and x < self.buttons.name.maxX and y > self.buttons.name.minY and y < self.buttons.name.maxY then
+    Gamestate.switch(nameitem,self.item)
   end
 end
 

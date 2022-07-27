@@ -275,6 +275,7 @@ function load_data()
   require "gamestates.multipickup"
   require "gamestates.multiselect"
   require "gamestates.menu"
+  require "gamestates.nameitem"
   require "gamestates.newgame"
   require "gamestates.pausemenu"
   require "gamestates.pronoun_entry"
