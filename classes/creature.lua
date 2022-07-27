@@ -1277,7 +1277,7 @@ function Creature:drop_all_items(deathItems)
     end --end inventory for loop
   end
   --Money:
-  if self.money then
+  if self.money and self.money > 0 then
     local money = Item('money',self.money)
     currMap:add_item(money,self.x,self.y,true)
   end
