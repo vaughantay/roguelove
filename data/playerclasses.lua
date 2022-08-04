@@ -1,10 +1,21 @@
 playerClasses = {
+  alchemist = {
+    name="Alchemist",
+    description="Mixes up the big booms.",
+    recipe_tags={"alchemy"}, --These are the tags used to grant recipe knowledge to members of this class
+    items={{item="weaponoil"},{item="alcahest",amount=5},{item="bomb",amount=5}}, --These items will be granted on game start
+    recipe_tags={"alchemy"},
+    resistances={fire=10,acid=10}, --These will be added the the characters' base resistances
+    stat_modifiers={strength=2,melee=2,ranged=6,dodging=4,magic=3,max_mp=20}, --These values will be added to the characters' base stats
+    money=100, --Amount of money the character starts with
+    },
   demonhunter = {
     name="Demon Hunter",
     description="Fights those pesky demons.",
     favor={lightchurch=500,angels=100,demons=-100}, --List of favor scores the character starts with
     factions={"lightchurch"}, --List of factions the character begins as a member of
     spells={"demondamager"}, --These are spells the character will start with
+    recipes={"healthpotionminor"}, --These are the specific recipes members of this class start with knowledge of
     items={{item="holywater",amount=2},{item="scroll",passed_info={'holy'},displayName = "3 Random Holy Scrolls",amount=3}}, --These items will be granted on game start
     equipment={{item="dagger",enchantment="blessed",enchantment_turns=5,displayName="Blessed Dagger"}}, --These items will be equipped on game start
     learns_spells={{spell="smite",level=2}}, --These spells will be automatically granted once a certain level is reached
@@ -70,7 +81,7 @@ playerClasses = {
   wimp = {
     name="Total Wimp",
     description="A scrawny nerd.",
-    items={{item="healthpotionminor",amount=5},{item="scroll",amount=3,displayName="Random Scrolls"},{item="scroll",passed_info="blink",displayName = "Scroll of Blink"},{item="scroll",passed_info="homecoming",displayName = "Scroll of Homecoming"},{item="crossbow"},{item="bolt",amount=1},{item="weaponpoison",amount=2}}, --These items will be granted on game start
+    items={{item="healthpotionminor",amount=5},{item="scroll",amount=3,displayName="Random Scrolls"},{item="scroll",passed_info="blink",displayName = "Scroll of Blink"},{item="scroll",passed_info="homecoming",displayName = "Scroll of Homecoming"},{item="crossbow"},{item="bolt",amount=1},{item="weaponpoison",amount=2},{item="dart",amount=25}}, --These items will be granted on game start
     stat_modifiers={strength=1,melee=1,ranged=5,magic=5,max_hp=-25,max_mp=5}, --These values will be added to the characters' base stats
     spells={"scrawny"}, --These are spells the character will start with
     money=100 --Amount of money the character starts with

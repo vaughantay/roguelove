@@ -113,6 +113,22 @@ function Faction:join(creature)
   if not creature:is_faction_member(self.id) then
     creature.factions[#creature.factions+1] = self.id
   end
+  if self.grants_recipes then
+    for _,recipe in ipairs(self.grants_recipes) do
+      creature:learn_recipe(recipe)
+    end
+  end
+  if self.grants_recipe_tags then
+    for id,recipe in pairs(possibleRecipes) do
+      if recipe.tags then
+        for _,tag in ipairs(self.grants_recipe_tags) do
+          if in_table(tag,recipe.tags) then
+            creature:learn_recipe(id)
+          end --end in_table for
+        end --end tag for
+      end --end if recipe tags
+    end --end possibleRecipes for
+  end
 end
 
 ---Have a creature leave as a member of the faction.

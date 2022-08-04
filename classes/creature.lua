@@ -225,6 +225,22 @@ function Creature:apply_class(classID)
       self:learn_spell(spell)
     end
   end --end if spells
+  if class.recipes then
+    for _,recipe in ipairs(class.recipes) do
+      self:learn_recipe(recipe)
+    end
+  end --end if recipes
+  if class.recipe_tags then
+    for id,recipe in pairs(possibleRecipes) do
+      if recipe.tags then
+        for _,tag in ipairs(class.recipe_tags) do
+          if in_table(tag,recipe.tags) and not (recipe.requires_class or recipe.requires_class == classID) then
+            self:learn_recipe(id)
+          end --end in_table for
+        end --end tag for
+      end --end if recipe tags
+    end --end possibleRecipes for
+  end --end recipe tags if
   if class.items then
     for _,item in ipairs(class.items) do
       local itemID = item.item
@@ -2513,6 +2529,7 @@ function Creature:get_all_possible_recipes(hide_uncraftable)
 end
 
 ---Check if it's possible to craft a recipe
+--TODO: Forbidden tags on recipes
 --@param recipeID String. The ID of the recipe
 --@return Boolean. Whether or not the recipe can be crafted
 --@return Text. A description of why you can't craft the recipe.
@@ -2529,6 +2546,9 @@ function Creature:can_craft_recipe(recipeID)
   end
   if recipe.requires_class then
     if self.class ~= recipe.requires_class then return false end
+  end
+  if recipe.requires_faction then
+    if not self:is_faction_member(recipe.requires_faction) then return false end
   end
   if recipe.requires_spells then
     for _,spell in ipairs(recipe.requires_spells) do

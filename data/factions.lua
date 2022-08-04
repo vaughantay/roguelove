@@ -37,7 +37,8 @@ possibleFactions['lightchurch'] = {
   teaches_spells = {{spell="demondamager",favorCost=100,moneyCost = 100}, {spell="summonangel",favorCost=100,membersOnly=true}}, --spells that this faction teaches to friendly players
   offers_services = {{service="healing_church"},{service="blessing",favorCost=10,moneyCost=10,membersOnly=true},{service="exorcism"}}, --services that this faction offers to friendly players
   offers_missions = {{mission='killdemons'},{mission='findtreasure',membersOnly=true}}, --missions that this faction offers to friendly players
-  possible_inventory = {{item="scroll",chance=100}}, --items that all members of this faction might drop
+  possible_inventory = {{item="scroll",chance=100}}, --items that all members of this faction might have in their inventory
+  grants_recipe_tags={"holy"},
   hidden = false, --If set to true, this faction won't appear on the faction list page
   never_join = false, --If set to true, this faction cannot be joined
   event_cooldown=5,

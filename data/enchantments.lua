@@ -35,6 +35,17 @@ local poisoned = {
 }
 enchantments['poisoned'] = poisoned
 
+local poisonedProjectile = {
+  name = "Poisoned",
+  prefix = "poisoned",
+  removal_type="hit",
+  description = "Poisons the target on a successful hit.",
+  hit_conditions={{condition='poisoned',chance=100,minTurns=2,maxTurns=4}},
+  itemTypes={"throwable","ammo"},
+  requires_tags={"sharp"}
+}
+enchantments['poisoned_projectile'] = poisonedProjectile
+
 local fireweapon = {
   name = "Enflamed",
   prefix = "enflamed",
@@ -42,7 +53,8 @@ local fireweapon = {
   extra_damage = {damage_type="fire",damage_percent=50,safe_creature_types={"fireImmune"}},
   removal_type="hit",
   tags={"fire","magic"},
-  itemTypes={"weapon","ammo","throwable"}
+  itemTypes={"weapon","ammo","throwable"},
+  apply_to_projectile=true
 }
 enchantments['fireweapon'] = fireweapon
 
@@ -78,17 +90,6 @@ local sharpened = {
   hit_conditions={{condition="bleeding",minTurns=2,maxTurns=5,chance=100,crit_turns=5}}
 }
 enchantments['sharpened'] = sharpened
-
-local poisonedProjectile = {
-  name = "Poisoned",
-  prefix = "poisoned",
-  removal_type="hit",
-  description = "Poisons the target on a successful hit.",
-  hit_conditions={{condition='poisoned',chance=100,minTurns=2,maxTurns=4}},
-  itemTypes={"throwable","ammo"},
-  requires_tags={"sharp"}
-}
-enchantments['poisoned_projectile'] = poisonedProjectile
 
 local damaging = {
   name = "Damaging",

@@ -40,3 +40,17 @@ local weaponstore = {
   artifact_chance=10 --% chance that an item spawned here will be an artifact
 }
 possibleStores['weaponstore'] = weaponstore
+
+local alchemystore = {
+  name = "Alchemistry Supply Co.", --Name of the store
+  description = "A ramshackle booth, with shelves stuffed full of all sorts of bizzare ingredients in bottles, jars, vials, phials, flasks, decanters, carboys, jugs, carafes, and other various containers.", --Description of the store
+  map_description = "A ramshackle booth stuffed with bizzare ingredients.", --Description that will show on the Feature tile used to enter the store
+  sells_items = {{item="alcahest",cost=10},{item="bloodextractor",cost=250,amount=1}},
+  sells_tags = {"ingredient","alchemy"}, --Tags for items that will be sold by the shop
+  buys_tags = {"ingredient","alchemy","magic","bodypart"},
+  markup=2, --Randomly-selected items' values will be multiplied by this number to determine how much this shop will sell the items for
+  random_item_amount=10, --How many random items to fill the shop with
+  random_item_restock_amount=5,
+  random_item_restock_to=5 --Only restock random items to this amount
+}
+possibleStores['alchemystore'] = alchemystore

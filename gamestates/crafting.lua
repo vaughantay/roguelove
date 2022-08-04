@@ -40,6 +40,12 @@ function crafting:refresh_craft_list()
       craftData.is_class = (player.class == recipe.requires_class)
       if not craftData.is_class then craftData.craftable=false end
     end
+    --Class check:
+    if recipe.requires_faction then
+      craftData.requires_faction = currWorld.factions[recipe.requires_faction]
+      craftData.is_faction_member = player:is_faction_member(recipe.requires_faction)
+      if not craftData.is_faction_member then craftData.craftable=false end
+    end
     --Spell check:
     if recipe.requires_spells then
       craftData.requires_spells = {}
@@ -338,6 +344,19 @@ function crafting:draw()
         setColor(255,255,255,255)
       end
       local _, dlines = fonts.textFont:getWrap(classText,window2w)
+      descY = descY+prefs['fontSize']*(#dlines+1)
+    end
+    
+    if craftInfo.requires_faction then
+      local factionText = "Only Craftable by members of " .. craftInfo.requires_faction.name
+      if not craftInfo.is_faction_member then
+        setColor(200,0,0,255)
+      end
+      love.graphics.printf(factionText,sidebarX+padX,descY,window2w,"left")
+      if not craftInfo.is_faction_member then
+        setColor(255,255,255,255)
+      end
+      local _, dlines = fonts.textFont:getWrap(factionText,window2w)
       descY = descY+prefs['fontSize']*(#dlines+1)
     end
     

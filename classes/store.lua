@@ -129,7 +129,9 @@ function Store:add_item(item,info)
   info.cost = info.cost or item:get_value()*(self.markup or 1)
   local index = self:get_inventory_index(item)
   if index then
-    self.inventory[index].item.amount = self.inventory[index].item.amount+item.amount
+    if self.inventory[index].item.amount ~= -1 then --dont "increase" the amount if the amount is supposed to be infinite
+      self.inventory[index].item.amount = self.inventory[index].item.amount+item.amount
+    end
     makeNew = false
   end
   if makeNew == true then
@@ -178,6 +180,7 @@ function Store:get_buy_list(creat)
       for _,tag in ipairs(self.buys_tags) do
         if item:has_tag(tag) or item.itemType == tag then
           buying[#buying+1]={item=item,cost=item:get_value()}
+          break
         end
       end
     end
@@ -323,6 +326,7 @@ end
 ---Gets the index within the store's inventory of the item in question
 --@param item Item. The item to seach for.
 --@return Number. The index ID of the item.
+--@return Number. The amount of the item we have
 function Store:get_inventory_index(item)
   for id,info in ipairs(self:get_inventory()) do
     if item:matches(info.item) then
@@ -335,16 +339,25 @@ end
 --@return Table. A list of the item IDs
 function Store:get_possible_random_items()
   local possibles = {}
-  for id,item in pairs(possibleItems) do
-    local done = false
-    for _,tag in ipairs(self.sells_tags) do
-      if item.value and not item.neverSpawn and (in_table(tag,item) or item.itemType == tag) then
-        possibles[#possibles+1] = id
-        done = true
-        break
-      end
-    end
-  end
+  for id,item in pairs(possibleItems) do --loop through all items to see if they can be sold
+    if item.value and not item.neverSpawn and not item.neverStore then --don't sell valueless items or items that don't spawn naturally
+      local alreadySells = false
+      for _,itemInfo in ipairs(self.sells_items or {}) do --check if we're already selling the item
+        if itemInfo.item == id then
+          alreadySells = true
+          break
+        end
+      end --end sells_Items for
+      if not alreadySells then
+        for _,tag in ipairs(self.sells_tags) do --check tags
+          if (item.tags and in_table(tag,item.tags) or item.itemType == tag) then
+            possibles[#possibles+1] = id
+            break
+          end --end tags if
+        end --end sells_tag for
+      end --end alreadySells if
+    end --end value and neverSpawn if
+  end --end possibleItems for
   return possibles
 end
 
@@ -355,9 +368,9 @@ function Store:generate_random_item(list)
   local itemID = possibles[random(#possibles)]
   local tags = self.passedTags
   local item = Item(itemID,(possibleItems[itemID].acceptTags and tags or nil))
-  if random(1,100) <= (self.artifact_chance or gamesettings.artifact_chance) then
+  if random(1,100) <= (self.artifact_chance or gamesettings.artifact_chance or 0) then
     mapgen:make_artifact(item,tags)
-  elseif random(1,100) <= gamesettings.enchantment_chance then
+  elseif random(1,100) <= (self.enchantment_chance or gamesettings.enchantment_chance or 0) then
     local possibles = item:get_possible_enchantments(true)
     if count(possibles) > 0 then
       local eid = get_random_element(possibles)

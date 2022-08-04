@@ -631,7 +631,17 @@ function inventory:mousepressed(x,y,button)
       if item.item and y+self.scroll > item.y+self.itemStartY and y+self.scroll < item.y+self.itemStartY+fontSize then
         self.cursorY = i
         self.cursorX = 1
-        Gamestate.switch(examine_item,item.item)
+        if self.action == "drop" then
+          self:dropItem(item.item)
+        elseif self.action == "equip" then
+          self:equipItem(item.item)
+        elseif self.action == "use" then
+          self:useItem(item.item)
+        elseif self.action == "throw" then
+          self:throwItem(item.item)
+        else
+          Gamestate.switch(examine_item,item.item)
+        end
         return
       end
     end --end inventory for
@@ -697,7 +707,7 @@ function inventory:throwItem(item)
   item = item or self.selectedItem
   if item and item.throwable then
     action="targeting"
-    actionResult=rangedAttacks[self.selectedItem.ranged_attack]
+    actionResult=rangedAttacks[item.ranged_attack]
     actionItem=item
     self:switchBack()
   end

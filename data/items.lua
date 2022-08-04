@@ -70,7 +70,29 @@ function magicPotionMinor:use(user)
   user.mp = math.min(user:get_max_mp(),user.mp+heal)
 	user:delete_item(self)
 end
-possibleItems['healthpotionminor'] = healthPotionMinor
+possibleItems['magicpotionminor'] = magicPotionMinor
+
+local poison = {
+  name = "poison bottle",
+  pluralName = "poison bottles",
+	description = "A sickly green liquid swirls in this flask.",
+	symbol = "!",
+	color = {r=0,g=255,b=0,a=255},
+	itemType="throwable",
+	stacks = true,
+  usable=true,
+  useVerb="drink",
+  consumed=true,
+  tags={'liquid','poison'},
+  value=5
+}
+function poison:use(user)
+	user = user or player
+	output:out(user.name .. " drinks poison and becomes poisoned!")
+  user:give_condition('poisoned',tweak(25))
+	user:delete_item(self)
+end
+possibleItems['poison'] = poison
 
 local herbs = {
   name = "medicinal herb",
@@ -83,7 +105,7 @@ local herbs = {
   usable=true,
   useVerb="eat",
   consumed=true,
-  tags={'food','healing','nature'},
+  tags={'food','healing','nature','ingredient','alchemy'},
   value=5
 }
 function herbs:use(user)
@@ -94,6 +116,28 @@ function herbs:use(user)
 	user:delete_item(self)
 end
 possibleItems['herbs'] = herbs
+
+local poisonshroom = {
+  name = "poisonous mushroom",
+  pluralName = "poisonous mushrooms",
+	description = "A small mushroom, highly toxic.",
+	symbol = "!",
+	color = {r=150,g=0,b=0,a=255},
+	itemType="usable",
+	stacks = true,
+  usable=true,
+  useVerb="eat",
+  consumed=true,
+  tags={'food','nature','ingredient','alchemy','poison'},
+  value=5
+}
+function poisonshroom:use(user)
+	user = user or player
+	output:out(user.name .. " eats a poisonous mushroom and becomes poisoned!")
+	user:give_condition('poisoned',tweak(5))
+  user:delete_item(self)
+end
+possibleItems['poisonshroom'] = poisonshroom
 
 local blood = {
   name = "blood vial",
@@ -106,7 +150,7 @@ local blood = {
   usable=true,
   useVerb="drink",
   consumed=true,
-  tags={'liquid','blood'},
+  tags={'liquid','blood','ingredient'},
   value=5
 }
 function blood:use(user)
@@ -134,7 +178,7 @@ local demonblood = {
   usable=true,
   useVerb="drink",
   consumed=true,
-  tags={'liquid','unholy','fire','blood'},
+  tags={'liquid','unholy','fire','blood','ingredient'},
   value=5
 }
 function demonblood:use(user)
@@ -297,7 +341,7 @@ local weaponPoison = {
 	name = "weapon poison",
 	symbol= "!",
 	color={r=0,g=255,b=0,a=255},
-	description="A bottle filled with a toxic substance.",
+	description="A bottle filled with a toxic oil you can apply to a weapon.",
 	spells={},
 	itemType="usable",
   usable=true,
@@ -334,6 +378,42 @@ function weaponPoison:use()
 end
 possibleItems['weaponpoison'] = weaponPoison
 
+local weaponFireOil = {
+	name = "fiery weapon oil",
+	symbol= "!",
+	color={r=255,g=0,b=0,a=255},
+	description="A bottle filled with a magically hot oil you can apply to a weapon.",
+	spells={},
+	itemType="usable",
+  usable=true,
+  useVerb="apply",
+  stacks=true,
+  tags={'liquid'},
+  value=100
+}
+function weaponFireOil:use()
+  local list = {}
+  for i,item in ipairs(player.inventory) do
+    if item:qualifies_for_enchantment('firewapon') then
+      local afterFunc = function()
+        output:out(player:get_name() .. " applies fire oil to " .. item:get_name() .. ".")
+        item:apply_enchantment('fieryweapon',tweak(5))
+        player:delete_item(self)
+        advance_turn()
+      end
+      list[#list+1] = {text=item:get_name(true),description=item:get_description(),selectFunction=afterFunc,selectArgs={}}
+    end
+  end
+  if #list > 0 then
+    Gamestate.switch(multiselect,list,"Apply Fire Oil",true,true)
+    return false
+  else
+    output:out("You can't apply this oil to any of your weapons.")
+    return false,"You can't apply this oil to any of your weapons."
+  end
+end
+possibleItems['weaponfireoil'] = weaponFireOil
+
 local greatsword = {
   name="greatsword",
 	description="A really big sword.",
@@ -348,7 +428,6 @@ local greatsword = {
 	accuracy = 10,
 	critical_chance = 5,
 	level = 1,
-	strmod=5,
   tags={'large','sharp','sword'},
   value=50
 }
@@ -368,11 +447,30 @@ local club = {
 	accuracy = 10,
 	critical_chance = 5,
 	level = 1,
-	strmod=5,
-  tags={'large','sharp','sword'},
+  tags={'large','wood'},
   value=50
 }
 possibleItems['club'] = club
+
+local reallybigclub = {
+  name="really big club",
+	description="A really really big stick.",
+	symbol="†",
+	itemType="weapon",
+  subType="melee",
+  equippable=true,
+  equipSlot="weapon",
+  hands=2,
+	color={r=255,g=255,b=255,a=255},
+	damage = 10,
+	accuracy = -10,
+	critical_chance = 10,
+	level = 1,
+  tags={'large','wood'},
+  value=50,
+  neverSpawn=true
+}
+possibleItems['reallybigclub'] = reallybigclub
 
 local dagger = {
   name="dagger",
@@ -390,7 +488,6 @@ local dagger = {
 	accuracy = 10,
 	critical_chance = 5,
 	level = 1,
-	strmod=5,
   tags={'sharp'},
   value=5,
   ranged_attack="dagger"
@@ -413,7 +510,6 @@ local selfharmdagger = {
 	accuracy = 10,
 	critical_chance = 5,
 	level = 1,
-	strmod=5,
   tags={'sharp'},
   value=1
 }
@@ -480,6 +576,22 @@ function dart:new()
 end
 possibleItems['dart'] = dart
 
+local bomb = {
+  name = "bomb",
+  pluralName = "bombs",
+  description = "A small bomb.",
+  symbol="*",
+	itemType="throwable",
+  projectile_name="bomb",
+  throwable=true,
+	color={r=100,g=100,b=100,a=255},
+	ranged_attack="genericthrow",
+  stacks=true,
+  value=10,
+  tags={'explosive'}
+}
+possibleItems['bomb'] = bomb
+
 local soul = {
   name = "soul",
   pluralName = "souls",
@@ -495,7 +607,8 @@ local soul = {
   stacks=true,
   value=1,
   tags={'holy','unholy','magic','soul'},
-  noEnchantments=true
+  noEnchantments=true,
+  neverStore=true
 }
 function soul:use(user)
   if user:is_type('demon') then
@@ -633,14 +746,14 @@ possibleItems['helmet'] = helmet
 
 local loincloth = {
   name="loincloth",
-	description="An iron helmet.",
+	description="A loincloth.",
 	symbol="]",
 	itemType="armor",
   subType="legs",
   equippable=true,
   equipSlot="legs",
 	color={r=150,g=150,b=150,a=255},
-  tags={'iron'},
+  tags={'cloth'},
   value=25
 }
 possibleItems['loincloth'] = loincloth
@@ -831,10 +944,24 @@ local alcahest = {
   description = "A universal alchemical ingredient.",
   symbol = "!",
   itemType="other",
+  stacks=true,
   color={r=255,g=255,b=255,a=255},
-  tags={'alchemy'}
+  tags={'alchemy','ingredient'},
+  value=5,
   }
 possibleItems['alcahest'] = alcahest
+
+local weaponoil = {
+  name = "weapon oil",
+  plural_name = "jar of weapon oil",
+  description = "Oil used to apply an effect to a weapon. Useless without something else mixed in",
+  symbol = "!",
+  itemType="other",
+  color={r=100,g=100,b=100,a=255},
+  tags={'ingredient'},
+  value=20
+  }
+possibleItems['weaponoil'] = weaponoil
 
 local insectwing = {
   name = "insect wing",
@@ -843,7 +970,8 @@ local insectwing = {
   symbol = "%",
   itemType="other",
   color={r=255,g=255,b=255,a=255},
-  tags={'insect','bodypart'},
+  tags={'insect','bodypart','ingredient'},
+  value=1,
   neverSpawn=true
   }
 possibleItems['insectwing'] = insectwing
@@ -855,7 +983,8 @@ local dragonflyheart = {
   symbol = "%",
   itemType="other",
   color={r=255,g=0,b=0,a=255},
-  tags={'insect','bodypart','fire'},
+  tags={'insect','bodypart','fire','ingredient'},
+  value=1,
   neverSpawn=true
   }
 possibleItems['dragonflyheart'] = dragonflyheart
@@ -867,7 +996,8 @@ local spores = {
   symbol = "%",
   itemType="other",
   color={r=150,g=150,b=150,a=255},
-  tags={'fungus','nature'},
+  tags={'fungus','nature','ingredient'},
+  value=1,
   neverSpawn=true
   }
 possibleItems['spores'] = spores
@@ -881,7 +1011,8 @@ local mushroomcap = {
   equippable=true,
   equipSlot="head",
 	color={r=255,g=0,b=0,a=0},
-  tags={'bodypart','nature'},
+  tags={'bodypart','nature','ingredient'},
+  value=1,
   neverSpawn=true
 }
 possibleItems['mushroomcap'] = mushroomcap
