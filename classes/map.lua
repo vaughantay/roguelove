@@ -807,9 +807,10 @@ end
 
 ---Get a list of possible items to spawn on the given map
 --@param self Map. The map to check
---@param force Boolean. Whether or not to forcibly re-calculate it, rather than returning the pre-calculated value 
+--@param force Boolean. Whether or not to forcibly re-calculate it, rather than returning the pre-calculated value
+--@param allowAll Boolean. If True, creatures with the specialOnly flag can still be chosen based on their tags/factions/types. If not, they won't be chosen (unless already listed specifically in the map/branch lists)
 --@return Table or nil. Either a table of item IDs, or nil if there are no possible items
-function Map:get_item_list(force)
+function Map:get_item_list(force,allowAll)
   if self.item_list and not force then
     return self.item_list
   end
@@ -843,7 +844,7 @@ function Map:get_item_list(force)
     local done = false
     if iTags and not done then
       for _,iTag in pairs(iTags) do
-        if Item.has_tag(item,iTag,true) then
+        if (allowAll or not item.specialOnly) and Item.has_tag(item,iTag,true) then
           done = true
           break
         end
@@ -1075,8 +1076,10 @@ function Map:populate_items(itemTotal,forceGeneric)
   if not self.noItems and itemTotal > 0 then
     local newItems = {}
     local specialItems = self:get_item_list()
+    local min_level = self:get_min_level()
+    local max_level = self:get_max_level()
     for item_amt = 1,itemTotal,1 do
-      local ni = mapgen:generate_item(self.depth,specialItems,passedTags)
+      local ni = mapgen:generate_item(min_level,max_level,specialItems,passedTags)
       if ni == false then break end
       local ix,iy = random(2,self.width-1),random(2,self.height-1)
       local tries = 0

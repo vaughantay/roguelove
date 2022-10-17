@@ -280,8 +280,12 @@ end
 --@return Number. The damage done
 function Projectile:get_damage()
   local damage = self.damage
-  if self.extra_damage_per_level and self.source and self.source.baseType == "creature" then
-    damage = damage + math.floor(self.extra_damage_per_level*self.source.level)
+  local level = ((self.source_item and self.source_item.level) or (not self.source_item and self.source and self.source.level))
+  if self.extra_damage_per_level and level then
+    damage = damage + math.floor(self.extra_damage_per_level*level)
+  end
+  if self.source_item then
+    damage = damage + self.source_item:get_ranged_damage_modifier()
   end
   local bonus = .01*self:get_enchantment_bonus('damage_percent')
   damage = damage * math.ceil(bonus > 0 and bonus or 1)

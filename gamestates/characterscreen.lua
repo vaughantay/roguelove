@@ -33,7 +33,7 @@ function characterscreen:draw()
   local buttonPad = fontSize
 	love.graphics.printf(player.properName,padding,padding,math.floor(width/uiScale)-44,"center")
   printY = printY + fontSize
-  local levelText = "Level " .. player.level .. " " .. player.name .. " (" .. player.xp .. "/" .. player:get_level_up_cost() .. " XP to level up)"
+  local levelText = (gamesettings.leveling and "Level " .. player.level .. " " or "") .. ucfirst(player.name) .. ((gamesettings.xp and gamesettings.leveling) and " (" .. player.xp .. "/" .. player:get_level_up_cost() .. " XP to level up)" or "")
 	love.graphics.printf(levelText,padding,printY,math.floor(width/uiScale)-44,"center")
   local _,tlines = fonts.textFont:getWrap(levelText,math.floor(width/uiScale)-44)
   printY = printY + #tlines*fontSize

@@ -547,18 +547,19 @@ local phasearrow = {
 }
 projectiles['phasearrow'] = phasearrow
 
-local crossbowbolt = {
+local bolt = {
   name = "bolt",
-  description = "A steel bolt, fired from a crossbow.",
+  description = "A bolt fired from a crossbow.",
   symbol = "/",
   angled = true,
   damage = 4,
   color={r=255,g=255,b=255,a=255},
   time_per_tile = .01,
   miss_item="bolt",
-  hit_sound = 'hit_stab'
+  hit_sound = 'hit_stab',
+  extra_damage_per_level=2,
 }
-projectiles['crossbowbolt'] = crossbowbolt
+projectiles['bolt'] = bolt
 
 local centaurarrow = {
   name = "arrow",

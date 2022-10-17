@@ -485,31 +485,6 @@ function Creature:give_condition(name,turns,applier,force)
 	return true
 end
 
----Called every turn, this advances all the conditions and decreases all the spell cooldowns 
-function Creature:advance_conditions()
-	for condition, turns in pairs(self.conditions) do
-    local r = conditions[condition]:advance(self)
-		if r == true or r == nil then
-      if self.conditions[condition] and self.conditions[condition] ~= -1 then self.conditions[condition] = self.conditions[condition] - 1 end
-      if not self.conditions[condition] or (self.conditions[condition] <= 0 and self.conditions[condition] ~= -1) then
-        self:cure_condition(condition)
-      end --end if condition <= 0
-    end --end if advance
-	end --end condition for
-  for _,spell in pairs(self:get_spells()) do
-    if possibleSpells[spell].advance then
-      possibleSpells[spell]:advance(self)
-    end --end advance if
-  end --end spell for
-	for spell, cooldown in pairs(self.cooldowns) do
-		if (cooldown <= 1) then
-			self.cooldowns[spell] = nil
-		else
-			self.cooldowns[spell] = cooldown -1
-		end
-	end --end spell for
-end
-
 ---Cure a condition.
 --@param condition String. The ID of the condition to cure
 function Creature:cure_condition(condition)
@@ -865,7 +840,24 @@ function Creature:advance(skip_conditions)
   --Conditions and attack recharging:
 	if not skip_conditions then
     self.energy = self.energy + self:get_speed()
-    self:advance_conditions()
+    --Call advance() callback on conditions, spells, equipment, etc.
+    self:callbacks('advance')
+    --Decrease condition time:
+    for condition, turns in pairs(self.conditions) do
+      if self.conditions[condition] and self.conditions[condition] ~= -1 then self.conditions[condition] = self.conditions[condition] - 1 end
+      if not self.conditions[condition] or (self.conditions[condition] <= 0 and self.conditions[condition] ~= -1) then
+        self:cure_condition(condition)
+      end --end if condition <= 0
+    end --end condition for
+    --Decrease cooldowns:
+    for thing, cooldown in pairs(self.cooldowns) do
+      if (cooldown <= 1) then
+        self.cooldowns[thing] = nil
+      else
+        self.cooldowns[thing] = cooldown - 1
+      end
+    end --end spell for
+    --Recharge ranged attack:
     if self.ranged_attack then
       local attack = rangedAttacks[self.ranged_attack]
       if attack.max_charges and attack.active_recharge ~= true then

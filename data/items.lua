@@ -428,7 +428,9 @@ local greatsword = {
 	accuracy = 10,
 	critical_chance = 5,
 	level = 1,
+  max_level=5,
   tags={'large','sharp','sword'},
+  stats_per_level={damage=2,value=5},
   value=50
 }
 possibleItems['greatsword'] = greatsword
@@ -445,10 +447,11 @@ local club = {
 	color={r=255,g=255,b=255,a=255},
 	damage = 3,
 	accuracy = 10,
-	critical_chance = 5,
 	level = 1,
+  max_level=5,
   tags={'large','wood'},
-  value=50
+  value=5,
+  stats_per_level={damage=2,value=1}
 }
 possibleItems['club'] = club
 
@@ -488,9 +491,11 @@ local dagger = {
 	accuracy = 10,
 	critical_chance = 5,
 	level = 1,
+  max_level=5,
   tags={'sharp'},
   value=5,
-  ranged_attack="dagger"
+  ranged_attack="dagger",
+  stats_per_level={damage=1,value=1,accuracy=1,critical_chance=.5}
 }
 possibleItems['dagger'] = dagger
 
@@ -687,6 +692,7 @@ local painwand = {
   usable=true,
   color={r=255,g=0,b=255,a=255},
   charges=5,
+  cooldown=10,
   target_type = "creature",
   tags={'magic','wood'},
   value=50
@@ -721,9 +727,11 @@ local breastplate = {
 	color={r=150,g=150,b=150,a=255},
   tags={'iron'},
   value=25,
+  level=1,
+  bonuses={dodge_chance=-15},
+  bonuses_per_level={dodge_chance=1},
   equip = function(self,equipper)
-    equipper.max_hp = 1000
-    return true,"Woof!"
+    return true,"Heavy!"
   end
 }
 possibleItems['breastplate'] = breastplate
@@ -828,12 +836,14 @@ local crossbow = {
   hands=1,
   charges = 0,
   max_charges=1,
+  level=1,
   ranged_attack="crossbow",
-  ranged_accuracy=5,
+  ranged_accuracy_modifier=5,
   charge_name="bolts",
   usesAmmo="bolt",
   color={r=150,g=150,b=150,a=255},
   tags={'wooden','ranged'},
+  stats_per_level={ranged_accuracy_modifier=1,ranged_damage_modifier=1},
   value=10
 }
 possibleItems['crossbow'] = crossbow
@@ -873,7 +883,7 @@ local bolt = {
   tags={'sharp'}
 }
 function bolt:new()
-  self.amount = tweak(100)
+  self.amount = tweak(10)
 end
 possibleItems['bolt'] = bolt
 
@@ -892,7 +902,7 @@ local bullet = {
   value=1
 }
 function bullet:new()
-  self.amount = tweak(100)
+  self.amount = tweak(10)
 end
 possibleItems['bullet'] = bullet
 
@@ -913,7 +923,7 @@ local firebolt = {
   value=1
 }
 function firebolt:new()
-  self.amount = tweak(100)
+  self.amount = tweak(10)
 end
 possibleItems['firebolt'] = firebolt
 
@@ -933,7 +943,7 @@ local explosivebolt = {
   noEnchantments=true
 }
 function explosivebolt:new()
-  self.amount = tweak(100)
+  self.amount = tweak(10)
 end
 possibleItems['explosivebolt'] = explosivebolt
 

@@ -248,13 +248,13 @@ function game:print_sidebar()
 	love.graphics.printf(player.properName,printX,printY-4+yBonus,335,"center")
   local skillPoints = ""
   if player.skillPoints and player.skillPoints > 0 then skillPoints = " (+)" end
-  local buttonWidth = whichFont:getWidth(keybindings.charScreen[1] .. ") Level " .. player.level .. " " .. player.name .. skillPoints)
+  local buttonWidth = whichFont:getWidth(keybindings.charScreen[1] .. ") " .. (gamesettings.leveling and " Level " .. player.level .. " " or " ") .. ucfirst(player.name) .. skillPoints)
 
   local middleX = round(printX+335/2)
   printY=printY+fontPad
   self.characterButton = output:button(round(middleX-buttonWidth/2)-8,printY,buttonWidth+16,smallButtons,nil,nil,true)
 	if skillPoints ~= "" then setColor(255,255,0,255) end
-  love.graphics.printf(keybindings.charScreen[1] .. ") Level " .. player.level .. " " .. player.name .. skillPoints,printX,printY+yBonus,335,"center")
+  love.graphics.printf(keybindings.charScreen[1] .. ")" .. (gamesettings.leveling and " Level " .. player.level .. " " or " ") .. ucfirst(player.name) .. skillPoints,printX,printY+yBonus,335,"center")
   setColor(255,255,255,255) 
   if output.shakeTimer > 0 then
     love.graphics.push()
@@ -603,7 +603,7 @@ function game:print_target_sidebar()
 			love.graphics.printf(target.properName,printX,printY,335,"center")
 			printY = printY+fontPadding
 		end
-		love.graphics.printf("Level " .. target.level .. " " .. ucfirst(target.name),printX,printY,335,"center")
+		love.graphics.printf((gamesettings.display_creature_levels and "Level " .. target.level .. " " or "") .. ucfirst(target.name),printX,printY,335,"center")
     if target.master then 
       printY = printY+fontPadding
       love.graphics.printf("Master: " .. target.master:get_name(false,true),printX,printY,335,"center")

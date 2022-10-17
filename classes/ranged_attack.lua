@@ -67,7 +67,7 @@ function ranged_attack:use(target, attacker, item)
   end
   if self.sound and player:can_see_tile(attacker.x,attacker.y) then output:sound(self.sound) end
   --Create the projectile:
-  local proj = Projectile((item and item.projectile_name or self.projectile_name),attacker,target)
+  local proj = Projectile((item and (item.usingAmmo or item.projectile_name) or self.projectile_name),attacker,target)
   --Add enchantments:
   if item then
     if item.preserve_on_throw then
@@ -131,7 +131,7 @@ function ranged_attack:calc_hit_chance(attacker,target,item)
       hitMod = hitMod - math.ceil(mod*diff)
     end
   end
-  if item then hitMod = hitMod + item:get_ranged_accuracy() end
+  if item then hitMod = hitMod + item:get_ranged_accuracy_modifier() end
   if (hitMod > 95) then hitMod = 95 elseif (hitMod < 10) then hitMod = 10 end
   return hitMod
 end

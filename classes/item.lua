@@ -73,17 +73,23 @@ function Item:get_info()
   if self.ranged_attack then
     local attack = rangedAttacks[self.ranged_attack]
     uses = uses .. "\nRanged Attack: " .. attack:get_name() .. " (" .. attack:get_description() .. ")"
-    uses = uses .. "\nRanged Accuracy: " .. attack.accuracy .. "%"
+    uses = uses .. "\nRanged Accuracy: " .. (attack.accuracy + self:get_ranged_accuracy_modifier()) .. "%"
     if attack.min_range or attack.range then uses = uses .. "\nRange: " .. (attack.min_range and attack.min_range .. " (min)" or "") .. (attack.min_range and attack.range and " - " or "") .. (attack.range and attack.range .. " (max)" or "") end
     if attack.best_distance_min or attack.best_distance_max then uses = uses .. "\nBest Range: " .. (attack.best_distance_min and attack.best_distance_min .. " (min)" or "") .. (attack.best_distance_min and attack.best_distance_max and " - " or "") .. (attack.best_distance_max and attack.best_distance_max .. " (max)" or "") end
   end
   if self.kills then
-    uses = uses .. "\nKillks: " .. self.kills
+    uses = uses .. "\nKills: " .. self.kills
   end
-  if self.projectile_name then
-    local projectile = projectiles[self.projectile_name]
+  local projectile_id = self.usingAmmo or self.projectile_name or (self.ranged_attack and rangedAttacks[self.ranged_attack].projectile_name)
+  if projectile_id and projectiles[projectile_id] then
+    local projectile = projectiles[projectile_id]
     uses = uses .. "\n\nProjectile: " .. ucfirst(projectile.name) .. " (" .. projectile.description .. ")"
-    if projectile.damage then uses = uses .. "\nDamage: " .. projectile.damage .. (projectile.damage_type and " (" .. projectile.damage_type .. ")" or "") end
+    local damage = projectile.damage
+    if projectile.extra_damage_per_level and self.level then
+      damage = damage+(projectile.extra_damage_per_level*self.level)
+    end
+    damage = damage+self:get_ranged_damage_modifier()
+    if projectile.damage then uses = uses .. "\nDamage: " .. damage .. (projectile.damage_type and " (" .. projectile.damage_type .. ")" or "") end
   end
   if self.info then
     uses = uses .. "\n" .. self.info
@@ -620,8 +626,14 @@ end
 
 ---Returns the ranged accuracy (modifier to the hit roll) of a weapon.
 --@return Number. The accuracy of the weapon.
-function Item:get_ranged_accuracy()
-  return (self.ranged_accuracy or 0)+self:get_enchantment_bonus('ranged_accuracy')
+function Item:get_ranged_accuracy_modifier()
+  return (self.ranged_accuracy_modifier or 0)+self:get_enchantment_bonus('ranged_accuracy_modifier')
+end
+
+---Returns the ranged accuracy (modifier to the hit roll) of a weapon.
+--@return Number. The accuracy of the weapon.
+function Item:get_ranged_damage_modifier()
+  return (self.ranged_damage_modifier or 0)+self:get_enchantment_bonus('ranged_damage_modifier')
 end
 
 ---Checks the critical chance of a weapon.
@@ -687,4 +699,22 @@ function Item:delete(map)
     end --end if
   end --end for
   if self.castsLight then map.lights[self] = nil end
+end
+
+---Increase an items level
+function Item:level_up()
+  if self.stats_per_level or self.bonuses_per_level then
+    self.level = self.level+1
+    if self.stats_per_level then
+      for stat_id,value in pairs(self.stats_per_level) do
+        self[stat_id] = (self[stat_id] or 0)+value
+      end
+    end
+    if self.bonuses_per_level then
+      for bonus_id,value in pairs(self.bonuses_per_level) do
+        if not self.bonuses then self.bonuses = {} end
+        self.bonuses[bonus_id] = (self.bonuses[bonus_id] or 0) + value
+      end
+    end
+  end
 end

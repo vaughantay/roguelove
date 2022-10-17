@@ -39,6 +39,7 @@ function examine_item:draw()
   
   local item = self.item
   local name = item:get_name(true)
+  local level = item.level
   local desc = item:get_description()
   local info = item:get_info(true)
   local textW = (self.scrollMax > 0 and self.width-32 or self.width)
@@ -51,6 +52,13 @@ function examine_item:draw()
   local printY = self.y+padding
   love.graphics.printf(name,self.x+padding,printY,self.width,"center")
   printY=printY+nameH
+  if level and gamesettings.display_item_levels then
+    local ltext = "Level " .. level
+    local _, llines = fonts.textFont:getWrap(ltext,textW)
+    local levelH = #llines*(fontSize+1)
+    love.graphics.printf("Level " .. level,self.x+padding,printY,self.width,"center")
+    printY=printY+levelH
+  end
   
   self.buttons = {}
   
