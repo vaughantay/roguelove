@@ -12,7 +12,7 @@ function new_game(mapSeed,playTutorial,cheats,branch)
   if cheats then currGame.cheats = cheats end
   update_stat('games')
   currMap = mapgen:generate_map(branch,1)
-  player:moveTo(currMap.stairsUp.x,currMap.stairsUp.y)
+  player:forceMove(currMap.stairsUp.x,currMap.stairsUp.y) --TODO: move a creature that's already here out of the way
   currMap.creatures[player] = player
   --Do special class stuff if necessary:
   local startingMissions = true
@@ -687,13 +687,10 @@ function setTarget(x,y)
       creat = currMap:get_tile_creature(x,y)
     end --end projectile if
 		if (actionResult.target_type == "tile") then
-      local arg = (actionResult.baseType == "spell" and actionIgnoreCooldown or actionItem)
-			if actionResult:use({x=x,y=y},player,arg) ~= false then
+			if actionResult:use({x=x,y=y},player,actionIgnoreCooldown) ~= false then
         if actionItem then
-          if actionItem.throwable or actionItem.consumed then
+          if actionItem.throwable then
             player:delete_item(actionItem,1)
-          elseif actionItem.charges then
-            actionItem.charges = actionItem.charges - 1
           end
         end
         actionResult = nil
@@ -705,13 +702,10 @@ function setTarget(x,y)
 			end
 		elseif (actionResult.target_type == "creature") then
 			if (creat) then
-        local arg = (actionResult.baseType == "spell" and actionIgnoreCooldown or actionItem)
-				if actionResult:use(creat,player,arg) ~= false then
+				if actionResult:use(creat,player,actionIgnoreCooldown) ~= false then
           if actionItem then
-            if actionItem.throwable or actionItem.consumed then
+            if actionItem.throwable then
               player:delete_item(actionItem,1)
-            elseif actionItem.charges then
-              actionItem.charges = actionItem.charges - 1
             end
           end
 					actionResult = nil

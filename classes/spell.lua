@@ -87,7 +87,7 @@ function Spell:use(target, caster, ignoreCooldowns, ignoreMP)
     if r ~= false or r == nil then
       if self.sound and player:can_see_tile(caster.x,caster.y) then output:sound(self.sound) end
       if caster == player then update_stat('ability_used',self.name) end
-      if self.cooldown and self.cooldown > 0 and not ignoreCooldowns then 
+      if ((self.cooldown and self.cooldown > 0) or (caster ~= player and self.AIcooldown and self.AIcooldown > 0)) and not ignoreCooldowns then 
         caster.cooldowns[self.name] = (caster ~= player and self.AIcooldown or self.cooldown)
       end
       if not ignoreMP and caster.mp and self.cost then

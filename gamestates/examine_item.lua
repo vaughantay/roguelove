@@ -13,8 +13,8 @@ function examine_item:enter(previous,item)
     self.scrollMax=0
     self.width = round(width/2)
     self.x = round(width/2-self.width/2)
-    self.height = 0
-    self.y = 0
+    self.height = self:calculate_height()
+    self.y = self.y = round(height/2-self.height/2)
     self.yModPerc = 100
     tween(0.2,self,{yModPerc=0})
     output:sound('stoneslideshort',2)
@@ -82,7 +82,13 @@ function examine_item:draw()
         buttonX = buttonStartX
         buttonY = buttonY+40
       end
+      if not player:can_use_item(item) then
+        setColor(175,175,175,255)
+      end
       self.buttons.use = output:button(buttonX,buttonY,buttonWidth,false,(self.cursorX == buttonCursorX and self.cursorY == buttonCursorY and "hover" or nil),useText,true)
+      if not player:can_use_item(item) then
+        setColor(255,255,255,255)
+      end
       self.buttons.values[buttonCursorY][buttonCursorX] = "use"
       buttonX = buttonX+buttonWidth+25
       buttonCursorX = buttonCursorX+1
@@ -188,7 +194,7 @@ function examine_item:draw()
     self.y = round(height/2-self.height/2)
   end
   if printY > self.height then
-    
+    --TODO: add scrolling
   end
   self.closebutton = output:closebutton(self.x+round(padding/2),self.y+round(padding/2),nil,true)
   love.graphics.pop()

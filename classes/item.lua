@@ -64,6 +64,9 @@ function Item:get_info()
   if self.charges and not self.hide_charges then
     uses = uses .. (self.charge_name and ucfirst(self.charge_name) or "Charges") .. (self.ammo_name and " (" .. self.ammo_name .. ")" or "") .. ": " .. self.charges .. (self.max_charges and "/" .. self.max_charges or "")
   end
+  if self.owner and self.owner.cooldowns[self] then
+    uses = uses .. "\nYou can't use this item again for another " .. self.owner.cooldowns[self] .. " turns."
+  end
 	if (self.itemType == "weapon") then
 		if self.damage then uses = uses .. "Melee Damage: " .. self.damage .. (self.damage_type and " (" .. self.damage_type .. ")" or "") end
     if self.armor_piercing then uses = uses .. "Armor Piercing: " .. self.armor_piercing end
@@ -152,18 +155,74 @@ function Item:get_name(full,amount)
 	end
 end
 
----"Use" the item. Calls the item's use() code.
---@param target Entity. The target of the item's use. Might be another creature, a tile, even the user itself.
---@param user Creature. The creature using the item.
---@return Boolean.Whether the use was successful.
-function Item:use(target,user)
+---Set the item as the thing currently being used to target (so it'll display as targeting in the game UI)
+--@param target Entity. The target of the item
+--@param user User. The owner and user of the item
+--@param skip Boolean. Whether to skip item-specific targetting code and go straight to the generic (optional)
+--@param ignoreCooldowns Boolean. If set to true, this will ignore whether or not the item is on a cooldown (optional)
+function Item:target(target,user,skip,ignoreCooldowns)
   if not self.usable then return false end
   local canUse,text = user:can_use_item(self,self.useVerb)
   if canUse == false then return false,text end
-	if possibleItems[self.id].use then
-    return possibleItems[self.id].use(self,target,user)
+  if (not ignoreCooldowns and user.cooldowns[self]) then
+    if user == player then output:out("You can't use that item again for another " .. user.cooldowns[self] .. " turns.") end
+		return false,"You can't use that item again for another " .. user.cooldowns[self] .. " turns."
   end
-  --Generic item use here:
+  
+  if not skip and possibleItems[self.id].target then
+    return possibleItems[self.id].target(self,target,user)
+  end
+  
+  if (self.target_type == "self" or self.target_type == "passive") then
+		if (self.target_type ~= "passive") then
+			return self:use(target,user,ignoreCooldowns)
+		end
+	else
+		action = "targeting"
+		actionResult = self
+    actionItem = self
+		if (target) then
+			output:setCursor(target.x,target.y,true)
+		end
+		return false
+	end
+end
+
+---"Use" the item. Calls the item's use() code.
+--@param target Entity. The target of the item's use. Might be another creature, a tile, even the user itself.
+--@param user Creature. The creature using the item.
+--@param ignoreCooldowns Boolean. If set to true, this will ignore whether or not the item is on a cooldown (optional)
+--@return Boolean. Whether the use was successful.
+function Item:use(target,user,ignoreCooldowns)
+  if not self.usable then return false end
+  local canUse,text = user:can_use_item(self,self.useVerb)
+  if canUse == false then return false,text end
+  if (not ignoreCooldowns and user.cooldowns[self]) then
+    if user == player then output:out("You can't use that item again for another " .. user.cooldowns[self] .. " turns.") end
+		return false,"You can't use that item again for another " .. user.cooldowns[self] .. " turns."
+  end
+	if possibleItems[self.id].use then
+    local status,r = pcall(possibleItems[self.id].use,self,target,user)
+    if not status then
+      local errtxt = "Error from " .. user:get_name() .. " using item " .. self.name .. ": " .. r
+      output:out(errtxt)
+      print(errtxt)
+      return false
+    end
+    if r ~= false or r == nil then
+      if user == player then update_stat('item_used',self.id) end
+      if ((self.cooldown and self.cooldown > 0) or (user ~= player and self.AIcooldown and self.AIcooldown > 0)) and not ignoreCooldowns then 
+        user.cooldowns[self] = (user ~= player and self.AIcooldown or self.cooldown)
+      end
+      if self.consumed then
+        player:delete_item(self,1)
+      elseif self.charges then
+        self.charges = self.charges - 1
+      end
+    end
+    return (status == nil and true or status),r
+  end
+  --TODO: Generic item use here:
 end
 
 ---Find out how much damage an item will deal. Defaults to the item's damage value + the wielder's strength, but might be overridden by an item's get_damage() code
@@ -367,19 +426,6 @@ function Item:attack(target,wielder,forceHit,ignore_callbacks,forceBasic)
 	else -- if not touching target
 		return false
 	end
-end
-
----Set the item as the thing currently being used to target (so it'll display as targeting in the game UI)
---@param target Entity. The target of the item
---@param user User. The owner and user of the item
---@param skip Boolean. Whether to skip item-specific targetting code and go straight to the generic (optional)
-function Item:target(target,user,skip)
-  if not skip and possibleItems[self.id].target then
-    return possibleItems[self.id].target(self,target,user)
-  end
-  action = "targeting"
-  actionResult = self
-  actionItem = self
 end
 
 ---Reload an item.

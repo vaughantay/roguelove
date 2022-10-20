@@ -1,7 +1,8 @@
 inventory = {}
 --TODO: Scrolling for equipment
+--TODO: Test for non-player inventory
 
-function inventory:enter(previous,whichFilter,action)
+function inventory:enter(previous,whichFilter,action,creature)
   if previous == game then
     self.cursorY = 0
     self.cursorX = 1
@@ -15,6 +16,7 @@ function inventory:enter(previous,whichFilter,action)
     self.filter = nil
     self.filterButtons = nil
     self.action = nil
+    self.creature = creature or player
   end
   self.biggestY=0
   self.action=action or self.action
@@ -45,8 +47,8 @@ function inventory:sort()
   local fontSize = prefs['fontSize']
   --First, sort by type:
   local sorted = {}
-  for i,item in ipairs(player.inventory) do
-    if not player:is_equipped(item) then
+  for i,item in ipairs(self.creature.inventory) do
+    if not self.creature:is_equipped(item) then
       local filter_info = self.filter
       if (filter_info == nil) or ((not filter_info.filter or item[filter_info.filter] == true) and (not filter_info.itemType or item.itemType == filter_info.itemType) and (not filter_info.subType or item.subType == filter_info.subType)) then
         local iType = item.itemType or "other"
@@ -92,7 +94,7 @@ function inventory:sort()
   self.equipment = {}
   local equipPrintY = (prefs['noImages'] and 16 or 32)
   for _,s in ipairs(equipOrder) do
-    local slot = player.equipment[s]
+    local slot = self.creature.equipment[s]
     if slot then
       if #slot == 0 then
         self.equipment[#self.equipment+1] = {item=false,y=equipPrintY,slotName=(slot.name or ucfirst(s))}
@@ -106,7 +108,7 @@ function inventory:sort()
     end
   end --end equiporder for
 
-  for slot,eq in pairs(player.equipment) do
+  for slot,eq in pairs(self.creature.equipment) do
     if not in_table(slot,equipOrder) then
       if #eq == 0 then
         self.equipment[#self.equipment+1] = {item=false,y=equipPrintY,slotName=(slot.name or ucfirst(slot))}
@@ -146,7 +148,7 @@ function inventory:draw()
   elseif self.action == "drop" then topText = "Select items to drop"
   elseif self.action == "throw" then topText = "Select items to throw"
   elseif self.action == "equip" then topText = "Select items to equip" end
-  love.graphics.printf(topText .. "\nYou have: $" .. player.money,padding,round(padding*.75),sidebarX-padding*2,"center")
+  love.graphics.printf(topText .. "\nYou have: $" .. self.creature.money,padding,round(padding*.75),sidebarX-padding*2,"center")
   
   local printX = (prefs['noImages'] and 14 or 32)
   local printY = fontSize*4
@@ -349,7 +351,7 @@ function inventory:draw()
       buttonCursorX = buttonCursorX+1
     end
     if item.equippable==true then
-      local equipped = player:is_equipped(item)
+      local equipped = self.creature:is_equipped(item)
       local useText = (equipped and "Unequip" or "Equip") .. " (" .. keybindings.equip[1] .. ")"
       local buttonWidth = fonts.buttonFont:getWidth(useText)+25
       self.buttons.equip = output:button(buttonX,buttonY,buttonWidth,false,(self.cursorX == buttonCursorX and "hover" or nil),useText)
@@ -660,15 +662,22 @@ end
 function inventory:useItem(item)
   item = item or self.selectedItem
   if item then
-    local use,response = item:use(nil,player)
-    if use ~= false then
-      self:switchBack()
-      if action ~= "targeting" then advance_turn() end
-    elseif (item.target_type == "creature" or item.target_type == "tile") and (not item.charges or item.charges > 0) then
-      item:target()
-      self:switchBack()
-    else
-      self.text=response
+    local canUse,text = self.creature:can_use_item(item,item.useVerb)
+    if canUse then
+      if item.target_type == "self" or not item.target_type then --if a self-targeting item, then just use it and be done
+        local used,response = item:use(nil,self.creature)
+        self.text=response
+        if used ~= false then
+          self:switchBack()
+          if action ~= "targeting" then advance_turn() end
+        end
+      elseif (item.target_type == "creature" or item.target_type == "tile") and (not item.charges or item.charges > 0) then --if not self-use, target
+        item:target(nil,self.creature)
+        self:switchBack()
+      end
+    else --if canUse == false
+      output:out(text)
+      self.text=text
     end
   end
 end
@@ -676,11 +685,11 @@ end
 function inventory:equipItem(item)
   item = item or self.selectedItem
   if item then
-    if player:is_equipped(item) then
-      local use,response = player:unequip(item)
+    if self.creature:is_equipped(item) then
+      local use,response = self.creature:unequip(item)
       self.text=response
     else
-      local use,response = player:equip(item)
+      local use,response = self.creature:equip(item)
       self.text=response
       if use ~= false then advance_turn() end
     end --end if it's equipped or not
@@ -690,7 +699,7 @@ end
 
 function inventory:dropItem(item)
   item = item or self.selectedItem
-  local drop,response = player:drop_item(item)
+  local drop,response = self.creature:drop_item(item)
   --self.selectedItem = nil
   if drop ~= false then
     self.cursorX=1
@@ -723,7 +732,7 @@ function inventory:splitStack(item,amount)
     newItem.amount = amount
     item.owner,newItem.owner = oldOwner
     newItem.stacks = false
-    player:give_item(newItem)
+    self.creature:give_item(newItem)
     newItem.stacks = true
   end
 end

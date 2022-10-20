@@ -67,7 +67,7 @@ playerClasses = {
     name="Demonologist",
     description="Studies those pesky demons.",
     favor={lightchurch=-25}, --List of favor scores the character starts with
-    spells={"demondamager"}, --These are spells the character will start with
+    spells={"demondamager"}, --These Fare spells the character will start with
     items={{item="holywater"},{item="bloodextractor"},{item="soul",amount=2},{item="demonblood"},{item="healthpotionminor",amount=2}}, --These items will be granted on game start
     equipment={{item="dagger",enchantment="sharpened",enchantment_turns=5,displayName="Sharpened Dagger"}}, --These items will be equipped on game start
     learns_spells={}, --These spells will be automatically granted once a certain level is reached
@@ -81,7 +81,7 @@ playerClasses = {
   wimp = {
     name="Total Wimp",
     description="A scrawny nerd.",
-    items={{item="healthpotionminor",amount=5},{item="scroll",amount=3,displayName="Random Scrolls"},{item="scroll",passed_info="blink",displayName = "Scroll of Blink"},{item="scroll",passed_info="homecoming",displayName = "Scroll of Homecoming"},{item="crossbow"},{item="bolt",amount=25},{item="weaponpoison",amount=2},{item="dart",amount=25}}, --These items will be granted on game start
+    items={{item="healthpotionminor",amount=5},{item="scroll",amount=3,displayName="Random Scrolls"},{item="scroll",passed_info="blink",displayName = "Scroll of Blink"},{item="scroll",passed_info="homecoming",displayName = "Scroll of Homecoming"},{item="crossbow"},{item="bolt",amount=25},{item="weaponpoison",amount=2},{item="painwand"},{item="dart",amount=25}}, --These items will be granted on game start
     stat_modifiers={strength=1,melee=1,ranged=5,magic=5,max_hp=-25,max_mp=5}, --These values will be added to the characters' base stats
     spells={"scrawny"}, --These are spells the character will start with
     money=100 --Amount of money the character starts with

@@ -1534,18 +1534,23 @@ function Creature:can_use_item(item,verb)
   verb = verb or "use"
   if item.level_requirement and self.level < item.level_requirement then
     return false,"You're not a high enough level to " .. verb .. " " .. item:get_name() .. "."
-  elseif item.stat_requirements then
+  end
+  if item.stat_requirements then
     for stat,requirement in pairs(item.stat_requirements) do
       if self:get_stat(stat,true) < requirement and self:get_bonus_stat(stat,true) < requirement then
         return false,"Your " .. stat .. " stat is too low to " .. verb .. " "  .. item:get_name() .. "."
       end
     end
-  elseif player.forbidden_item_tags and count(player.forbidden_item_tags) > 0 then
-    for _,tag in ipairs(player.forbidden_item_tags) do
+  end
+  if self.forbidden_item_tags and count(self.forbidden_item_tags) > 0 then
+    for _,tag in ipairs(self.forbidden_item_tags) do
       if item:has_tag(tag) then
         return false,"You can't " .. verb .. " this type of item."
       end
     end
+  end
+  if self.cooldowns[item] then
+    return false,"You can't use this item again for " .. player.cooldowns[item] .. " more turns."
   end
   return true
 end

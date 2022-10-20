@@ -433,7 +433,7 @@ function game:print_sidebar()
         canUse = not player.cooldowns[hotkeyItem.name] and hotkeyItem:requires(player)
       elseif hotkeyInfo.type == "item" then
         hotkeyItem = hotkeyInfo.item or player:has_item(hotkeyItem.id)
-        name = hotkeyItem:get_name(true)
+        name = hotkeyItem:get_name(true) .. (player.cooldowns[hotkeyItem] and " (" .. player.cooldowns[hotkeyItem] .. " turns to recharge)" or "")
         canUse,canUseText = player:can_use_item(hotkeyItem)
       end
       local description = hotkeyItem:get_description()

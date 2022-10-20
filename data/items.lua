@@ -255,8 +255,12 @@ end
 function scroll:use(target,user)
   if possibleSpells[self.spell].target_type == "self" then
     target = user
-    possibleSpells[self.spell]:use(target,user,true,true)
-    user:delete_item(self)
+    local spResult = possibleSpells[self.spell]:use(target,user,true,true)
+    if spResult ~= false then
+      user:delete_item(self)
+    else
+      return false
+    end
   else
     action="targeting"
     actionResult=possibleSpells[self.spell]
@@ -706,7 +710,7 @@ function painwand:use(target,user)
     local dmg = target:damage(5)
     if player:can_sense_creature(target) then output:out(user:get_name() .. " blasts " .. target:get_name() .. " with a wand, dealing " .. dmg .. " damage.") end
     self.charges = self.charges-1
-    self.value = math.max(self.charges*10,1)
+    self.value = math.max(self.charges*5,1)
     return true
   else
     return false
