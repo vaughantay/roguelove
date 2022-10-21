@@ -668,6 +668,15 @@ function Creature:get_bonus(bonusType,average)
       end
 		end
 	end
+  for _, spellID in pairs(self:get_spells()) do
+		if (possibleSpells[spellID].bonuses ~= nil) then
+			local b = possibleSpells[spellID].bonuses[bonusType]
+			if (b ~= nil) then
+        bonus = bonus + b
+        bcount = bcount+ 1
+      end
+		end
+	end
   for whichSlot, equipslot in pairs(self.equipment) do
     for _, equip in ipairs(equipslot) do
       if equip.bonuses ~= nil then

@@ -8,18 +8,18 @@ function examine_item:enter(previous,item)
     width,height = round(width/uiScale),round(height/uiScale)
     self.previous=previous
     self.item=item
+    self.has_item = player:has_specific_item(self.item)
     self.cursorX,self.cursorY=1,1
     self.scroll=0
     self.scrollMax=0
     self.width = round(width/2)
     self.x = round(width/2-self.width/2)
     self.height = self:calculate_height()
-    self.y = self.y = round(height/2-self.height/2)
+    self.y = round(height/2-self.height/2)
     self.yModPerc = 100
     tween(0.2,self,{yModPerc=0})
     output:sound('stoneslideshort',2)
     self.buttons = {}
-    self.has_item = player:has_specific_item(self.item)
   end
 end
 
@@ -189,16 +189,139 @@ function examine_item:draw()
   printY=printY+descH
   love.graphics.printf(info,self.x+padding,printY,self.width,"center")
   printY=printY+infoH
-  if self.height == 0 then
-    self.height = math.min(height,printY)
-    self.y = round(height/2-self.height/2)
-  end
   if printY > self.height then
     --TODO: add scrolling
   end
   self.closebutton = output:closebutton(self.x+round(padding/2),self.y+round(padding/2),nil,true)
   love.graphics.pop()
+end
+
+function examine_item:calculate_height()
+  local width, height = love.graphics:getWidth(),love.graphics:getHeight()
+  local uiScale = (prefs['uiScale'] or 1)
+  width,height = round(width/uiScale),round(height/uiScale)
+  local fontSize = prefs['fontSize']
+  local padding = 16
   
+  local item = self.item
+  local name = item:get_name(true)
+  local level = item.level
+  local desc = item:get_description()
+  local info = item:get_info(true)
+  local textW = (self.scrollMax > 0 and self.width-32 or self.width)
+  local _, nlines = fonts.textFont:getWrap(name,self.width)
+  local nameH = #nlines*(fontSize+1)
+  local _, dlines = fonts.textFont:getWrap(desc,textW)
+  local descH = #dlines*(fontSize+2)
+  local _, ilines = fonts.textFont:getWrap(info,textW)
+  local infoH = #ilines*fontSize+fontSize*(#ilines > 0 and 2 or 0)
+  local printY = padding
+  printY=printY+nameH
+  if level and gamesettings.display_item_levels then
+    local ltext = "Level " .. level
+    local _, llines = fonts.textFont:getWrap(ltext,textW)
+    local levelH = #llines*(fontSize+1)
+    printY=printY+levelH
+  end
+  
+  if self.has_item then
+    local buttonStartX = self.x+padding
+    local buttonX = buttonStartX
+    local buttonMaxX = self.x+self.width
+    local buttonY = printY+padding
+    local buttonCursorX = 1
+    local buttonCursorY = 1
+    
+    if item.usable==true then
+      local useText = (item.useVerb and ucfirst(item.useVerb) or "Use") .. " (" .. keybindings.use[1] .. ")"
+      local buttonWidth = fonts.buttonFont:getWidth(useText)+25
+      if buttonX+buttonWidth >= buttonMaxX then
+        buttonCursorX=1
+        buttonCursorY=buttonCursorY+1
+        buttonX = buttonStartX
+        buttonY = buttonY+40
+      end
+      buttonX = buttonX+buttonWidth+25
+      buttonCursorX = buttonCursorX+1
+    end
+    if item.throwable==true then
+      local useText = "Throw (" .. keybindings.throw[1] .. ")"
+      local buttonWidth = fonts.buttonFont:getWidth(useText)+25
+      if buttonX+buttonWidth >= buttonMaxX then
+        buttonCursorX=1
+        buttonCursorY=buttonCursorY+1
+        buttonX = buttonStartX
+        buttonY = buttonY+40
+      end
+      buttonX = buttonX+buttonWidth+25
+      buttonCursorX = buttonCursorX+1
+    end
+    if item.equippable==true then
+      local equipped = player:is_equipped(item)
+      local useText = (equipped and "Unequip" or "Equip") .. " (" .. keybindings.equip[1] .. ")"
+      local buttonWidth = fonts.buttonFont:getWidth(useText)+25
+      if buttonX+buttonWidth >= buttonMaxX then
+        buttonCursorX=1
+        buttonCursorY=buttonCursorY+1
+        buttonX = buttonStartX
+        buttonY = buttonY+40
+      end
+      buttonX = buttonX+buttonWidth+25
+      buttonCursorX = buttonCursorX+1
+    end
+    if item.equippable==true and not item.stacks then
+      local useText = (item.properName and "Rename" or "Name")
+      local buttonWidth = fonts.buttonFont:getWidth(useText)+25
+      if buttonX+buttonWidth >= buttonMaxX then
+        buttonCursorX=1
+        buttonCursorY=buttonCursorY+1
+        buttonX = buttonStartX
+        buttonY = buttonY+40
+      end
+      buttonX = buttonX+buttonWidth+25
+      buttonCursorX = buttonCursorX+1
+    end
+    if item.stacks==true and item.amount and item.amount > 1 then
+      local useText = "Split Stack"
+      local buttonWidth = fonts.buttonFont:getWidth(useText)+25
+      if buttonX+buttonWidth >= buttonMaxX then
+        buttonCursorX=1
+        buttonCursorY=buttonCursorY+1
+        buttonX = buttonStartX
+        buttonY = buttonY+40
+      end
+      buttonX = buttonX+buttonWidth+25
+      buttonCursorX = buttonCursorX+1
+    end
+    if item.equippable == true or item.usable == true or item.throwable == true then
+      local hotkey = item.hotkey
+      local hotkeyText = (hotkey and "Change Hotkey" or "Assign Hotkey")
+      local buttonWidth = fonts.buttonFont:getWidth(hotkeyText)+25
+      if buttonX+buttonWidth >= buttonMaxX then
+        buttonCursorX=1
+        buttonCursorY=buttonCursorY+1
+        buttonX = buttonStartX
+        buttonY = buttonY+40
+      end
+      buttonX = buttonX+buttonWidth+25
+      buttonCursorX = buttonCursorX+1
+    end
+    local dropText = "Drop (" .. keybindings.drop[1] .. ")"
+    local buttonWidth = fonts.buttonFont:getWidth(dropText)+25
+    if buttonX+buttonWidth >= buttonMaxX then
+      buttonCursorX=1
+      buttonCursorY=buttonCursorY+1
+      buttonX = buttonStartX
+      buttonY = buttonY+40
+    end
+    printY=buttonY+40
+    love.graphics.line(self.x+padding,printY,self.x+padding+self.width,printY)
+    printY=printY+padding
+  end --end if has_item
+  printY=printY+descH
+  printY=printY+infoH
+  printY=printY+padding
+  return math.min(height,printY)
 end
 
 function examine_item:keypressed(key)

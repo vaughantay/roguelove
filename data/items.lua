@@ -243,7 +243,7 @@ function scroll:new(spell)
   
 	self.name = "scroll of " .. possibleSpells[spell].name
   self.pluralName = "scrolls of " .. possibleSpells[spell].name
-  self.description = "\n" .. possibleSpells[spell].description
+  self.description = possibleSpells[spell].description
   if possibleSpells[spell].tags then self:add_tags(possibleSpells[spell].tags) end
 end
 function scroll:target(target,user)

@@ -3,54 +3,68 @@ Roguelike code written in Lua, based on [Possession](http://possessiongame.com/ 
 
 Currently not a full game, but has some test content. If you want to start from scratch, rename or remove the data/ directory, and rename the data_empty/ directory to data/
 
-Features that have been added that weren't in Possession:
+Highlights:
+* Supports creatures and items, as standard, but also has support for static map features (like trees, pits, or doors), fired projectiles, and dynamic effects (like poison gas clouds or fire that spreads on its own).
 * Items and inventory
-  * Players and NPCs can have, use, equip, and throw items.
-  * Equipment can add stat bonuses, have callbacks when various things happen, and grant abilities.
-  * Items can have "tags" attached to them, that can be used by various things throughout the game (so far, only stores look at items' tags to determine if they want to buy them).
-  * Basic crafting is implemented.
+  * Equipment can add stat bonuses, have callbacks when various things happen, and grant abilities when worn.
+  * Support for ranged weapons, with attached ranged attacks and capable of using multiple types of ammo with varying effects. Throwable items can also be created.
+  * Well-defined (but optional!) crafting system.
+  * Items can have proper names (including players renaming items if they want).
   * Item enchantments: Currently have effects for melee weapons and projectiles. Enchantments can add prefixes and suffixes to item's name.
     * Melee weapon enchantments: Can add hit and critical conditions to an attack, can modify a weapon's stats (damage, accuracy, etc.), can run code after either a hit or miss occurs. Can add extra elemental damage, and only apply that damage to certain creature types if desired. Can be permanent, or can last for a set number of either attacks, successful hits, or kills.
     * Projectile enchantments: Affects thrown items, or ammunition. Can add hit conditions to a projectile attack. Can modify damage done by a projectile. Can modify hit chance of a ranged attack (if applied to a thrown item only, not ammunition). Can run code after the projectile hits or misses. If a projectile leaves an item behind, the projectile's enchantments are carried over to the item left behind.
     * Armor/equipment enchantments: Can add bonuses or callbacks to the armor. Enchantments on other types of items (ranged weapons, armor).
   * TODO: Getting NPCs to use items and change equipment.
   * TODO: Auto-comparing an item's stats to your current equipment.
-* NPC factions
+* NPC (and player) factions
   * Factions can determine NPCs' hostility or friendliness to the player, to other faction members, and to specific creature types.
   * Players can gain or lose favor with factions from killing specific creatures or creature types. Factions can view the player as an ally or enemy depending on their favor level.
-  * You can join, learn spells from, trade items with, receive services from, and get missions from factions.
+  * You can join, learn spells from, trade items with, receive services from, learn recipes from, and get missions from factions.
 * Stores
-  * Stores can have a variety of items, and can generate with infinite or limited numbers of that item.
-  * Stores can sell and buy different lists of items.
-  * A "Store" feature generates during mapgen, with a store definition attached to it, and moving onto it lets you interact with the store.
-  * Stores can be defined with a list of tags they'll buy. You can sell items to the store matching these tags rather than having to pre-define every single item the store will buy. The stores will use that item's defined Value attribute as the amount they'll pay for it.
+* Stores can dynamically generate their inventory from a list of tags rather than it being pre-defined (though pre-defining store inventory is also an option).
+  * Stores can also offer "services" (arbitrary chunks of code that can do whatever) and teach abilities.
+  * Stores can be defined with a list of tags they'll buy (or, again, a list of specific items). You can sell items to the store matching these tags rather than having to pre-define every single item the store will buy.
   * Stores can use an item as a currency rather than money.
-  * Stores can dynamically generate their inventory from a list of tags rather than it being pre-defined.
-  * Stores can restock their items, and have rules defined for how that works
-  * Future improvements: Different instances of the same store (eg. a weapon store shows up every level, but has different items every time)
-* Player species and class selection on the newgame screen.
-  * "Species" determines what creature definition to use for the player
-  * Classes can modify stats, give starting items, spells, faction membership and favor, money, and damage weaknesses/resistances. Classes can also give the players initial missions.
-  * Classes can automatically grant certain abilities on level up.
-  * Classes can also give you the option to buy a new ability for skill points.
-  * Classes can limit which player species are allowed to choose them, either by explicitly requiring/forbidding them, or by using tags.
-  * Future improvements: Classes granting options to choose between abilities on level up, rather than automatically giving them.
-    * Possible: Skill trees
-* Dungeon Branches
-  * Rather than all floors being in a linear progression, multiple "branches" can be defined in game.
-  * Each branch has its own defined number of floors which the player moves up/down along linearly.
-  * Each branch has a list of map types it uses to generate its floors, and can also force specific map types to spawn at a given depth, to recreate the old special levels functionality.
-  * Branches can exit to other branches.
-  * By default, you can return to previously-visited floors within a branch (unlike in Possession), but this can be turned off.
+  * Different instances can exist of the same store with their own inventories (eg. a weapon store shows up every level, but has different items every time)
+* Maps
+  * Many customizable built-in map layouts, including rooms-and-cooridors, natural-looking cave-like maps, and mazes (including natural-looking cave-like mazes).
+  * Map types are defined that include what sorts of creatures and items can spawn on the map.
+  * Multiple "branches" can be defined in game. Each branch has its own defined number of floors which the player moves up/down along linearly.
+  * Each branch has a list of map types it uses to generate its floors, and can generate them in random order or force specific map types to spawn at a given depth.
+  * By default, you can return to previously-visited floors within a branch, but this can be turned off.
   * Branches can be set to ensure each floor within the branch is a different map type, so it doesn't repeat.
   * Branches and MapTypes can define the specific creatures/items that will spawn in them, or list creature/item types, factions, and tags they'll pull stuff from.
+  * Room and map decorators can be defined that apply.
+* Spells/abilities
+  * Robust ability system, with support for active and passive abilities.
+  * Active abilities can use MP, have cooldowns, or neither.
+  * Abilities have a variety of callbacks that can run at various points in the game.
+  * Abilities can appy passive buffs/debuffs.
+* Conditions
+  * Creatures can suffer/benefit from conditions, which can have callbacks that can run at various points in the game.
+  * Conditions can apply passive buffs/debuffs.
 * Events
   * Events are arbitrary code chunks that can run at given points during the game.
   * There are four times that events can be checked to run: Entering a map, entering a map for the first time, killing a creature, and randomly.
   * Events can be associated with a faction, and can be set to only run if the player's favor is above or below a certain level, or only if the player is a member of the faction.
   * Events can be set to only run a limited number of times during the game, have a set rarity, and can have requires() code that determines if the event can be run at the current time. They can also just be run manually, if desired.
+* Missions
+  * Can be given by factions.
+  * Can have callbacks that runs while the mission is active.
+  * Can have any amount of unique data stored and tracked as part of the mission (for example, storing the definition of a specific item that needs to be found).
+  * Game setting to have all players start with given missions. Starting missions can also be set by the player's class.
+  * Can be repeatable, or only occur once.
+* UI/UX:
+  * Save/load system.
+  * Fully rebindable keys, also completely playable with only the mouse.
+  * Achievement system.
+  * Tutorial system.
+  * Animated effects and creatures.
 * Miscellaneous:
-  * Features can have "actions" attached to them. There's a new keybinding used to perform a feature's action. Features can have multiple actions attached to them.
+  * Many game features are customizable and optional. For example, you don't have to have crafting (or even items) in the game, can disable species/class selection, bosses, etc.
+  * Map features can have "actions" attached to them.
+  * Many types of content can have "tags" attached to them, which are used to dynamically determine where that content can be used, rather than having to explictly define what items/creatures/etc are available in places.
+  * Lighting system. Entire maps can be lit or unlit. Map features can cast light in unlit maps.
 
 [Incomplete guide to using the Roguelove engine](https://docs.google.com/document/d/1bJmuokbK8Xtd2P9K8KRQRSeGdHd78HGKuOKaZltCoE4/edit?usp=sharing)
 
