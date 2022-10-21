@@ -53,6 +53,7 @@
 </ul>
 <h2>Modules</h2>
 <ul class="nowrap">
+  <li><a href="../modules/data.spells_unused.html">data.spells_unused</a></li>
   <li><a href="../modules/gamelogic.html">gamelogic</a></li>
   <li><a href="../modules/input.html">input</a></li>
   <li><a href="../modules/jumper.core.bheap.html">jumper.core.bheap</a></li>
@@ -103,7 +104,11 @@
 	<td class="summary">Get the name of the item.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#Item:use">Item:use (target, user)</a></td>
+	<td class="name" nowrap><a href="#Item:target">Item:target (target, user, skip, ignoreCooldowns)</a></td>
+	<td class="summary">Set the item as the thing currently being used to target (so it'll display as targeting in the game UI)</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Item:use">Item:use (target, user, ignoreCooldowns)</a></td>
 	<td class="summary">"Use" the item.</td>
 	</tr>
 	<tr>
@@ -119,16 +124,20 @@
 	<td class="summary">Attack another entity.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#Item:target">Item:target ()</a></td>
-	<td class="summary">Set the item as the thing currently being used to target (so it'll display as targeting in the game UI)</td>
-	</tr>
-	<tr>
 	<td class="name" nowrap><a href="#Item:reload">Item:reload (possessor)</a></td>
 	<td class="summary">Reload an item.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#Item:qualifies_for_enchantment">Item:qualifies_for_enchantment (enchantment)</a></td>
+	<td class="name" nowrap><a href="#Item:matches">Item:matches (item)</a></td>
+	<td class="summary">Determines if another item is the same as this item</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Item:qualifies_for_enchantment">Item:qualifies_for_enchantment (enchantment, permanent)</a></td>
 	<td class="summary">Determine if an item qualifies for a particular enchantment</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Item:get_possible_enchantments">Item:get_possible_enchantments (permanent)</a></td>
+	<td class="summary">Get a list of all possible enchantments the item could have</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#Item:apply_enchantment">Item:apply_enchantment (enchantment, turns)</a></td>
@@ -155,10 +164,6 @@
 	<td class="summary">Check what hit conditions an item can inflict</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#Item:get_crit_conditions">Item:get_crit_conditions ()</a></td>
-	<td class="summary">Check what conditions an item can inflict on a critical hit</td>
-	</tr>
-	<tr>
 	<td class="name" nowrap><a href="#Item:get_armor_piercing">Item:get_armor_piercing (wielder)</a></td>
 	<td class="summary">Checks the armor-piercing quality of a weapon.</td>
 	</tr>
@@ -167,7 +172,11 @@
 	<td class="summary">Returns the accuracy (modifier to the hit roll) of a weapon.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#Item:get_ranged_accuracy">Item:get_ranged_accuracy ()</a></td>
+	<td class="name" nowrap><a href="#Item:get_ranged_accuracy_modifier">Item:get_ranged_accuracy_modifier ()</a></td>
+	<td class="summary">Returns the ranged accuracy (modifier to the hit roll) of a weapon.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Item:get_ranged_damage_modifier">Item:get_ranged_damage_modifier ()</a></td>
 	<td class="summary">Returns the ranged accuracy (modifier to the hit roll) of a weapon.</td>
 	</tr>
 	<tr>
@@ -175,8 +184,28 @@
 	<td class="summary">Checks the critical chance of a weapon.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#Item:has_tag">Item:has_tag (tag)</a></td>
+	<td class="name" nowrap><a href="#Item:get_value">Item:get_value ()</a></td>
+	<td class="summary">Checks the value of an item</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Item:has_tag">Item:has_tag (tag, ignore_enchantments)</a></td>
 	<td class="summary">Checks if an item has a descriptive tag.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Item:add_tag">Item:add_tag (tag)</a></td>
+	<td class="summary">Add a tag to an item</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Item:add_tags">Item:add_tags (tags)</a></td>
+	<td class="summary">Add multiple tags to an item</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Item:delete">Item:delete (map)</a></td>
+	<td class="summary">Delete an item</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Item:level_up">Item:level_up ()</a></td>
+	<td class="summary">Increase an items level</td>
 	</tr>
 </table>
 
@@ -226,7 +255,7 @@
     <strong>Item:clone (type_name, info, amt, ignoreNewFunc)</strong>
     </dt>
     <dd>
-    Clones an instance of the item.  Don't call this directly. Called via Item('itemID')
+    Clones an instance of the item.
 
 
     <h3>Parameters:</h3>
@@ -309,8 +338,37 @@
 
 </dd>
     <dt>
+    <a name = "Item:target"></a>
+    <strong>Item:target (target, user, skip, ignoreCooldowns)</strong>
+    </dt>
+    <dd>
+    Set the item as the thing currently being used to target (so it'll display as targeting in the game UI)
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">target</span>
+         Entity. The target of the item
+        </li>
+        <li><span class="parameter">user</span>
+         User. The owner and user of the item
+        </li>
+        <li><span class="parameter">skip</span>
+         Boolean. Whether to skip item-specific targetting code and go straight to the generic (optional)
+        </li>
+        <li><span class="parameter">ignoreCooldowns</span>
+         Boolean. If set to true, this will ignore whether or not the item is on a cooldown (optional)
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
     <a name = "Item:use"></a>
-    <strong>Item:use (target, user)</strong>
+    <strong>Item:use (target, user, ignoreCooldowns)</strong>
     </dt>
     <dd>
     "Use" the item.  Calls the item's use() code.
@@ -324,12 +382,15 @@
         <li><span class="parameter">user</span>
          Creature. The creature using the item.
         </li>
+        <li><span class="parameter">ignoreCooldowns</span>
+         Boolean. If set to true, this will ignore whether or not the item is on a cooldown (optional)
+        </li>
     </ul>
 
     <h3>Returns:</h3>
     <ol>
 
-        Boolean.Whether the use was successful.
+        Boolean. Whether the use was successful.
     </ol>
 
 
@@ -433,20 +494,6 @@
 
 </dd>
     <dt>
-    <a name = "Item:target"></a>
-    <strong>Item:target ()</strong>
-    </dt>
-    <dd>
-    Set the item as the thing currently being used to target (so it'll display as targeting in the game UI)
-
-
-
-
-
-
-
-</dd>
-    <dt>
     <a name = "Item:reload"></a>
     <strong>Item:reload (possessor)</strong>
     </dt>
@@ -472,8 +519,33 @@
 
 </dd>
     <dt>
+    <a name = "Item:matches"></a>
+    <strong>Item:matches (item)</strong>
+    </dt>
+    <dd>
+    Determines if another item is the same as this item
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">item</span>
+         Item. The item to check
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether or not the items are the same
+    </ol>
+
+
+
+
+</dd>
+    <dt>
     <a name = "Item:qualifies_for_enchantment"></a>
-    <strong>Item:qualifies_for_enchantment (enchantment)</strong>
+    <strong>Item:qualifies_for_enchantment (enchantment, permanent)</strong>
     </dt>
     <dd>
     Determine if an item qualifies for a particular enchantment
@@ -484,12 +556,40 @@
         <li><span class="parameter">enchantment</span>
          Text. The enchantment ID
         </li>
+        <li><span class="parameter">permanent</span>
+         Boolean. Whether the enchantment has to qualify as a permanent enchantment (optional)
+        </li>
     </ul>
 
     <h3>Returns:</h3>
     <ol>
 
         Boolean. Whether or not the item qualifies for the enchantment
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Item:get_possible_enchantments"></a>
+    <strong>Item:get_possible_enchantments (permanent)</strong>
+    </dt>
+    <dd>
+    Get a list of all possible enchantments the item could have
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">permanent</span>
+         Boolean. Whether the enchantment has to qualify as a permanent enchantment (optional)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A list of all enchantment IDs
     </ol>
 
 
@@ -623,25 +723,6 @@
 
 </dd>
     <dt>
-    <a name = "Item:get_crit_conditions"></a>
-    <strong>Item:get_crit_conditions ()</strong>
-    </dt>
-    <dd>
-    Check what conditions an item can inflict on a critical hit
-
-
-
-    <h3>Returns:</h3>
-    <ol>
-
-        Table. The list of hit conditions
-    </ol>
-
-
-
-
-</dd>
-    <dt>
     <a name = "Item:get_armor_piercing"></a>
     <strong>Item:get_armor_piercing (wielder)</strong>
     </dt>
@@ -686,8 +767,27 @@
 
 </dd>
     <dt>
-    <a name = "Item:get_ranged_accuracy"></a>
-    <strong>Item:get_ranged_accuracy ()</strong>
+    <a name = "Item:get_ranged_accuracy_modifier"></a>
+    <strong>Item:get_ranged_accuracy_modifier ()</strong>
+    </dt>
+    <dd>
+    Returns the ranged accuracy (modifier to the hit roll) of a weapon.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The accuracy of the weapon.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Item:get_ranged_damage_modifier"></a>
+    <strong>Item:get_ranged_damage_modifier ()</strong>
     </dt>
     <dd>
     Returns the ranged accuracy (modifier to the hit roll) of a weapon.
@@ -724,8 +824,27 @@
 
 </dd>
     <dt>
+    <a name = "Item:get_value"></a>
+    <strong>Item:get_value ()</strong>
+    </dt>
+    <dd>
+    Checks the value of an item
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The value of the item
+    </ol>
+
+
+
+
+</dd>
+    <dt>
     <a name = "Item:has_tag"></a>
-    <strong>Item:has_tag (tag)</strong>
+    <strong>Item:has_tag (tag, ignore_enchantments)</strong>
     </dt>
     <dd>
     Checks if an item has a descriptive tag.
@@ -735,6 +854,9 @@
     <ul>
         <li><span class="parameter">tag</span>
          String. The tag to check for
+        </li>
+        <li><span class="parameter">ignore_enchantments</span>
+         Boolean. Whether to ignore looking at enchantments' tags.
         </li>
     </ul>
 
@@ -748,6 +870,80 @@
 
 
 </dd>
+    <dt>
+    <a name = "Item:add_tag"></a>
+    <strong>Item:add_tag (tag)</strong>
+    </dt>
+    <dd>
+    Add a tag to an item
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">tag</span>
+         String. The tag to add
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Item:add_tags"></a>
+    <strong>Item:add_tags (tags)</strong>
+    </dt>
+    <dd>
+    Add multiple tags to an item
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">tags</span>
+         Table. The tags to add
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Item:delete"></a>
+    <strong>Item:delete (map)</strong>
+    </dt>
+    <dd>
+    Delete an item
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">map</span>
+
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Item:level_up"></a>
+    <strong>Item:level_up ()</strong>
+    </dt>
+    <dd>
+    Increase an items level
+
+
+
+
+
+
+
+</dd>
 </dl>
 
 
@@ -755,7 +951,7 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.4.6</a></i>
-<i style="float:right;">Last updated 2021-01-03 15:57:37 </i>
+<i style="float:right;">Last updated 2022-10-21 12:03:18 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

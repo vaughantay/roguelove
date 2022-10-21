@@ -53,6 +53,7 @@
 </ul>
 <h2>Modules</h2>
 <ul class="nowrap">
+  <li><a href="../modules/data.spells_unused.html">data.spells_unused</a></li>
   <li><a href="../modules/gamelogic.html">gamelogic</a></li>
   <li><a href="../modules/input.html">input</a></li>
   <li><a href="../modules/jumper.core.bheap.html">jumper.core.bheap</a></li>
@@ -103,6 +104,10 @@
 	<td class="summary">Have a creature become a member of the faction.</td>
 	</tr>
 	<tr>
+	<td class="name" nowrap><a href="#Faction:leave">Faction:leave (creature)</a></td>
+	<td class="summary">Have a creature leave as a member of the faction.</td>
+	</tr>
+	<tr>
 	<td class="name" nowrap><a href="#Faction:can_join">Faction:can_join (creature)</a></td>
 	<td class="summary">Test if a creature can become a member of the faction.</td>
 	</tr>
@@ -112,11 +117,23 @@
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#Faction:generate_items">Faction:generate_items ()</a></td>
-	<td class="summary">Generates the faction's store's inventory</td>
+	<td class="summary">Generates the faction's inventory</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Faction:restock">Faction:restock ()</a></td>
+	<td class="summary">Restocks the faction's inventory.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Faction:add_item">Faction:add_item (item, info)</a></td>
+	<td class="summary">Adds an item to the faction store.</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#Faction:get_inventory">Faction:get_inventory ()</a></td>
 	<td class="summary">Gets a list of the items the faction is selling</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Faction:get_count">Faction:get_count (item)</a></td>
+	<td class="summary">Gets the numbers of items this faction has in its current inventory that matches a passed item</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#Faction:get_buy_list">Faction:get_buy_list (creat)</a></td>
@@ -133,6 +150,18 @@
 	<tr>
 	<td class="name" nowrap><a href="#Faction:get_inventory_index">Faction:get_inventory_index (item)</a></td>
 	<td class="summary">Gets the index within the faction's inventory of the item in question</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Faction:get_possible_random_items">Faction:get_possible_random_items ()</a></td>
+	<td class="summary">Get all possible random items the faction can stock</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Faction:generate_random_item">Faction:generate_random_item (list)</a></td>
+	<td class="summary">Generate a random item from the faction's possible random items list</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Faction:get_cost_modifier">Faction:get_cost_modifier (creature)</a></td>
+	<td class="summary">Gets the modifier for items sold in the faction store</td>
 	</tr>
 </table>
 
@@ -239,6 +268,26 @@
 
 </dd>
     <dt>
+    <a name = "Faction:leave"></a>
+    <strong>Faction:leave (creature)</strong>
+    </dt>
+    <dd>
+    Have a creature leave as a member of the faction.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">creature</span>
+         Creature. The creature that's leaving. (optional, defaults to the player)
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
     <a name = "Faction:can_join"></a>
     <strong>Faction:can_join (creature)</strong>
     </dt>
@@ -298,9 +347,46 @@
     <strong>Faction:generate_items ()</strong>
     </dt>
     <dd>
-    Generates the faction's store's inventory
+    Generates the faction's inventory
 
 
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Faction:restock"></a>
+    <strong>Faction:restock ()</strong>
+    </dt>
+    <dd>
+    Restocks the faction's inventory.  Default behavior: Restock all defined items up to their original amount, unless restock_amount or restock_to is set.
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Faction:add_item"></a>
+    <strong>Faction:add_item (item, info)</strong>
+    </dt>
+    <dd>
+    Adds an item to the faction store.  If the store already has this item, increase the amount
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">item</span>
+         Item. The item to add
+        </li>
+        <li><span class="parameter">info</span>
+         Table. The information to pass
+        </li>
+    </ul>
 
 
 
@@ -320,6 +406,31 @@
     <ol>
 
         Table. The list of items the faction has in stock
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Faction:get_count"></a>
+    <strong>Faction:get_count (item)</strong>
+    </dt>
+    <dd>
+    Gets the numbers of items this faction has in its current inventory that matches a passed item
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">item</span>
+         Item. The item to count.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The number of items
     </ol>
 
 
@@ -445,6 +556,65 @@
 
 
 </dd>
+    <dt>
+    <a name = "Faction:get_possible_random_items"></a>
+    <strong>Faction:get_possible_random_items ()</strong>
+    </dt>
+    <dd>
+    Get all possible random items the faction can stock
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A list of the item IDs
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Faction:generate_random_item"></a>
+    <strong>Faction:generate_random_item (list)</strong>
+    </dt>
+    <dd>
+    Generate a random item from the faction's possible random items list
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">list</span>
+         Table. A list of item IDs to pull from. Optional, defaults to the list from get_possible_random_items()
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Faction:get_cost_modifier"></a>
+    <strong>Faction:get_cost_modifier (creature)</strong>
+    </dt>
+    <dd>
+    Gets the modifier for items sold in the faction store
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">creature</span>
+
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
 </dl>
 
 
@@ -452,7 +622,7 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.4.6</a></i>
-<i style="float:right;">Last updated 2021-01-03 15:57:37 </i>
+<i style="float:right;">Last updated 2022-10-21 12:03:18 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

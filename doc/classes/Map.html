@@ -53,6 +53,7 @@
 </ul>
 <h2>Modules</h2>
 <ul class="nowrap">
+  <li><a href="../modules/data.spells_unused.html">data.spells_unused</a></li>
   <li><a href="../modules/gamelogic.html">gamelogic</a></li>
   <li><a href="../modules/input.html">input</a></li>
   <li><a href="../modules/jumper.core.bheap.html">jumper.core.bheap</a></li>
@@ -135,7 +136,7 @@
 	<td class="summary">Gets a list of all items (if any) on a tile.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#Map:get_tile_actions">Map:get_tile_actions (x, y, user)</a></td>
+	<td class="name" nowrap><a href="#Map:get_tile_actions">Map:get_tile_actions (x, y, user, noAdjacent)</a></td>
 	<td class="summary">Gets a list of all feature actions (if any) available at and around a tile.</td>
 	</tr>
 	<tr>
@@ -195,7 +196,7 @@
 	<td class="summary">Delete all the pathfinders from the map</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#Map:is_passable_for">Map:is_passable_for (x, y, cType, include_effects, ignore_safety, Boolean.)</a></td>
+	<td class="name" nowrap><a href="#Map:is_passable_for">Map:is_passable_for (x, y, cType, include_effects, ignore_safety)</a></td>
 	<td class="summary">Checks if a tile is passable for a certain creature</td>
 	</tr>
 	<tr>
@@ -219,7 +220,7 @@
 	<td class="summary">Refresh the light map based on a light-emitting entity's light.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#Map:is_lit">Map:is_lit (x, y, Boolean.)</a></td>
+	<td class="name" nowrap><a href="#Map:is_lit">Map:is_lit (x, y)</a></td>
 	<td class="summary">Checks if a tile is lit.</td>
 	</tr>
 	<tr>
@@ -231,12 +232,48 @@
 	<td class="summary">Mark every tile on the map as "seen" (the whole map will be revealed, but won't see creatures and effects outside of LOS)</td>
 	</tr>
 	<tr>
+	<td class="name" nowrap><a href="#Map:get_creature_list">Map:get_creature_list (self, force, allowAll)</a></td>
+	<td class="summary">Get a list of possible creatures to spawn on this map.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Map:get_item_list">Map:get_item_list (self, force, allowAll)</a></td>
+	<td class="summary">Get a list of possible items to spawn on the given map</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Map:get_store_list">Map:get_store_list (self, force)</a></td>
+	<td class="summary">Get a list of possible stores to spawn on the given map.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Map:get_faction_list">Map:get_faction_list (self, force)</a></td>
+	<td class="summary">Get a list of possible factions to spawn on the given map</td>
+	</tr>
+	<tr>
 	<td class="name" nowrap><a href="#Map:populate_creatures">Map:populate_creatures (creatTotal, forceGeneric)</a></td>
 	<td class="summary">Randomly add creatures to the map</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#Map:populate_items">Map:populate_items (itemTotal, forceGeneric)</a></td>
 	<td class="summary">Randomly add items to the map</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Map:populate_stores">Map:populate_stores (forceGeneric)</a></td>
+	<td class="summary">Randomly add a store to the map.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Map:populate_factions">Map:populate_factions (forceGeneric)</a></td>
+	<td class="summary">Randomly add an appropriate faction to the map.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Map:get_name">Map:get_name (noBranch)</a></td>
+	<td class="summary">Gets the full name string of the map (eg The Wilds Depth 2: The Forest of Horror)</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Map:get_min_level">Map:get_min_level ()</a></td>
+	<td class="summary">Get the minimum creature level for this map</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Map:get_max_level">Map:get_max_level ()</a></td>
+	<td class="summary">Get the maximum creature level for this map</td>
 	</tr>
 </table>
 
@@ -625,7 +662,7 @@
 </dd>
     <dt>
     <a name = "Map:get_tile_actions"></a>
-    <strong>Map:get_tile_actions (x, y, user)</strong>
+    <strong>Map:get_tile_actions (x, y, user, noAdjacent)</strong>
     </dt>
     <dd>
     Gets a list of all feature actions (if any) available at and around a tile.
@@ -641,6 +678,9 @@
         </li>
         <li><span class="parameter">user</span>
          Creature. The user looking for actions. Optional, defaults to player
+        </li>
+        <li><span class="parameter">noAdjacent</span>
+         Boolean. Whether to count adjacent tiles. Optional, defaults to false (ie adjacent tiles are counted)
         </li>
     </ul>
 
@@ -829,6 +869,11 @@
         </li>
     </ul>
 
+    <h3>Returns:</h3>
+    <ol>
+
+        Creature. The creature placed
+    </ol>
 
 
 
@@ -1095,7 +1140,7 @@
 </dd>
     <dt>
     <a name = "Map:is_passable_for"></a>
-    <strong>Map:is_passable_for (x, y, cType, include_effects, ignore_safety, Boolean.)</strong>
+    <strong>Map:is_passable_for (x, y, cType, include_effects, ignore_safety)</strong>
     </dt>
     <dd>
     Checks if a tile is passable for a certain creature
@@ -1118,11 +1163,13 @@
         <li><span class="parameter">ignore_safety</span>
          Boolean. Whether to ignore dangerous but transversable tiles (optional)
         </li>
-        <li><span class="parameter">Boolean.</span>
-         If it's passable.
-        </li>
     </ul>
 
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. If it's passable.
+    </ol>
 
 
 
@@ -1236,7 +1283,7 @@
 </dd>
     <dt>
     <a name = "Map:is_lit"></a>
-    <strong>Map:is_lit (x, y, Boolean.)</strong>
+    <strong>Map:is_lit (x, y)</strong>
     </dt>
     <dd>
     Checks if a tile is lit.
@@ -1250,11 +1297,13 @@
         <li><span class="parameter">y</span>
          Number. The y-coordinate
         </li>
-        <li><span class="parameter">Boolean.</span>
-         If the tile is lit.
-        </li>
     </ul>
 
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. If the tile is lit.
+    </ol>
 
 
 
@@ -1292,6 +1341,124 @@
 
 
 
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Map:get_creature_list"></a>
+    <strong>Map:get_creature_list (self, force, allowAll)</strong>
+    </dt>
+    <dd>
+    Get a list of possible creatures to spawn on this map.  Stores the list, so when this is called in the future it just returns the list.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">self</span>
+         Map. The map to check
+        </li>
+        <li><span class="parameter">force</span>
+         Boolean. Whether to force recalculation of the creature list (otherwise will return the stored list if it's already been calculated)
+        </li>
+        <li><span class="parameter">allowAll</span>
+         Boolean. If True, creatures with the specialOnly flag can still be chosen based on their tags/factions/types. If not, they won't be chosen (unless already listed specifically in the map/branch lists)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table or nil. Either a table of creature IDs, or nil if there are no possible creatures
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Map:get_item_list"></a>
+    <strong>Map:get_item_list (self, force, allowAll)</strong>
+    </dt>
+    <dd>
+    Get a list of possible items to spawn on the given map
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">self</span>
+         Map. The map to check
+        </li>
+        <li><span class="parameter">force</span>
+         Boolean. Whether or not to forcibly re-calculate it, rather than returning the pre-calculated value
+        </li>
+        <li><span class="parameter">allowAll</span>
+         Boolean. If True, creatures with the specialOnly flag can still be chosen based on their tags/factions/types. If not, they won't be chosen (unless already listed specifically in the map/branch lists)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table or nil. Either a table of item IDs, or nil if there are no possible items
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Map:get_store_list"></a>
+    <strong>Map:get_store_list (self, force)</strong>
+    </dt>
+    <dd>
+    Get a list of possible stores to spawn on the given map.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">self</span>
+         Map. The map to check
+        </li>
+        <li><span class="parameter">force</span>
+         Boolean. Whether or not to forcibly re-calculate it, rather than returning the pre-calculated value
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table or nil. Either a table of faction IDs, or nil if there are no possible stores
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Map:get_faction_list"></a>
+    <strong>Map:get_faction_list (self, force)</strong>
+    </dt>
+    <dd>
+    Get a list of possible factions to spawn on the given map
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">self</span>
+         Map. The map to check
+        </li>
+        <li><span class="parameter">force</span>
+         Boolean. Whether or not to forcibly re-calculate it, rather than returning the pre-calculated value
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table or nil. Either a table of faction IDs, or nil if there are no possible factions
+    </ol>
 
 
 
@@ -1343,6 +1510,94 @@
 
 
 </dd>
+    <dt>
+    <a name = "Map:populate_stores"></a>
+    <strong>Map:populate_stores (forceGeneric)</strong>
+    </dt>
+    <dd>
+    Randomly add a store to the map.  This only adds one store to the map
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">forceGeneric</span>
+         Boolean. Whether to ignore any special populate_stores() code in the map's mapType. Optional
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Map:populate_factions"></a>
+    <strong>Map:populate_factions (forceGeneric)</strong>
+    </dt>
+    <dd>
+    Randomly add an appropriate faction to the map.  This only adds one faction to the map, and only factions that haven't previously been placed
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">forceGeneric</span>
+         Boolean. Whether to ignore any special populate_factions() code in the map's mapType. Optional
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Map:get_name"></a>
+    <strong>Map:get_name (noBranch)</strong>
+    </dt>
+    <dd>
+    Gets the full name string of the map (eg The Wilds Depth 2: The Forest of Horror)
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">noBranch</span>
+         Boolean. Optional, if set to true, only returns the base name of the map without depth and branch info
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Map:get_min_level"></a>
+    <strong>Map:get_min_level ()</strong>
+    </dt>
+    <dd>
+    Get the minimum creature level for this map
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Map:get_max_level"></a>
+    <strong>Map:get_max_level ()</strong>
+    </dt>
+    <dd>
+    Get the maximum creature level for this map
+
+
+
+
+
+
+
+</dd>
 </dl>
 
 
@@ -1350,7 +1605,7 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.4.6</a></i>
-<i style="float:right;">Last updated 2021-01-03 15:57:37 </i>
+<i style="float:right;">Last updated 2022-10-21 12:03:18 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

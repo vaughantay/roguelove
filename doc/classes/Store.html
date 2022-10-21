@@ -53,6 +53,7 @@
 </ul>
 <h2>Modules</h2>
 <ul class="nowrap">
+  <li><a href="../modules/data.spells_unused.html">data.spells_unused</a></li>
   <li><a href="../modules/gamelogic.html">gamelogic</a></li>
   <li><a href="../modules/input.html">input</a></li>
   <li><a href="../modules/jumper.core.bheap.html">jumper.core.bheap</a></li>
@@ -95,8 +96,20 @@
 	<td class="summary">Generates the store's inventory</td>
 	</tr>
 	<tr>
+	<td class="name" nowrap><a href="#Store:restock">Store:restock ()</a></td>
+	<td class="summary">Restocks the store.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Store:add_item">Store:add_item (item, info)</a></td>
+	<td class="summary">Adds an item to the store.</td>
+	</tr>
+	<tr>
 	<td class="name" nowrap><a href="#Store:get_inventory">Store:get_inventory ()</a></td>
 	<td class="summary">Gets a list of the items the store is selling</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Store:get_count">Store:get_count (item)</a></td>
+	<td class="summary">Gets the numbers of items this store has in its current inventory that matches a passed item</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#Store:get_buy_list">Store:get_buy_list (creat)</a></td>
@@ -111,8 +124,20 @@
 	<td class="summary">Buy an item from the store</td>
 	</tr>
 	<tr>
+	<td class="name" nowrap><a href="#Store:teach_spell">Store:teach_spell (spellID, creature)</a></td>
+	<td class="summary">Have a creature learn a spell from a faction.</td>
+	</tr>
+	<tr>
 	<td class="name" nowrap><a href="#Store:get_inventory_index">Store:get_inventory_index (item)</a></td>
 	<td class="summary">Gets the index within the store's inventory of the item in question</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Store:get_possible_random_items">Store:get_possible_random_items ()</a></td>
+	<td class="summary">Get all possible random items the store can stock</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Store:generate_random_item">Store:generate_random_item (list)</a></td>
+	<td class="summary">Generate a random item from the store's possible random items list</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#Store:requires">Store:requires ()</a></td>
@@ -167,6 +192,43 @@
 
 </dd>
     <dt>
+    <a name = "Store:restock"></a>
+    <strong>Store:restock ()</strong>
+    </dt>
+    <dd>
+    Restocks the store.  Default behavior: Restock all defined items up to their original amount, unless restock_amount or restock_to is set.
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Store:add_item"></a>
+    <strong>Store:add_item (item, info)</strong>
+    </dt>
+    <dd>
+    Adds an item to the store.  If the store already has this item, increase the amount
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">item</span>
+         Item. The item to add
+        </li>
+        <li><span class="parameter">info</span>
+         Table. The information to pass
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
     <a name = "Store:get_inventory"></a>
     <strong>Store:get_inventory ()</strong>
     </dt>
@@ -179,6 +241,31 @@
     <ol>
 
         Table. The list of items the store has in stock
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Store:get_count"></a>
+    <strong>Store:get_count (item)</strong>
+    </dt>
+    <dd>
+    Gets the numbers of items this store has in its current inventory that matches a passed item
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">item</span>
+         Item. The item to count.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The number of items
     </ol>
 
 
@@ -274,6 +361,34 @@
 
 </dd>
     <dt>
+    <a name = "Store:teach_spell"></a>
+    <strong>Store:teach_spell (spellID, creature)</strong>
+    </dt>
+    <dd>
+    Have a creature learn a spell from a faction.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">spellID</span>
+         String. The ID of the spell they're trying to learn.
+        </li>
+        <li><span class="parameter">creature</span>
+         Creature. The creature learning the spell. (optional, defaults to the player)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether learning the spell was successful or not.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
     <a name = "Store:get_inventory_index"></a>
     <strong>Store:get_inventory_index (item)</strong>
     </dt>
@@ -290,9 +405,50 @@
 
     <h3>Returns:</h3>
     <ol>
-
-        Number. The index ID of the item.
+        <li>
+        Number. The index ID of the item.</li>
+        <li>
+        Number. The amount of the item we have</li>
     </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Store:get_possible_random_items"></a>
+    <strong>Store:get_possible_random_items ()</strong>
+    </dt>
+    <dd>
+    Get all possible random items the store can stock
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A list of the item IDs
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Store:generate_random_item"></a>
+    <strong>Store:generate_random_item (list)</strong>
+    </dt>
+    <dd>
+    Generate a random item from the store's possible random items list
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">list</span>
+         Table. A list of item IDs to pull from. Optional, defaults to the list from get_possible_random_items()
+        </li>
+    </ul>
+
 
 
 
@@ -324,7 +480,7 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.4.6</a></i>
-<i style="float:right;">Last updated 2021-01-03 15:57:37 </i>
+<i style="float:right;">Last updated 2022-10-21 12:03:18 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

@@ -38,6 +38,7 @@
 
 <h2>Modules</h2>
 <ul class="nowrap">
+  <li><a href="../modules/data.spells_unused.html">data.spells_unused</a></li>
   <li><strong>gamelogic</strong></li>
   <li><a href="../modules/input.html">input</a></li>
   <li><a href="../modules/jumper.core.bheap.html">jumper.core.bheap</a></li>
@@ -131,7 +132,7 @@
 	<td class="summary">Regenerates the current map.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#generate_boss">generate_boss ()</a></td>
+	<td class="name" nowrap><a href="#generate_boss">generate_boss (silent)</a></td>
 	<td class="summary">Generates the boss for the map.</td>
 	</tr>
 	<tr>
@@ -164,7 +165,7 @@
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#downtime">downtime ()</a></td>
-	<td class="summary">Function that causes things to happen during "downtime." What that means and when that happens is up to you.</td>
+	<td class="summary">Function that causes things to happen during "downtime." What that means and when that happens is up to you, this is just an example.</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#refresh_player_sight">refresh_player_sight ()</a></td>
@@ -175,16 +176,44 @@
 	<td class="summary">Show a tutorial message</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#get_mission_flag">get_mission_flag (flag)</a></td>
-	<td class="summary">Gets the value of a "mission flag." Mission flags aren't pre-defined, you can use them as you see fit to track whatever information you want in a given playthrough.</td>
+	<td class="name" nowrap><a href="#start_mission">start_mission (missionID, startVal, source, values, skipFunc)</a></td>
+	<td class="summary">Starts a mission at 0 and runs its begin() code</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#set_mission_flag">set_mission_flag (flag, value)</a></td>
-	<td class="summary">Sets a "mission flag" to a specific value.</td>
+	<td class="name" nowrap><a href="#get_mission_status">get_mission_status (missionID)</a></td>
+	<td class="summary">Gets the status of a given mission.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#update_mission_flag">update_mission_flag (flag, amt)</a></td>
-	<td class="summary">Updates a "mission flags" value by a given number value.</td>
+	<td class="name" nowrap><a href="#set_mission_status">set_mission_status (missionID, value)</a></td>
+	<td class="summary">Sets a the status value of a mission to a specific value.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#get_mission_data">get_mission_data (missionID, index)</a></td>
+	<td class="summary">Gets the value of an index of a given mission.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#set_mission_data">set_mission_data (missionID, index, value)</a></td>
+	<td class="summary">Sets a particular index of a mission to a specific value.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#update_mission_status">update_mission_status (missionID, amt)</a></td>
+	<td class="summary">Updates a mission's status value by a given number value.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#finish_mission">finish_mission (missionID, endVal, skipFunc)</a></td>
+	<td class="summary">Marks a mission as finished, removing it from the active mission table.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#check_event">check_event (eid)</a></td>
+	<td class="summary">Checks whether an event can fire</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#activate_event">activate_event (eid, force)</a></td>
+	<td class="summary">Cause an event to run its code</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#run_all_events_of_type">run_all_events_of_type (event_type)</a></td>
+	<td class="summary">Loop through the list of events and activate all eligible ones of a given type</td>
 	</tr>
 </table>
 
@@ -229,13 +258,13 @@
     <strong>parse_name_for_level (name)</strong>
     </dt>
     <dd>
-    Figures out which level to load based on a given string.  Used for level-skip cheats. TODO: Redo this for branches (probably just remove it entirely)
+    Figures out which level to load based on a given string.  Used for level-skip cheats.
 
 
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">name</span>
-         String. The name of the level to load, or "level#" to load any level at a given depth, or "generic#" to load the generic level at the given depth.
+         String. If it matches a branch ID, start at that branch
         </li>
     </ul>
 
@@ -343,7 +372,7 @@
     <h3>Returns:</h3>
     <ol>
         <li>
-        result String. "hit", "miss", or "critical</li>
+        result String. "hit", "miss", or "critical"</li>
         <li>
         dmg Number. The damage to do.</li>
     </ol>
@@ -436,12 +465,18 @@
 </dd>
     <dt>
     <a name = "generate_boss"></a>
-    <strong>generate_boss ()</strong>
+    <strong>generate_boss (silent)</strong>
     </dt>
     <dd>
     Generates the boss for the map.
 
 
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">silent</span>
+         Boolean. If true, don't display any text when generating the boss
+        </li>
+    </ul>
 
 
 
@@ -613,7 +648,7 @@
     <strong>downtime ()</strong>
     </dt>
     <dd>
-    Function that causes things to happen during "downtime." What that means and when that happens is up to you.
+    Function that causes things to happen during "downtime." What that means and when that happens is up to you, this is just an example.
 
 
 
@@ -657,24 +692,36 @@
 
 </dd>
     <dt>
-    <a name = "get_mission_flag"></a>
-    <strong>get_mission_flag (flag)</strong>
+    <a name = "start_mission"></a>
+    <strong>start_mission (missionID, startVal, source, values, skipFunc)</strong>
     </dt>
     <dd>
-    Gets the value of a "mission flag." Mission flags aren't pre-defined, you can use them as you see fit to track whatever information you want in a given playthrough.
+    Starts a mission at 0 and runs its begin() code
 
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">flag</span>
-         String. The ID of the mission flag.
+        <li><span class="parameter">missionID</span>
+         String. The ID of the mission. Can either be a pre-defined mission, or you can use any ad-hoc value if you want to use this to track something that's not an actual mission.
+        </li>
+        <li><span class="parameter">startVal</span>
+         Anything. The starting status of the mission (Optional, defaults to 0)
+        </li>
+        <li><span class="parameter">source</span>
+         Object. Where the mission came from (Optional)
+        </li>
+        <li><span class="parameter">values</span>
+         Table. A table of values to store in the mission table in the format {index=value,index2=value2}
+        </li>
+        <li><span class="parameter">skipFunc</span>
+         Boolean. Whether to skip the start() function (assuming the mission actually has one) (Optional)
         </li>
     </ul>
 
     <h3>Returns:</h3>
     <ol>
 
-        Anything. The value of the flag.
+        Anything. Either false if the mission didn't start, the returned value of the start() function if there was one, or true.
     </ol>
 
 
@@ -682,17 +729,42 @@
 
 </dd>
     <dt>
-    <a name = "set_mission_flag"></a>
-    <strong>set_mission_flag (flag, value)</strong>
+    <a name = "get_mission_status"></a>
+    <strong>get_mission_status (missionID)</strong>
     </dt>
     <dd>
-    Sets a "mission flag" to a specific value.  Mission flags aren't pre-defined, you can use them as you see fit to track whatever information you want in a given playthrough.
+    Gets the status of a given mission.
 
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">flag</span>
-         String. The ID of the mission flag.
+        <li><span class="parameter">missionID</span>
+         String. The ID of the mission. Can either be a pre-defined mission, or you can use any ad-hoc value if you want to use this to track something that's not an actual mission.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Anything. The status of the mission.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "set_mission_status"></a>
+    <strong>set_mission_status (missionID, value)</strong>
+    </dt>
+    <dd>
+    Sets a the status value of a mission to a specific value.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">missionID</span>
+         String. The ID of the mission. Can either be a pre-defined mission, or you can use any ad-hoc value if you want to use this to track something that's not a pre-defined mission.
         </li>
         <li><span class="parameter">value</span>
          Anything. The value you'd like to store.
@@ -705,20 +777,173 @@
 
 </dd>
     <dt>
-    <a name = "update_mission_flag"></a>
-    <strong>update_mission_flag (flag, amt)</strong>
+    <a name = "get_mission_data"></a>
+    <strong>get_mission_data (missionID, index)</strong>
     </dt>
     <dd>
-    Updates a "mission flags" value by a given number value.  Mission flags aren't pre-defined, you can use them as you see fit to track whatever information you want in a given playthrough. Only call this function on a mission flag that's using number values!
+    Gets the value of an index of a given mission.
 
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">flag</span>
-         String. The ID of the mission flag.
+        <li><span class="parameter">missionID</span>
+         String. The ID of the mission. Can either be a pre-defined mission, or you can use any ad-hoc value if you want to use this to track something that's not a pre-defined mission.
+        </li>
+        <li><span class="parameter">index</span>
+         String. The string that used as the index to search
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Anything. The value stored in the index given
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "set_mission_data"></a>
+    <strong>set_mission_data (missionID, index, value)</strong>
+    </dt>
+    <dd>
+    Sets a particular index of a mission to a specific value.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">missionID</span>
+         String. The ID of the mission. Can either be a pre-defined mission, or you can use any ad-hoc value if you want to use this to track something that's not an actual mission.
+        </li>
+        <li><span class="parameter">index</span>
+         String. The string that will be used as the index to store this value
+        </li>
+        <li><span class="parameter">value</span>
+         Anything. The value you'd like to store.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "update_mission_status"></a>
+    <strong>update_mission_status (missionID, amt)</strong>
+    </dt>
+    <dd>
+    Updates a mission's status value by a given number value.  Generally, you should inly call this function on a mission that's already has number values as it status. If you don't, though, it'll just set the mission status to whatever the number you passed.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">missionID</span>
+         String. The ID of the mission. Can either be a pre-defined mission, or you can use any ad-hoc value if you want to use this to track something that's not an actual mission.
         </li>
         <li><span class="parameter">amt</span>
-         Number. The amount to increase the flag by. (optional, defaults to 1)
+         Number. The amount to increase the status by. (optional, defaults to 1)
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "finish_mission"></a>
+    <strong>finish_mission (missionID, endVal, skipFunc)</strong>
+    </dt>
+    <dd>
+    Marks a mission as finished, removing it from the active mission table.  Also runs the mission's finish() code if it's a pre-defined mission.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">missionID</span>
+         String. The ID of the mission. Can either be a pre-defined mission, or you can use any ad-hoc value if you want to use this to track something that's not an actual mission.
+        </li>
+        <li><span class="parameter">endVal</span>
+         Anything. A value you want to store in the finished missions table (eg to determine how the mission ended if it has multiple endings). (Optional)
+        </li>
+        <li><span class="parameter">skipFunc</span>
+         Boolean. Whether to skip the finish() function (assuming the mission actually has one) (Optional)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Anything. Either false if the mission didn't end, the returned value of the finish() function if there was one, or true.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "check_event"></a>
+    <strong>check_event (eid)</strong>
+    </dt>
+    <dd>
+    Checks whether an event can fire
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">eid</span>
+         Number. The ID of the event
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether or not the event can fire
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "activate_event"></a>
+    <strong>activate_event (eid, force)</strong>
+    </dt>
+    <dd>
+    Cause an event to run its code
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">eid</span>
+         Number. The event ID
+        </li>
+        <li><span class="parameter">force</span>
+         Boolean. Whether to ignore the requires() code for the event
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "run_all_events_of_type"></a>
+    <strong>run_all_events_of_type (event_type)</strong>
+    </dt>
+    <dd>
+    Loop through the list of events and activate all eligible ones of a given type
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">event_type</span>
+         Text. The type of event. Possible event types: enter_map, enter_map_first_time, random, player_kills, boss_dies
         </li>
     </ul>
 
@@ -734,7 +959,7 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.4.6</a></i>
-<i style="float:right;">Last updated 2021-01-03 15:57:37 </i>
+<i style="float:right;">Last updated 2022-10-21 12:03:18 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

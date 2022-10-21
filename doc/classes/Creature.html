@@ -53,6 +53,7 @@
 </ul>
 <h2>Modules</h2>
 <ul class="nowrap">
+  <li><a href="../modules/data.spells_unused.html">data.spells_unused</a></li>
   <li><a href="../modules/gamelogic.html">gamelogic</a></li>
   <li><a href="../modules/input.html">input</a></li>
   <li><a href="../modules/jumper.core.bheap.html">jumper.core.bheap</a></li>
@@ -119,16 +120,12 @@
 	<td class="summary">Change the HP of a creature</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#Creature:damage">Creature:damage (amt, attacker, damage_type, armor_piercing, noSound)</a></td>
+	<td class="name" nowrap><a href="#Creature:damage">Creature:damage (amt, attacker, damage_type, armor_piercing, noSound, item)</a></td>
 	<td class="summary">Damage a creature</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#Creature:give_condition">Creature:give_condition (name, turns, applier, force)</a></td>
 	<td class="summary">Give a condition to a creature</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#Creature:advance_conditions">Creature:advance_conditions ()</a></td>
-	<td class="summary">Called every turn, this advances all the conditions and decreases all the spell cooldowns</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#Creature:cure_condition">Creature:cure_condition (condition)</a></td>
@@ -165,10 +162,6 @@
 	<tr>
 	<td class="name" nowrap><a href="#Creature:get_hit_conditions">Creature:get_hit_conditions ()</a></td>
 	<td class="summary">Check what hit conditions a creature can inflict</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#Creature:get_crit_conditions">Creature:get_crit_conditions ()</a></td>
-	<td class="summary">Check what conditions a creature can inflict on a critical hit</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#Creature:attack">Creature:attack (target, forceHit, ignore_callbacks)</a></td>
@@ -227,8 +220,12 @@
 	<td class="summary">Remove an item from a creature's inventory</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#Creature:has_item">Creature:has_item (item, enchantments)</a></td>
+	<td class="name" nowrap><a href="#Creature:has_item">Creature:has_item (item, sortBy, enchantments)</a></td>
 	<td class="summary">Check if a creature has an instance of an item ID</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:has_specific_item">Creature:has_specific_item (item)</a></td>
+	<td class="summary">Check if a creature has a specific item</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#Creature:is_equipped">Creature:is_equipped (item)</a></td>
@@ -245,6 +242,10 @@
 	<tr>
 	<td class="name" nowrap><a href="#Creature:unequip">Creature:unequip (item)</a></td>
 	<td class="summary">Unequip an item</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:can_use_item">Creature:can_use_item (item, verb)</a></td>
+	<td class="summary">Determine if a creature can use this item or not</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#Creature:can_see_tile">Creature:can_see_tile (x, y, forceRefresh)</a></td>
@@ -411,8 +412,20 @@
 	<td class="summary">Gets the creature's critical_chance stat value, including bonuses</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#Creature:get_stat">Creature:get_stat (stat)</a></td>
+	<td class="name" nowrap><a href="#Creature:get_stat">Creature:get_stat (stat, noBonus)</a></td>
 	<td class="summary">A generic function for getting a stat and its bonus</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:get_extra_stat">Creature:get_extra_stat (stat, noBonus)</a></td>
+	<td class="summary">A generic function for getting an extra stat and its bonuses</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:set_extra_stat">Creature:set_extra_stat (stat, val)</a></td>
+	<td class="summary">Sets an extra stat to a value</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:update_extra_stat">Creature:update_extra_stat (stat, val)</a></td>
+	<td class="summary">Adds/subtracts a value to an extra stat</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#Creature:get_spells">Creature:get_spells (noEquip)</a></td>
@@ -427,6 +440,10 @@
 	<td class="summary">Add a spell to a creature's spell list</td>
 	</tr>
 	<tr>
+	<td class="name" nowrap><a href="#Creature:can_learn_spell">Creature:can_learn_spell (spellID)</a></td>
+	<td class="summary">Determine if a creature can learn this spell or not</td>
+	</tr>
+	<tr>
 	<td class="name" nowrap><a href="#Creature:get_ranged_attacks">Creature:get_ranged_attacks ()</a></td>
 	<td class="summary">Get all ranged attacks the creature has, including those granted by equipment</td>
 	</tr>
@@ -439,16 +456,21 @@
 	<td class="summary">Checks if an creature has a descriptive tag.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#Creature:get_all_possible_recipes">Creature:get_all_possible_recipes ()</a></td>
+	<td class="name" nowrap><a href="#Creature:get_all_possible_recipes">Creature:get_all_possible_recipes (hide_uncraftable)</a></td>
 	<td class="summary">Get all possible recipes the creature can craft</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#Creature:can_craft_recipe">Creature:can_craft_recipe (recipeID)</a></td>
-	<td class="summary">Check if it's possible to craft a recipe</td>
+	<td class="summary">Check if it's possible to craft a recipe
+TODO: Forbidden tags on recipes</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#Creature:craft_recipe">Creature:craft_recipe (recipeID)</a></td>
 	<td class="summary">Craft a recipe</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Creature:learn_recipe">Creature:learn_recipe (recipeID)</a></td>
+	<td class="summary">Learn a recipe</td>
 	</tr>
 </table>
 
@@ -643,7 +665,7 @@
 </dd>
     <dt>
     <a name = "Creature:damage"></a>
-    <strong>Creature:damage (amt, attacker, damage_type, armor_piercing, noSound)</strong>
+    <strong>Creature:damage (amt, attacker, damage_type, armor_piercing, noSound, item)</strong>
     </dt>
     <dd>
     Damage a creature
@@ -665,6 +687,9 @@
         </li>
         <li><span class="parameter">noSound</span>
          Boolean. If set to true, no damage type sound will be played. (optional)
+        </li>
+        <li><span class="parameter">item</span>
+         Item. The weapon used to do the damage. (optional)
         </li>
     </ul>
 
@@ -707,20 +732,6 @@
 
         Boolean. Whether the condition was applied
     </ol>
-
-
-
-
-</dd>
-    <dt>
-    <a name = "Creature:advance_conditions"></a>
-    <strong>Creature:advance_conditions ()</strong>
-    </dt>
-    <dd>
-    Called every turn, this advances all the conditions and decreases all the spell cooldowns
-
-
-
 
 
 
@@ -949,25 +960,6 @@
 
 </dd>
     <dt>
-    <a name = "Creature:get_crit_conditions"></a>
-    <strong>Creature:get_crit_conditions ()</strong>
-    </dt>
-    <dd>
-    Check what conditions a creature can inflict on a critical hit
-
-
-
-    <h3>Returns:</h3>
-    <ol>
-
-        Table. The list of hit conditions
-    </ol>
-
-
-
-
-</dd>
-    <dt>
     <a name = "Creature:attack"></a>
     <strong>Creature:attack (target, forceHit, ignore_callbacks)</strong>
     </dt>
@@ -1144,7 +1136,7 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">killer</span>
-         Entity. Whodunnit?
+         Entity. Whodunnit? By default, nothing actually passes in a killer, but it's here just in case
         </li>
     </ul>
 
@@ -1295,7 +1287,7 @@
 </dd>
     <dt>
     <a name = "Creature:has_item"></a>
-    <strong>Creature:has_item (item, enchantments)</strong>
+    <strong>Creature:has_item (item, sortBy, enchantments)</strong>
     </dt>
     <dd>
     Check if a creature has an instance of an item ID
@@ -1304,7 +1296,10 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">item</span>
-         Item. The item ID to check for
+         String. The item ID to check for
+        </li>
+        <li><span class="parameter">sortBy</span>
+         Text. What the "sortBy" value you're checking is
         </li>
         <li><span class="parameter">enchantments</span>
          Table. The table of echantments to match (optional)
@@ -1313,8 +1308,41 @@
 
     <h3>Returns:</h3>
     <ol>
+        <li>
+        either Boolean or Item. False, or the specific item they have in their inventory</li>
+        <li>
+        either nil or Number. The index of the item in the inventory</li>
+        <li>
+        either nil or Number. The amount of the item the player has</li>
+    </ol>
 
-        either Boolean or Item. False, or the specific item they have in their inventory
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:has_specific_item"></a>
+    <strong>Creature:has_specific_item (item)</strong>
+    </dt>
+    <dd>
+    Check if a creature has a specific item
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">item</span>
+         Item. The item to check for
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+        either Boolean or Item. False, or the specific item they have in their inventory</li>
+        <li>
+        either nil or Number. The index of the item in the inventory</li>
+        <li>
+        either nil or Number. The amount of the item the player has</li>
     </ol>
 
 
@@ -1419,6 +1447,36 @@
         Boolean. Whether or not the item was successfully unequipped. The only reason this would be false would be if the item had an unequip callback, or if the creature didn't even have the item equipped in the first place.</li>
         <li>
         String. Text describing the unequipping.</li>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:can_use_item"></a>
+    <strong>Creature:can_use_item (item, verb)</strong>
+    </dt>
+    <dd>
+    Determine if a creature can use this item or not
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">item</span>
+         Item. The item to check
+        </li>
+        <li><span class="parameter">verb</span>
+         Text. The verb the item uses. Or "equip" if it's equipment we're looking at, which also makes it check hands
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+        Boolean. Whether or not it's equippable</li>
+        <li>
+        Text. Why you can't equip it, if applicable. Nil if it is equipable.</li>
     </ol>
 
 
@@ -2127,7 +2185,7 @@
     <strong>Creature:get_level_up_cost ()</strong>
     </dt>
     <dd>
-    How much XP do you need to level up?
+    How much XP do you need to level up?  TODO: Replace with better formula
 
 
 
@@ -2346,7 +2404,7 @@
 </dd>
     <dt>
     <a name = "Creature:get_stat"></a>
-    <strong>Creature:get_stat (stat)</strong>
+    <strong>Creature:get_stat (stat, noBonus)</strong>
     </dt>
     <dd>
     A generic function for getting a stat and its bonus
@@ -2356,6 +2414,88 @@
     <ul>
         <li><span class="parameter">stat</span>
          Text. The stat to get
+        </li>
+        <li><span class="parameter">noBonus</span>
+         Boolean. If true, don't add the bonus to the stat
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The stat value
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:get_extra_stat"></a>
+    <strong>Creature:get_extra_stat (stat, noBonus)</strong>
+    </dt>
+    <dd>
+    A generic function for getting an extra stat and its bonuses
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">stat</span>
+         Text. The stat to get
+        </li>
+        <li><span class="parameter">noBonus</span>
+         Boolean. If true, don't add the bonus to the stat
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The stat value
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:set_extra_stat"></a>
+    <strong>Creature:set_extra_stat (stat, val)</strong>
+    </dt>
+    <dd>
+    Sets an extra stat to a value
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">stat</span>
+         Text. The stat to set
+        </li>
+        <li><span class="parameter">val</span>
+         Number. What to set the stat to
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Creature:update_extra_stat"></a>
+    <strong>Creature:update_extra_stat (stat, val)</strong>
+    </dt>
+    <dd>
+    Adds/subtracts a value to an extra stat
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">stat</span>
+         Text. The stat to set
+        </li>
+        <li><span class="parameter">val</span>
+         Number. What to add to the stat
         </li>
     </ul>
 
@@ -2443,6 +2583,33 @@
 
 </dd>
     <dt>
+    <a name = "Creature:can_learn_spell"></a>
+    <strong>Creature:can_learn_spell (spellID)</strong>
+    </dt>
+    <dd>
+    Determine if a creature can learn this spell or not
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">spellID</span>
+         Text. The ID of the spell to check
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+        Boolean. Whether or not it can be learned</li>
+        <li>
+        Text. The reason it can't be learned (or nil if it can)</li>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
     <a name = "Creature:get_ranged_attacks"></a>
     <strong>Creature:get_ranged_attacks ()</strong>
     </dt>
@@ -2513,12 +2680,18 @@
 </dd>
     <dt>
     <a name = "Creature:get_all_possible_recipes"></a>
-    <strong>Creature:get_all_possible_recipes ()</strong>
+    <strong>Creature:get_all_possible_recipes (hide_uncraftable)</strong>
     </dt>
     <dd>
     Get all possible recipes the creature can craft
 
 
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">hide_uncraftable</span>
+         Boolean. If true, only show recipes that are currently craftable. If false or nil, show all known crafts even if they can't be crafted right now (optional)
+        </li>
+    </ul>
 
     <h3>Returns:</h3>
     <ol>
@@ -2536,6 +2709,7 @@
     </dt>
     <dd>
     Check if it's possible to craft a recipe
+TODO: Forbidden tags on recipes
 
 
     <h3>Parameters:</h3>
@@ -2547,8 +2721,10 @@
 
     <h3>Returns:</h3>
     <ol>
-
-        Boolean. Whether or not the recipe can be crafted
+        <li>
+        Boolean. Whether or not the recipe can be crafted</li>
+        <li>
+        Text. A description of why you can't craft the recipe.</li>
     </ol>
 
 
@@ -2582,6 +2758,26 @@
 
 
 </dd>
+    <dt>
+    <a name = "Creature:learn_recipe"></a>
+    <strong>Creature:learn_recipe (recipeID)</strong>
+    </dt>
+    <dd>
+    Learn a recipe
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">recipeID</span>
+         Text. The ID of the recipe to learn
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
 </dl>
 
 
@@ -2589,7 +2785,7 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.4.6</a></i>
-<i style="float:right;">Last updated 2021-01-03 15:57:37 </i>
+<i style="float:right;">Last updated 2022-10-21 12:03:18 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

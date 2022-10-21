@@ -38,6 +38,7 @@
 
 <h2>Modules</h2>
 <ul class="nowrap">
+  <li><a href="../modules/data.spells_unused.html">data.spells_unused</a></li>
   <li><a href="../modules/gamelogic.html">gamelogic</a></li>
   <li><a href="../modules/input.html">input</a></li>
   <li><a href="../modules/jumper.core.bheap.html">jumper.core.bheap</a></li>
@@ -91,16 +92,16 @@
 	<td class="summary">Create and populate a map</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#get_creature_list">get_creature_list (map)</a></td>
-	<td class="summary">Get a list of possible creatures to spawn on the given map</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#generate_creature">generate_creature (level, list, allowAll)</a></td>
+	<td class="name" nowrap><a href="#generate_creature">generate_creature (min_level, max_level, list, allowAll)</a></td>
 	<td class="summary">Initializes and creates a new creature at the given level.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#generate_item">generate_item (level)</a></td>
-	<td class="summary">Initializes and creates a new creature at the given level.</td>
+	<td class="name" nowrap><a href="#generate_item">generate_item (min_level, max_level, list, tags, allowAll)</a></td>
+	<td class="summary">Initializes and creates a new item at the given level.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#make_artifact">make_artifact (item, tags)</a></td>
+	<td class="summary">Turns an item into a random artifact</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#generate_branch">generate_branch (branchID)</a></td>
@@ -195,33 +196,8 @@
 
 </dd>
     <dt>
-    <a name = "get_creature_list"></a>
-    <strong>get_creature_list (map)</strong>
-    </dt>
-    <dd>
-    Get a list of possible creatures to spawn on the given map
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">map</span>
-         Map. The map to check
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-        Table or nil. Either a table of creature IDs, or nil if there are no special creatures
-    </ol>
-
-
-
-
-</dd>
-    <dt>
     <a name = "generate_creature"></a>
-    <strong>generate_creature (level, list, allowAll)</strong>
+    <strong>generate_creature (min_level, max_level, list, allowAll)</strong>
     </dt>
     <dd>
     Initializes and creates a new creature at the given level.  The creature itself must then actually be added to a map using Map:add_creature()
@@ -229,8 +205,11 @@
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">level</span>
-         The level of the desired creature
+        <li><span class="parameter">min_level</span>
+         The lower level limit of the desired creature
+        </li>
+        <li><span class="parameter">max_level</span>
+         The upper level limit of the desired creature
         </li>
         <li><span class="parameter">list</span>
          Table. A specific list of creatures to choose from. Optional
@@ -252,16 +231,28 @@
 </dd>
     <dt>
     <a name = "generate_item"></a>
-    <strong>generate_item (level)</strong>
+    <strong>generate_item (min_level, max_level, list, tags, allowAll)</strong>
     </dt>
     <dd>
-    Initializes and creates a new creature at the given level.  The creature itself must then actually be added to the map using Map:add_item() TODO: Doesn't actually check for item levels yet, enchantments are basically guaranteed to be applied
+    Initializes and creates a new item at the given level.  The item itself must then actually be added to the map using Map:add_item() TODO: enchantments are basically guaranteed to be applied
 
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">level</span>
-         Number. The level of the item
+        <li><span class="parameter">min_level</span>
+         The lower level limit of the desired item
+        </li>
+        <li><span class="parameter">max_level</span>
+         The upper level limit of the desired item
+        </li>
+        <li><span class="parameter">list</span>
+         Table. A list of possible items to pull from
+        </li>
+        <li><span class="parameter">tags</span>
+         Table. A list of tags, potentially to pass to the item, or to use as preference for enchantments
+        </li>
+        <li><span class="parameter">allowAll</span>
+         Boolean. If True, items with the specialOnly flag can still be chosen (but items with the neverSpawn flag set still cannot). Optional
         </li>
     </ul>
 
@@ -270,6 +261,29 @@
 
         Item. The new item
     </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "make_artifact"></a>
+    <strong>make_artifact (item, tags)</strong>
+    </dt>
+    <dd>
+    Turns an item into a random artifact
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">item</span>
+         Item. The item to turn into an artifact
+        </li>
+        <li><span class="parameter">tags</span>
+         Table. A list of tags, used to prioritize enchantments which match said tags (optional)
+        </li>
+    </ul>
+
 
 
 
@@ -535,7 +549,7 @@
     <strong>addTombstones (map)</strong>
     </dt>
     <dd>
-    Add tombstones to the map of previous player characters who have died here.  TODO: This probably doesn't work with branches!
+    Add tombstones to the map of previous player characters who have died here.
 
 
     <h3>Parameters:</h3>
@@ -688,7 +702,7 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/stevedonovan/LDoc">LDoc 1.4.6</a></i>
-<i style="float:right;">Last updated 2021-01-03 15:57:37 </i>
+<i style="float:right;">Last updated 2022-10-21 12:03:18 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>
