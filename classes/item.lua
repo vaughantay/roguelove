@@ -110,11 +110,14 @@ end
 ---Get the name of the item.
 --@param full Boolean. If false, the item will be called "a dagger", if true, the item will be called "Dagger".
 --@param amount Number. The number of items in question. (optional)
+--@param withLevel Boolean. If true, show the item's level if it has one (optional)
 --@return String. The name of the item
-function Item:get_name(full,amount)
+function Item:get_name(full,amount,withLevel)
   amount = amount or self.amount or 1
   local prefix = ""
   local suffix = ""
+  local levelSuffix = (withLevel and gamesettings.display_item_levels and self.level and " (Level " .. self.level .. ")" or "")
+  local levelPrefix = (withLevel and gamesettings.display_item_levels and self.level and "Level " .. self.level .. " " or "")
   if self.enchantments then
     for ench,_ in pairs(self:get_enchantments()) do
       local enchantment = enchantments[ench]
@@ -128,16 +131,16 @@ function Item:get_name(full,amount)
   end --end enchantment info
 	if (full == true) then
 		if (self.properName ~= nil) then
-			return self.properName .. " (" .. prefix .. self.name .. suffix .. ")"
+			return self.properName .. " (" .. levelPrefix .. prefix .. self.name .. suffix .. ")"
 		else
       if self.stacks and amount > 1 then
         if self.pluralName then
-          return amount .. " " .. ucfirst(prefix .. self.pluralName .. suffix)
+          return amount .. " " .. ucfirst(prefix .. self.pluralName .. suffix .. levelSuffix)
         else
-          return amount .. " x " .. ucfirst(prefix .. self.name .. suffix)
+          return amount .. " x " .. ucfirst(prefix .. self.name .. suffix .. levelSuffix)
         end
       else
-        return ucfirst(prefix .. self.name .. suffix)
+        return ucfirst(prefix .. self.name .. suffix .. levelSuffix)
       end
 		end
 	elseif (self.properName ~= nil) then
@@ -145,9 +148,9 @@ function Item:get_name(full,amount)
 	else
     if self.stacks and amount > 1 then
       if self.pluralName then
-          return amount .. " " .. prefix .. self.pluralName .. suffix
+          return amount .. " " .. prefix .. self.pluralName .. suffix .. levelSuffix
         else
-          return amount .. " x " .. prefix .. self.name .. suffix
+          return amount .. " x " .. prefix .. self.name .. suffix .. levelSuffix
         end
     else
       return (vowel(prefix .. self.name) and "an " or "a " ) .. prefix .. self.name .. suffix
@@ -161,7 +164,7 @@ end
 --@param skip Boolean. Whether to skip item-specific targetting code and go straight to the generic (optional)
 --@param ignoreCooldowns Boolean. If set to true, this will ignore whether or not the item is on a cooldown (optional)
 function Item:target(target,user,skip,ignoreCooldowns)
-  if not self.usable then return false end
+  if not self.usable and not self.throwable then return false end
   local canUse,text = user:can_use_item(self,self.useVerb)
   if canUse == false then return false,text end
   if (not ignoreCooldowns and user.cooldowns[self]) then
@@ -179,7 +182,7 @@ function Item:target(target,user,skip,ignoreCooldowns)
 		end
 	else
 		action = "targeting"
-		actionResult = self
+		actionResult = (self.throwable and rangedAttacks[self.ranged_attack] or self)
     actionItem = self
 		if (target) then
 			output:setCursor(target.x,target.y,true)
@@ -432,6 +435,9 @@ end
 --@param possessor Creature. The creature using the item.
 --@return Boolean. Whether the reload was successful.
 function Item:reload(possessor)
+  if self.max_charges and self.charges >= self.max_charges then
+    return false,ucfirst(self:get_name() .. " is already fully loaded.")
+  end
   if self.charges > 1 and self.usingAmmo then
     local it,id,amt = possessor:has_item(self.usingAmmo,nil,self.projectile_enchantments)
     amt = math.min((amt or 0),self.max_charges - self.charges) --don't reload more than the item can hold
@@ -442,9 +448,10 @@ function Item:reload(possessor)
         output:out(possessor:get_name() .. " reloads " .. self:get_name() .. " with " .. it:get_name(false,amt) .. ".")
         output:sound(self.recharge_sound or self.id .. "_recharge")
       end
+      return true,"You reload " .. self:get_name() .. " with " .. it:get_name(false,amt) .. "."
     else
       if possessor == player then output:out("You don't have any more of the specific type of ammo that is loaded in" .. self:get_name() .. ".") end
-      return false
+      return false,"You don't have any more of the specific type of ammo that is loaded in" .. self:get_name() .. "."
     end
   else --not using specific ammo, or empty
     --First use whatever's equipped:
@@ -468,7 +475,7 @@ function Item:reload(possessor)
       --Do you even have any ammo that matches?
       if #ammoTypes < 1 then
         if possessor == player then output:out("You don't have any more ammo for " .. self:get_name() .. ".") end
-        return false
+        return false,"You don't have any more ammo for " .. self:get_name() .. "."
       end
       --If you do have ammo, use it:
       ammoTypes = shuffle(ammoTypes) --do this so it picks a random one
@@ -492,6 +499,7 @@ function Item:reload(possessor)
       output:out(possessor:get_name() .. " reloads " .. self:get_name() .. " with " .. usedAmmo:get_name(false,amt) .. ".")
       output:sound(self.recharge_sound)
     end
+    return true,"You reload " .. self:get_name() .. " with " .. usedAmmo:get_name(false,amt) .. "."
   end --end if using specific ammo
 end
 
@@ -499,7 +507,7 @@ end
 --@param item Item. The item to check
 --@return Boolean. Whether or not the items are the same
 function Item:matches(item)
-  if self.id == item.id and (not self.sortBy or (self[self.sortBy] == item[self.sortBy])) then
+  if self.id == item.id and self.level == item.level and (not self.sortBy or (self[self.sortBy] == item[self.sortBy])) then
     local matchEnch = true
     --Compare enchantments:
     if (self.enchantments and count(self.enchantments) or 0) == (item.enchantments and count(item.enchantments) or 0) then

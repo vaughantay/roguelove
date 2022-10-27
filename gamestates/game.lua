@@ -147,7 +147,7 @@ function game:print_cursor_game()
           elseif entity.baseType ~= "creature" and not entity.noDesc then
             if (text ~= "") then text = text .. "\n----\n" end
             if entity.baseType == "item" then
-              text = text .. entity:get_name(true) .. "\n"
+              text = text .. entity:get_name(true,nil,true) .. "\n"
             end
             text = text .. ucfirst(currMap.contents[output.cursorX][output.cursorY][id]:get_description())
           end --end entity check
@@ -1383,26 +1383,9 @@ function game:mousepressed(x,y,button)
       for spell,coords in pairs(self.spellButtons) do
         if x >= coords.minX and x <= coords.maxX and y >= coords.minY and y <= coords.maxY then
           if spell == "ranged" then
-            action="targeting"
-            actionResult=rangedAttacks[player.ranged_attack]
-            if (output.cursorX == 0 or output.cursorY == 0) and target then
-              output:setCursor(target.x,target.y,true,true)
-            else
-              output:setCursor(player.x,player.y,true,true)
-            end
+            self:keypressed(keybindings.ranged[1])
           elseif spell == "recharge" then
-            local recharge = false
-            for i, attack_instance in ipairs(player:get_ranged_attacks()) do
-              local attack = rangedAttacks[attack_instance.attack]
-              if (attack_instance.item and type(attack_instance.item.charges) == "number" and not attack_instance.item.cooldown) or (not attack_instance.item and attack.active_recharge) then
-                if attack:recharge(player,attack_instance.item) ~= false then
-                  recharge = true
-                end
-              end
-            end
-            if recharge ~= false then
-              advance_turn()
-            end
+            self:keypressed(keybindings.recharge[1])
           elseif spell == "pickup" then
             self:keypressed(keybindings.pickup[1])
           elseif spell == "inventory" then

@@ -77,6 +77,7 @@ local dart = {
   angled = true,
   color={r=50,g=50,b=50,a=255},
   damage = 1,
+  extra_damage_per_level=1,
   time_per_tile = .01,
   hit_sound = 'hit_stab',
   miss_item="dart",

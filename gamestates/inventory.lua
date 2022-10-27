@@ -85,7 +85,7 @@ function inventory:sort()
         self.inventory[#self.inventory+1] = {item=false,y=itemPrintY,text=ucfirst(iType.text)}
         itemPrintY = itemPrintY+fontSize
       end
-      self.inventory[#self.inventory+1] = {item=item,y=itemPrintY,text=item:get_name(true)}
+      self.inventory[#self.inventory+1] = {item=item,y=itemPrintY,text=item:get_name(true,nil,true)}
       itemPrintY = itemPrintY+fontSize+2
     end --end 
   end --end item type sorting
@@ -300,7 +300,7 @@ function inventory:draw()
       love.graphics.rectangle("fill",equipPrintX+slotWidth+3,equip.y,width-equipPrintX-padding,16)
       setColor(255,255,255,255)
     end
-    love.graphics.print((equip.item and equip.item:get_name(true) or ""),equipPrintX+slotWidth+3,equip.y)
+    love.graphics.print((equip.item and equip.item:get_name(true,nil,true) or ""),equipPrintX+slotWidth+3,equip.y)
   end
   
   --[[love.graphics.line(sidebarX,equipCutoff,width,equipCutoff)
@@ -403,17 +403,18 @@ function inventory:keypressed(key)
       if self.cursorX == 1 then --selecting an item from the list
         if self.inventory[self.cursorY] and self.inventory[self.cursorY].item then
           --self.selectedItem = self.inventory[self.cursorY].item
-          Gamestate.switch(examine_item,self.inventory[self.cursorY].item)
           --self.xHold = self.cursorX
           --self.cursorX = 3
           if self.action == "drop" then
-            self:dropItem(self.inventory[self.cursorY].item)
+            return self:dropItem(self.inventory[self.cursorY].item)
           elseif self.action == "equip" then
-            self:equipItem(self.inventory[self.cursorY].item)
+            return self:equipItem(self.inventory[self.cursorY].item)
           elseif self.action == "use" then
-            self:useItem(self.inventory[self.cursorY].item)
+            return self:useItem(self.inventory[self.cursorY].item)
           elseif self.action == "throw" then
-            self:throwItem(self.inventory[self.cursorY].item)
+            return self:throwItem(self.inventory[self.cursorY].item)
+          else
+            Gamestate.switch(examine_item,self.inventory[self.cursorY].item)
           end
         end --end item exists if
       elseif self.cursorX == 2 then --selecting an item from the equipped list
@@ -634,13 +635,13 @@ function inventory:mousepressed(x,y,button)
         self.cursorY = i
         self.cursorX = 1
         if self.action == "drop" then
-          self:dropItem(item.item)
+          return self:dropItem(item.item)
         elseif self.action == "equip" then
-          self:equipItem(item.item)
+          return self:equipItem(item.item)
         elseif self.action == "use" then
-          self:useItem(item.item)
+          return self:useItem(item.item)
         elseif self.action == "throw" then
-          self:throwItem(item.item)
+          return self:throwItem(item.item)
         else
           Gamestate.switch(examine_item,item.item)
         end
@@ -672,7 +673,7 @@ function inventory:useItem(item)
           if action ~= "targeting" then advance_turn() end
         end
       elseif (item.target_type == "creature" or item.target_type == "tile") and (not item.charges or item.charges > 0) then --if not self-use, target
-        item:target(nil,self.creature)
+        item:target(self.creature.target,self.creature)
         self:switchBack()
       end
     else --if canUse == false
@@ -715,10 +716,20 @@ end
 function inventory:throwItem(item)
   item = item or self.selectedItem
   if item and item.throwable then
-    action="targeting"
-    actionResult=rangedAttacks[item.ranged_attack]
-    actionItem=item
+    item:target(self.creature.target,self.creature)
     self:switchBack()
+  end
+end
+
+function inventory:reloadItem(item)
+  item = item or self.selectedItem
+  if item and item.charges and (not item.max_charges or item.max_charges > 0) then
+    local recharge,text = item:reload(self.creature)
+    self.text = text
+    if recharge ~= false then
+      advance_turn()
+      self:sort()
+    end
   end
 end
 

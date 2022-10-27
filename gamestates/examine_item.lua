@@ -124,6 +124,27 @@ function examine_item:draw()
       buttonX = buttonX+buttonWidth+25
       buttonCursorX = buttonCursorX+1
     end
+    if item.charges and (not item.max_charges or item.max_charges > 0) then
+      local useText = "Reload" .. " (" .. keybindings.recharge[1] .. ")"
+      local buttonWidth = fonts.buttonFont:getWidth(useText)+25
+      if buttonX+buttonWidth >= buttonMaxX then
+        buttonCursorX=1
+        buttonCursorY=buttonCursorY+1
+        self.buttons.values[buttonCursorY] = {}
+        buttonX = buttonStartX
+        buttonY = buttonY+40
+      end
+      if item.charges >= item.max_charges then
+        setColor(175,175,175,255)
+      end
+      self.buttons.reload = output:button(buttonX,buttonY,buttonWidth,false,(self.cursorX == buttonCursorX and self.cursorY == buttonCursorY and "hover" or nil),useText,true)
+      if item.charges >= item.max_charges then
+        setColor(255,255,255,255)
+      end
+      self.buttons.values[buttonCursorY][buttonCursorX] = "reload"
+      buttonX = buttonX+buttonWidth+25
+      buttonCursorX = buttonCursorX+1
+    end
     if item.equippable==true and not item.stacks then
       local useText = (item.properName and "Rename" or "Name")
       local buttonWidth = fonts.buttonFont:getWidth(useText)+25
@@ -269,6 +290,18 @@ function examine_item:calculate_height()
       buttonX = buttonX+buttonWidth+25
       buttonCursorX = buttonCursorX+1
     end
+    if item.charges and (not item.max_charges or item.max_charges > 0) then
+      local useText = "Reload" .. " (" .. keybindings.recharge[1] .. ")"
+      local buttonWidth = fonts.buttonFont:getWidth(useText)+25
+      if buttonX+buttonWidth >= buttonMaxX then
+        buttonCursorX=1
+        buttonCursorY=buttonCursorY+1
+        buttonX = buttonStartX
+        buttonY = buttonY+40
+      end
+      buttonX = buttonX+buttonWidth+25
+      buttonCursorX = buttonCursorX+1
+    end
     if item.equippable==true and not item.stacks then
       local useText = (item.properName and "Rename" or "Name")
       local buttonWidth = fonts.buttonFont:getWidth(useText)+25
@@ -382,6 +415,9 @@ function examine_item:keypressed(key)
   elseif key == "drop" and self.has_item then
     self:switchBack()
     inventory:dropItem(self.item)
+  elseif key == "recharge" and self.has_item then
+    self:switchBack()
+    inventory:reloadItem(self.item)
   elseif key == "throw" and self.has_item then
     self:switchBack()
     inventory:throwItem(self.item)
@@ -463,6 +499,9 @@ function examine_item:mousepressed(x,y,button)
     Gamestate.switch(splitstack,self.item)
   elseif self.buttons.name and x > self.buttons.name.minX and x < self.buttons.name.maxX and y > self.buttons.name.minY and y < self.buttons.name.maxY then
     Gamestate.switch(nameitem,self.item)
+  elseif self.buttons.reload and x > self.buttons.reload.minX and x < self.buttons.reload.maxX and y > self.buttons.reload.minY and y < self.buttons.reload.maxY then
+    self:switchBack()
+    inventory:reloadItem(self.item)
   end
 end
 

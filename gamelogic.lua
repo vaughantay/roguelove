@@ -686,8 +686,9 @@ function setTarget(x,y)
       x,y = output.targetLine[#output.targetLine].x,output.targetLine[#output.targetLine].y
       creat = currMap:get_tile_creature(x,y)
     end --end projectile if
+    local actionArg = (actionResult.baseType == "ranged" and actionItem or actionIgnoreCooldown)
 		if (actionResult.target_type == "tile") then
-			if actionResult:use({x=x,y=y},player,actionIgnoreCooldown) ~= false then
+			if actionResult:use({x=x,y=y},player,actionArg) ~= false then --TODO: Update this to pass item to ranged attack
         if actionItem then
           if actionItem.throwable then
             player:delete_item(actionItem,1)
@@ -702,7 +703,7 @@ function setTarget(x,y)
 			end
 		elseif (actionResult.target_type == "creature") then
 			if (creat) then
-				if actionResult:use(creat,player,actionIgnoreCooldown) ~= false then
+				if actionResult:use(creat,player,actionArg) ~= false then --TODO: Update this to pass item to ranged attack
           if actionItem then
             if actionItem.throwable then
               player:delete_item(actionItem,1)

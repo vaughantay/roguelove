@@ -1247,7 +1247,7 @@ end
 --@param item Item. The item to give.
 function Creature:give_item(item)
   if (item.stacks == true) then
-    local _,inv_id = self:has_item(item.id,(item.sortBy and item[item.sortBy]),item.enchantments)
+    local _,inv_id = self:has_item(item.id,(item.sortBy and item[item.sortBy]),item.enchantments,item.level)
     if inv_id then
       self.inventory[inv_id].amount = self.inventory[inv_id].amount + item.amount
       item = self.inventory[inv_id]
@@ -1327,15 +1327,16 @@ end
   
 ---Check if a creature has an instance of an item ID
 --@param item String. The item ID to check for
---@param sortBy Text. What the "sortBy" value you're checking is
+--@param sortBy Text. What the "sortBy" value you're checking is (optional)
 --@param enchantments Table. The table of echantments to match (optional)
+--@param level Number. The level of the item (optional)
 --@return either Boolean or Item. False, or the specific item they have in their inventory
 --@return either nil or Number. The index of the item in the inventory
 --@return either nil or Number. The amount of the item the player has
-function Creature:has_item(itemID,sortBy,enchantments)
+function Creature:has_item(itemID,sortBy,enchantments,level)
   enchantments = enchantments or {}
 	for id, it in ipairs(self.inventory) do
-		if (itemID == it.id) and (not it.sortBy or sortBy == it[it.sortBy]) then
+		if (itemID == it.id) and (not level or it.level == level) and (not it.sortBy or sortBy == it[it.sortBy]) then
       local matchEnch = true
       --Compare enchantments:
       if (enchantments and count(enchantments) or 0) == (it.enchantments and count(it.enchantments) or 0) then
