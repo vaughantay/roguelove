@@ -7,6 +7,11 @@ Effect = Class{}
 --@return Effect. The effect itself.
 function Effect:init(effect_type, ...)
 	local data = effects[effect_type]
+  if not data then
+    output:out("Error: Tried to create non-existent effect " .. effect_type)
+    print("Error: Tried to create non-existent effect " .. effect_type)
+    return false
+  end
 	for key, val in pairs(data) do
 		if (type(val) ~= "function") then
 			self[key] = data[key]

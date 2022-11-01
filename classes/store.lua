@@ -6,6 +6,11 @@ Store = Class{}
 --@return self Store. The faction itself.
 function Store:init(store_id)
   local data = possibleStores[store_id]
+  if not data then
+    output:out("Error: Tried to create non-existent store " .. store_id)
+    print("Error: Tried to create non-existent store " .. store_id)
+    return false
+  end
 	for key, val in pairs(data) do
 		if type(val) ~= "function" then
       self[key] = data[key]

@@ -9,6 +9,11 @@ Feature = Class{}
 --@return The feature itself.
 function Feature:init(feature_type,info,x,y)
   local data = possibleFeatures[feature_type]
+  if not data then
+    output:out("Error: Tried to create non-existent feature " .. feature_type)
+    print("Error: Tried to create non-existent feature " .. feature_type)
+    return false
+  end
 	for key, val in pairs(data) do
     if type(val) ~= "function" then
       self[key] = data[key]

@@ -6,6 +6,11 @@ Faction = Class{}
 --@return self Faction. The faction itself.
 function Faction:init(fid)
   local data = possibleFactions[fid]
+  if not data then
+    output:out("Error: Tried to create non-existent faction " .. fid)
+    print("Error: Tried to create non-existent faction " .. fid)
+    return false
+  end
   self.id = fid
 	for key, val in pairs(data) do
 		if type(val) ~= "function" then

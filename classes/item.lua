@@ -9,6 +9,11 @@ Item = Class{}
 --@return Item. The item itself.
 function Item:init(type_name,info,amt,ignoreNewFunc)
   local data = possibleItems[type_name]
+  if not data then
+    output:out("Error: Tried to create non-existent item " .. type_name)
+    print("Error: Tried to create non-existent item " .. type_name)
+    return false
+  end
 	for key, val in pairs(data) do
     if type(val) ~= "function" then
       self[key] = data[key]

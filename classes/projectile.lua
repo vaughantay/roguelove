@@ -9,6 +9,11 @@ Projectile = Class{baseType = "projectile"}
 --@return The projectile itself.
 function Projectile:init(projectile_type,source,target,info)
   local data = projectiles[projectile_type]
+  if not data then
+    output:out("Error: Tried to create non-existent projectile " .. projectile_type)
+    print("Error: Tried to create non-existent projectile " .. projectile_type)
+    return false
+  end
 	for key, val in pairs(data) do
 		if (type(val) ~= "function") then
 			self[key] = data[key]

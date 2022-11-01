@@ -363,6 +363,11 @@ end --end function
 --@param ignoreFunc Boolean. Whether to ignore the creature's new() function (optional)
 --@return Creature. The creature placed
 function Map:add_creature(creature,x,y,ignoreFunc)
+  if not creature or type(creature) ~= "table" or creature.baseType ~= "creature" then
+    output:out("Error: Tried to add non-existent creature to map " .. self:get_name())
+    print("Tried to add non-existent creature to map " .. self:get_name())
+    return false
+  end
 	creature.x, creature.y = x,y
 	self.contents[x][y][creature] = creature
 	self.creatures[creature] = creature
@@ -377,13 +382,18 @@ end
 --@param y Number. The y-coordinate
 --@return Feature. The feature added
 function Map:add_feature(feature,x,y)
+  if not feature or type(feature) ~= "table"  or feature.baseType ~= "feature" then
+    output:out("Error: Tried to add non-existent feature to map " .. self:get_name())
+    print("Tried to add non-existent feature to map " .. self:get_name())
+    return false
+  end
 	x = (x or random(2,self.width-1))
 	y = (y or random(2,self.height-1))
 	self.contents[x][y][feature] = feature
   feature.x,feature.y = x,y
   if possibleFeatures[feature.id].placed then possibleFeatures[feature.id].placed(feature,self) end
   if feature.castsLight then self.lights[feature] = feature end
-  return feature --return the feature so if it's created when tis function is called, you can still access it
+  return feature --return the feature so if it's created when this function is called, you can still access it
 end
 
 ---Add an effect to a tile
@@ -392,10 +402,15 @@ end
 --@param y Number. The y-coordinate
 --@return Effect. The effect added
 function Map:add_effect(effect,x,y)
+  if not effect or type(effect) ~= "table" or effect.baseType ~= "effect" then
+    output:out("Error: Tried to add non-existent effect to map " .. self:get_name())
+    print("Tried to add non-existent effect to map " .. self:get_name())
+    return false
+  end
   effect.x,effect.y = x,y
 	self.effects[effect] = effect
   if effect.castsLight then self.lights[effect] = effect end
-  return effect --return the effect so if it's created when tis function is called, you can still access it
+  return effect --return the effect so if it's created when this function is called, you can still access it
 end
 
 ---Add an item to a tile
@@ -404,6 +419,11 @@ end
 --@param y Number. The y-coordinate
 --@param ignoreFunc Boolean. Whether to ignore the item's new() function (optional)
 function Map:add_item(item,x,y,ignoreFunc)
+  if not item or type(item) ~= "table" or item.baseType ~= "item" then
+    output:out("Error: Tried to add non-existent item to map " .. self:get_name())
+    print("Tried to add non-existent item to map " .. self:get_name())
+    return false
+  end
 	item.x, item.y = x,y
 	self.contents[x][y][item] = item
   if not ignoreFunc and possibleItems[item.id].placed then possibleItems[item.id].placed(item,self) end

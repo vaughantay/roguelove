@@ -8,6 +8,11 @@ Creature = Class{}
 --@return Creature. The creature itself.
 function Creature:init(creatureType,level,noItems)
   local data = possibleMonsters[creatureType]
+  if not data then
+    output:out("Error: Tried to create non-existent creature " .. creatureType)
+    print("Error: Tried to create non-existent creature " .. creatureType)
+    return false
+  end
 	for key, val in pairs(data) do
     if type(val) ~= "function" then
       self[key] = data[key]
