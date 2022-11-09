@@ -136,10 +136,11 @@ function mapgen:generate_map(branchID, depth,force)
   end
 
   --Add content:
-  build:populate_creatures()
-  build:populate_items()
   build:populate_stores()
   build:populate_factions()
+  build:populate_creatures()
+  build:populate_items()
+  build:refresh_pathfinder()
 
   if whichMap.start_revealed or branch.start_revealed then
     build:reveal()

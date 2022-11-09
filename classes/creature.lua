@@ -29,12 +29,22 @@ function Creature:init(creatureType,level,noItems)
 	self.hp = self.max_hp
   self.mp = self.max_mp
 	self.conditions = {}
-	self.spells = self.spells or {}
+	self.spells = {}
+  if data.spells then
+    for _,spellID in ipairs(data.spells) do
+      self:learn_spell(spellID)
+    end
+  end
 	self.cooldowns = {}
   self.thralls = {}
   self.checked = {}
+  self.seen_tile_cache = {}
+  self.sensed_creatures = {}
   self.inventory = {}
   self.equipment = {}
+  self.equipment_list = {}
+  self.bonus_cache = {}
+  self.can_move_cache = {}
   self.extra_stats = self.extra_stats or {}
   self.forbidden_spell_tags = self.forbidden_spell_tags or self.forbidden_tags or {}
   self.forbidden_item_tags = self.forbidden_item_tags or self.forbidden_tags or {}
@@ -54,6 +64,7 @@ function Creature:init(creatureType,level,noItems)
     for slot,count in pairs(gamesettings.default_equipment_slots) do
       self.equipment[slot] = {slots=count}
     end
+    self.equipment.list = {}
   end
   if not self.noEquip and self.hands and self.hands > 0 then
     self.equipment.weapon = self.equipment.weapon or {slots=self.hands}
@@ -464,10 +475,8 @@ function Creature:damage(amt,attacker,damage_type,armor_piercing,noSound,item)
     if self == player and self.hp > 0 then
       output:shake(math.max(math.min((amt/self.hp)*25,25),2),.5)
     end
-    for _,slot in pairs(self.equipment) do
-      for _,item in ipairs(slot) do
-        item:decrease_all_enchantments('damaged')
-      end
+    for _,item in pairs(self.equipment_list) do
+      item:decrease_all_enchantments('damaged')
     end
 		return amt
 	else
@@ -536,36 +545,35 @@ function Creature:callbacks(callback_type,...)
 		end
 	end
 	for id, spell in pairs(self:get_spells()) do
-		if type(possibleSpells[spell][callback_type]) == "function" then
-			local status,r = pcall(possibleSpells[spell][callback_type],possibleSpells[spell],self,unpack({...}))
+    local spellID = spell.id
+		if type(possibleSpells[spellID][callback_type]) == "function" then
+			local status,r = pcall(possibleSpells[spellID][callback_type],spell,self,unpack({...}))
       if status == false then
-        output:out("Error in spell " .. possibleSpells[spell].name .. " callback \"" .. callback_type .. "\": " .. r)
+        output:out("Error in spell " .. spell.name .. " callback \"" .. callback_type .. "\": " .. r)
       end
 			if (r == false) then return false end
       if r ~= nil and type(r) ~= "boolean" then table.insert(ret,r) end
 		end
 	end
-  for _, equipslot in pairs(self.equipment) do
-    for _, equip in ipairs(equipslot) do
-      if type(possibleItems[equip.id][callback_type]) == "function" then
-        local status,r = pcall(possibleItems[equip.id][callback_type],equip,self,unpack({...}))
+  for _, equip in pairs(self.equipment_list) do
+    if type(possibleItems[equip.id][callback_type]) == "function" then
+      local status,r = pcall(possibleItems[equip.id][callback_type],equip,self,unpack({...}))
+      if status == false then
+        output:out("Error in item " .. possibleItems[equip.id].name .. " callback \"" .. callback_type .. "\": " .. r)
+      end
+      if (r == false) then return false end
+      if r ~= nil and type(r) ~= "boolean" then table.insert(ret,r) end
+    end --end function exists if
+    for ench,_ in pairs(equip:get_enchantments()) do --TODO: This might be a potential slowdown spot
+      if type(enchantments[ench][callback_type]) == "function" then
+        local status,r = pcall(enchantments[ench][callback_type],equip,self,unpack({...}))
         if status == false then
-          output:out("Error in item " .. possibleItems[equip.id].name .. " callback \"" .. callback_type .. "\": " .. r)
+          output:out("Error in enchantment " .. enchantments[ench].name .. " callback \"" .. callback_type .. "\": " .. r)
         end
         if (r == false) then return false end
         if r ~= nil and type(r) ~= "boolean" then table.insert(ret,r) end
       end --end function exists if
-      for ench,_ in pairs(equip:get_enchantments()) do --TODO: This might be a potential slowdown spot
-        if type(enchantments[ench][callback_type]) == "function" then
-          local status,r = pcall(enchantments[ench][callback_type],equip,self,unpack({...}))
-          if status == false then
-            output:out("Error in enchantment " .. enchantments[ench].name .. " callback \"" .. callback_type .. "\": " .. r)
-          end
-          if (r == false) then return false end
-          if r ~= nil and type(r) ~= "boolean" then table.insert(ret,r) end
-        end --end function exists if
-      end --end enchantment for
-    end
+    end --end enchantment for
 	end
   for missionID, missionStatus in pairs(currGame.missionStatus) do
     local mission = possibleMissions[missionID]
@@ -661,7 +669,10 @@ end
 --@param bonusType String. The type of bonus to check for. Usually a stat
 --@param average Boolean. Whether or not to average the total bonus before returning it (optional)
 --@return Number. The bonus.
-function Creature:get_bonus(bonusType,average)
+function Creature:get_bonus(bonusType)
+  if self.bonus_cache[bonusType] then
+    return self.bonus_cache[bonusType]
+  end
 	local bonus = 0
   local bcount = 0
 	for id, turns in pairs(self.conditions) do
@@ -673,35 +684,35 @@ function Creature:get_bonus(bonusType,average)
       end
 		end
 	end
-  for _, spellID in pairs(self:get_spells()) do
-		if (possibleSpells[spellID].bonuses ~= nil) then
-			local b = possibleSpells[spellID].bonuses[bonusType]
+  for _, spell in pairs(self:get_spells()) do
+    local spellID = spell.id
+		if (spell.bonuses ~= nil) then
+			local b = spell.bonuses[bonusType]
 			if (b ~= nil) then
         bonus = bonus + b
         bcount = bcount+ 1
       end
 		end
 	end
-  for whichSlot, equipslot in pairs(self.equipment) do
-    for _, equip in ipairs(equipslot) do
-      if equip.bonuses ~= nil then
-        local b = equip.bonuses[bonusType]
-        if b ~= nil then
-          bonus = bonus + b
-          bcount = bcount + 1
-        end
-      end --end bonuses if
-      --Get bonuses from equipment enchantment:
-      if whichSlot ~= "weapon" then --Don't apply any enchantment bonuses from weapons. We have to assume those bonuses are intended only for attacks done with the weapon
-        local b = equip:get_enchantment_bonus(bonusType)
-        if b ~= 0 then
-          bonus = bonus + b
-          bcount = bcount + 1
-        end
+  for _, equip in pairs(self.equipment_list) do
+    if equip.bonuses ~= nil then
+      local b = equip.bonuses[bonusType]
+      if b ~= nil then
+        bonus = bonus + b
+        bcount = bcount + 1
       end
-    end --end equipment for
-	end --end equipslot for
+    end --end bonuses if
+    --Get bonuses from equipment enchantment:
+    if whichSlot ~= "weapon" then --Don't apply any enchantment bonuses from weapons. We have to assume those bonuses are intended only for attacks done with the weapon
+      local b = equip:get_enchantment_bonus(bonusType)
+      if b ~= 0 then
+        bonus = bonus + b
+        bcount = bcount + 1
+      end
+    end
+  end --end equipment for
   if average and bcount > 0 then bonus = math.ceil(bonus/bcount) end
+  self.bonus_cache[bonusType] = bonus
 	return bonus
 end
 
@@ -833,15 +844,32 @@ end
 ---This function is run every turn. It handles advancing conditions, recharging attacks, and AI for NPCs
 --@param skip_conditions Boolean. Whether to skip running the condition advance code (optional)
 function Creature:advance(skip_conditions)
+  --profiler.reset()
+  --profiler.start()
+  local startTime = os.clock()
+  local aiTime = 0
+  local advTime = 0
+  
   self.sees = nil --clear list of seen creatures
   self.checked = {} --clear list of unnoticed creatures you've checked
+  self.seen_tile_cache = {} --clear list of tiles you've checked for site
+  self.sensed_creatures = {} --clear listed of sensed creatures
+  self.bonus_cache = {}
+  self.can_move_cache = {}
+  
   --AI Decision:
+  
   while self.energy >= player.speed and self ~= player do
     local x,y = self.x,self.y
     self.energy = self.energy - player:get_speed()
     if self:callbacks('ai') then
       if (self.ai == nil or ai[self.ai] == nil) then
+        local aistart = os.clock()
+        --profiler.reset()
+        --profiler.start()
         ai.basic(self)
+        --profiler.stop()
+        aiTime = os.clock()-aistart
       else
         ai[self.ai](self)
       end
@@ -851,11 +879,14 @@ function Creature:advance(skip_conditions)
     end
   end --end while
   
+  
   --Conditions and attack recharging:
 	if not skip_conditions then
     self.energy = self.energy + self:get_speed()
+    
     --Call advance() callback on conditions, spells, equipment, etc.
     self:callbacks('advance')
+    
     --Decrease condition time:
     for condition, turns in pairs(self.conditions) do
       if self.conditions[condition] and self.conditions[condition] ~= -1 then self.conditions[condition] = self.conditions[condition] - 1 end
@@ -863,6 +894,7 @@ function Creature:advance(skip_conditions)
         self:cure_condition(condition)
       end --end if condition <= 0
     end --end condition for
+    
     --Decrease cooldowns:
     for thing, cooldown in pairs(self.cooldowns) do
       if (cooldown <= 1) then
@@ -871,6 +903,7 @@ function Creature:advance(skip_conditions)
         self.cooldowns[thing] = cooldown - 1
       end
     end --end spell for
+    
     --Recharge ranged attack:
     if self.ranged_attack then
       local attack = rangedAttacks[self.ranged_attack]
@@ -879,6 +912,14 @@ function Creature:advance(skip_conditions)
       end --end max_charges if
     end --end ranged_attack if
   end --end skip_conditions if
+  local totalTime = os.clock()-startTime
+  --profiler.stop()
+  if totalTime >= 0.005 then
+    print(self.name,self.x,self.y)
+    print('AI time: ' .. aiTime)
+    print('Total time: ' .. totalTime)
+    --print(profiler.report(25))
+  end
 end
 
 ---Check whether a creature can move to a given tile
@@ -890,7 +931,11 @@ function Creature:can_move_to(x,y,inMap)
   --First, check to see if the target is A) even in the map, B) has a wall or creature
   inMap = inMap or currMap
   if x<2 or y<2 or x>inMap.width-1 or y>inMap.height-1 then return false end
-  if inMap[x][y] == "#" or inMap:get_tile_creature(x,y) then return false end
+  if self.can_move_cache[x .. ',' .. y] ~= nil then return self.can_move_cache[x .. ',' .. y] end
+  if inMap[x][y] == "#" or inMap:get_tile_creature(x,y) then
+    self.can_move_cache[x .. ',' .. y] = false
+    return false
+  end
   --if a creature can only move in certain types of terrain, check for those types:
   if self.terrainLimit then
     local needed = false
@@ -900,21 +945,35 @@ function Creature:can_move_to(x,y,inMap)
         break
       end
     end
-    if needed == false then return false end --if your needed types were not found, you can't move there
+    if needed == false then
+      self.can_move_cache[x .. ',' .. y] = false
+      return false
+    end --if your needed types were not found, you can't move there
   end --end terrain limit if
   --Check the features to see if there are any impassable/blocking ones, and if there are, if they're passable for you or not
   for _,feat in pairs(inMap:get_tile_features(x,y)) do
     if feat.baseType == "feature" and (feat.impassable or (feat.blocksMovement == true and feat.pathThrough ~= true)) then
       --If the tile isn't passable for anyone, or the creature has no special types, automatically return false
-      if feat.passableFor == nil then return false end
-      if self.types == nil then return false end
+      if feat.passableFor == nil then
+        self.can_move_cache[x .. ',' .. y] = false
+        return false
+      end
+      if self.types == nil then
+        self.can_move_cache[x .. ',' .. y] = false
+        return false
+      end
       --cycle through all the types to see if any of them match
       for ctype, _ in pairs(feat.passableFor) do
-        if self:is_type(ctype) then return true end --if any of the types are true, you're good to go
+        if self:is_type(ctype) then
+          self.can_move_cache[x .. ',' .. y] = true
+          return true
+        end --if any of the types are true, you're good to go
       end
+      self.can_move_cache[x .. ',' .. y] = false
       return false --if no types match, can't go
     end --end feature if
   end --end for
+  self.can_move_cache[x .. ',' .. y] = true
   return true
 end
 
@@ -941,6 +1000,7 @@ function Creature:moveTo(x,y, skip_callbacks,noTween)
       if (canEnter) then
         if (self.x and self.y) then --if you're already on the board
           currMap.contents[self.x][self.y][self] = nil --empty old tile
+          currMap.creature_cache[self.x .. "," .. self.y] = nil
           if x<self.x then self.faceLeft = true elseif x>self.x then self.faceLeft = false end
           if self.topDown then
             if y<self.y then 
@@ -987,6 +1047,7 @@ function Creature:moveTo(x,y, skip_callbacks,noTween)
         --if self.x and self.y and self ~= player then currMap:set_blocked(self.x,self.y,0) end
         --if self ~= player then currMap:set_blocked(x,y,1) end
         currMap.contents[self.x][self.y][self] = self
+        currMap.creature_cache[self.x .. "," .. self.y] = self
         self:callbacks('moved',self.fromX,self.fromY,self.x,self.y)
         --Update seen creatures:
         self.sees = nil
@@ -1212,6 +1273,7 @@ end -- end function
 function Creature:remove(map)
   map = map or currMap
   map.contents[self.x][self.y][self] = nil
+  map.creature_cache[self.x .. "," .. self.y] = nil
   if self.castsLight then map.lights[self] = nil end
   map.creatures[self] = nil
   
@@ -1488,6 +1550,7 @@ function Creature:equip(item)
         if didIt ~= false then
           equipSlot[i] = item
           equipText = equipText .. (item.equipText or "You equip " .. item:get_name() .. ".")
+          self.equipment_list[item] = item
         end
         return didIt,equipText
       end --end if empty slot if
@@ -1526,6 +1589,7 @@ function Creature:unequip(item)
       if didIt ~= false then
         self.equipment[equipSlot][i] = nil
         unequipText = unequipText .. (item.unequipText or "You unequip " .. item:get_name() .. ".")
+        self.equipment_list[item] = nil
         --Slide other items of this equiptype to fill empty slot
         if i ~= self.equipment[equipSlot].slots then
           for i2=i+1,self.equipment[equipSlot].slots,1 do
@@ -1580,17 +1644,20 @@ function Creature:can_see_tile(x,y,forceRefresh)
   if not currMap or not currMap:in_map(x,y,true) then return false end
   if not self.x or not self.y then output:out(self:get_name() .. " does not have a location but is trying to see stuff somehow.") return false end --If you don't exist, you can't see anything
   
-  if not self == player and not forceRefresh then
+  if self == player and not forceRefresh then
     if not player.seeTiles then
       refresh_player_sight()
     else
       return player.seeTiles[x][y]
     end
+  elseif self ~= player and self.seen_tile_cache[x .. ',' .. y] then
+    return self.seen_tile_cache[x .. ',' .. y]
   end
   
   local lit = false
   
   if x == self.x and y == self.y and self.hp > 0 then
+    self.seen_tile_cache[x .. ',' .. y] = true
     return true
   end --you can always see your own tile
   
@@ -1600,9 +1667,11 @@ function Creature:can_see_tile(x,y,forceRefresh)
   
   if lit then --if it's not "lit," you can't see it anyway, so don't run bresenham
     if bresenham.los(self.x,self.y,x,y, currMap.can_see_through,currMap) then --if there's a clear path to the square, you can see it!
+      self.seen_tile_cache[x .. ',' .. y] = true
       return true
     end
   end
+  self.seen_tile_cache[x .. ',' .. y] = false
   return false --default to not being able to see
 end
 
@@ -1611,13 +1680,36 @@ end
 --@param skipSight Boolean. Whether to skip running can_see_tile and just look at extra senses (optional)
 --@return Boolean. If the target can be seen.
 function Creature:can_sense_creature(creat,skipSight)
-  if creat == self then return true end
-  if not currMap then return false end
-  if action == "dying" and self == player and currMap.seenMap[creat.x] and currMap.seenMap[creat.x][creat.y] then return true end
-  if creat.master and creat.master == self then return true end
-  if skipSight ~= true and not creat:has_condition('invisible') and self:can_see_tile(creat.x,creat.y) then return true end
-  if self.extraSense == nil then return false else
-    return possibleSpells[self.extraSense]:sense(self,creat)
+  if self.sensed_creatures[creat] ~= nil then
+    return self.sensed_creatures[creat]
+  end
+  if creat == self then
+    self.sensed_creatures[creat] = true
+    return true
+  end
+  if not currMap then
+    self.sensed_creatures[creat] = false
+    return false
+  end
+  if creat.master and creat.master == self then
+    self.sensed_creatures[creat] = true
+    return true
+  end
+  if action == "dying" and self == player and currMap.seenMap[creat.x] and currMap.seenMap[creat.x][creat.y] then
+    self.sensed_creatures[creat] = true
+    return true
+  end
+  if skipSight ~= true and not creat:has_condition('invisible') and self:can_see_tile(creat.x,creat.y) then
+    self.sensed_creatures[creat] = true
+    return true
+  end
+  if self.extraSense == nil then
+    self.sensed_creatures[creat] = false
+    return false
+  else
+    local sense = possibleSpells[self.extraSense]:sense(self,creat)
+    self.sensed_creatures[creat] = sense
+    return sense
   end
 end
 
@@ -1656,6 +1748,7 @@ function Creature:is_enemy(target,dontSend)
       return true --default behavior for non-faction enemies is to treat player and their allies as enemies unless they're a creature type they like
     end
   end --end playerally or not check
+  self.ignoring[target] = true -- if we've determined you're not an enemy, go to the ignoring list
   return false --default to not enemy
 end
 
@@ -1846,20 +1939,18 @@ end --end notice function
 function Creature:does_notice(creat)
   if self == creat or self.notices[creat] then
     return true
-  else
-    if not self.checked[creat] then
-      self.checked[creat] = creat
-      return self:can_notice(creat)
-    end
-    return false
+  elseif not self.checked[creat] then
+    self.checked[creat] = creat
+    return self:can_notice(creat)
   end
+  return false
 end
 
 ---Checks if a creature is able to notice another, and sets them as noticed if yes
 --@param creat Creature. The creature to try and notice
 --@return Boolean. Whether the creature is able to notice the target
 function Creature:can_notice(creat)
-  if self.id == "ghost" and self:can_see_tile(creat.x,creat.y) then return self:notice(creat,false,true) end -- ghost always notices, so you don't get killed by "invisible" enemy
+  local nTime = os.clock()
   --Creatures are more likely to notice others the closer they get
   local noticeChance = self:get_notice_chance()
   local stealth = creat:get_stealth()
@@ -1867,7 +1958,7 @@ function Creature:can_notice(creat)
   local distPerc = dist/self:get_perception()
   stealth = (stealth > 0 and stealth+math.ceil(stealth*distPerc) or stealth-math.floor((stealth*distPerc)/2)) -- positive stealth increases based on % of total perception distance, up to 2x. Negative stealth reduces based on % of total perception distance, up to 1/2
       
-  if self:can_sense_creature(creat) and random(1,100) <= noticeChance-stealth then
+  if random(1,100) <= noticeChance-stealth and self:can_sense_creature(creat)  then
     return self:notice(creat) --even if you could normally notice, callbacks might prevent it eg an invisibility spell
   end
   return false
@@ -1941,7 +2032,7 @@ function Creature:get_seen_creatures()
   local creats = {}
   local perc = self:get_perception()
   for _, c in pairs(currMap.creatures) do
-    if c.x > self.x-perc and c.x < self.x+perc and c.y > self.y-perc and c.y < self.y+perc and self:can_sense_creature(c) and c ~= self then
+    if c ~= self and c.x > self.x-perc and c.x < self.x+perc and c.y > self.y-perc and c.y < self.y+perc and self:can_sense_creature(c)  then
       creats[#creats+1] = c
     end --end perception if
   end --end for
@@ -1957,12 +2048,18 @@ function Creature:make_fear_map()
   local sX,sY,perc = self.x,self.y,self:get_perception()
   for x=sX-perc,sX+perc,1 do
     for y=sY-perc,sY+perc,1 do
+      local xy = x .. "," .. y
       if (x>1 and y>1 and x<cW and y<cH) then
-        if (lMap[x] == nil) then lMap[x] = {} end
-        local creat = currMap:get_tile_creature(x,y)
-        if (creat == false and self:can_move_to(x,y) == false) then lMap[x][y] = false
-        elseif creat and self:is_enemy(creat) then lMap[x][y] = 0
-        else lMap[x][y] = 10 end
+        if self:can_move_to(x,y) == false then
+          lMap[xy] = false
+        else
+          local creat = currMap:get_tile_creature(x,y)
+          if creat and self:is_enemy(creat) then
+            lMap[xy] = 0
+          else
+            lMap[xy] = 10
+          end
+        end
       end --end range check
     end --end yfor
   end --end xfor
@@ -1972,16 +2069,18 @@ function Creature:make_fear_map()
     changed = false
     for x=sX-perc,sX+perc,1 do
       for y=sY-perc,sY+perc,1 do
-        if (lMap[x] and lMap[x][y]) then
+        local xy = x .. "," .. y
+        if (lMap[xy]) then
           local min = nil
           for ix=x-1,x+1,1 do
             for iy=y-1,y+1,1 do
-              if (ix>1 and iy>1 and ix<cW and iy<cH and lMap[ix] and lMap[ix][iy]) and (min == nil or lMap[ix][iy] < min) then
-                min = lMap[ix][iy]
+              local ixy = ix .. "," .. iy
+              if (ix>1 and iy>1 and ix<cW and iy<cH and lMap[ixy]) and (min == nil or lMap[ixy] < min) then
+                min = lMap[ixy]
               end --end min if
             end --end yfor
           end --end xfor
-          if (min and min+2 < lMap[x][y]) then lMap[x][y] = min+1 changed = true end
+          if (min and min+2 < lMap[xy]) then lMap[xy] = min+1 changed = true end
         end --end tile check
       end --end yfor
     end --end xfor
@@ -1992,6 +2091,8 @@ end --end make_fear_map
 ---This function is run every tick and updates various things. You probably shouldn't call it yourself
 --@param dt Number. The number of seconds since the last time update() was run. Most likely less than 1.
 function Creature:update(dt) --for charging, and other special effects
+  --profiler.reset()
+  --profiler.start()
   if self == player and self.sees == nil then self.sees = self:get_seen_creatures() end --update player sees if for some reason they don't see anything (after a possession f'rex)
   --Delete tween if done moving:
   if self.doneMoving and self.xMod == 0 and self.yMod == 0 then
@@ -2151,6 +2252,8 @@ function Creature:update(dt) --for charging, and other special effects
       end
     end --end if self.countdown
   end --end animation for
+  --profiler.stop()
+  --print(profiler.report(10))
 end --end function
 
 ---Placeholder. Doesn't do anything.
@@ -2275,7 +2378,7 @@ function Creature:level_up(force)
   end
   self.level = self.level + 1
   self.skillPoints = (self.skillPoints or 0) + gamesettings.skill_points_per_level
-  if self ~= player or not prefs.autoLevel then
+  if self ~= player or prefs.autoLevel then
     local stats = {'max_hp','strength','dodging','melee'}
     if self.magic and self.magic > 0 then stats[#stats+1]='magic' end
     if self.ranged and self.ranged > 0 then stats[#stats+1]='ranged' end
@@ -2428,35 +2531,39 @@ end
 --@param noEquip Boolean. If true, ignore spells granted by equipment.
 --@return Table. A list of the creature's spells
 function Creature:get_spells(noEquip)
-  local spells = (self.spells and copy_table(self.spells) or {})
-  if noEquip then
-    return spells
+  if noEquip or #self.equipment_list == 0 then
+    return self.spells
   end
-  for _, equipslot in pairs(self.equipment) do
-    for _, equip in ipairs(equipslot) do
-      if equip.spells_granted then
-       for _, spell in ipairs(equip.spells_granted) do
-         if not in_table(spell,self.spells) then spells[#spells+1] = spell end
-       end
-      end --end bonuses if
-    end --end equipment for
-	end --end equipslot for
-  return spells
+  local spells = {}
+  for _, equip in pairs(self.equipment_list) do
+    if equip.spells_granted then
+     for _, spell in ipairs(equip.spells_granted) do
+       if not self:has_spell(spell.id,true) then spells[#spells+1] = spell end
+     end
+    end --end bonuses if
+  end --end equipment for
+  if #spells == 0 then
+    return self.spells
+  end
+  return merge_tables(self.spells,spells)
 end
 
 ---Checks if the creature possesses a certain spell
 --@param spellName String. The name of the spell
 --@param noEquip Boolean. If true, ignore spells granted by equipment
 --@return Boolean. Whether the creature has the spell
-function Creature:has_spell(spellName,noEquip)
-  return in_table(spellName,self:get_spells(noEquip))
+function Creature:has_spell(spellID,noEquip)
+  for _,spell in ipairs(self:get_spells(noEquip)) do
+    if spell.id == spellID then return true end
+  end
+  return false
 end
 
 ---Add a spell to a creature's spell list
 --@param spellID Text. The ID of the spell to learn
 function Creature:learn_spell(spellID)
   if not self:has_spell(spellID,true) then
-    self.spells[#self.spells+1] = spellID
+    self.spells[#self.spells+1] = Spell(spellID)
   end
 end
 
@@ -2481,7 +2588,8 @@ function Creature:can_learn_spell(spellID)
       end
     end
   else
-    local ret,text = spell:learn_requires(self)
+    local s = Spell(spellID)
+    local ret,text = s:learn_requires(self)
     if ret == false then
       return false,text
     end

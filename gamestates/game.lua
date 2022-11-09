@@ -12,7 +12,8 @@ end
   
 function game:draw()
   local dtime1 = os.clock()
-  --Pie:attach()
+  --profiler:reset()
+  --profiler:start()
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
   if (prefs['noImages'] == true) then love.graphics.setFont(fonts.mapFont) else love.graphics.setFont(fonts.mapFontWithImages) end
   setColor(255,255,255,255)
@@ -74,8 +75,8 @@ function game:draw()
     self.popup:draw()
     setColor(255,255,255,255)
   end
-  --Pie:draw()
-  --Pie:detach()
+  --profiler:stop()
+  --print(profiler.report(10))
   --print('total draw time: ' .. os.clock()-dtime1)
   --local stats = love.graphics.getStats()
   --print('draw calls: ' .. tostring(stats.drawcalls))
@@ -428,7 +429,7 @@ function game:print_sidebar()
       local canUseText = nil
       local hotkeyItem = nil
       if hotkeyInfo.type == "spell" then
-        hotkeyItem = possibleSpells[hotkeyInfo.id]
+        hotkeyItem = hotkeyInfo.spell
         name = hotkeyItem.name .. (player.cooldowns[hotkeyItem.name] and " (" .. player.cooldowns[hotkeyItem.name] .. " turns to recharge)" or "")
         canUse = not player.cooldowns[hotkeyItem.name] and hotkeyItem:requires(player)
       elseif hotkeyInfo.type == "item" then
@@ -1152,6 +1153,8 @@ function game:display_minimap(map)
 end
 
 function game:update(dt)
+  --profiler:reset()
+  --profiler:start()
   if game.newGhost then player = game.newGhost game.newGhost = nil end
   local utime = os.clock()
   if output.shakeTimer > 0 then
@@ -1247,9 +1250,9 @@ function game:update(dt)
     self.waitingToAdvance = false
     advance_turn()
   end
-  if count(currMap.lights) > 0 then
+  --[[if count(currMap.lights) > 0 then
     currMap:refresh_lightMap(true)
-  end
+  end]]
   
   --Untarget if targeting self or unseen creature
 	if (target == player or (target and player:can_sense_creature(target) == false)) then target = nil end
@@ -1316,6 +1319,8 @@ function game:update(dt)
   elseif #output.potentialTargets > 0 then
     output.potentialTargets = {}
   end
+  --profiler:stop()
+  --print(profiler.report(10))
   --print("update time: " .. os.clock()-utime)
 end
 
@@ -1398,7 +1403,7 @@ function game:mousepressed(x,y,button)
             local hotkeyInfo = player.hotkeys[spell]
             local hotkeyItem = nil
             if hotkeyInfo.type == "spell" then
-              hotkeyItem = possibleSpells[hotkeyInfo.id]
+              hotkeyItem = hotkeyInfo.spell
             elseif hotkeyInfo.type == "item" then
               hotkeyItem = hotkeyInfo.item or player:has_item(hotkeyItem.id)
             end
@@ -1754,7 +1759,7 @@ function game:keypressed(key,scancode,isRepeat)
     local hotkeyInfo = player.hotkeys[key] or player.hotkeys[tonumber(key)]
     local hotkeyItem = nil
     if hotkeyInfo.type == "spell" then
-      hotkeyItem = possibleSpells[hotkeyInfo.id]
+      hotkeyItem = hotkeyInfo.spell
     elseif hotkeyInfo.type == "item" then
       hotkeyItem = hotkeyInfo.item or player:has_item(hotkeyItem.id)
     end
@@ -1877,8 +1882,8 @@ function ContextualMenu:init(x,y,printX,printY)
       end
     end
   end
-  for _,spellID in pairs(player:get_spells()) do
-    local spell = possibleSpells[spellID]
+  for _,spell in pairs(player:get_spells()) do
+    local spellID = spell.id
     if spell.target_type == "tile" or spell.target_type == "self" or (spell.target_type == "creature" and self.creature) then
       self.entries[#self.entries+1] = {name=spell.name,y = spellY,action=spell,cooldown=player.cooldowns[spell.name]}
       spellY = spellY+fontPadding

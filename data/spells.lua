@@ -1,6 +1,6 @@
 possibleSpells = {
 
-blast = Spell({
+blast = {
 	name = "Psychic Blast",
 	description = "Attack a target...with your mind!",
 	cooldown = 5,
@@ -13,9 +13,9 @@ blast = Spell({
       output:out(caster:get_name() .. " blasts " .. target:get_name() .. " with " .. target:get_pronoun('p') .. " mind, dealing " .. dmg .. " damage.")
     end
 	end
-}),
+},
 
-blink = Spell({
+blink = {
 	name = "Blink",
 	description = "Instantly transports the caster to a random location nearby.",
 	target_type = "self",
@@ -51,9 +51,9 @@ blink = Spell({
       output:out(caster:get_name() .. " blinks!")
     end
 	end
-}),
+},
 
-demondamager = Spell({
+demondamager = {
 	name = "Demon Fighter",
 	description = "You know a lot about demons. Particularly, how to hurt them.",
 	target_type = "passive",
@@ -65,9 +65,9 @@ demondamager = Spell({
       return damage
     end
   end
-}),
+},
 
-demondamager2 = Spell({
+demondamager2 = {
 	name = "Demon Slayer",
 	description = "You know a ton about demons. Particularly, how to hurt them really badly.",
 	target_type = "passive",
@@ -85,9 +85,9 @@ demondamager2 = Spell({
       return false,"You need to know the basics about hurting demons before you can learn this."
     end
   end
-}),
+},
 
-scrawny = Spell({
+scrawny = {
 	name = "Scrawny Arms",
 	description = "Your arms are basically noodles, and they're not al dente. You can never deal more than 1 damage in melee.",
 	target_type = "passive",
@@ -95,18 +95,18 @@ scrawny = Spell({
   calc_damage = function(self,possessor,target,damage)
     return 1
   end
-}),
+},
 
-summonangel = Spell({
+summonangel = {
 	name = "Summon Angel",
 	description = "Summon a holy angel of vengeance.",
 	target_type = "self",
   cost=10,
   tags={'holy','summon'},
   level_requirement=3
-}),
+},
 
-smite = Spell({
+smite = {
     name = "Smite",
     description = "Bring down holy wrath upon a demon, abomination, undead or possessed creature.",
     target_type="creature",
@@ -130,9 +130,9 @@ smite = Spell({
         return false
       end
     end, --end use function
-  }),
+  },
 
-homecoming = Spell({
+homecoming = {
     name = "Homecoming",
     description = "Teleport immediately to the town.",
     target_type = "self",
@@ -142,11 +142,11 @@ homecoming = Spell({
         goToMap(1,"town",true)
       end
     end
-  }),
+  },
 
 
 --Pyromancer class spells
-smallfireball = Spell({
+smallfireball = {
 	name="Small Fireball",
 	description="Shoots a small fireball.",
 	cooldown=5,
@@ -159,9 +159,9 @@ smallfireball = Spell({
     if player:can_see_tile(caster.x,caster.y) then output:out(caster:get_name() .. " shoots a fireball.") end
     Projectile('smallfireball',caster,target)
 	end
-}),
+},
 
-explodingfireball = Spell({
+explodingfireball = {
 	name="Exploding Fireball",
 	description="Blasts an enormous fireball at an area.",
 	cooldown=20,
@@ -184,9 +184,9 @@ explodingfireball = Spell({
     end --end forx
     return targets
   end --end target draw function
-}),
+},
 
-firebrand = Spell({
+firebrand = {
 	name = "Fire Brand",
 	description = "Encases your weapon in flames, causing it to deal extra fire damage.",
   cost=10,
@@ -212,10 +212,10 @@ firebrand = Spell({
       return false
     end
 	end
-}),
+},
 
 --Necromancer class spells:
-reanimate = Spell({
+reanimate = {
 	name = "Reanimate Corpse",
 	description = "Brings a dead body back to life as a hideous zombie!",
 	target_type = "tile",
@@ -267,9 +267,9 @@ reanimate = Spell({
 		output:out("There's no corpse there to animate.")
 		return false
 	end
-}),
+},
 
-sacrificecorpse = Spell({
+sacrificecorpse = {
 	name = "Sacrifice Corpse",
 	description = "Sacrifice a recently-dead creature to the darkness, gaining evil power!",
 	target_type = "tile",
@@ -316,9 +316,9 @@ sacrificecorpse = Spell({
       end
     end
   end
-}),
+},
 
-corpseburst = Spell({
+corpseburst = {
 	name = "Corpse Burst",
 	description = "Accelerates the rate of decay in a dead body so much that the gases build up inside of it and explode. A completely grotesque spell, banned by most civilized nations.",
 	target_type = "tile",
@@ -334,9 +334,9 @@ corpseburst = Spell({
     corpse.creature:explode()
     corpse:delete()
 	end
-}),
+},
 
-witheringcurse = Spell({
+witheringcurse = {
 	name = "Withering Touch",
 	description = "You're so full of pathogens that just touching a creature will give them a horrible disease that weakens their muscles and causes their skin to rot off their body.",
 	target_type = "creature",
@@ -346,9 +346,9 @@ witheringcurse = Spell({
 	cast = function (self,target,caster)
 		target:give_condition('witheringcurse',-1)
 	end
-}),
+},
 
-auraoffear = Spell({
+auraoffear = {
     name = "Fearsome Visage",
     description = "You are either really scary or really ugly. Just being in your presence fills your enemies with fear.",
     target_type = "passive",
@@ -363,9 +363,9 @@ auraoffear = Spell({
         end --end fory
       end --end forx
     end
-  }),
+  },
 
-undeadlegion = Spell({
+undeadlegion = {
 	name = "Summon Undead Legion",
 	description = "The dead will crawl their way out of the ground to serve you. (This spell is more effective if cast in a wide open space.) Also, undead with no masters will follow you.",
 	cooldown = 25,
@@ -394,9 +394,9 @@ undeadlegion = Spell({
       return false
     end
   end
-}),
+},
 
-shademaker = Spell({
+shademaker = {
     name = "Leader of the Dead",
     description = "Anytime you kill a living creature, you'll draw forth a shade to join your unholy crusade.",
     target_type = "passive",
@@ -422,9 +422,9 @@ shademaker = Spell({
         end
       end
     end
-  }),
+  },
 
-lifedrain = Spell({
+lifedrain = {
   name = "Life Drain",
   description = "Drain health out of a nearby target.",
   target_type = "creature",
@@ -445,9 +445,9 @@ lifedrain = Spell({
       output:sound('unholydamage')
     end
   end
-}),
+},
 
-graspingdead = Spell({
+graspingdead = {
   name = "Grasping Dead",
   description = "Skeletal hands will erupt from the ground, grabbing onto all nearby, scratching them and preventing them from moving.",
   target_type = "tile",
@@ -485,9 +485,9 @@ graspingdead = Spell({
   decide = function(self,target,caster)
     if target:is_type('flyer') then return false end
   end --end creature for
-}),
+},
 
-bloodrain = Spell({
+bloodrain = {
   name = "Rain of Blood",
   description = "Causes blood to rain down, terrifying all in the area, and potentially getting them sick.",
   target_type = "tile",
@@ -516,9 +516,9 @@ bloodrain = Spell({
   decide = function(self,target,caster)
     if target:is_type('undead') or target:is_type('construct') then return false end
   end --end creature for --end target draw function
-}),
+},
 
-enfeeble = Spell({
+enfeeble = {
   name = "Enfeeble",
   description = "Permanently reduces a creature's maximum HP by half.",
   target_type = "creature",
@@ -544,9 +544,9 @@ enfeeble = Spell({
       currMap:add_effect(p,target.x,target.y)
     end
   end
-}),
+},
 
-decayaura = Spell({
+decayaura = {
 	name = "Aura of Decay",
 	description = "An aura of death and decay surrounds you, causing nearby plants to wither and die.",
 	target_type = "passive",
@@ -598,9 +598,9 @@ decayaura = Spell({
       deadgrass:refresh_image_name()
     end
   end
-}),
+},
 
-painbolt = Spell({
+painbolt = {
     name = "Bolt of Darkness",
     description = "Send unholy energy through a target's body. This deals damage to living creatures and heals undead ones.",
     projectile=false,
@@ -625,9 +625,9 @@ painbolt = Spell({
         end
       end
     end
-  }),
+  },
 
-rigormortis = Spell({
+rigormortis = {
     name = "Rigor Mortis",
     target_type = "creature",
     cooldown = 15,
@@ -641,9 +641,9 @@ rigormortis = Spell({
       output:sound('unholydamage')
       target:give_condition('stunned',tweak((target:is_type('undead') and 8 or 4)))
     end
-  }),
+  },
 
-deadlypremonition = Spell({
+deadlypremonition = {
     name = "Deadly Premonition",
     target_type = "creature",
     cooldown = 15,
@@ -664,9 +664,9 @@ deadlypremonition = Spell({
         return false
       end
     end
-  }),
+  },
 
-vampirism = Spell({
+vampirism = {
 	name = "Vampirism",
 	description = "You regain some health when you damage an enemy.",
 	target_type = "passive",
@@ -684,9 +684,9 @@ vampirism = Spell({
       possessor:updateHP(hp)
     end
 	end
-}),
+},
 
-slimesplit = Spell({
+slimesplit = {
 	name = "Mitosis",
 	description = "You split in half when you are damaged.",
 	target_type = "passive",
@@ -711,9 +711,9 @@ slimesplit = Spell({
 			end
 		end
 	end
-}),
+},
 
-curse = Spell({
+curse = {
 	name = "Curse",
 	description = "Curse an enemy with bad luck, reducing their hit and dodge chances.",
 	cooldown = 10,
@@ -744,23 +744,23 @@ curse = Spell({
 		target:give_condition('cursed',random(5,10))
 		if player:can_see_tile(caster.x,caster.y) then output:out(caster:get_name() .. " curses " .. target:get_name() .. " with bad luck.") end
 	end
-}),
+},
 
-knockbackimmunity = Spell({
+knockbackimmunity = {
     name = "Immune to Knockbacks",
     description = "You're incredibly massive, and can't be knocked backwards. Good for you.",
     target_type = "passive",
     tags={'physical'}
-  }),
+  },
 
-sleepless = Spell({
+sleepless = {
     name = "Sleepless",
     description = "You don't sleep. On the plus side, spells and abilities that make people fall asleep don't work on you. On the minus side, you don't dream. On the plus side, you don't have nightmares.",
     target_type = "passive",
     tags={'physical'}
-  }),
+  },
 
-sporedeath = Spell({
+sporedeath = {
     name = "Filled with Spores",
     description = "You are full of spores. When you die, they'll explode into the air.",
     target_type = "passive",
@@ -772,9 +772,9 @@ sporedeath = Spell({
       end
       if player:can_see_tile(possessor.x,possessor.y) then output:sound('shroomman_death') end
     end
-  }),
+  },
 
-passiverage = Spell({
+passiverage = {
     name = "Anger Management Problems",
     description = "You're very angry. Your fury builds in battle, eventually exploding into a terrible rage.",
     target_type="passive",
@@ -788,9 +788,9 @@ passiverage = Spell({
         end
       end
     end
-  }),
+  },
 
-yawp = Spell({
+yawp = {
     name = "Barbaric Yawp",
     description = "Sound a barbaric yawp over the roofs of the world, stunning and/or terrifying all who hear.",
     target_type="self",
@@ -819,42 +819,9 @@ yawp = Spell({
         end --end fory
       end --end forx
     end
-}),
+},
 
-angelichivemind = Spell({
-    name = "Angelic Hivemind",
-    description = "Can sense the presence of other angels on the same map.",
-    target_type = "passive",
-    tags={'holy'},
-    sense = function(self,possessor,target)
-      if target:is_type('angel') then return true end
-      if possessor:can_see_tile(target.x,target.y) then return true end
-      return false
-    end
-  }),
-
-angelicdefense = Spell({
-    name = "Angelic Defense",
-    description = "When one angel is attacked, all other angels on the level come running.",
-    target_type = "passive",
-    tags={'holy'},
-    attacked = function(self,possessor,attacker)
-      for _,creat in pairs(currMap.creatures) do
-        if creat:is_type('angel') then
-          creat:become_hostile(attacker)
-          if not creat.target or creat.target.baseType ~= "creature" then
-            if creat:can_see_tile(attacker.x,attacker.y) then
-              creat.target = attacker
-            else
-              creat.target = {x=attacker.x,y=attacker.y}
-            end
-          end
-        end
-      end
-    end
-  }),
-
-webshot = Spell({
+webshot = {
     name = "Spray Webbing",
     description = "Spray sticky webbing in an area to trap your victims.",
     cooldown = 25,
@@ -891,9 +858,9 @@ webshot = Spell({
         end
       end
     end --end cast function
-  }),
+  },
 
-poisonbite = Spell({
+poisonbite = {
     name = "Poison Bite",
     description = "Sink your fangs and/or mandibles in..",
     target_type = "creature",
@@ -909,9 +876,9 @@ poisonbite = Spell({
       end
       target:give_condition('poisoned',tweak(5))
     end
-  }),
+  },
 
-heal_other = Spell({
+heal_other = {
     name = "Heal Other",
     target_type = "creature",
     cooldown = 5,
@@ -960,5 +927,5 @@ heal_other = Spell({
       end --end self sees if
       return dmgedCreat or false
     end
-  }),
+  },
 }

@@ -602,21 +602,22 @@ local swampwater = {
   tilemap = true,
   walkedOnImage = "wadingswampwater",
   enter = function(self,entity,fromX,fromY)
-    if entity:has_condition('onfire') then entity:cure_condition('onfire') end
-    local moved = not (self.x == fromX and self.y == fromY)
     if entity:is_type('flyer') == false and currMap:tile_has_feature(entity.x,entity.y,"bridge") == false then
+      local seen = player:can_see_tile(entity.x,entity.y)
+      if entity:has_condition('onfire') then entity:cure_condition('onfire') end
+      local moved = not (self.x == fromX and self.y == fromY)
       if entity:is_type('swimmer') then
         if not entity.conditions['swimming'] then
           entity:give_condition('swimming',-1)
-          if player:can_see_tile(entity.x,entity.y) and moved then output:sound('enterwater') end
-        elseif player:can_see_tile(entity.x,entity.y) and moved then
+          if seen and moved then output:sound('enterwater') end
+        elseif seen and moved then
           output:sound('watersplash' .. random(1,2))
         end
       else
         if not entity.conditions['wadingshallowwater'] then
           entity:give_condition('wadingshallowwater',-1)
-          if player:can_see_tile(entity.x,entity.y) and moved then output:sound('enterwater') end
-        elseif player:can_see_tile(entity.x,entity.y) and moved then
+          if seen and moved then output:sound('enterwater') end
+        elseif seen and moved then
           output:sound('watersplash' .. random(1,2))
         end --end wading shallowwater if
       end --end swimmmer if

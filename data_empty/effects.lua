@@ -265,10 +265,10 @@ function featureanimator:update(dt)
       if self.features then
         for _,feat in pairs(self.features) do
           feat.lightColor = self.lightColors[imageNum]
-          currMap:refresh_light(feat,true)
+          currMap:refresh_light(feat)
         end
       end
-      currMap:refresh_light(self.feature,true)
+      currMap:refresh_light(self.feature)
     elseif self.lightColors then
       local lightNum = random(1,count(self.lightColors))
       local loopCount = 0
@@ -281,7 +281,7 @@ function featureanimator:update(dt)
       if self.features then
         for _,feat in pairs(self.features) do
           feat.lightColor = self.lightColors[lightNum]
-          currMap:refresh_light(feat,true)
+          currMap:refresh_light(feat)
         end
       end
     end --end color if
@@ -442,7 +442,7 @@ function conditionanimation:update(dt)
     --Change the light color, if necessary
     if self.lightColors then
       self.lightColor = self.lightColors[imageNum]
-      currMap:refresh_lightMap(self,true)
+      currMap:refresh_light(self)
     end --end lightcolor if
     if self.colors then
       self.color = self.colors[imageNum] or self.color

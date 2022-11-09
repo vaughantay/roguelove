@@ -164,6 +164,7 @@ function Feature:delete(map)
       map.contents[self.x][self.y][id] = nil
     end --end if
   end --end for
+  map.feature_cache[self.x .. ',' .. self.y] = nil
   if self.castsLight then map.lights[self] = nil end
   if self.blocksSight then refresh_player_sight() end
 end

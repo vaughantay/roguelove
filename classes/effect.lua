@@ -41,6 +41,7 @@ end
 function Effect:delete(map)
   map = map or currMap
 	map.effects[self] = nil
+  map.effect_cache[self.x .. ',' .. self.y] = nil
   if self.castsLight then map.lights[self] = nil end
 end
 

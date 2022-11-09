@@ -27,6 +27,12 @@ function Item:init(type_name,info,amt,ignoreNewFunc)
   self.itemType = self.itemType or "other"
   self.color = copy_table(self.color)
   self.amount = amt or 1
+  if data.spells_granted then
+    self.spells_granted = {}
+    for _,spellID in ipairs(data.spells_granted) do
+      self.spells_granted[#self.spells_granted+1] = Spell(spellID)
+    end
+  end
   if self.image_varieties and not self.image_name then
     self.image_variety = random(1,self.image_varieties)
     self.image_name = self.id .. self.image_variety

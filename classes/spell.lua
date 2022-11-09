@@ -4,11 +4,20 @@ Spell = Class{}
 ---Initiate a spell from its definition. You shouldn't use this function, the game uses it at loadtime to instantiate the spells.
 --@param data Table. The table of spell information.
 --@return Spell. The spell itself.
-function Spell:init(data)
+function Spell:init(spellID)
+  local data = possibleSpells[spellID]
+  if not data then
+    output:out("Error: Tried to create non-existent spell " .. spellID)
+    print("Error: Tried to create non-existent spell " .. spellID)
+    return false
+  end
 	for key, val in pairs(data) do
-		self[key] = data[key]
+    if type(val) ~= "function" then
+      self[key] = data[key]
+    end
 	end
   self.baseType = "spell"
+  self.id = spellID
   self.flags = self.flags or {}
 	return self
 end
@@ -76,8 +85,8 @@ function Spell:use(target, caster, ignoreCooldowns, ignoreMP)
   elseif not ignoreCooldowns and caster.mp and self.cost and self.cost > caster.mp then
     if (caster == player) then output:out("You don't have enough magic points to use that ability.") end
 		return false
-	elseif self.cast then
-    local status,r = pcall(self.cast,self,target,caster)
+	elseif possibleSpells[self.id].cast then
+    local status,r = pcall(possibleSpells[self.id].cast,self,target,caster)
     if not status then
       local errtxt = "Error from " .. caster:get_name() .. " casting spell " .. self.name .. ": " .. r
       output:out(errtxt)
@@ -104,6 +113,7 @@ end
 --@param use_type String. The way in which this spell is being used. Either aggressive, defensive, fleeing or friendly.
 --@return Entity. The new target of the spell.
 function Spell:decide(target,caster,use_type)
+  if possibleSpells[self.id].decide then return possibleSpells[self.id].decide(self,target,caster,use_type) end
   return target --default to already-selected target
 end
 
@@ -111,6 +121,7 @@ end
 --@param possessor Creature. The creature who's trying to use the spell.
 --@return true
 function Spell:requires(possessor)
+  if possibleSpells[self.id].requires then return possibleSpells[self.id].requires(self,possessor) end
   return true
 end
 
@@ -118,7 +129,19 @@ end
 --@param possessor Creature. The creature who's trying to use the spell.
 --@return true
 function Spell:learn_requires(possessor)
+  if possibleSpells[self.id].learn_requires then return possibleSpells[self.id].learn_requires(self,possessor) end
   return true
+end
+
+--Placeholder for the get_target_tiles() function
+--@param possessor Creature. The creature who's trying to use the spell.
+--@return true
+function Spell:get_target_tiles(target,possessor)
+  if possibleSpells[self.id].get_target_tiles then
+    return possibleSpells[self.id].get_target_tiles(self,target,possessor)
+  else
+    return {}
+  end
 end
 
 ---Checks if a spell has a descriptive tag.

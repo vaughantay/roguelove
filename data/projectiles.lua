@@ -580,7 +580,7 @@ local cherubarrow = {
   image_name="firearrow",
   symbol = "/",
   angled = true,
-  damage = 12,
+  damage = 2,
   damage_type="holy",
   color = {r=255,g=255,b=0},
   time_per_tile = .01

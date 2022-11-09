@@ -797,7 +797,7 @@ afterdivebomb = Condition({
       update = function(self,possessor,dt)
         possessor.diveBombCount = (possessor.diveBombCount or 0)+dt
         if possessor.diveBombCount >= 0.25 then
-          possessor:flyTo(possessor.diveBombFrom,possibleSpells['landsafely'])
+          possessor:flyTo(possessor.diveBombFrom,Spell('landsafely'))
           possessor.diveBombFrom = nil
           possessor.diveBombCount = nil
           possessor.conditions['afterdivebomb'] = nil --Remove the condition so it never actually shows up
@@ -969,7 +969,7 @@ beingdigested = Condition({
       if possessor == player then
         output:out("Your current body is digested, and you take control of the body that was digesting it.")
         possessor.digestor.possession_chance = 100
-        possibleSpells['possession']:cast(possessor.digestor,possessor)
+        Spell('possession'):cast(possessor.digestor,possessor)
       end
     end
   }),
@@ -1114,7 +1114,7 @@ restrainingorder = Condition({
         end
         possessor:flyTo({x=newX,y=newY})
         if first then possessor:flyTo({x=newX,y=newY})
-        else possessor:flyTo({x=newX,y=newY},possibleSpells['landsafely']) end
+        else possessor:flyTo({x=newX,y=newY},Spell('landsafely')) end
       end
     end,
     cured = function(self,possessor)
@@ -1948,7 +1948,7 @@ spindashing = Condition({
           if oldBody.possessTarget then
             local ghost = game.newGhost and game.newGhost or player
             ghost.possessTarget = oldBody.possessTarget
-            possibleSpells['possession']:cast(oldBody.possessTarget,ghost)
+            Spell('possession'):cast(oldBody.possessTarget,ghost)
           else
             advance_turn()
           end
@@ -1974,7 +1974,7 @@ spindashing = Condition({
           possessor:explode()
           local c = Creature('badghost')
           currMap:add_creature(c,possessor.x,possessor.y)
-          possibleSpells['blink']:cast(c,c)
+          Spell('blink'):cast(c,c)
         end --end countdown if
       end --end update function
     }),
@@ -2004,7 +2004,7 @@ possessed = Condition({
   ai = function(self,possessor)
     if possessor.hp < possessor:get_mhp()/10 then
       if calc_distance(possessor.x,possessor.y,player.x,player.y) < possessor.level then
-        possibleSpells['enemyExitBody']:cast(possessor,possessor)
+        Spell('enemyExitBody'):cast(possessor,possessor)
       end
     end
     return true --normal AI

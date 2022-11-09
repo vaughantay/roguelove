@@ -7,6 +7,7 @@ function register_classes()
   Lady.register_class(Item,'Item')
   Lady.register_class(Store,'Store')
   Lady.register_class(Faction,'Faction')
+  Lady.register_class(Spell,'Spell')
 end
 
 function save_game(screenshot,fileName)

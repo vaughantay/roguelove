@@ -8,6 +8,7 @@ ai = {}
   
 --Possible arguments: "noRunning", "forceStupid", "noRanged", "forceWander"
 ai['basic'] = function(self,args)
+  local aitime = os.clock()
   args = args or {}
   
   --If you're not close to the player, just move randomly:
@@ -18,6 +19,8 @@ ai['basic'] = function(self,args)
   --Handle noticing creatures (and running, for creatures with a minimum distance to maintain)
   local creats = self:get_seen_creatures()
   local enemies,defRun = ai.handlenotice(self,creats,args)
+  
+  --print('after handlenotice: ' .. os.clock()-aitime)
   
   --Decrease fear, and if you don't see any enemies, decrease alertness. Also decrease memory of seen creatures
   local fearDec = 1 --base fear decrease by 1 every turn
@@ -33,12 +36,16 @@ ai['basic'] = function(self,args)
   
   local fearRun = self:get_fear() > self:get_bravery()
   --If you're too afraid, run away!
-  if  (defRun == true or fearRun == true) and args.noRunning ~= true then
-    return ai.run(self,(fearRun and 'fleeing' or 'defensive'),args) --pass it off to another function, don't deal with that shit here!
+  if  (defRun == true or fearRun == true) and args.noRunning ~= true and enemies > 0 then
+    if ai.run(self,(fearRun and 'fleeing' or 'defensive'),args) then return true end --pass it off to another function, don't deal with that shit here!
   end --end fear
+  
+  --print('after fear and running: ' .. os.clock()-aitime)
   
    --Handle targeting
   ai.target(self,args)
+  
+  --print('after targeting: ' .. os.clock()-aitime)
   
   --Deal with "target's last seen location" value
   if self.target and self.target.baseType == "creature" then
@@ -48,40 +55,43 @@ ai['basic'] = function(self,args)
     else self.target = self.lastSeen end
   end
   
+  --print('after lastseening: ' .. os.clock()-aitime)
+  
   --Ranged attacks/spells: If you have a ranged attack, and are able/willing to attack them
   if not args.noRanged and self.ranged_chance and random(0,100) <= self.ranged_chance and (args.forceStupid or not self:is_type('intelligent') or currMap:is_passable_for(self.x,self.y,self.pathType,true)) then --I always get confused what this last clause is doing: Basically, don't use a ranged attack if you're standing in a hazardous area, unless you're too stupid to care
     local finished = ai.rangedAttack(self,args)
     if finished == true then return true end
   end --end ranged chance if
   
+  --print('after ranged: ' .. os.clock()-aitime)
+  
   --If you're next to your target, attack them:
   if self.target and self.target.baseType == "creature" and self:touching(self.target) and (args.forceStupid or not self:is_type('intelligent') or currMap:is_passable_for(self.x,self.y,self.pathType,true)) and self:attack(self.target) then
     return true
   end
   
-  --If you don't have a target, and you're not mindless, set a random point in the dungeon as your target and start heading there
-  --[[if self.target == nil and self:is_type('mindless') == false then
-    local tX,tY = math.min(math.max(self.x+random(-self.perception,self.perception),2),currMap.width-1),math.min(math.max(self.y+random(-self.perception,self.perception),2),currMap.height-1)
-    if (self:can_move_to(tX,tY) and currMap:findPath(self.x,self.y,tX,tY)) then
-      self.target = {x=tX,y=tY}
-    end --end findPath if
-  end --end random target]]
+  --print('after attack: ' .. os.clock()-aitime)
   
   --If you have a target and didn't cast a spell or use a ranged attack, move towards them, if it won't put you too close
   local moved = ai.moveToTarget(self,args)
+  --print('after movetotarget: ' .. os.clock()-aitime)
   if moved == true then return true end
   
   --If you don't have a target or are too close to your target, just wander around, or cast a "random" spell. Later: head towards suspicious noise?
-  for _, id in ipairs(self:get_spells()) do
-    local spell = possibleSpells[id]
-    if spell.flags['random'] == true and self.cooldowns[id] == nil then --cast friendly spells first
-      local target = spell:decide(self,self,'random')
-      if target == true then target = self.target end
-      if target and target.x and target.y and (not spell.range or math.floor(calc_distance(self.x,self.y,target.x,target.y)) <= spell.range) then --if there's a valid target to the spell within range
-        if spell:use(target,self) then return true end --this is on a seperate line because I want the rest to be skipped if the spell fails for some reason.
-      end --end friendly spell range check
-    end --end random flag check
-  end --end spell for
+  if not args.noRanged and self.ranged_chance and random(0,100) <= self.ranged_chance then
+    for _, spell in ipairs(self:get_spells()) do
+      local id = spell.id
+      if spell.flags['random'] == true and self.cooldowns[id] == nil then --cast friendly spells first
+        local target = spell:decide(self,self,'random')
+        if target == true then target = self.target end
+        if target and target.x and target.y and (not spell.range or math.floor(calc_distance(self.x,self.y,target.x,target.y)) <= spell.range) then --if there's a valid target to the spell within range
+          if spell:use(target,self) then return true end --this is on a seperate line because I want the rest to be skipped if the spell fails for some reason.
+        end --end friendly spell range check
+      end --end random flag check
+    end --end spell for
+  end
+  
+  --print('after random spell: ' .. os.clock()-aitime)
     
   local goX,goY = nil,nil
   --If you have a master, go towards them
@@ -93,7 +103,6 @@ ai['basic'] = function(self,args)
   end --end self.master if
     
   --Move to a random nearby spot:
-  --Move to a random nearby spot:
   if not goX or not goY then
     if not self:has_ai_flag('stoic') then return ai.wander(self,args) end
   else
@@ -103,7 +112,7 @@ end -- end basic ai function
 
 --This function causes the creature to randomly wander
 ai['wander'] = function(self,args)
-  if not self.direction or currMap:is_passable_for(self.x+self.direction.x,self.y+self.direction.y,self.pathType) == false or random(1,5) == 1 then
+  if not self.direction or random(1,5) == 1 or currMap:is_passable_for(self.x+self.direction.x,self.y+self.direction.y,self.pathType) == false then
     local xMod,yMod = random(-1,1),random(-1,1)
     local count = 0
     while (count < 10) and ((xMod == 0 and yMod == 0) or (currMap:is_passable_for(self.x+xMod,self.y+yMod,self.pathType) == false)) do
@@ -121,14 +130,9 @@ ai['handlenotice'] = function(self,creats,args)
   local enemies,defRun = 0,false
   --First, get all seen creatures. See if enemy creatures are noticed. Go on alert if enemy targets are noticed:
   for _,creat in pairs(creats) do --Loop through all seen creatures
-    local notice = self:does_notice(creat)
-    local enemy = self:is_enemy(creat)
-    
-    --if you haven't already notice them, see if you notice them:
-    --this is commented out because now the first time a turn you check for whether or not a creature is noticed, it should also run the "do you notice them now" check
-    --[[if notice == false then
-      if self:can_notice(creat) then notice = true end
-    end --end notice if]]
+    local notice = self.notices[creat] or self:does_notice(creat)
+    local enemy = self.shitlist[creat] or self:is_enemy(creat)
+    local distance = calc_distance(self.x,self.y,creat.x,creat.y)
     
     --if they're an enemy and you notice them, keep count of enemies and go on alert:
     if enemy and notice then
@@ -137,12 +141,12 @@ ai['handlenotice'] = function(self,creats,args)
       self.notices[creat] = math.ceil(self.memory/2)
     end
     --If you're too close to an enemy for comfort, run away from them:
-    if enemy and self.min_distance and run == false and self:does_notice(creat) and math.floor(calc_distance(self.x,self.y,creat.x,creat.y)) < self.min_distance and (self.run_chance == nil or random(0,100) < self.run_chance) then
+    if enemy and self.min_distance and notice and distance < self.min_distance and (self.run_chance == nil or random(0,100) < self.run_chance) then
       defRun = true
       self.fear = self.fear + 2
     end
     --If you notice an enemy, see if you actually become hostile:
-    if self:is_enemy(creat) and random(0,100) <= self:get_aggression() and self:does_notice(creat) and (self.shitlist == nil or self.shitlist[creat] == nil) and (self.ignore_distance == nil or calc_distance(creat.x,creat.y,self.x,self.y) < self.ignore_distance) then
+    if enemy and random(0,100) <= self:get_aggression() and notice and (self.shitlist == nil or self.shitlist[creat] == nil) and (self.ignore_distance == nil or distance < self.ignore_distance) then
       self:become_hostile(creat)
     end --end aggression check 
   end --end for
@@ -242,8 +246,8 @@ ai['rangedAttack'] = function(self,args)
   --Try regular ranged attack first:
   if (self.target and self.target.baseType == "creature" and not self.target:is_type('ghost')) and self:touching(self.target) == false and (self.ranged_attack ~= nil and (rangedAttacks[self.ranged_attack].projectile == false or self:can_shoot_tile(self.target.x,self.target.y)) and rangedAttacks[self.ranged_attack]:use(self.target,self)) then return true end
   -- Then cast a spell, if possible
-  for _, id in ipairs(self:get_spells()) do
-    local spell = possibleSpells[id]
+  for _, spell in ipairs(self:get_spells()) do
+    local id = spell.id
     if spell.flags['friendly'] == true and self.cooldowns[id] == nil then --cast friendly spells first
       local target = spell:decide(self,self,'friendly')
       if target == true then target = self.target end
@@ -268,8 +272,8 @@ ai['run'] = function(self,runType,args)
   
   if self.ranged_chance and random(0,100) <= self.ranged_chance then
     -- Cast a defensive/fleeing spell, if possible
-    for _, id in ipairs(self:get_spells()) do
-      local spell = possibleSpells[id]
+    for _, spell in ipairs(self:get_spells()) do
+      local id = spell.id
       if spell.flags[runType] == true and self.cooldowns[id] == nil then
         local target = spell:decide(self,self,runType)
         if target ~= false and (target == nil or target.x == nil or target.y == nil) then target = self.target end --if for some reason the decide function doesn't return an acceptable target
@@ -280,49 +284,15 @@ ai['run'] = function(self,runType,args)
     end --end spell for
   end --end ranged chance if
   
-  --[[local lMap = {}
-  local cW,cH=currMap.width-1,currMap.height-1
-  local sX,sY,perc = self.x,self.y,self.perception
-  for x=sX-perc,sX+perc,1 do
-    for y=sY-perc,sY+perc,1 do
-      if (x>1 and y>1 and x<cW and y<cH) then
-        if (lMap[x] == nil) then lMap[x] = {} end
-        local creat = currMap:get_tile_creature(x,y)
-        if (creat == false and self:can_move_to(x,y) == false) then lMap[x][y] = false
-        elseif creat and self:is_enemy(creat) then lMap[x][y] = 0
-        else lMap[x][y] = 10 end
-      end --end range check
-    end --end yfor
-  end --end xfor
-  
-  local changed = true
-  while (changed) do
-    changed = false
-    for x=sX-perc,sX+perc,1 do
-      for y=sY-perc,sY+perc,1 do
-        if (lMap[x] and lMap[x][y]) then
-          local min = nil
-          for ix=x-1,x+1,1 do
-            for iy=y-1,y+1,1 do
-              if (ix>1 and iy>1 and ix<cW and iy<cH and lMap[ix] and lMap[ix][iy]) and (min == nil or lMap[ix][iy] < min) then
-                min = lMap[ix][iy]
-              end --end min if
-            end --end yfor
-          end --end xfor
-          if (min and min+2 < lMap[x][y]) then lMap[x][y] = min+1 changed = true end
-        end --end tile check
-      end --end yfor
-    end --end xfor
-  end -- end while]]
-  
   local lMap = self:make_fear_map()
   local largest = nil
   local largestX,largestY = nil,nil
   
   for x=self.x-1,self.x+1,1 do
     for y=self.y-1,self.y+1,1 do
-      if lMap[x] and lMap[x][y] and (largest == nil or lMap[x][y] > largest) and self:can_move_to(x,y) then
-        largest = lMap[x][y]
+      local xy = x .. "," .. y
+      if lMap[xy] and (largest == nil or lMap[xy] > largest) then
+        largest = lMap[xy]
         largestX,largestY = x,y
       end --end if
     end --end fory
@@ -330,42 +300,45 @@ ai['run'] = function(self,runType,args)
   
   if largest then
     self:moveTo(largestX,largestY)
+    return true
   else --nowhere to run!
-    args.noRunning = true
-    ai.basic(self,args)
+    return false
   end
   --output:out("Time to calc fear map: " .. tostring(os.clock()-sTime))
 end --and AI run
 
 --This function pathfinds to an enemy, ignoring hazards
 ai['dijkstra'] = function(self,args)
-  local sTime = os.clock()
+  local createTime = 0
+  local hTime = 0
   local lMap = {}
   local hazards = {}
   local cW,cH=currMap.width-1,currMap.height-1
   local sX,sY,perc = self.x,self.y,self:get_perception()
+  local ctype = self.pathType
   for x=sX-perc,sX+perc,1 do
     for y=sY-perc,sY+perc,1 do
+      local xy = x .. "," .. y
       if (x>1 and y>1 and x<cW and y<cH) then
-        if (lMap[x] == nil) then lMap[x] = {} end
-        local creat = currMap:get_tile_creature(x,y)
-        if (creat == false and self:can_move_to(x,y) == false) then lMap[x][y] = false
-        elseif creat and self:is_enemy(creat) then lMap[x][y] = 0
-        elseif creat then lMap[x][y] = false -- if there's a creature who's not an enemy, you can't move there
-        else lMap[x][y] = 10 end
+        if (self:can_move_to(x,y) == false) then
+          lMap[xy] = false
+        elseif x == self.target.x and y == self.target.y then
+          lMap[xy] = 0
+        else
+          lMap[xy] = 10
+        end
         
         --Add hazard score:
-        if hazards[x] == nil then hazards[x] = {} end
-        hazards[x][y] = 0
+        hazards[xy] = 0
         if type(currMap[x][y]) == "table" then --if the tile is hazardous, add hazard score
-          tile = currMap[x][y]
-          if tile.hazard and tile:is_hazardous_for(ctype) then hazards[x][y] = hazards[x][y] + tile.hazard/10 end
+          local tile = currMap[x][y]
+          if tile.hazard and tile:is_hazardous_for(ctype) then hazards[xy] = hazards[xy] + tile.hazard/10 end
         end --end tile hazard if
         for _,feat in pairs(currMap:get_tile_features(x,y)) do
-          if feat.hazard and feat:is_hazardous_for(ctype) then hazards[x][y] = hazards[x][y] + feat.hazard/10 end
+          if feat.hazard and feat:is_hazardous_for(ctype) then hazards[xy] = hazards[xy] + feat.hazard/10 end
         end --end feature for
         for _, eff in pairs(currMap:get_tile_effects(x,y)) do
-          if eff.hazard and eff:is_hazardous_for(ctype) then hazards[x][y] = hazards[x][y] + eff.hazard/10 end
+          if eff.hazard and eff:is_hazardous_for(ctype) then hazards[xy] = hazards[xy] + eff.hazard/10 end
         end
       end --end range check
     end --end yfor
@@ -376,17 +349,19 @@ ai['dijkstra'] = function(self,args)
     changed = false
     for x=sX-perc,sX+perc,1 do
       for y=sY-perc,sY+perc,1 do
-        if (lMap[x] and lMap[x][y]) then
+        local xy = x .. "," .. y
+        if (lMap[xy]) then
           local min = nil --look at the tiles next to this tile, and set the score of this tile to be 1 higher than the lowest score of any neighbors
           for ix=x-1,x+1,1 do
             for iy=y-1,y+1,1 do
-              if (ix>1 and iy>1 and ix<cW and iy<cH and lMap[ix] and lMap[ix][iy]) and (min == nil or lMap[ix][iy] < min) then
-                min = lMap[ix][iy]
+              local ixy = ix .. "," .. iy
+              if (ix>1 and iy>1 and ix<cW and iy<cH and lMap[ixy]) and (min == nil or lMap[ixy] < min) then
+                min = lMap[ixy]
               end --end min if
             end --end yfor
           end --end xfor
-          if (min and min+2 < lMap[x][y]-hazards[x][y]) then
-            lMap[x][y] = min+1+hazards[x][y]
+          if (min and min+2 < lMap[xy]-hazards[xy]) then
+            lMap[xy] = min+1+hazards[xy]
             changed = true
           end --end min check
         end --end tile check
@@ -397,13 +372,13 @@ ai['dijkstra'] = function(self,args)
   --Figure out what the smallest value is:
   local smallest = nil
   local smallestX,smallestY = nil,nil
-  local ctype = self.pathType
   
   for x=self.x-1,self.x+1,1 do
     for y=self.y-1,self.y+1,1 do
-      if lMap[x] and lMap[x][y] then
-        if (smallest == nil or lMap[x][y] < smallest or (lMap[x][y] == smallest and random(1,2) == 1)) and self:can_move_to(x,y) then
-          smallest = lMap[x][y]
+      local xy = x .. "," .. y
+      if lMap[xy] then
+        if (smallest == nil or lMap[xy] < smallest or (lMap[xy] == smallest and random(1,2) == 1)) then
+          smallest = lMap[xy]
           smallestX,smallestY = x,y
         end --end largest if
         if smallest == 1 then break end
@@ -461,94 +436,6 @@ ai['dumbpathfind'] = function(self,args)
       self.target = nil
     end--end if path == table
   end --end line vs path if
-end
-
---Special AI:
-ai['enemypossessor'] = function(self,args)
-  --First things first: If you're standing on a corpse, possess it!
-  local corpse = currMap:tile_has_feature(self.x,self.y,"corpse")
-  if corpse then
-    return possibleSpells['enemypossession']:cast(corpse,self)
-  end
-  --Are you standing next to a possessable, non-player creature? Possess it!
-  for x=self.x-1,self.x+1,1 do
-    for y=self.y-1,self.y+1,1 do
-      local creat = currMap:get_tile_creature(x,y)
-      if creat and creat ~= player and creat:get_possession_chance() > 0 then
-        return possibleSpells['enemypossession']:cast(creat,self)
-      end --end if creat
-    end --end fory
-  end --end forx
-  
-  --Otherwise, move using custom dijkstra map
-  local sTime = os.clock()
-  local lMap = {}
-  local hazards = {}
-  local cW,cH=currMap.width-1,currMap.height-1
-  local sX,sY,perc = self.x,self.y,self:get_perception()
-  for x=sX-perc,sX+perc,1 do
-    for y=sY-perc,sY+perc,1 do
-      if (x>1 and y>1 and x<cW and y<cH) then
-        if (lMap[x] == nil) then lMap[x] = {} end
-        local creat = currMap:get_tile_creature(x,y)
-        local corpse = currMap:tile_has_feature(x,y,"corpse")
-        if (creat == false and self:can_move_to(x,y) == false) then lMap[x][y] = false
-        elseif creat and creat ~= player and creat ~= self then lMap[x][y] = 0 --creatures are potential targets
-        elseif corpse then lMap[x][y] = 0 --corpses are potential target
-        else lMap[x][y] = 10 end
-      end --end range check
-    end --end yfor
-  end --end xfor
-  
-  local changed = true
-  while (changed) do
-    changed = false
-    for x=sX-perc,sX+perc,1 do
-      for y=sY-perc,sY+perc,1 do
-        if (lMap[x] and lMap[x][y]) then
-          local min = nil --look at the tiles next to this tile, and set the score of this tile to be 1 higher than the lowest score of any neighbors
-          for ix=x-1,x+1,1 do
-            for iy=y-1,y+1,1 do
-              if (ix>1 and iy>1 and ix<cW and iy<cH and lMap[ix] and lMap[ix][iy]) and (min == nil or lMap[ix][iy] < min) then
-                min = lMap[ix][iy]
-              end --end min if
-            end --end yfor
-          end --end xfor
-          if (min and min+2 < lMap[x][y]) then
-            lMap[x][y] = min+1
-            changed = true
-          end --end min check
-        end --end tile check
-      end --end yfor
-    end --end xfor
-  end -- end while
-  
-  --Figure out what the smallest value is:
-  local smallest = nil
-  local smallestX,smallestY = nil,nil
-  local ctype = self.pathType
-  
-  for x=self.x-1,self.x+1,1 do
-    for y=self.y-1,self.y+1,1 do
-      if lMap[x] and lMap[x][y] then
-        local val = lMap[x][y]+(lMap[x][y] == 0 and 0 or math.max(6-calc_distance(x,y,player.x,player.y),0))
-        if (smallest == nil or val < smallest or (val == smallest and random(1,2) == 1)) and not player:touching({x=x,y=y}) and self:can_move_to(x,y) then
-          smallest = val
-          smallestX,smallestY = x,y
-        end --end largest if
-        if smallest == 0 then break end
-      end --end if map exists if
-    end --end fory
-  end --end forx
-  --currMap.lMap = lMap
-  if smallest then
-    self:moveTo(smallestX,smallestY)
-    return true
-  end
-  --This should only fire if the ghost is trapped:
-  if not self.cooldowns['blink'] then
-    possibleSpells['blink']:cast(self,self)
-  end
 end
 
 --[[ai['basicold'] = function(creature)

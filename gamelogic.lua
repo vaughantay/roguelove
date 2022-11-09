@@ -48,8 +48,8 @@ function new_game(mapSeed,playTutorial,cheats,branch)
   --Pre-populate game hotkeys for player:
   player.hotkeys = {}
   for i,spell in ipairs(player.spells) do
-    if i <= 10 and possibleSpells[spell].target_type ~= "passive" then
-      player.hotkeys[#player.hotkeys+1] = {type="spell",id=spell}
+    if i <= 10 and possibleSpells[spell.id].target_type ~= "passive" then
+      player.hotkeys[#player.hotkeys+1] = {type="spell",spell=spell}
     end
   end
 end
@@ -154,7 +154,7 @@ end
 --@return dmg Number. The damage to do.
 function calc_attack(attacker,target,forceHit,item)
 	local dmg = (item and item:get_damage(target,attacker) or attacker:get_damage())
-  local dbonus = .01*attacker:get_bonus('damage_percent',true)
+  local dbonus = .01*attacker:get_bonus('damage_percent')
   dmg = dmg * math.ceil(dbonus > 0 and dbonus or 1)
 	local critChance = attacker:get_critical_chance() + (item and item:get_critical_chance() or 0)
 	local hitMod = calc_hit_chance(attacker,target,item)
@@ -180,6 +180,8 @@ end
 ---Advances the turn, causing NPCs to move, effects and projectiles to advance, the map's lighting to recalculate, creature conditions to do their thing, and the output buffer to clear.
 function advance_turn()
   local pTime = os.clock()
+  --profiler.reset()
+  --profiler.start()
   game.canvas=nil
   if game.moveBlocked == true then
     game.waitingToAdvance = true
@@ -234,6 +236,10 @@ function advance_turn()
 		end
 	end
   
+  currMap.sightblock_cache = {}
+  currMap.creature_cache = {}
+  currMap.feature_cache = {}
+  currMap.effect_cache = {}
   currMap:refresh_lightMap(true) -- refresh the lightmap, forcing it to refresh all lights
   if action ~= "dying" then action = "moving" end
   actionResult = nil
@@ -252,8 +258,6 @@ function advance_turn()
     output.buffering = false
     player.sees = nil
     player.sees = player:get_seen_creatures()
-    player.checked = {}
-    player:get_seen_creatures()
   end
   
   local px,py = output:tile_to_coordinates(player.x,player.y)
@@ -277,7 +281,12 @@ function advance_turn()
     currGame.autoSave = prefs['autosaveTurns']
   end
   refresh_player_sight()
-  --print("Time to run turn: " .. tostring(os.clock()-pTime))
+  --profiler.stop()
+  print("Time to run turn: " .. tostring(os.clock()-pTime))
+  if os.clock()-pTime > 0.04 then
+    --print(profiler.report(25))
+    --profiler.reset()
+  end
 end --end advance_turn
 
 ---This function is called when you win. It saves the win for posterity, and blacks out the screen.
@@ -619,27 +628,19 @@ function move_player(newX,newY,force)
   elseif entity then
     for id, entity in pairs(currMap.contents[newX][newY]) do
       if (entity.baseType == "creature") then
-        if (player.id == "ghost") then
-          possessed = true
-          if not possibleSpells['possession']:use(entity,player) then return false end --if you try to possess a non-possessable creature, return false so it doesn't pass a turn
+        if (entity.playerAlly == true) then
+          currMap:swap(player,entity)
+          output:out("You swap places with " .. entity:get_name() .. ".")
         else
-          if (entity.playerAlly == true) then
-            currMap:swap(player,entity)
-            output:out("You swap places with " .. entity:get_name() .. ".")
-          else
-            target = entity
-            player:attack(entity)
-          end
+          target = entity
+          player:attack(entity)
         end
         break --if there's a creature, we'll deal with them and ignore features
       elseif entity.baseType == "feature" then
-        if entity.pushable == true and player.id ~= "ghost" and entity:push(player) then
+        if entity.pushable == true and entity:push(player) then
           player:moveTo(newX,newY)
-        elseif entity.attackable == true and player.id ~= "ghost" then
+        elseif entity.attackable == true then
           player:attack(entity)
-        elseif entity.possessable == true and player.id == "ghost" then
-          possibleSpells['possession']:use(entity,player)
-          possessed = true
         else
           --return false
         end --end possessable if
@@ -775,10 +776,17 @@ end
 function refresh_player_sight()
   if not currMap then return end
   if not player.seeTiles then player.seeTiles = {} end
+  player.seen_tile_cache = {}
+  currMap.sightblock_cache = {}
+  local perc = player:get_perception()
   for x=1,currMap.width,1 do
     if not player.seeTiles[x] then player.seeTiles[x] = {} end
     for y=1,currMap.height,1 do
-      player.seeTiles[x][y] = player:can_see_tile(x,y,true)
+      if (x < player.x+perc and x > player.x-perc and y < player.y+perc and y > player.y-perc) or currMap.lightMap[x][y] then
+        player.seeTiles[x][y] = player:can_see_tile(x,y,true)
+      else
+        player.seeTiles[x][y] = false
+      end
     end
   end
 end

@@ -31,6 +31,7 @@ for i,v in pairs(arg) do
 end
 if debugMode == true then
   require("lib.lovedebug")
+  profiler = require("lib.profile")
 end
 
 --pClock = require("profileclock")
@@ -149,6 +150,7 @@ function love.quit()
   save_prefs()
   save_stats()
   if Steam then Steam.shutdown() end
+  if profiler then print(profiler.report(25)) end
 end
 
 function love.resize()

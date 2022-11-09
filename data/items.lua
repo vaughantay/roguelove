@@ -223,7 +223,7 @@ function scroll:new(spell)
         if tags then
           if spell.tags then
             for _,tag in pairs(tags) do
-              if in_table(tag,spell.tags) then
+              if Spell.has_tag(spell,tag) then
                 acceptable = true
                 break --break the tag for
               end --end if in_table
@@ -248,22 +248,29 @@ function scroll:new(spell)
 end
 function scroll:target(target,user)
   action="targeting"
-  actionResult=possibleSpells[self.spell]
+  actionResult=self
   actionItem=self
   actionIgnoreCooldown = true
 end
 function scroll:use(target,user)
   if possibleSpells[self.spell].target_type == "self" then
     target = user
-    local spResult = possibleSpells[self.spell]:use(target,user,true,true)
+    local spResult = Spell(self.spell):use(target,user,true,true)
     if spResult ~= false then
       user:delete_item(self)
     else
       return false
     end
+  elseif action == "targeting" then
+    local spResult = Spell(self.spell):use(target,user,true,true)
+     if spResult ~= false then
+      user:delete_item(self)
+    else
+      return false
+      end
   else
     action="targeting"
-    actionResult=possibleSpells[self.spell]
+    actionResult=self
     actionItem=self
     actionIgnoreCooldown = true
   end
@@ -295,12 +302,12 @@ function spellBook:new(tags,spells,spellCount)
     local possibles = {}
     local allPossibles = {}
     for id,spell in pairs(possibleSpells) do
-      if not spell.unlearnable and spell:has_tag('magic') then
+      if not spell.unlearnable and spell.tags and (in_table('magic',spell.tags)) then
         allPossibles[#allPossibles+1] = id --keep track of all possible spells, in case when we look at the tags it comes back with nothing
         local acceptable = false
         if tags then
           for _,tag in pairs(tags) do
-            if spell:has_tag(tag) then
+            if Spell.has_tag(spell,tag) then
               acceptable = true
               break --break the tag for
             end --end if in_table

@@ -70,7 +70,7 @@ function hotkey:keypressed(key)
       end
     end
     if hotkeyItem.baseType == "spell" then
-      player.hotkeys[tonumber(key)] = {type="spell",id=hotkeyItem.id}
+      player.hotkeys[tonumber(key)] = {type="spell",spell=hotkeyItem}
     elseif hotkeyItem.baseType == "item" then
       player.hotkeys[tonumber(key)] = {type="item",item=hotkeyItem}
     end

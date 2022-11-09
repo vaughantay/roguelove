@@ -97,11 +97,12 @@ function town.check_building_footprint(ix,iy,map) --This is not a "normal" funct
   local midX, midY = round(map.width/2),round(map.height/2)
   for x=ix-3,ix+3,1 do
     for y=iy-3,iy+3,1 do
-      if not map:isClear(x,y) or (x > midX-2 and x < midX+2 and y>midY-2 and y<midY-2) then
+      if map[x][y] ~= "." or (x > midX-2 and x < midX+2 and y>midY-2 and y<midY-2) then
         return false
       end
     end
   end
+  return true
 end
 function town.populate_factions(map)
   local midX, midY = round(map.width/2),round(map.height/2)
@@ -110,7 +111,7 @@ function town.populate_factions(map)
     if not fac.hidden and not fac.no_hq then
       local hq = Feature('factionHQ',fac)
       local tries = 0
-      local ix,iy = random(4,map.width-3),random(4,map.height-3)
+      local ix,iy = random(4,map.width-3),random(5,map.height-5)
       while (town.check_building_footprint(ix,iy,map) == false) do
         ix,iy = random(4,map.width-3),random(5,map.height-5)
         tries = tries+1

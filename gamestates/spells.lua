@@ -83,12 +83,13 @@ function spellscreen:draw()
   --Display the spells:
   local bottom = 0
 	local spells = {}
-	for i, spellID in pairs(playerSpells) do
+	for i, spell in pairs(playerSpells) do
+    local spellID = spell.id
 		local letter = string.char(i+96)
 		spells[i] = spellID
-    local name = possibleSpells[spellID].name
-    local target_type = possibleSpells[spellID].target_type
-    if player.cooldowns[name] or possibleSpells[spellID]:requires(player) == false then
+    local name = spell.name
+    local target_type = spell.target_type
+    if player.cooldowns[name] or spell:requires(player) == false then
       if self.cursorY == i then
         setColor(0,0,0,255)
       else
@@ -97,7 +98,7 @@ function spellscreen:draw()
     end --end cooldowns if
     local printY = y+padY+((line-1)*fontSize)
 		love.graphics.print(letter .. ") " .. name .. (player.cooldowns[name] and " (" .. player.cooldowns[name] .. " turns to recharge)" or "") .. (target_type == "passive" and " (Passive)" or ""),x+padX,printY)
-    if player.cooldowns[name] or possibleSpells[spellID]:requires(player) == false then
+    if player.cooldowns[name] or spell:requires(player) == false then
       setColor(255,255,255,255)
     end
 		line = line+1
@@ -110,7 +111,7 @@ function spellscreen:draw()
   
   --Description Box:
   if (playerSpells[self.cursorY] ~= nil) then
-    local spell = possibleSpells[playerSpells[self.cursorY]]
+    local spell = playerSpells[self.cursorY]
     local target_type = spell.target_type
     local spellText = spell:get_description()
     
@@ -166,7 +167,7 @@ function spellscreen:keypressed(key)
 	if (key == "escape") then
 		self:switchBack()
 	elseif (key == "enter") or key == "wait" then
-		if (possibleSpells[playerSpells[self.cursorY]] and possibleSpells[playerSpells[self.cursorY]]:target(target,player) ~= false) then
+		if (playerSpells[self.cursorY] and playerSpells[self.cursorY]:target(target,player) ~= false) then
 			advance_turn()
 		end
 		self:switchBack()
@@ -187,7 +188,7 @@ function spellscreen:keypressed(key)
 	else
 		local id = string.byte(letter)-96
 		if (playerSpells[id] ~= nil) then
-			if(possibleSpells[playerSpells[id]]:target(target,player) ~= false) then
+			if(playerSpells[id]:target(target,player) ~= false) then
 				advance_turn()
 			end
 			self:switchBack()
@@ -201,7 +202,7 @@ function spellscreen:mousepressed(x,y,button)
 	if (x/uiScale > self.x and x/uiScale < self.x+self.boxW and y/uiScale > self.y and y/uiScale < self.y+self.boxH) then
     if button == 2 or (x/uiScale > self.closebutton.minX and x/uiScale < self.closebutton.maxX and y/uiScale > self.closebutton.minY and y/uiScale < self.closebutton.maxY) then self:switchBack() end
 		if (playerSpells[self.cursorY] ~= nil and (not self.scrollPositions or x/uiScale < self.x+self.boxW-self.padX)) then
-			if(possibleSpells[playerSpells[self.cursorY]]:target(target,player) ~= false) then
+			if(playerSpells[self.cursorY]:target(target,player) ~= false) then
 				advance_turn()
 			end
 			self:switchBack()

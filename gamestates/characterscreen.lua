@@ -160,7 +160,7 @@ function characterscreen:draw()
     local i = 1
     for id, ability in pairs(player:get_spells(true)) do
       if (i > 1) then abilities = abilities .. "\n" end
-      abilities = abilities .. possibleSpells[ability].name .. (possibleSpells[ability].target_type == "passive" and " (Passive)" or "") .. " - " .. possibleSpells[ability].description
+      abilities = abilities .. ability.name .. (ability.target_type == "passive" and " (Passive)" or "") .. " - " .. ability.description
       i = i + 1
     end
     love.graphics.printf(abilities,padding,printY,math.floor(width/uiScale)-padding,"left")

@@ -9,6 +9,7 @@ Map = Class{}
 function Map:init(width,height,gridOnly)
   if not gridOnly then
     self.creatures,self.contents,self.effects,self.projectiles,self.seenMap,self.lightMap,self.lights,self.pathfinders,self.grids,self.collisionMaps,self.exits={},{},{},{},{},{},{},{},{},{},{}
+    self.sightblock_cache, self.creature_cache, self.feature_cache, self.effect_cache = {},{},{},{}
     self.boss=nil
     self.stairsUp,self.stairsDown = {x=0,y=0},{x=0,y=0}
   end
@@ -137,20 +138,29 @@ end
 --@param x Number. The x-coordinate
 --@param y Number. The y-coordinate
 --@param args Unused for now, leave blank.
---@return Boolean. Whether or not the tile blocks vosopm
+--@return Boolean. Whether or not the tile blocks vision
 function Map:can_see_through(x,y,args)
+  if self.sightblock_cache[x .. ',' .. y] ~= nil then return self.sightblock_cache[x .. ',' .. y] end
 	if (x<2 or y<2 or x>self.width-1 or y>self.height-1 or self[x][y] == "#") then
+    self.sightblock_cache[x .. ',' .. y] = false 
 		return false
 	end
   for id,entity in pairs(self.contents[x][y]) do
-    if entity.blocksSight == true then return false end
+    if entity.blocksSight == true then
+      self.sightblock_cache[x .. ',' .. y] = false
+      return false
+    end
     --if args.reducedSight and entity.sightReduction then args.reducedSight = args.reducedSight-entity.sightReduction end
   end --end for loop
   for _,eff in pairs(self:get_tile_effects(x,y)) do
-    if eff.blocksSight == true then return false end
+    self.sightblock_cache[x .. ',' .. y] = false
+    if eff.blocksSight == true then
+      return false
+    end
     --if args.reducedSight and eff.sightReduction then reducedSight = args.reducedSight-eff.sightReduction end
   end --end effect loop
   --if args.reducedSight and args.reducedSight <= 0 then return false end
+  self.sightblock_cache[x .. ',' .. y] = true
 	return true
 end
 
@@ -162,19 +172,26 @@ end
 --@return Entity or Boolean. Will be FALSE if there's nothing there.
 function Map:get_tile_creature(x,y,get_attackable_features,ignoreNoDraw)
   if (x<2 or y<2 or x>=self.width or y>=self.height) then return false end
+  if self.creature_cache[x .. ',' .. y] ~= nil then return self.creature_cache[x .. ',' .. y] end
 	if (next(self.contents) == nil) then
+    self.creature_cache[x .. ',' .. y] = false
 		return false
 	else
     local tileFeat = false
 		for id, entity in pairs(self.contents[x][y]) do
 			if entity.baseType == "creature" and (ignoreNoDraw or entity.noDraw ~= true) then
+        self.creature_cache[x .. ',' .. y] = entity
         return entity --immediately return the first creature you find
       elseif (get_attackable_features == true and entity.baseType == "feature" and (entity.attackable == true or entity.pushable == true or entity.possessable == true)) then
 				tileFeat = entity --don't immediately return a feature, because a creature may be standing on it
 			end
 		end
-    if tileFeat then return tileFeat end
+    if tileFeat then
+      self.creature_cache[x .. ',' .. y] = tileFeat
+      return tileFeat
+    end
 	end
+  self.creature_cache[x .. ',' .. y] = false
 	return false
 end
 
@@ -184,6 +201,7 @@ end
 --@return A table of features (may be empty)
 function Map:get_tile_features(x,y)
   if not self:in_map(x,y) then return {} end
+  if self.feature_cache[x .. "," .. y] then return self.feature_cache[x .. "," .. y] end
   
   local features = {}
   if type(self[x][y]) == "table" then features[1] = self[x][y] end
@@ -192,6 +210,7 @@ function Map:get_tile_features(x,y)
 			features[#features+1] = entity
 		end --end if
 	end --end entity for
+  self.feature_cache[x .. ',' .. y] = features
 	return features
 end
 
@@ -334,12 +353,14 @@ end
 --@param y Number. The y-coordinate
 --@return A table of effects(may be empty)
 function Map:get_tile_effects(x,y)
+  if self.effect_cache[x .. "," .. y] then return self.effect_cache[x .. "," .. y] end
   local effects = {}
 	for id, effect in pairs(self.effects) do
 		if (effect.x == x and effect.y == y) then
 			effects[#effects+1] = effect
 		end	
 	end
+  self.effect_cache[x .. "," .. y] = effects
 	return effects
 end
 
@@ -373,6 +394,7 @@ function Map:add_creature(creature,x,y,ignoreFunc)
 	self.creatures[creature] = creature
   if not ignoreFunc and possibleMonsters[creature.id].new then possibleMonsters[creature.id].new(creature,self) end
   if creature.castsLight then self.lights[creature] = creature end
+  self.creature_cache[x .. "," .. y] = creature
   return creature
 end
 
@@ -393,6 +415,7 @@ function Map:add_feature(feature,x,y)
   feature.x,feature.y = x,y
   if possibleFeatures[feature.id].placed then possibleFeatures[feature.id].placed(feature,self) end
   if feature.castsLight then self.lights[feature] = feature end
+  self.feature_cache[#self.feature_cache+1] = feature
   return feature --return the feature so if it's created when this function is called, you can still access it
 end
 
@@ -410,6 +433,7 @@ function Map:add_effect(effect,x,y)
   effect.x,effect.y = x,y
 	self.effects[effect] = effect
   if effect.castsLight then self.lights[effect] = effect end
+  self.effect_cache[#self.effect_cache+1] = effect
   return effect --return the effect so if it's created when this function is called, you can still access it
 end
 

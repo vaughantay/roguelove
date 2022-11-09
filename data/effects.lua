@@ -258,8 +258,10 @@ function fireball:update(dt)
       end --end forx
       for _, ball in pairs(self.balls) do --immature
         ball:refresh_image_name()
+        currMap:refresh_light(ball)
       end
       self:refresh_image_name()
+      currMap:refresh_light(self)
     end --end reproducecoundown < 0if
   end --ennd if reproducseconndown
   self.countdown = self.countdown - dt
@@ -365,6 +367,7 @@ function fireaura:update(dt)
 		end
     self.image_name = "fireaura" .. random(1,4)
     self:refresh_image_name()
+    currMap:refresh_light(self)
 	end
 end
 effects['fireaura'] = fireaura
@@ -396,7 +399,7 @@ function spores:advance()
   tween(.1,self.color,{a=self.strength*50})
   --self.color = {r=0,g=255,b=0,a=self.strength*25}
   local moveX,moveY = random(self.x-1,self.x+1),random(self.y-1,self.y+1)
-  if (currMap[moveX][moveY] ~= "#") then
+  if currMap:in_map(moveX,moveY) and (currMap[moveX][moveY] ~= "#") then
     self:moveTo(moveX,moveY,.1)
 		--self.x, self.y = moveX,moveY
   end
@@ -450,7 +453,7 @@ function fire:update(dt)
       self.color.g=0
     end
     self.lightColor={r=random(200,255),g=random(200,255),b=0,a=50}
-    currMap:refresh_light(self,true)
+    currMap:refresh_light(self)
   end
 end --end update function
 function fire:advance()
@@ -2243,13 +2246,14 @@ function featureanimator:update(dt)
     --Change the light color, if necessary
     if self.lightColorsMatch then
       self.feature.lightColor = self.lightColors[imageNum]
+      currMap:refresh_light(self.feature)
       if self.features then
         for _,feat in pairs(self.features) do
           feat.lightColor = self.lightColors[imageNum]
-          currMap:refresh_light(feat,true)
+          currMap:refresh_light(feat)
         end
       end
-      currMap:refresh_light(self.feature,true)
+      currMap:refresh_light(self.feature)
     elseif self.lightColors then
       local lightNum = random(1,count(self.lightColors))
       local loopCount = 0
@@ -2259,10 +2263,11 @@ function featureanimator:update(dt)
         loopCount = loopCount + 1
       end
       self.feature.lightColor = self.lightColors[lightNum]
+      currMap:refresh_light(self.feature)
       if self.features then
         for _,feat in pairs(self.features) do
           feat.lightColor = self.lightColors[lightNum]
-          currMap:refresh_light(feat,true)
+          currMap:refresh_light(feat)
         end
       end
     end --end color if
@@ -2423,7 +2428,7 @@ function conditionanimation:update(dt)
     --Change the light color, if necessary
     if self.lightColors then
       self.lightColor = self.lightColors[imageNum]
-      currMap:refresh_lightMap(self,true)
+      currMap:refresh_light(self)
     end --end lightcolor if
     if self.colors then
       self.color = self.colors[imageNum] or self.color
