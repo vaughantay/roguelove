@@ -75,7 +75,7 @@ function Item:get_info()
   if self.charges and not self.hide_charges then
     uses = uses .. (self.charge_name and ucfirst(self.charge_name) or "Charges") .. (self.ammo_name and " (" .. self.ammo_name .. ")" or "") .. ": " .. self.charges .. (self.max_charges and "/" .. self.max_charges or "")
   end
-  if self.owner and self.owner.cooldowns[self] then
+  if self.owner and self.owner.cooldowns and self.owner.cooldowns[self] then
     uses = uses .. "\nYou can't use this item again for another " .. self.owner.cooldowns[self] .. " turns."
   end
 	if (self.itemType == "weapon") then

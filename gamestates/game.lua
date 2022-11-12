@@ -1732,11 +1732,10 @@ function game:keypressed(key,scancode,isRepeat)
       for _,action in ipairs(actions) do
         local direction = ""
         local entity = action.entity
-        if entity.y < player. y then direction = direction .. "north"
-        elseif entity.y > player. y then direction = direction .. "south" end
-        if entity.x < player. x then direction = direction .. "west"
-        elseif entity.x > player. x then direction = direction .. "east" end
-        if direction == "" then direction = "Your Tile" end
+        if entity.y < player.y then direction = direction .. "north"
+        elseif entity.y > player.y then direction = direction .. "south" end
+        if entity.x < player.x then direction = direction .. "west"
+        elseif entity.x > player.x then direction = direction .. "east" end
         list[#list+1] = {text=action.text .. " (" .. ucfirst(direction) .. ")",description=action.description,selectFunction=entity.action,selectArgs={entity,player,action.id}}
       end
       Gamestate.switch(multiselect,list,"Select an Action",true,true)

@@ -143,7 +143,132 @@ homecoming = {
       end
     end
   },
+  
+  zombieplague = {
+    name = "Zombie Plague",
+    description = "Living enemies killed by a zombie have a 50% to return as a zombie.",
+    target_type = "passive",
+    kills = function(self,possessor,victim)
+      if random(1,2) == 1 and not victim:is_type("undead") and not victim:is_type("construct") then
+        local zpc = Effect('zombieplaguecountdown')
+        zpc.owner = possessor
+        currMap:add_effect(zpc,victim.x,victim.y)
+      end
+    end
+  },
+  
+  paralyzingtouch = {
+    name = "Paralyzing Touch",
+    description = "It is well-known that the touch of a ghoul can temporarily paralyze you. What's not well-known is WHY, but I guess it doesn't really matter.",
+    target_type = "creature",
+    range=1,
+    cooldown=9,
+    AIcooldown=18,
+    sound="unholydamage",
+    cast = function(self,target,caster)
+      if player:can_see_tile(target.x,target.y) then
+        output:out(caster:get_name() .. " paralyzes " .. target:get_name() .. " with a touch!")
+        currMap:add_effect(Effect('animation','unholydamage',5,target,{r=150,g=0,b=150}),target.x,target.y)
+      end
+      target:give_condition('stunned',tweak(3))
+    end
+  },
+  
+  devourcorpse = {
+	name = "Devour Corpse",
+	description = "Eat a dead body (including a body in a grave) to regain health. Gross.",
+  sound = "devourcorpse",
+	target_type = "self",
+	cast = function(self,target,caster)
+		local contents = currMap.contents[caster.x][caster.y]
+		local eaten = false
+		for i, content in pairs(contents) do
+			if content.id == "corpse"then -- if it's a corpse
+				local hp = tweak(5)
+				output:out("You chow down on the remains of " .. content.creature:get_name() .. ", regaining " .. hp .. " HP.")
+				caster:updateHP(hp)
+				currMap:add_feature(Feature('chunk',content.creature),caster.x,caster.y)
+				currMap.contents[caster.x][caster.y][i] = nil
+				eaten = true
+      elseif content.id == "grave" and content.possessable == true then
+        local hp = tweak(3)
+        output:out("You dig up the grave and chow down on the rotting corpse heald within, regaining " .. hp .. " HP.")
+				caster:updateHP(hp)
+        content.image_name = "emptygrave"
+        content.symbol="ø"
+        content.name = "Empty Grave"
+        content.description = "Where a body used to be buried."
+        content.possessable = false
+				eaten = true
+			end
+		end
+		if (eaten == false) then output:out("There's no corpse here to eat.") return false end
+	end,
+  requires = function(self,caster)
+    for i, content in pairs(currMap.contents[caster.x][caster.y]) do
+      if content.id == "corpse" or (content.id == "grave" and content.possessable == true) then
+        return true
+      end
+    end
+    return false,"There's no corpse here to eat."
+  end
+},
 
+poisoncloud = {
+	name = "Poison Gas",
+	description = "Spray your exterminator's gas. Be careful not to get caught in the cloud, the gas is extremely poisonous!",
+	cooldown = 10,
+  range=5,
+  projectile = true,
+	flags = {aggressive=true},
+	target_type = "tile",
+  sound="spray_long",
+	cast = function (self,target,caster)
+		if player:can_see_tile(caster.x,caster.y) then output:out(caster:get_name() .. " sprays poison gas!") end
+		for x=target.x-1,target.x+1,1 do
+			for y=target.y-1,target.y+1,1 do
+				if (currMap[x][y] ~= "#") then
+          local hasGas = currMap:tile_has_feature(x,y,'poisongas')
+          if hasGas then
+            hasGas.strength = hasGas.strength+(6-hasGas.strength)
+            if x == target.x and y == target.y then hasGas.strength = hasGas.strength+1 end
+            hasGas.color.a = math.min(255,hasGas.strength*50)
+          else
+            local gas = Effect('poisongas')
+            gas.caster = caster
+            currMap:add_effect(gas,x,y)
+            if (x ~= target.x or y ~= target.y) then
+              gas.strength = 5
+              gas.color.a = 200
+            end
+          end
+				end
+			end
+		end
+	end,
+  get_target_tiles = function(self,target,caster)
+    local targets = {}
+    for x=target.x-1,target.x+1,1 do
+      for y=target.y-1,target.y+1,1 do
+        targets[#targets+1] = {x=x,y=y}
+      end --end fory
+    end --end forx
+    return targets
+  end --end target draw function
+},
+
+trap = {
+	name = "Set Trap",
+	description = "Lay down a trap to catch your enemies.",
+	cooldown = 5,
+	target_type = "self",
+  flags={defensive=true, fleeing=true},
+  sound="metal_click",
+	cast = function (self,target,caster)
+		local t = Feature('trap')
+		currMap:add_feature(t,caster.x,caster.y)
+	end
+},
 
 --Pyromancer class spells
 smallfireball = {

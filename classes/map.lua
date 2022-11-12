@@ -253,6 +253,10 @@ function Map:get_tile_items(x,y,getAdjacent)
 	for id, entity in pairs(self.contents[x][y]) do
 		if (entity and entity.baseType == "item") then
 			items[#items+1] = entity
+    elseif entity and entity.baseType == "feature" and entity.inventory and not entity.inventory_inaccessible then
+      for _,item in pairs(entity.inventory) do
+        items[#items+1] = item
+      end
 		end --end if
 	end --end entity for
   if getAdjacent then
@@ -262,6 +266,10 @@ function Map:get_tile_items(x,y,getAdjacent)
           for id, entity in pairs(self.contents[x2][y2]) do
             if (entity and entity.baseType == "item") then
               items[#items+1] = entity
+            elseif entity and entity.baseType == "feature" and entity.inventory and not entity.inventory_inaccessible then
+              for _,item in pairs(entity.inventory) do
+                items[#items+1] = item
+              end
             end --end if
           end --end entity for
         end --end no-double-dipping if

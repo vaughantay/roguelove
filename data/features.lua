@@ -1139,6 +1139,91 @@ function sarcophagus:new()
 end
 possibleFeatures['sarcophagus'] = sarcophagus
 
+local coffin = {
+  name = "Coffin",
+  description = "Someone's final resting place.",
+  symbol = "0",
+  color={r=200,g=200,b=200,a=255},
+  activated = false,
+  blocksMovement = true,
+  container=true,
+  inventory_inaccessible=true,
+  actions={open={text="Open Coffin",description="Open a coffin to see what's inside."}},
+}
+function coffin:new()
+  self.image_name = "coffin" .. random(1,2)
+end
+function coffin:placed(onMap)
+  if random(1,3) == 1 then --enemy
+    local creatures = {'zombie','skeleton'}
+    self.creature = Creature(creatures[random(#creatures)],onMap:get_min_level())
+  else --bones
+    local bones = Item('bone')
+    bones.owner,bones.x,bones.y=self,self.x,self.y
+    local skull = Item('humanskull')
+    skull.owner,skull.x,skull.y=self,self.x,self.y
+    local boneAmt = random(5,10)
+    bones.amount = boneAmt
+    self:give_item(bones)
+    self:give_item(skull)
+  end
+  if random(1,3) == 1 then --treasure
+    --TODO: add treasure
+  end
+end
+function coffin:action(entity,action)
+  if action == "open" then
+    self.inventory_inaccessible=false
+    local text = "You open the coffin."
+    if self.creature then
+      text = text .. " A " .. self.creature.name .. " jumps out at you!"
+      currMap:add_creature(self.creature,self.x,self.y)
+      self.creature = nil
+    end
+    self.actions.open=nil
+    output:out(text)
+  end
+end
+possibleFeatures['coffin'] = coffin
+
+local urn = {
+  name = "Urn",
+  symbol = "µ",
+  description = "An urn, holding someone's remains.",
+  color = {r=59,g=53,b=66,a=255},
+  blocksMovement=true,
+  ghostPassable=true,
+  passableFor={ghost=true},
+  attackable=true,
+  damage = function(self,_,attacker)
+    if player:can_see_tile(self.x,self.y) then
+      output:out((attacker.exploded and "A flying chunk" or attacker:get_name()) .. " breaks an urn.")
+      output:sound('vase_smash')
+    end
+    for x=self.x-10,self.x+10,1 do
+      for y =self.y-10,self.y+10,1 do
+        local creat = currMap:get_tile_creature(x,y)
+        if creat and attacker then
+          creat:notice(attacker)
+        end --end creat if
+      end --end fory
+    end --end forx
+    currMap:add_feature(Feature('brokenvase',{image_base = "urn",broken_num = 3}),self.x,self.y)
+    currMap:add_feature(Feature('ashpile'),self.x,self.y)
+    self:delete()
+  end
+}
+possibleFeatures['urn'] = urn
+
+local gravedirtfloor = {
+  name = "Gravedirt Floor",
+  noDesc = true,
+  symbol = ".",
+  color={r=98,g=73,b=22,a=255},
+  image_varieties=5
+}
+possibleFeatures['gravedirtfloor'] = gravedirtfloor
+
 local icewall = {
   name = "Ice Wall",
   description = "A giant block of ice.",

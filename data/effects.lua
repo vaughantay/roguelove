@@ -2079,7 +2079,7 @@ function graveshaker:advance()
           self:delete()
           self.grave.possessable=false
         else --pop a zombo or skelly
-          local z = (random(1,2) == 1 and Creature('zombie') or Creature('skeleton'))
+          local z = (random(1,2) == 1 and Creature('zombie',currMap:get_min_level()) or Creature('skeleton',currMap:get_min_level()))
           currMap:add_creature(z,self.x,self.y)
           for x=self.x-1,self.x+1,1 do
             for y=self.y-1,self.y+1,1 do
@@ -2091,6 +2091,7 @@ function graveshaker:advance()
           self.grave.symbol="ø"
           self.grave.name = "Empty Grave"
           self.grave.description = "Where a body used to be buried."
+          self.grave.inventory_inaccessible=false
           if player:can_see_tile(self.x,self.y) then
             output:out("A " .. z.name .. " bursts from the grave!")
             z:become_hostile(player)

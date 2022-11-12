@@ -965,7 +965,7 @@ possibleItems['explosivebolt'] = explosivebolt
 
 local alcahest = {
   name = "alcahest vial",
-  plural_name = "alcahest vials",
+  pluralName = "alcahest vials",
   description = "A universal alchemical ingredient.",
   symbol = "!",
   itemType="other",
@@ -978,10 +978,11 @@ possibleItems['alcahest'] = alcahest
 
 local weaponoil = {
   name = "weapon oil",
-  plural_name = "jar of weapon oil",
+  pluralName = "jar of weapon oil",
   description = "Oil used to apply an effect to a weapon. Useless without something else mixed in",
   symbol = "!",
   itemType="other",
+  stacks=true,
   color={r=100,g=100,b=100,a=255},
   tags={'ingredient'},
   value=20
@@ -990,39 +991,42 @@ possibleItems['weaponoil'] = weaponoil
 
 local insectwing = {
   name = "insect wing",
-  plural_name = "insect wings",
+  pluralName = "insect wings",
   description = "The wing of a giant insect.",
   symbol = "%",
   itemType="other",
   color={r=255,g=255,b=255,a=255},
   tags={'insect','bodypart','ingredient'},
   value=1,
+  stacks=true,
   neverSpawn=true
   }
 possibleItems['insectwing'] = insectwing
 
 local dragonflyheart = {
   name = "dragon fly heart",
-  plural_name = "dragon fly hearts",
+  pluralName = "dragon fly hearts",
   description = "The heart of a dragon fly. It's warm.",
   symbol = "%",
   itemType="other",
   color={r=255,g=0,b=0,a=255},
   tags={'insect','bodypart','fire','ingredient'},
   value=1,
+  stacks=true,
   neverSpawn=true
   }
 possibleItems['dragonflyheart'] = dragonflyheart
 
 local spores = {
   name = "handful of mushroom spores",
-  plural_name = "handfuls of mushroom spores",
+  pluralName = "handfuls of mushroom spores",
   description = "A small pile of mushroom spores.",
   symbol = "%",
   itemType="other",
   color={r=150,g=150,b=150,a=255},
   tags={'fungus','nature','ingredient'},
   value=1,
+  stacks=true,
   neverSpawn=true
   }
 possibleItems['spores'] = spores
@@ -1041,6 +1045,39 @@ local mushroomcap = {
   neverSpawn=true
 }
 possibleItems['mushroomcap'] = mushroomcap
+
+local bone = {
+  name = "bone",
+  pluralName = "bones",
+  description = "A bone from some dead creature.",
+  symbol = "%",
+  itemType="throwable",
+  color={r=255,g=255,b=255,a=255},
+  tags={'death','bodypart','ingredient','necromancy'},
+  ranged_accuracy_modifier=-15,
+  value=1,
+  stacks=true,
+  neverSpawn=true
+  }
+possibleItems['bone'] = bone
+
+local humanskull = {
+  name = "skull",
+  pluralName = "skulls",
+  description = "A human skull.",
+  symbol = "%",
+  itemType="throwable",
+  color={r=255,g=255,b=255,a=255},
+  tags={'death','bodypart','ingredient','necromancy'},
+  value=1,
+  stacks=true,
+  projectile_name="skull",
+  throwable=true,
+	color={r=255,g=255,b=255,a=255},
+	ranged_attack="genericthrow",
+  neverSpawn=true
+  }
+possibleItems['humanskull'] = humanskull
 
 local bloodextractor = {
   name = "blood extractor",
@@ -1079,7 +1116,7 @@ possibleItems['bloodextractor'] = bloodextractor
 
 local heroskey = {
   name = "Hero's Key",
-  plural_name = "Hero's Keys",
+  pluralName = "Hero's Keys",
   description = "A key that unlocks the gates to valhalla.",
   symbol="\\",
   color={r=255,g=255,b=0,a=255},

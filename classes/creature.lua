@@ -1748,7 +1748,6 @@ function Creature:is_enemy(target,dontSend)
       return true --default behavior for non-faction enemies is to treat player and their allies as enemies unless they're a creature type they like
     end
   end --end playerally or not check
-  self.ignoring[target] = true -- if we've determined you're not an enemy, go to the ignoring list
   return false --default to not enemy
 end
 

@@ -211,6 +211,7 @@ function Store:creature_sells_item(item,cost,amt,creature)
     item.owner = creature
   end
   self:add_item(givenItem)
+  givenItem.owner=self
   creature:delete_item(item,amt)
   if self.currency_item then
     local creatureItem = creature:has_item(self.currency_item)

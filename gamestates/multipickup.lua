@@ -86,7 +86,18 @@ function multipickup:draw()
 		local letter = string.char(i+96)
     local name = item:get_name(true)
     local itemY = y+padY+((line-1)*fontSize)
-		love.graphics.print(letter .. ") " .. name,x+padX,itemY)
+    
+    --Add extra text if needed:
+    local extra = nil
+    local direction = ""
+    if (item.y or item.owner.y) < player.y then direction = direction .. "north"
+    elseif (item.y or item.owner.y) > player.y then direction = direction .. "south" end
+    if (item.x or item.owner.x) < player.x then direction = direction .. "west"
+    elseif (item.x or item.owner.x) then direction = direction .. "east" end
+    if item.owner then extra = " (In " .. item.owner.name .. (direction and ", " .. direction or "") .. ")" end
+    if extra == nil and direction then extra = "(" .. ucfirst(direction) .. ")" end
+    
+		love.graphics.print(letter .. ") " .. name .. extra,x+padX,itemY)
 		line = line+1
     self.itemLines[i] = {minY=itemY,maxY=itemY+fontSize+2}
     bottom = itemY+fontSize+2

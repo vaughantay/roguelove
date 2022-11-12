@@ -20,6 +20,7 @@ function Feature:init(feature_type,info,x,y)
     end
 	end
   if x and y then self.x, self.y = x,y end
+  if self.container then self.inventory = {} end
   if self.actions then self.actions = copy_table(self.actions) end
 	if (possibleFeatures[feature_type].new ~= nil) then 
 		possibleFeatures[feature_type].new(self,(info or nil),x,y)
@@ -53,8 +54,13 @@ end
 function Feature:get_description()
 	local txt = self.name .. "\n" .. self.description
   if self.attackable then txt = txt .. "\nYou can attack it." end
-  if self.possessable then txt = txt .. "\nYou can possess it." end
   if self.pushable then txt = txt .. "\nYou can push it." end
+  if self.inventory and not self.inventory_inaccessible then
+    txt = txt .. "\nIt contains: "
+    for i,item in ipairs(self.inventory) do
+      txt = txt .. (i ~= 1 and ", " or "") .. item:get_name()
+    end
+  end
   return txt
 end
 
@@ -200,4 +206,56 @@ end
 function Feature:action(activator,actionID)
   if possibleFeatures[self.id].action then return possibleFeatures[self.id].action(self,activator,actionID) end
   return false
+end
+
+---Transfer an item to a feature's inventory
+--@param item Item. The item to give.
+function Feature:give_item(item)
+  if (item.stacks == true) then
+    local _,inv_id = self:has_item(item.id,(item.sortBy and item[item.sortBy]),item.enchantments,item.level)
+    if inv_id then
+      self.inventory[inv_id].amount = self.inventory[inv_id].amount + item.amount
+      item = self.inventory[inv_id]
+    else
+      table.insert(self.inventory,item)
+    end
+  else
+    table.insert(self.inventory,item)
+  end
+  item.x,item.y=self.x,self.y
+  item.owner = self
+  return item
+end
+
+---Check if a feature has an instance of an item ID
+--@param item String. The item ID to check for
+--@param sortBy Text. What the "sortBy" value you're checking is (optional)
+--@param enchantments Table. The table of echantments to match (optional)
+--@param level Number. The level of the item (optional)
+--@return either Boolean or Item. False, or the specific item they have in their inventory
+--@return either nil or Number. The index of the item in the inventory
+--@return either nil or Number. The amount of the item the player has
+function Feature:has_item(itemID,sortBy,enchantments,level)
+  enchantments = enchantments or {}
+	for id, it in ipairs(self.inventory) do
+		if (itemID == it.id) and (not level or it.level == level) and (not it.sortBy or sortBy == it[it.sortBy]) then
+      local matchEnch = true
+      --Compare enchantments:
+      if (enchantments and count(enchantments) or 0) == (it.enchantments and count(it.enchantments) or 0) then
+        for ench,turns in pairs(enchantments) do
+          if it.enchantments[ench] ~= turns then
+            matchEnch = false
+            break
+          end
+        end --end enchantment for
+      else --if the number of enchantments doesn't match, obviously the enchantments themselves won't match
+        matchEnch = false
+      end
+      
+      if matchEnch == true then
+        return it,id,it.amount
+      end
+		end
+	end --end inventory for
+	return false,nil,0
 end

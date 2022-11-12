@@ -5,6 +5,13 @@ tilesets = {
     wall_tiles = 2,
     tilemap = true,
   },
+  mausoleum = {
+    groundColor = {r=74,g=76,b=66,a=255},
+    wallColor = {r=122,g=120,b=111,a=255},
+    floor_tiles = 8,
+    walls_tiles = 9,
+    southOnly=true,
+  },
   cave = {
     floor_tiles = 4,
     tilemap = true,

@@ -1,5 +1,40 @@
 projectiles = {}
 
+local bone = {
+  name = "bone",
+  description = "A bone, not terribly aerodynamic.",
+  symbol = "|",
+  color={r=255,g=255,b=255,a=255},
+  damage = 2,
+  time_per_tile = .01,
+  miss_item="bone",
+  update = function(self,dt)
+    if self.symbol == "/" then self.symbol = "-"
+    elseif self.symbol == "-" then self.symbol = "\\"
+    elseif self.symbol == "\\" then self.symbol = "|"
+    elseif self.symbol == "|" then self.symbol = "/" end
+    self.angle = self.angle+dt*8*math.pi
+    Projectile.update(self,dt,true)
+  end
+}
+projectiles['bone'] = bone
+
+local skull = {
+  name = "skull",
+  description = "A skull. Spooky!",
+  symbol = "*",
+  color={r=255,g=255,b=255,a=255},
+  damage = 2,
+  time_per_tile = .01,
+  hits = function(self,target)
+    if target.baseType == "creature" and target:is_type('intelligent') then
+      target.fear = target.fear+10
+    end
+    Projectile.hits(self,target,true) --just do a regular hit
+  end
+}
+projectiles['skull'] = skull
+
 local skellibone = {
   name = "bonerang",
   description = "A bone thrown by a skeleton.",
