@@ -191,6 +191,9 @@ local demonbrute = {
 }
 possibleMonsters['demonbrute'] = demonbrute
 
+
+--Swamp creatures:
+
 local dragonfly = {
   name = "dragon fly",
   description = "This brightly-colored insect eats mosquitos and breathes fire.",
@@ -336,6 +339,184 @@ local swampwitch = {
   animation_time = 0.5
 }
 possibleMonsters['swampwitch'] = swampwitch
+
+--Graveyard creatures:
+
+local zombie = {
+  name="zombie",
+  description="A dead body that tried to follow its former soul to the Nether Regions, but was refused entry. Now it wanders aimlessly, full of hunger and pain.",
+  symbol = "z",
+  types={"undead","mindless"},
+  tags={"undead","death","necromancy"},
+  ai_flags={"stubborn"},
+  max_hp = 25,
+  level = 1,
+  max_level=5,
+  melee = 5,
+  dodging = 0,
+  strength = 5,
+  perception = 5,
+  stealth = -5,
+  notice_chance = 40,
+  weaknesses={fire=50,holy=50},
+  resistances={dark=50},
+  crit_conditions={{condition="disease",turns=10,chance=100}},
+  enemy_factions={'rat'},
+  spells={"zombieplague"},
+  speed=90,
+  color={r=0,g=150,b=0,a=255},
+  bloodColor={r=55,g=15,b=15},
+}
+function zombie:became_thrall(master)
+  if master.id ~= "zombie" then self.name = "zombie of " .. master:get_name(false,true) end
+end
+function zombie:became_free()
+  self.name = "zombie"
+end
+possibleMonsters['zombie'] = zombie
+
+local ghoul = {
+  name="ghoul",
+  description="A disgusting creature that feeds on the dead. Weak and scrawny, but filled with a ravenous appetite.",
+  symbol = "g",
+  types={"undead"},
+  tags={"undead","death"},
+  max_hp = 15,
+  level = 1,
+  max_level=5,
+  melee = 5,
+  dodging = 10,
+  strength = 3,
+  perception = 7,
+  aggression = 50,
+  notice_chance = 75,
+  spells={'devourcorpse','paralyzingtouch','sleepless'},
+  weaknesses={fire=50,holy=50},
+  resistances={dark=50},
+  color={r=96,g=90,b=6,a=255},
+  bloodColor={r=55,g=15,b=15},
+}
+possibleMonsters['ghoul'] = ghoul
+
+local skeleton = {
+  name="skeleton",
+  description="How a skeleton can ",
+  symbol = "s",
+  types={"undead","mindless","bloodless"},
+  tags={"undead","necromancy"},
+  max_hp = 10,
+  level = 1,
+  max_level=5,
+  melee = 6,
+  dodging = 6,
+  ranged = 10,
+  strength = 2,
+  perception = 7,
+  color={r=200,g=200,b=200,a=255},
+  notice_chance = 60,
+  ranged_attack="skellibone",
+  weaknesses={holy=50},
+  resistances={dark=50},
+  ranged_chance=33,
+  corpse="bonepile"
+}
+function skeleton:explode()
+  if player:can_see_tile(self.x,self.y) then
+    output:out(self:get_name() .. " explodes into shards of bone!")
+    output:sound('skeleton_explode')
+  end
+  for x=self.x-1,self.x+1,1 do
+    for y=self.y-1,self.y+1,1 do
+      Projectile('boneshard',self,{x=x,y=y})
+    end --end fory
+  end --end forx
+  return true
+end
+function skeleton:became_thrall(master)
+  self.name = "skeleton of " .. master:get_name(false,true)
+end
+function skeleton:became_free()
+  self.name = "skeleton"
+end
+possibleMonsters['skeleton'] = skeleton
+
+local vampireBat = {
+  name = "vampire bat",
+  description = "A small bat with extremely sharp fangs. Is it really a vampire, or is it just rabid? Either way, you can't stop here.",
+  symbol = "b",
+  types={"undead","animal","flyer","vampire"},
+  tags={"undead","vampire"},
+  pathType = "flyer",
+  max_hp = 10,
+  level = 1,
+  max_level=5,
+  melee = 7,
+  dodging = 10,
+  strength=3,
+  perception = 10,
+  aggression = 50,
+  notice_chance = 70,
+  stealth = 10,
+  color={r=70,g=0,b=143,a=255},
+  weaknesses={fire=50,holy=50},
+  resistances={dark=50},
+  speed=125,
+  spells={'vampirism'}
+}
+possibleMonsters['vampirebat'] = vampireBat
+
+local undeadexterminator = {
+  name = "undead undead exterminator",
+  description = "This guy came here to exterminate the undead. Then he got killed, and became undead himself.",
+  symbol = "h",
+  types={"undead"},
+  tags={"undead","technology","poison"},
+  max_hp = 15,
+  level = 1,
+  max_level=5,
+  melee = 4,
+  dodging = 6,
+  strength=3,
+  perception = 6,
+  notice_chance = 80,
+  spells = {'poisoncloud','trap'},
+  color={r=163,g=161,b=116},
+  bloodColor={r=55,g=15,b=15},
+  weaknesses={fire=50,holy=50},
+  resistances={dark=50,poison=25}
+}
+possibleMonsters['undeadexterminator'] = undeadexterminator
+  
+local caretaker = {
+  name = "caretaker",
+  description = "An unfortunate caretaker of this graveyard.",
+  symbol = "p",
+  types={"intelligent","human"},
+  nameType = "human",
+  factions={"grievers"},
+  color={r=100,g=100,b=100},
+  max_hp = 25,
+  max_mp = 5,
+  level = 1,
+  max_level=5,
+  melee = 5,
+  dodging = 7,
+  strength = 3,
+  magic=2,
+  perception = 7,
+  bravery = 50,
+  aggression = 40,
+  notice_chance = 90,
+  ranged_chance = 20,
+  stealth=10,
+  resistances={dark=10},
+  gender='either',
+  spells = {'zombait','undeadrepellent'},
+  crit_conditions={{condition="stunned",turns=3,chance=100}},
+}
+possibleMonsters['caretaker'] = caretaker
+
+--Town creatures:
 
 local townsperson = {
   name="townsperson",

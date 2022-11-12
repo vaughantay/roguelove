@@ -26,7 +26,7 @@ local town = {
   hideDepth=true, --Don't show the depth you're on when displaying the name of the map
   hideName=true, --If this is set to true, the name of the branch will not be shown when displaying the name of the map
   forceMapTypes={[1]="town"},
-  possibleExits = {{branch="main",depth=1,replace_downstairs=true},{branch="wilderness",depth=1}},
+  possibleExits = {{branch="main",depth=1,replace_downstairs=true},{branch="wilderness",depth=1},{branch="graveyard",depth=1}},
   creatures={"townsperson"},
   factionTags={"organized"},
   min_level_base=0,
@@ -66,6 +66,21 @@ local wilderness = {
   forceMapTypes = {},
 }
 dungeonBranches['wilderness'] = wilderness
+
+local graveyard = {
+  name = "The Graveyard",
+  max_depth=2,
+  forceMapTypes = {[1]="graveyard",[2]="mausoleum"},
+  mapTypes = {'graveyard','mausoleum'}, --These map types will be used to generate levels in this branch
+  contentTags={"undead"}, -- This value will be used for any content tag list (ie creatureTags, itemTags, etc) unless a more specific tag list is set
+  creatureTypes={'undead'},
+  itemTags = {'magic','unholy','undead','vampire','death','necromancy'}, --Items with these tags will be added to the list of potential items in this branch
+  passedTags = {'unholy','undead','vampire','death','necromancy'}, --These tags will be given priority for enchantments, and passed to items/creatures to do with what they will (ex: scrolls, to put preference on spells with these tags)
+  min_level_base=1,
+  max_level_base=3,
+  level_increase_per_depth=3
+}
+dungeonBranches['graveyard'] = graveyard
 
 local endgame = {
   name = "The Hall of Heroes",

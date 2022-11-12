@@ -87,8 +87,11 @@ function town.create(map,width,height)
   map:add_feature(Feature('statue'),midX+1,midY+1)
   
   --Add gates to the wilderness:
-  local gates = Feature('exit',{branch="wilderness",exitName="Gate"})
-  map:change_tile(gates,midX,height-1)
+  local gatesw = Feature('exit',{branch="wilderness",exitName="Gate"})
+  map:change_tile(gatesw,midX,height-1)
+  --Add gates to the graveyard:
+  local gatesc = Feature('exit',{branch="graveyard",exitName="Gate"})
+  map:change_tile(gatesc,midX,2)
   
   --Add spawn points to corners (silly, but demonstrates the use of spawn points)
   map.spawn_points = {{x=2,y=2},{x=width-1,y=2},{x=2,y=height-1},{x=width-1,y=height-1}}
@@ -617,6 +620,293 @@ function swamp.generateName()
   return "The " .. (random(1,2) == 1 and (adjectives[random(#adjectives)] .. " " .. swampnames[random(#swampnames)]) or (swampnames[random(#swampnames)] .. " of " .. titles[random(#titles)]))
 end
 mapTypes['swamp'] = swamp
+
+local graveyard = {
+  tileset = "graveyard",
+  description="Sometimes the dead don't stay buried.",
+  tags={'undead','unholy','necromancy','surface'},
+  passedTags={'undead','unholy','necromancy','poison'},
+  creatureTypes = {'undead'},
+  creatures = {'demonhunter'},
+  creatureTags = {'undead','necromancy'},
+  lit=true
+}
+function graveyard.create(map,width,height)
+  layouts['noise'](map,width,height)
+  --Stair fun:
+  map:refresh_pathfinder()
+  local s = mapgen:addGenericStairs(map,width,height,1)
+  if s == false then return graveyard.create(map,width,height) end
+  for x=map.stairsDown.x-1,map.stairsDown.x+1,1 do
+    for y=map.stairsDown.y-1,map.stairsDown.y+1,1 do
+      if x~=map.stairsDown.x and y~=map.stairsDown.y or map[x][y] == "#" then
+        map[x][y] = "#"
+        map:add_feature(Feature('brickwall'),x,y)
+      else -- in a + shape from the center
+        --Put walls in if the tile borders a wall:
+        local wall = false
+        if x==map.stairsUp.x-1 and map[x-1][y] == "#" then
+          wall = true
+        elseif x==map.stairsUp.x+1 and map[x+1][y] == "#" then
+          wall = true
+        elseif y==map.stairsUp.y-1 and map[x][y-1] == "#" then
+          wall = true
+        elseif y==map.stairsUp.y+1 and map[x][y+1] == "#" then
+          wall = true
+        end
+        
+        if wall then
+          map[x][y] = "#"
+          map:add_feature(Feature('brickwall'),x,y)
+        else --For the remaining empty space:
+          local tile = Feature('brokentiles')
+          tile.fancy = true
+          map:change_tile(tile,x,y)
+          map:add_feature(Feature('bossactivator'),x,y)
+          if (y~= map.stairsUp.y or x ~= map.stairsUp.x) then 
+            local gate = map:add_feature(Feature('gate'),x,y)
+            gate.playerOnly = true
+          end
+        end --end wall if
+      end --end cross shape if
+    end --end fory
+  end --end forx
+  
+  --Decorations!
+  --Add trees:
+  for i=1,random(10,15),1 do
+    local x,y = random(2,map.width-1),random(2,map.height-1)
+    while (map:isEmpty(x,y,false,true) == false) do
+      x,y = random(2,map.width-1),random(2,map.height-1)
+    end
+    local t = Feature('deadtree')
+    t.image_name = "eldritchtree" .. random(1,4)
+    t.description = "You're pretty sure this dead, twisted thing was once a tree.\nRelatively sure.\nYou hope it was a tree."
+    map:add_feature(t,x,y)
+  end --end for
+  
+  --Add gravestones:
+  local min = math.ceil(math.max(map.width,map.height)/5)
+  for i=1,random(min,min+5),1 do
+    local x,y = random(2,map.width-1),random(2,map.height-1)
+    while y % 3 ~= 0 or (map:isClear(x,y) == false or map[x][y] ~= ".") or (map:isClear(x,y+1) == false or map[x][y+1] ~= ".") or map:tile_has_feature(x,y,'gravestone') or map:tile_has_feature(x,y,'grave') --[[ or map:tile_has_feature(x,y+1,'gravestone') or map:tile_has_feature(x,y+1,'grave')]] do
+      x,y = random(2,map.width-1),random(2,map.height-1)
+    end
+    local size = random(2,math.ceil(min/2))
+    for x2 = x-size,x+size,1 do
+      if map:in_map(x2,y) and map:in_map(x2,y+1) and random(1,4) ~= 1 and map[x2][y] == "." and map:isClear(x2,y) and map[x2][y+1] == "." and map:isClear(x2,y+1)  and not map:tile_has_feature(x2,y,'gravestone') and not map:tile_has_feature(x2,y,'grave') --[[and not map:tile_has_feature(x2,y+1,'gravestone') and not map:tile_has_feature(x2,y+1,'grave')]] then
+        map:add_feature(Feature('gravestone'),x2,y)
+        local grave = Feature('grave')
+        map:add_feature(grave,x2,y+1)
+        if random(1,8) == 1 then
+          local graveshaker = Effect('graveshaker')
+          graveshaker.grave = grave
+          map:add_effect(graveshaker,x2,y+1)
+        end
+      end
+    end
+  end --end for
+  
+  --Check for connectivity:
+  map:refresh_pathfinder()
+  local p = map:findPath(map.stairsDown.x,map.stairsDown.y,map.stairsUp.x,map.stairsUp.y)
+  if (p == false) then
+    print("No path to stairs!")
+    mapgen:clear_map(map)
+    return graveyard.create(map,width,height)
+  end
+end --end function
+mapTypes['graveyard'] = graveyard
+
+local mausoleum = {
+  tileset = "mausoleum",
+  description="You shiver in the still, damp air. A slight smell of rot permeates this place.",
+  tags={'undead','necromancy','unhoy','vampire','indoors','underground'},
+  passedTags={'undead','unholy','necromancy','poison','vampire'},
+  creatureTypes = {'undead','vampire'},
+  creatures = {'demonhunter'},
+  creatureTags = {'undead','necromancy','vampire'},
+}
+function mausoleum.create(map,width,height)
+  local rooms,hallways = layouts['bsptree'](map,width,height,50,50,100)
+
+  --Add coffins and other decorations to rooms:
+  for _, room in pairs(rooms) do
+    local safeTiles = mapgen:get_all_safe_to_block(map,room)
+    local wallTiles = mapgen:get_all_safe_to_block(map,room,"wallsCorners")
+    local cornerTiles = mapgen:get_all_safe_to_block(map,room,"corners")
+    local openTiles = mapgen:get_all_safe_to_block(map,room,"noWalls")
+    if random(1,4) == 1 then --random chance to have sarcophogi in the walls
+      local sarcType = (random(1,3) ~= 1 and "coffin" or "urn")
+      for _, tile in pairs(room.walls) do
+        local cardinalWalls = 0
+        local cando = true
+        for x=tile.x-1,tile.x+1,1 do
+          for y=tile.y-1,tile.y+1,1 do
+            if map:in_map(x,y) and map[x][y] == "." and x ~= width and x ~= 1 and y ~= height and y ~= 1 then
+              if (x == tile.x or y == tile.y) and not (x == tile.x and y == tile.y) then
+                cardinalWalls = cardinalWalls+1
+              end
+              if x > room.maxX or x < room.minX or y > room.maxY or y < room.minY then
+                cando = false
+                break
+              end
+            end --end blank space check
+          end --end fory
+          if cando == false then break end
+        end --end forx
+        if cando and cardinalWalls == 1 and not map:tile_has_feature(tile.x,tile.y,'coffin') and not map:tile_has_feature(tile.x,tile.y,'urn') then
+          map[tile.x][tile.y] = "."
+          local grave = Feature(sarcType)
+          map:add_feature(grave,tile.x,tile.y)
+          if random(1,4) == 1 and sarcType == "coffin" then
+            local graveshaker = Effect('graveshaker')
+            graveshaker.grave = grave
+            map:add_effect(graveshaker,tile.x,tile.y)
+          end --end graveshaker if
+        end --end cardinalwalls if
+      end --end tile for
+      --Redo corner tiles again, since they probably changed
+      cornerTiles = mapgen:get_all_safe_to_block(map,room,"corners")
+      for _,tile in pairs(cornerTiles) do
+        if map:isEmpty(tile.x,tile.y) and (map:isEmpty(tile.x-1,tile.y) or map[tile.x-1][tile.y] == "#") and (map:isEmpty(tile.x+1,tile.y) or map[tile.x+1][tile.y] == "#") and (map:isEmpty(tile.x,tile.y-1) or map[tile.x][tile.y-1] == "#") and (map:isEmpty(tile.x,tile.y+1) or map[tile.x][tile.y+1] == "#") then
+          local grave = map:add_feature(Feature(sarcType),tile.x,tile.y)
+          if random(1,4) == 1 and sarcType == "coffin" then
+            local graveshaker = Effect('graveshaker')
+            graveshaker.grave = grave
+            map:add_effect(graveshaker,tile.x,tile.y)
+          end --end graveshaker if
+        end 
+      end --end tiles for
+    end -- end sarcophagi if
+    if random(1,4) == 1 and not room.exit and not room.entrance then --boneyard
+      for _,tile in pairs(openTiles) do
+        map:change_tile(Feature('gravedirtfloor'),tile.x,tile.y)
+        if (room.maxY-tile.y) % 3 == 0 then
+          if map:isEmpty(tile.x,tile.y) then
+            local gravestone = map:add_feature(Feature('gravestone'),tile.x,tile.y-1) 
+            local grave = map:add_feature(Feature('grave'),tile.x,tile.y)
+            if random(1,8) == 1 then
+              local graveshaker = Effect('graveshaker')
+              graveshaker.grave = grave
+              map:add_effect(graveshaker,tile.x,tile.y)
+            end
+          end --end 
+        end --end tile.y if
+      end --end openTiles for
+    elseif not room.exit and not room.entrance then --generic room
+      local decorations = math.ceil(#wallTiles/10)
+      for i = 1,decorations,1 do
+        local decs = {"statue","candelabra","candles","skullcandle","bonepile"}
+        local tile = get_random_key(wallTiles)
+        local tileX,tileY = wallTiles[tile].x,wallTiles[tile].y
+        if tile and map:isEmpty(tileX,tileY) and map[tileX][tileY] == "." then
+          map:add_feature(Feature(get_random_element(decs)),tileX,tileY)
+          table.remove(wallTiles,tile)
+        end --end empty tiles if
+      end --end decoration for
+    end --end roomtype if
+  end --end room for
+  
+  --Add coffins to hallways:
+  for _, hallway in pairs(hallways) do
+    if random(1,4) == 1 then --random chance of adding sarcophogi to hallways
+      local sarcType = (random(1,3) ~= 1 and "coffin" or "urn")
+      local tiles = (hallway.wide and hallway.wide or hallway.base)
+      for _, basetile in pairs(tiles) do
+        for x = basetile.x-1,basetile.x+1,1 do
+          for y = basetile.y-1,basetile.y+1,1 do
+            if map[x][y] == "." or x == width or x == 1 or y == height or y == 1 then break end
+            local tile = {x=x,y=y}
+            local upTiles, downTiles, leftTiles, rightTiles = 0,0,0,0
+            for x=tile.x-1,tile.x+1,1 do
+              if map:in_map(x,tile.y-1) and map[x][tile.y-1] == "." then
+                upTiles = upTiles + 1
+              end
+              if map:in_map(x,tile.y+1) and map[x][tile.y+1] == "." then
+                downTiles = downTiles + 1
+              end
+            end --end forx
+            for y=tile.y-1,tile.y+1,1 do
+              if map:in_map(tile.x-1,y) and map[tile.x-1][y] == "." then
+                leftTiles = leftTiles + 1
+              end
+              if map:in_map(tile.x+1,y) and map[tile.x+1][y] == "." then
+                rightTiles = rightTiles + 1
+              end
+            end --end fory
+            local sides = 0
+            if upTiles > 1 then sides = sides + 1 end
+            if downTiles > 1 then sides = sides + 1 end
+            if leftTiles > 1 then sides = sides + 1 end
+            if rightTiles > 1 then sides = sides + 1 end
+            if sides <= 1 and map[tile.x][tile.y] == "#" and not map:tile_has_feature(tile.x,tile.y,'coffin') and not map:tile_has_feature(tile.x,tile.y,'urn') then
+              map[tile.x][tile.y] = "."
+              local grave = Feature(sarcType)
+              map:add_feature(grave,tile.x,tile.y)
+              if random(1,12) == 1 and sarcType == "coffin" then
+                local graveshaker = Effect('graveshaker')
+                graveshaker.grave = grave
+                map:add_effect(graveshaker,tile.x,tile.y)
+              end
+            end
+          end --end fory
+        end --end forx
+      end --end basetile for
+    end --end random if
+  end --end hallway for
+  
+  --Replace doors with gates:
+  for x=2,map.width-1,1 do
+    for y=2,map.height-1,1 do
+      local door = map:tile_has_feature(x,y,'door')
+      if door then
+        door:delete(map)
+        map:add_feature(Feature('gate'),x,y)
+      end
+    end
+  end
+  
+  --Add some wall torches:
+  for i=1,10,1 do
+    local x,y = random(2,width-1),random(2,height-1)
+    local placed = false
+    while placed == false do
+      x,y = random(2,width-1),random(2,height-1)
+      if map[x][y] == "#" and map:isEmpty(x,y+1) then
+        placed = true
+      elseif map[x][y] == "#" and map:isEmpty(x+1,y) then
+        x=x+1
+        placed = true
+      elseif map[x][y] == "#" and map:isEmpty(x-1,y) then
+        x=x-1
+        placed = true
+      end
+    end
+    local torch = Feature('walltorch')
+    map:add_feature(torch,x,y)
+  end
+  --Add grave plaques for coffins:
+  for x=2,width-1,1 do
+    for y=2,height-1,1 do
+      if map:tile_has_feature(x,y,'coffin') or map:tile_has_feature(x,y,'urn') then
+        local stone = false
+        if map[x][y-1] == "#" then
+          stone = map:add_feature(Feature('gravestone'),x,y-1) 
+        elseif map[x-1][y] == "#" then
+          stone = map:add_feature(Feature('gravestone'),x-1,y) 
+        elseif map[x+1][y] == "#" then
+          stone = map:add_feature(Feature('gravestone'),x+1,y) 
+        end
+        if stone then
+          stone.image_name = "wallplaque"
+          stone.name = "Plaque"
+        end
+      end --end if has coffin
+    end --end fory
+  end --end forx
+end --end function
+mapTypes['mausoleum'] = mausoleum
 
 local endgame = {
   tileset = "dungeon",

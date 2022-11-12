@@ -61,7 +61,7 @@ possibleFactions['grievers'] = {
   name = "Grievers", --Name of the faction
   description = "A powerful organization dedicated to eradicating the undead. Pretty chill towards anyone who's not undead.", --Description of the faction
   map_description = "A powerful organization dedicated to eradicating the undead.", --Description that will show on the Feature tile used to access the faction
-  tags={"organized"}, --Tags used to describe the faction, for deciding what maps to put them in
+  tags={"organized","death"}, --Tags used to describe the faction, for deciding what maps to put them in
   enemy_types = {"undead"}, --Creature types this faction will always attack
   friendly_factions = {"lightchurch"}, --Factions whose members this faction will not attack
   kill_favor_types = {undead=2}, --Favor granted for killing certain creature types
