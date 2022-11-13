@@ -1155,7 +1155,6 @@ end
 function game:update(dt)
   --profiler:reset()
   --profiler:start()
-  if game.newGhost then player = game.newGhost game.newGhost = nil end
   local utime = os.clock()
   if output.shakeTimer > 0 then
     output.shakeTimer = output.shakeTimer - dt
@@ -1191,7 +1190,7 @@ function game:update(dt)
       refresh_player_sight()
     end
 	end
-	if player.hp < 1 and player.id == "ghost" and action ~= "dying" then
+	if player.hp < 1 and action ~= "dying" then
 		action = "dying"
 	end
   
@@ -1888,7 +1887,7 @@ function ContextualMenu:init(x,y,printX,printY)
       spellY = spellY+fontPadding
     end
   end
-  if self.creature and totalstats.creature_possessions and totalstats.creature_possessions[self.creature.id] then
+  if self.creature and totalstats.creature_kills and totalstats.creature_kills[self.creature.id] then
     self.entries[#self.entries+1] = {name="View in Monsterpedia",y=spellY,action="monsterpedia"}
     spellY = spellY+fontPadding
   end

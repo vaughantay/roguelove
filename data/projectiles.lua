@@ -153,7 +153,7 @@ local bomb = {
         currMap:add_effect(Effect('explosion'),x,y)
         output:sound('bomb')
         local creat = currMap:get_tile_creature(x,y)
-        if creat and creat.id ~= "ghost" then
+        if creat then
           local dmg = creat:damage(10,self.source,"explosive")
           if player:can_see_tile(creat.x,creat.y) then output:out(creat:get_name() .. " gets caught in the explosion and takes " .. dmg .. " damage.") end
         end

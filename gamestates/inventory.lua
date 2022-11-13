@@ -148,7 +148,7 @@ function inventory:draw()
   elseif self.action == "drop" then topText = "Select items to drop"
   elseif self.action == "throw" then topText = "Select items to throw"
   elseif self.action == "equip" then topText = "Select items to equip" end
-  love.graphics.printf(topText .. "\nYou have: $" .. self.creature.money,padding,round(padding*.75),sidebarX-padding*2,"center")
+  love.graphics.printf(topText .. "\nYou have: " .. get_money_name(self.creature.money),padding,round(padding*.75),sidebarX-padding*2,"center")
   
   local printX = (prefs['noImages'] and 14 or 32)
   local printY = fontSize*4

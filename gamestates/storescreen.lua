@@ -169,7 +169,7 @@ function storescreen:draw()
       love.graphics.print(costText,buyButtonX-costlineW,printY+4)
       canBuy = (self.totalCost <= playerAmt)
     else
-      local costText = "Cost: $" .. self.totalCost .. ". You have $" .. player.money .. ". "
+      local costText = "Cost: " .. get_money_name(self.totalCost) .. ". You have " .. get_money_name(player.money) .. ". "
       costlineW = fonts.textFont:getWidth(costText)
       love.graphics.print(costText,buyButtonX-costlineW,printY+4)
       canBuy = (self.totalCost <= player.money)
@@ -216,7 +216,7 @@ function storescreen:draw()
       if self.currency_item then
         love.graphics.print(info.cost .. " " .. itemText,priceX,buyTextY)
       else
-        love.graphics.print("$" .. info.cost,priceX,buyTextY)
+        love.graphics.print(get_money_name(info.cost),priceX,buyTextY)
       end
       --Minus button:
       local minusMouse = false
@@ -290,7 +290,7 @@ function storescreen:draw()
       costlineW = fonts.textFont:getWidth(costText)
       love.graphics.print(costText,sellButtonX-costlineW,printY+4)
     else
-      local costText = "You will receive: $" .. self.totalCost .. ". "
+      local costText = "You will receive: " .. get_money_name(self.totalCost) .. ". "
       costlineW = fonts.textFont:getWidth(costText)
       love.graphics.print(costText,sellButtonX-costlineW,printY+4)
     end
@@ -331,7 +331,7 @@ function storescreen:draw()
       if self.currency_item then
         love.graphics.print(info.cost .. " " .. itemText,priceX,sellTextY)
       else
-        love.graphics.print("$" .. info.cost,priceX,sellTextY)
+        love.graphics.print(get_money_name(info.cost),priceX,sellTextY)
       end
       --Minus button:
       local minusMouse = false
@@ -480,7 +480,7 @@ function storescreen:draw()
           if self.currency_item then
             costText = " (Cost: " .. spellDef.cost+round(spellDef.cost*(self.costMod/100)) .. " " .. (self.currency_item.pluralName or self.currency_Item.name) .. ")"
           else
-            costText = " (Cost: $" .. spellDef.cost+round(spellDef.cost*(self.costMod/100)) .. ")"
+            costText = " (Cost: " .. get_money_name(spellDef.cost+round(spellDef.cost*(self.costMod/100))) .. ")"
           end
         end
         local spellText = spell.name .. (costText or "") .. "\n" .. spell.description
@@ -570,7 +570,7 @@ function storescreen:keypressed(key)
             player:delete_item(creatureItem,serviceData.cost)
           else
             player.money = player.money - serviceData.cost+round(serviceData.cost*(self.costMod/100))
-            self.outText = (self.outText .. "\n" or "") .. "You lose $" .. serviceData.cost+round(serviceData.cost*(self.costMod/100)) .. "."
+            self.outText = (self.outText .. "\n" or "") .. "You lose " .. get_money_name(serviceData.cost+round(serviceData.cost*(self.costMod/100))) .. "."
           end
         end
       end
@@ -722,7 +722,7 @@ function storescreen:mousepressed(x,y,button)
             player:delete_item(creatureItem,serviceData.cost)
           else
             player.money = player.money - serviceData.cost+round(serviceData.cost*(self.costMod/100))
-            self.outText = (self.outText .. "\n" or "") .. "You lose $" .. serviceData.cost+round(serviceData.cost*(self.costMod/100)) .. "."
+            self.outText = (self.outText .. "\n" or "") .. "You lose " .. get_money_name(serviceData.cost+round(serviceData.cost*(self.costMod/100))) .. "."
           end
         end
       end--end button coordinate if

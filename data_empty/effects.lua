@@ -1,5 +1,98 @@
 effects = {}
 
+--Standard effects used in the base engine:
+
+local fire = {
+  name = "Fire",
+  description = "A roaring flame.",
+  symbol = "^",
+  color={r=255,g=0,b=0},
+  countdown = .25,
+  timer = 10,
+  firstturn = true,
+  hazard = 1000,
+  castsLight=true,
+  lightDist=2,
+  lightColor={r=255,g=255,b=0}
+}
+function fire:new(data)
+  if data then
+    if data.timer then self.timer = data.timer end
+    if data.x and data.y then
+      self.x,self.y = data.x,data.y
+      local feats = currMap:get_tile_features(self.x,self.y)
+      for _,feat in pairs(feats) do
+        if feat.water == true then return false end
+      end
+      if type(currMap[self.x][self.y]) == "table" and currMap[self.x][self.y].water == true then return false end
+    end
+  end
+  self.timer = tweak(self.timer)
+  self.image_name = "fire" .. random(1,3)
+  if self.x and self.y and player:can_see_tile(self.x,self.y) then output:sound('ignite') end
+end --end new function
+function fire:update(dt)
+  self.countdown = self.countdown - dt
+  if (self.countdown <= 0) then
+    local newName = "fire" .. random(1,3)
+    while (newName == self.image_name) do newName = "fire" .. random(1,3) end
+    self.image_name = newName
+    self.countdown = .25
+    if (self.color.g == 0) then
+      self.color.g=255
+    elseif (self.color.g == 255) then
+      self.color.g=142
+    else
+      self.color.g=0
+    end
+    self.lightColor={r=random(200,255),g=random(200,255),b=0,a=50}
+    currMap:refresh_light(self)
+  end
+end --end update function
+function fire:advance()
+  local feats = currMap:get_tile_features(self.x,self.y)
+  for _,feat in pairs(feats) do
+    if feat.water == true then self:delete() return false end
+  end
+  if type(currMap[self.x][self.y]) == "table" and currMap[self.x][self.y].water == true then self:delete() return false end
+  --Burn creatures on tile:
+  local creat = currMap:get_tile_creature(self.x,self.y)
+  if (creat and creat.fireImmune ~= true and not creat:has_condition('onfire')) then
+    local dmg = creat:damage(tweak(5),self.caster,"fire")
+    if dmg > 0 and player:can_see_tile(self.x,self.y) then output:out(creat:get_name() .. " takes " .. dmg .. " damage from fire.") end
+    if (dmg> 0 and random(1,100) >= 60) then
+      if creat.conditions['onfire'] == nil and player:can_see_tile(creat.x,creat.y) then output:out(creat:get_name() .. " catches on fire!") end
+      creat:give_condition('onfire',random(1,5))
+    end
+  end
+  
+  if (self.firstturn == false) then
+    --Burn nearby features:
+    for x = self.x-1,self.x+1,1 do
+      for y = self.y-1,self.y+1,1 do
+        if type(currMap[x][y]) == "table" and currMap[x][y].fireChance and random(1,100) <= currMap[x][y].fireChance then
+          currMap[x][y]:combust()
+          currMap:change_tile(".",x,y)
+        end
+        for id, content in pairs(currMap.contents[x][y]) do
+          if content.fireChance and random(1,100) <= content.fireChance then
+            content:combust()
+          end --end feature check 
+        end --end for loop
+      end --end y loop
+    end --end x loop
+  else
+    self.firstturn = false
+  end --end grass and tree chunk
+  
+  -- Count down the fire:
+  self.timer = self.timer - 1
+  if (self.timer < 1) then
+    self:delete()
+  end
+end --end advance function
+effects['fire'] = fire
+
 local dmgPopup = {
   name = "Damage",
   description = "Shows how much damage just got done.",
@@ -114,7 +207,7 @@ function chunkmaker:update(dt)
           
           --Damage creatures:
           local creat = currMap:get_tile_creature(x,y)
-          if creat ~= false and not creat:is_type("ghost") then
+          if creat ~= false then
             local dmg = creat:damage(random(self.creature.level,self.creature.level*3))
             output:out(creat:get_name() .. " gets hit by a flying " .. self.creature.name .. " chunk and takes " .. dmg .. " damage!")
             if creat ~= player then creat:give_condition('stunned',1,self) end
@@ -139,6 +232,8 @@ function chunkmaker:update(dt)
   end
 end
 effects['chunkmaker'] = chunkmaker
+
+--Animation effects:
 
 local animation = {
   name = "animation",
@@ -262,6 +357,7 @@ function featureanimator:update(dt)
     --Change the light color, if necessary
     if self.lightColorsMatch then
       self.feature.lightColor = self.lightColors[imageNum]
+      currMap:refresh_light(self.feature)
       if self.features then
         for _,feat in pairs(self.features) do
           feat.lightColor = self.lightColors[imageNum]
@@ -278,6 +374,7 @@ function featureanimator:update(dt)
         loopCount = loopCount + 1
       end
       self.feature.lightColor = self.lightColors[lightNum]
+      currMap:refresh_light(self.feature)
       if self.features then
         for _,feat in pairs(self.features) do
           feat.lightColor = self.lightColors[lightNum]
@@ -475,3 +572,26 @@ function screenShaker:update(dt)
   end
 end
 effects['screenshaker'] = screenShaker
+
+local angelofdeath = {
+  name = "Angel of Death",
+  noDesc = true,
+  noDisp = true,
+  color={r=0,g=0,b=0,a=0},
+  symbol = "",
+  description = "This invisible effect KILLS EVERYONE.",
+}
+function angelofdeath:update(dt)
+  for _,creat in pairs(currMap.creatures) do
+    if creat ~= player then
+      if random(1,4) == 1 then
+          creat.level = random(1,5)
+          creat:explode()
+      else
+        creat:die()
+      end
+    end
+  end
+  self:delete()
+end
+effects['angelofdeath'] = angelofdeath

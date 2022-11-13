@@ -260,12 +260,12 @@ function factionscreen:draw()
       local yPad = 8
       local buyBoxW = fonts.textFont:getWidth("1000")+8
       local buyBoxX = windowX+windowWidth-buyBoxW-padding*(self.scrollMax == 0 and 1 or 2)
-      local priceX = buyBoxX-32-fonts.textFont:getWidth("$1000, 1000 Favor")
+      local priceX = buyBoxX-32-fonts.textFont:getWidth(get_money_name(1000) .. ", 1000 Favor")
       local amtX = priceX-fonts.textFont:getWidth("x1000")
       local nameMaxLen = amtX-nameX
       local lastY = 0
       local descrItem = nil
-      local costLine = "Favor Cost: " .. self.totalCost.favor .. ". Money Cost: $" .. self.totalCost.money .. " (You have $" .. player.money .. ") "
+      local costLine = "Favor Cost: " .. self.totalCost.favor .. ". Money Cost: " .. get_money_name(self.totalCost.money) .. " (You have " .. get_money_name(player.money) .. ") "
       local costlineW = fonts.textFont:getWidth(costLine)
       love.graphics.print(costLine,buyButtonX-costlineW,printY+4)
       if self.totalCost.money > player.money or self.totalCost.favor > favor then
@@ -308,7 +308,7 @@ function factionscreen:draw()
         love.graphics.print("x " .. (info.amount == -1 and "∞" or info.amount),amtX,buyTextY)
         local priceText = ""
         if info.moneyCost then
-          priceText = priceText .. "$" .. info.moneyCost .. (info.favorCost and ", ")
+          priceText = priceText .. get_money_name(info.moneyCost) .. (info.favorCost and ", ")
         end
         if info.favorCost then
           priceText = priceText .. info.favorCost .. " Favor"
@@ -381,7 +381,7 @@ function factionscreen:draw()
       local yPad = 8
       local sellBoxW = fonts.textFont:getWidth("1000")+8
       local sellBoxX = windowX+windowWidth-sellBoxW-padding*(self.scrollMax == 0 and 1 or 2)
-      local priceX = sellBoxX-32-fonts.textFont:getWidth("$1000, 1000 Favor")
+      local priceX = sellBoxX-32-fonts.textFont:getWidth(get_money_name(1000) .. ", 1000 Favor")
       local amtX = priceX-fonts.textFont:getWidth("x1000")
       local nameMaxLen = amtX-nameX
       local lastY = 0
@@ -423,7 +423,7 @@ function factionscreen:draw()
         love.graphics.print("x " .. (info.amount == -1 and "∞" or info.amount),amtX,sellTextY)
         local priceText = ""
         if info.moneyCost then
-          priceText = priceText .. "$" .. info.moneyCost .. (info.favorCost and ", ")
+          priceText = priceText .. get_money_name(info.moneyCost) .. (info.favorCost and ", ")
         end
         if info.favorCost then
           priceText = priceText .. info.favorCost .. " Favor"
@@ -505,7 +505,7 @@ function factionscreen:draw()
         local spell = possibleSpells[spellDef.spell]
         local costText = nil
         if spellDef.moneyCost then
-          costText = " (Cost: $" .. spellDef.moneyCost+round(spellDef.moneyCost*(self.costMod/100))
+          costText = " (Cost: " .. get_money_name(spellDef.moneyCost+round(spellDef.moneyCost*(self.costMod/100)))
         end
         if spellDef.favorCost then
           if costText == nil then
@@ -597,7 +597,7 @@ function factionscreen:draw()
       local service = possibleServices[servID]
       local costText = service:get_cost_text(player) or servData.costText or service.costText
       if costText == nil then
-        local moneyText = (servData.moneyCost and "$" .. servData.moneyCost+round(servData.moneyCost*(self.costMod/100)) or nil)
+        local moneyText = (servData.moneyCost and get_money_name(servData.moneyCost+round(servData.moneyCost*(self.costMod/100))) or nil)
         local favorText = (servData.favorCost and servData.favorCost.. " Favor" or nil)
         if moneyText then
           costText = moneyText .. (favorText and ", " .. favorText)
@@ -779,7 +779,7 @@ function factionscreen:keypressed(key)
           if useText then self.outText = useText end
           if serviceData.moneyCost then
             player.money = player.money - (serviceData.moneyCost+round(serviceData.moneyCost*(self.costMod/100)))
-            self.outText = (self.outText .. "\n" or "") .. "You lose $" .. serviceData.moneyCost+round(serviceData.moneyCost*(self.costMod/100)) .. "."
+            self.outText = (self.outText .. "\n" or "") .. "You lose " .. get_money_name(serviceData.moneyCost+round(serviceData.moneyCost*(self.costMod/100))) .. "."
           end
           if serviceData.favorCost then
             player.favor[self.faction.id] = player.favor[self.faction.id] - serviceData.favorCost
@@ -1002,7 +1002,7 @@ function factionscreen:mousepressed(x,y,button)
         if didIt and useText then self.outText = useText end
         if serviceData.moneyCost then
           player.money = player.money - (serviceData.moneyCost+round(serviceData.moneyCost*(self.costMod/100)))
-          self.outText = (self.outText .. "\n" or "") .. "You lose $" .. serviceData.moneyCost+round(serviceData.moneyCost*(self.costMod/100)) .. "."
+          self.outText = (self.outText .. "\n" or "") .. "You lose " .. get_money_name(serviceData.moneyCost+round(serviceData.moneyCost*(self.costMod/100))) .. "."
         end
         if serviceData.favorCost then
           player.favor[self.faction.id] = player.favor[self.faction.id] - serviceData.favorCost

@@ -1,5 +1,46 @@
 possibleFeatures = {}
 
+--Standard features used in the basic engine:
+
+local corpse = {
+  name = "corpse",
+  id="corpse",
+  symbol = "%",
+  imageType = "creature",
+  angle = .5*math.pi,
+  useWalkedOnImage = true,
+  description = "A dead body.",
+  targetable = true,
+  alwaysDisplay = true,
+  new = function (self,creature)
+    if creature.spritesheet then
+      self.spritesheet = true
+      self.image_max = creature.image_max
+      self.image_frame=1
+    end
+    if creature.properName then
+      self.name = "corpse of " .. creature.properName .. ", " .. creature.name
+    else
+      self.name = creature.name .. " corpse"
+    end
+    self.creature = creature
+    self.image_name = (creature.image_name or creature.id)
+    self.scale = .75
+    self.color = creature.color
+    if not creature:is_type('bloodless') then
+      if not self.actions then self.actions = {} end
+      self.actions['extractblood'] = {text="Extract blood from " .. creature.name .. " corpse",description="Extract blood from a corpse.",requires=function(self,user) if not self.bloodless and user:has_item('bloodextractor') then return true else return false end end}
+    end
+  end
+}
+function corpse:action(entity,action)
+  if action == "extractblood" then
+    local extractor = entity:has_item('bloodextractor')
+    if extractor then return extractor:use(self,entity) end
+  end
+end
+possibleFeatures['corpse'] = corpse
+
 local chunk = {
     name = "chunks",
     symbol = ".",
@@ -30,35 +71,6 @@ local chunk = {
 }
 possibleFeatures['chunk'] = chunk
 
-local corpse = {
-  name = "corpse",
-  id="corpse",
-  symbol = "%",
-  imageType = "creature",
-  angle = .5*math.pi,
-  useWalkedOnImage = true,
-  description = "A dead body.",
-  targetable = true,
-  alwaysDisplay = true,
-  new = function (self,creature)
-    if creature.spritesheet then
-      self.spritesheet = true
-      self.image_max = creature.image_max
-      self.image_frame=1
-    end
-    if creature.properName then
-      self.name = "corpse of " .. creature.properName .. ", " .. creature.name
-    else
-      self.name = creature.name .. " corpse"
-    end
-    self.creature = creature
-    self.image_name = (creature.image_name or creature.id)
-    self.scale = .75
-    self.color = creature.color
-  end
-}
-possibleFeatures['corpse'] = corpse
-
 local door = {
     name="Door",
   id="door",
@@ -67,10 +79,9 @@ local door = {
     description = "A closed door.",
   fireChance = 20,
   passableFor={ghost=true},
-    blocksMovement = true,
+  blocksMovement = true,
   pathThrough = true,
   blocksSight = true,
-  ghostPassable=true,
   alwaysDisplay = true,
   actions={opendoor={text="Open Door",description="Open a nearby door.",requires=function(self,user) return self.closed end},closedoor={text="Close Door",description="Close a nearby door.",requires=function(self,user) return not self.closed end}},
   closed=true,
@@ -136,6 +147,40 @@ local door = {
 }
 possibleFeatures['door'] = door
 
+local bridge = {
+  name = "Bridge",
+  description = "A bridge over troubled waters (or troubled lava, or whatever).",
+  symbol = "|",
+  color={r=120,g=85,b=6,a=255},
+  tilemap=true,
+  walkedOnTilemap = true,
+  tileDirection = "nsew",
+  image_name = "stonebridge",
+  walkedOnImage = "stonebridgecrossing"
+}
+function bridge:refresh_image_name()
+  local dir = ""
+  if not currMap:tile_has_feature(self.x,self.y-1,"bridge") then dir = dir .. "n" self.symbol = "–" end
+  if not currMap:tile_has_feature(self.x,self.y+1,"bridge") then dir = dir .. "s" self.symbol = "–" end
+  if not currMap:tile_has_feature(self.x+1,self.y,"bridge") then dir = dir .. "e" end
+  if not currMap:tile_has_feature(self.x-1,self.y,"bridge") then dir = dir .. "w" end
+  if dir == "nsew" then end
+  if dir == "" then
+    self.symbol = "+"
+    self.tileDirection = "middle"
+  else
+    self.tileDirection = dir
+  end
+  self.walkedOnImage = self.image_name .. "crossing"
+end
+function bridge:new(args)
+  args = args or {}
+  if (args.dir == 'ns') then self.symbol = "|" self.name = "bridgens"
+  elseif (args.dir == 'ew') then self.symbol = "–" self.image_name="woodbridgeew" end
+  if args.image_name then self.image_name = args.image_name end
+end
+possibleFeatures['bridge'] = bridge
+
 local gravestone = {
   name = "Gravestone",
   symbol = "∏",
@@ -151,14 +196,6 @@ local gravestone = {
     end
 }
 possibleFeatures['gravestone'] = gravestone
-
-local grave = {
-  name = "Grave",
-  description = "Where a body is buried.",
-  symbol = "≈",
-  color={r=98,g=73,b=22,a=255},
-}
-possibleFeatures['grave'] = grave
 
 local store = {
   name="Store",
@@ -271,3 +308,26 @@ function exit:action(entity,action)
   end
 end
 possibleFeatures['exit'] = exit
+
+--Not required but potentially useful:
+
+local bossActivator = {
+  name = "boss activator",
+  noDesc = true,
+  noDisp = true,
+  symbol = "",
+  description = "Invisible tile that activates the boss when stepped on.",
+  color ={r=0,g=0,b=0,a=0},
+  enter = function(self,entity)
+    if entity == player then
+      generate_boss()
+      for x=2,currMap.width-1,1 do
+        for y=2,currMap.height-1,1 do
+          local ba = currMap:tile_has_feature(x,y,'bossactivator')
+          if ba then ba:delete() end
+        end
+      end
+    end
+  end --end enter functiomn
+}
+possibleFeatures['bossactivator'] = bossActivator

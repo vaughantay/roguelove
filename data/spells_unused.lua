@@ -1083,7 +1083,7 @@ madness = Spell({
       local nearestDist = 0
       local nearest = nil
       for _, creat in pairs(caster:get_seen_creatures()) do
-        if creat.id ~= "ghost" and creat:is_enemy(caster) and creat:is_type('intelligent') then
+        if creat:is_enemy(caster) and creat:is_type('intelligent') then
           if caster:touching(creat) then nearest = creat break end
           local dist = calc_distance(caster.x,caster.y,creat.x,creat.y)
           if nearest == nil or nearestDist < dist then
@@ -1724,7 +1724,7 @@ frogcurse = Spell({
       local nearestDist = 0
       local nearest = nil
       for _, creat in pairs(caster:get_seen_creatures()) do
-        if creat.id ~= "ghost" and creat:is_enemy(caster) then
+        if creat:is_enemy(caster) then
           if caster:touching(creat) and creat.id ~= "witch" then nearest = creat break end
           local dist = calc_distance(caster.x,caster.y,creat.x,creat.y)
           if creat.id ~= "witch" and creat ~= caster and (nearest == nil or nearestDist < dist) then
@@ -2216,7 +2216,7 @@ makebombs = Spell({
         for y=caster.y-1,caster.y+1,1 do
           currMap:add_effect(Effect('explosion'),x,y)
           local creat = currMap:get_tile_creature(x,y)
-          if creat and creat.id ~= "ghost" then
+          if creat then
             local dmg = creat:damage(tweak(5),caster)
             if player:can_see_tile(creat.x,creat.y) then output:out(creat:get_name() .. " gets caught in the explosion and takes " .. dmg .. " damage.") end
           end
@@ -2278,7 +2278,7 @@ servedrinks = Spell({
       for x=caster.x-1,caster.x+1,1 do
         for y=caster.y-1,caster.y+1,1 do
           local c = currMap:get_tile_creature(x,y)
-          if c and c.id ~= "ghost" and c ~= caster and not c:is_type('mindless') then creat = c break end
+          if c and c ~= caster and not c:is_type('mindless') then creat = c break end
         end
       end
       

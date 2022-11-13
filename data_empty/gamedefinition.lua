@@ -33,5 +33,8 @@ gamesettings = {
   skill_points_per_level=5,
   can_pickup_adjacent_items=true,
   display_item_levels=true,
-  display_creature_levels=true
+  display_creature_levels=true,
+  money_prefix = nil,
+  money_suffix = nil,
+  money_name = "coins"
 }

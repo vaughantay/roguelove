@@ -244,7 +244,7 @@ end
 --This function handles determining if you use a ranged attack
 ai['rangedAttack'] = function(self,args)
   --Try regular ranged attack first:
-  if (self.target and self.target.baseType == "creature" and not self.target:is_type('ghost')) and self:touching(self.target) == false and (self.ranged_attack ~= nil and (rangedAttacks[self.ranged_attack].projectile == false or self:can_shoot_tile(self.target.x,self.target.y)) and rangedAttacks[self.ranged_attack]:use(self.target,self)) then return true end
+  if (self.target and self.target.baseType == "creature") and self:touching(self.target) == false and (self.ranged_attack ~= nil and (rangedAttacks[self.ranged_attack].projectile == false or self:can_shoot_tile(self.target.x,self.target.y)) and rangedAttacks[self.ranged_attack]:use(self.target,self)) then return true end
   -- Then cast a spell, if possible
   for _, spell in ipairs(self:get_spells()) do
     local id = spell.id
@@ -254,7 +254,7 @@ ai['rangedAttack'] = function(self,args)
       if target and target.x and target.y and (not spell.range or math.floor(calc_distance(self.x,self.y,target.x,target.y)) <= spell.range) then --if there's a valid target to the spell within range
         if spell:use(target,self) then return true end --this is on a seperate line because I want the rest to be skipped if the spell fails for some reason.
       end --end friendly spell range check
-    elseif (self.target and self.target.baseType == "creature" and not self.target:is_type('ghost')) and (spell.flags['aggressive'] == true and self.cooldowns[id] == nil and (not spell.range or math.floor(calc_distance(self.x,self.y,self.target.x,self.target.y)) <= spell.range)) then
+    elseif (self.target and self.target.baseType == "creature") and (spell.flags['aggressive'] == true and self.cooldowns[id] == nil and (not spell.range or math.floor(calc_distance(self.x,self.y,self.target.x,self.target.y)) <= spell.range)) then
       local target = spell:decide(self.target,self,'aggressive')
       if target ~= false and (target == nil or target == true or target.x == nil or target.y == nil) then target = self.target end --if for some reason the decide function doesn't return an acceptable target
       if (target ~= false and spell:use(target,self)) then

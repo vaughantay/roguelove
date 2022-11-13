@@ -13,7 +13,7 @@ function credits:draw()
   
   love.graphics.setFont(fonts.graveFontBig)
   setColor(255,255,255,255)
-  love.graphics.printf("Possession",14,100,width-28,"center")
+  love.graphics.printf(gamesettings.name,14,100,width-28,"center")
   if self.slide == 1 then
     love.graphics.setFont(fonts.graveFontSmall)
     love.graphics.printf("Programming, Graphics, Music",math.floor(width/3),240,math.floor(width/3),"center")
@@ -28,56 +28,18 @@ function credits:draw()
     love.graphics.setFont(fonts.graveFontSmall)
     love.graphics.printf("Uses Sounds Created By",math.floor(width/3),200,math.floor(width/3),"center")
     love.graphics.setFont(fonts.textFont)
-    love.graphics.printf([[
-Kenney Vleugels
-http://www.kenney.nl
-    
-Iwan Gabovitch "qubodup"
-http://qubodup.net
-    
-InspectorJ
-http://www.jshaw.co.uk
-    
-ZapSplat
-https://www.zapsplat.com/
-    
-FreeSFX
-http://www.freesfx.co.uk]],math.floor(width/3),230,math.floor(width/3),"center")
+    love.graphics.printf([[]],math.floor(width/3),230,math.floor(width/3),"center")
   elseif self.slide == 4 then
     love.graphics.setFont(fonts.graveFontSmall)
     love.graphics.printf("Uses Sounds Created By",math.floor(width/3),140,math.floor(width/3),"center")
     love.graphics.setFont(fonts.textFont)
-    love.graphics.printf([[
-Tuomo Untinen "Reemax"
-http://opengameart.org/users/reemax
-    
-Jesús Lastra "Jalastram" 
-http://opengameart.org/users/jalastram
-    
-spookeymodem
-http://opengameart.org/users/spookymodem
-    
-JaggedStone
-http://opengameart.org/users/jaggedstone
-    
-Vataaa
-http://freesound.org/people/vataaa/
-    
-3bagbrew
-http://freesound.org/people/3bagbrew/
-    
-unfa
-http://freesound.org/people/unfa/
-    ]],math.floor(width/3)-5,170,math.floor(width/3)+10,"center")
+    love.graphics.printf([[]],math.floor(width/3)-5,170,math.floor(width/3)+10,"center")
   elseif self.slide == 5 then
     love.graphics.setFont(fonts.graveFontSmall)
     love.graphics.printf("Some Music Samples From",math.floor(width/3),140,math.floor(width/3),"center")
         love.graphics.printf("Fonts",math.floor(width/3),340,math.floor(width/3),"center")
     love.graphics.setFont(fonts.textFont)
-    love.graphics.printf([[
-Farmer's Samplepacks
-Copyright 1997 Louis Gorenfeld
-    ]],math.floor(width/3)-5,170,math.floor(width/3)+10,"center")
+    love.graphics.printf([[]],math.floor(width/3)-5,170,math.floor(width/3)+10,"center")
     love.graphics.printf([[Venice Classic, freeware by soixantedeux.
 ]],math.floor(width/3)-5,370,math.floor(width/3)+10,"center")
   elseif self.slide == 6 then

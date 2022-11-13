@@ -491,9 +491,8 @@ end
 --@param force Boolean. Whether to force-apply the condition. (optional)
 --@return Boolean. Whether the condition was applied
 function Creature:give_condition(name,turns,applier,force)
-  if not force and self:is_type('ghost') and conditions[name].ghost ~= true then return false end
   local ap = ap
-	if conditions[name]:apply(self,applier,turns) ~= false then
+	if force or conditions[name]:apply(self,applier,turns) ~= false then
     self.conditions[name]=(type(ap) == "number" and ap or turns)
   end
 	return true
@@ -1173,7 +1172,7 @@ function Creature:die(killer)
           end --end banich favor if
         end --end if member/members only favor
       end --end faction for
-    elseif seen and not self:is_type('ghost') then --killed by something other than a creature
+    elseif seen then --killed by something other than a creature
       output:out(self:get_name() .. " dies!")
     end --end playerally killer if
     
@@ -1201,7 +1200,7 @@ function Creature:die(killer)
   
     if (absorbs == false) then
       if self.corpse == nil and not self:is_type('ghost') and not self:is_type('bloodless') then
-        local chunk = currMap:add_feature(Feature(('chunk'),self),self.x,self.y)
+        local chunk = currMap:add_feature(Feature('chunk',self),self.x,self.y)
       end --put a chunk in, no matter what
       if (self.corpse == nil and not self:is_type('ghost') and self.isPlayer ~= true) then
         local corpse = Feature('corpse',self,self.x,self.y)
@@ -2092,7 +2091,7 @@ end --end make_fear_map
 function Creature:update(dt) --for charging, and other special effects
   --profiler.reset()
   --profiler.start()
-  if self == player and self.sees == nil then self.sees = self:get_seen_creatures() end --update player sees if for some reason they don't see anything (after a possession f'rex)
+  if self == player and self.sees == nil then self.sees = self:get_seen_creatures() end --update player sees if for some reason they don't see anything
   --Delete tween if done moving:
   if self.doneMoving and self.xMod == 0 and self.yMod == 0 then
     self.doneMoving = nil
@@ -2163,9 +2162,6 @@ function Creature:update(dt) --for charging, and other special effects
                 end
                 if f.hp and f.hp <= 0 then
                   f.explosiveDeath = true
-                  if self == player and f.id == "tentacle" then
-                    achievements:give_achievement('eldritch_special')
-                  end
                 elseif random(1,10) < dist*2 then --chance of knockback increases if the hitter was farther away
                   local knockback = random(0,math.floor(dist))
                   if knockback > 0 and f.baseType == "creature" then f:give_condition('knockback',knockback,self) end
@@ -2191,7 +2187,7 @@ function Creature:update(dt) --for charging, and other special effects
       if count(self.types) == 0 then self.types = nil end
       currMap:enter(self.x,self.y,self,oldX,oldY)
     end --end hit the end of the line
-  elseif self.hp < 1 and (self ~= player or not self:is_type('ghost') or action ~="dying") then --If not zooming, check to see if you need to die (we don't do this while zooming to avoid awkwardness)
+  elseif self.hp < 1 and (self ~= player or action ~="dying") then --If not zooming, check to see if you need to die (we don't do this while zooming to avoid awkwardness)
     self:die()
   end --end if self zoomto
 
@@ -2233,7 +2229,7 @@ function Creature:update(dt) --for charging, and other special effects
       if self.spritesheet then
         self.image_frame = imageNum
       else
-        local image_base = ((self.image_base or (possibleMonsters[self.id].image_name or self.id)) .. ((self == player and self.id ~= "ghost") or self:has_condition('possessed')) and "possessed" or "")
+        local image_base = (self.image_base or (possibleMonsters[self.id].image_name or self.id))
         self.image_name = image_base .. imageNum
       end
       --Change the light color, if necessary

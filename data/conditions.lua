@@ -307,64 +307,6 @@ boundindarkness = Condition({
     return false
   end
 }),
-	
-	asleep = Condition({
-		name = "Asleep",
-    bonuses = {possession_chance=25,stealth=10,notice_chance=-30},
-		ai = function (self, possessor)
-			return false
-		end,
-    moves = function(self,possessor)
-      return false
-    end,
-    damaged = function(self,possessor,attacker)
-      possessor:cure_condition('asleep')
-    end,
-		attacks = function (self, possessor, target)
-			return false
-		end,
-    attacks = function(self,possessor)
-			return false
-    end,
-    apply = function (self,possessor)
-      if (possessor.conditions['recentlyawoken'] and not currMap:tile_has_feature(possessor.x,possessor.y,"bed")) or possessor:has_spell('sleepless') then return false end --if the creature woke up recently, they can't fall asleep again. Unless they're on a bed because them shits are just so comfy.
-      if player:can_sense_creature(possessor) then
-        output:sound('fall_asleep')
-      end
-    end,
-		cured = function (self,possessor)
-      possessor.zClock = nil
-			if player:can_see_tile(possessor.x,possessor.y) then output:out(possessor:get_name() .. " wakes up.") end
-      possessor:give_condition('recentlyawoken',100)
-		end,
-    notices = function (self,possessor,target)
-      if (possessor.id == 'mummy') then --mummies sleep until explicitly woken
-        return false
-      end
-      if possessor:is_enemy(target) then --only enemies wake creatures
-        local dist = calc_distance(possessor.x,possessor.y,target.x,target.y)
-        if random(1,possessor:get_perception()) < dist then
-          return false
-        else
-          possessor:cure_condition('asleep')
-        end
-      end
-    end,
-    update = function(self,possessor,dt)
-      if player:does_notice(possessor) then
-        possessor.zClock = (possessor.zClock or 0) - dt
-        if (possessor.zClock <= 0 and random(1,5) == 1) then
-          local z = Effect('sleepZ',possessor.x,possessor.y)
-          currMap:add_effect(z,possessor.x,possessor.y)
-          possessor.zClock = 1
-        end
-      end
-    end
-	}),
-
-recentlyawoken = Condition({
-    name = "Recently Awoken",
-  }),
 
 stunned = Condition({
 		name = "Stunned",
@@ -372,12 +314,10 @@ stunned = Condition({
     applied = function(self,possessor,applier)
       if player:can_see_tile(possessor.x,possessor.y) then
         output:out(possessor:get_name() .. " is stunned!")
-        if not applier or (applier.id ~= "ghost" and applier.id ~= "chunkmaker") then
+        if not applier or applier.id ~= "chunkmaker" then
           output:sound('stunned')
         elseif applier.id == "chunkmaker" then
           output:sound('hedgehog_spikes')
-        elseif applier.id == "ghost" then
-          
         end
       end
     end,
@@ -549,8 +489,7 @@ chilled = Condition({
 	}),
 	
 	invincibility = Condition({
-		name = "Post-Possession Invincibility",
-    ghost=true,
+		name = "Invincibility",
 		bonuses={dodge_chance=1000,armor=1000},
 		damaged = function(self,possessor)
 			output:out("The attack passes through you, as you are not completely corporeal yet.")
@@ -769,29 +708,6 @@ demonbait = Condition({
       end --end applied function
   }),
 
-  knockback = Condition({
-      name = "Knockback",
-      apply = function(self,possessor,applier,turns)
-        if possessor:has_spell('knockbackimmunity') then return false end
-        local xMod,yMod = 0,0
-        possessor.lastAttacker = applier
-        if applier.x < possessor.x then xMod=1*random(1,turns)
-        elseif applier.x>possessor.x then xMod=-1*random(1,turns) end
-        if applier.y < possessor.y then yMod=1*random(1,turns)
-        elseif applier.y>possessor.y then yMod=-1*random(1,turns) end
-        possessor:flyTo({x=possessor.x+xMod,y=possessor.y+yMod})
-        if applier and applier.baseType == "creature" and player:can_see_tile(possessor.x,possessor.y) then
-          output:sound('collision_creature')
-          currMap:add_effect(Effect('animation','holydamage',5,false,{r=255,g=255,b=0}),possessor.x,possessor.y)
-        end
-      end,
-      update = function(self,possessor)
-        --This is here so the message shows up in the right place.
-        if player:can_sense_creature(possessor) then output:out(possessor:get_name() .. " is knocked backwards!") end
-        possessor.conditions['knockback'] = nil --Remove the condition so it never actually shows up
-      end
-  }),
-
 afterdivebomb = Condition({
       name = "After Divebomb",
       update = function(self,possessor,dt)
@@ -964,19 +880,11 @@ beingdigested = Condition({
     moves = function(self,possessor)
       if possessor.digestor then possessor:attack(possessor.digestor) end
       return false
-    end,
-    dies = function(self,possessor)
-      if possessor == player then
-        output:out("Your current body is digested, and you take control of the body that was digesting it.")
-        possessor.digestor.possession_chance = 100
-        Spell('possession'):cast(possessor.digestor,possessor)
-      end
     end
   }),
 
 invisible = Condition({
     name = "Invisible",
-    ghost=true,
     bonuses={stealth=1000},
     apply = function(self,possessor)
       possessor.color = {r=possessor.color.r,g=possessor.color.g,b=possessor.color.b,a=100}
@@ -1491,32 +1399,12 @@ grappling = Condition({
 
 peacefulpatron = Condition({
     name = "Stasis",
-    ghost=true,
     ai = function(self,possessor)
       return false
     end,
     damaged = function(self,possessor,attacker)
       return false
     end,
-  }),
-
-ghoststasis = Condition({
-    name = "Ghost Stasis",
-    ghost=true,
-    ai = function(self,possessor)
-      return false
-    end,
-    damaged = function(self,possessor,attacker)
-      return false
-    end,
-    noticed = function(self,possessor,attacker)
-      if attacker == player then
-        possessor:cure_condition('ghoststasis')
-        output:set_camera(possessor.x,possessor.y)
-        currMap:add_effect(Effect('initialbossfight'),possessor.x,possessor.y)
-        return true
-      end
-    end
   }),
 
 spearless = Condition({
@@ -1709,7 +1597,6 @@ distracted = Condition({
 
 astralprojection = Condition({
     name = "Astral Projection",
-    ghost=true,
     cured = function(self,possessor)
       if possessor == player then
         player:moveTo(possessor.body.x,possessor.body.y)
@@ -1732,11 +1619,6 @@ astralprojection = Condition({
     attacks = function(self,possessor,target)
       if possessor == player then output:out("Your astral form can't attack.") end
       return false
-    end,
-    casts = function(self,possessor,target,spell)
-      if spell.id == "possession" then
-        return false
-      end
     end
   }),
 
@@ -1909,111 +1791,102 @@ spindashing = Condition({
   exploding = Condition({
       name = "Exploding",
       apply = function(self,possessor)
-        if possessor == player then
-          if possessor.hp == possessor:get_mhp() then achievements:give_achievement('full_health_explosion') end
-          achievements:disqualify('no_waste')
+        possessor.explodeCountdown = .5
+        if possessor.deathSound then output:sound(possessor.deathSound)
+        elseif possessor.soundgroup then output:sound(possessor.soundgroup .. "_death")
+        elseif not output:sound(possessor.id .. "_death") then --output:sound return false if a sound doesn't exist
+          output:sound('genericdeath') --default death
+        end --end sound type if
+      end,
+      update = function(self,possessor,dt)
+        possessor.explodeCountdown = possessor.explodeCountdown - dt
+        possessor.xMod,possessor.yMod = random(-5,5),random(-5,5)
+        if possessor.explodeCountdown <= 0 then
+          possessor:explode()
+        end --end countdown if
+      end --end update function
+    }),
+  
+  --Basic conditions assumed to exist by the base game:
+  
+  knockback = Condition({
+      name = "Knockback",
+      apply = function(self,possessor,applier,turns)
+        if possessor:has_spell('knockbackimmunity') then return false end
+        local xMod,yMod = 0,0
+        possessor.lastAttacker = applier
+        if applier.x < possessor.x then xMod=1*random(1,turns)
+        elseif applier.x>possessor.x then xMod=-1*random(1,turns) end
+        if applier.y < possessor.y then yMod=1*random(1,turns)
+        elseif applier.y>possessor.y then yMod=-1*random(1,turns) end
+        possessor:flyTo({x=possessor.x+xMod,y=possessor.y+yMod})
+        if applier and applier.baseType == "creature" and player:can_see_tile(possessor.x,possessor.y) then
+          output:sound('collision_creature')
+          currMap:add_effect(Effect('animation','holydamage',5,false,{r=255,g=255,b=0}),possessor.x,possessor.y)
         end
-        possessor.explodeCountdown = .5
-        possessor.stopsInput = true
-        if possessor.deathSound then output:sound(possessor.deathSound)
-        elseif possessor.soundgroup then output:sound(possessor.soundgroup .. "_death")
-        elseif not output:sound(possessor.id .. "_death") then --output:sound return false if a sound doesn't exist
-          output:sound('genericdeath') --default death
-        end --end sound type if
-        actionResult=nil
-        action="moving"
-        output:setCursor(0,0)
       end,
-      update = function(self,possessor,dt)
-        possessor.explodeCountdown = possessor.explodeCountdown - dt
-        possessor.xMod,possessor.yMod = random(-5,5),random(-5,5)
-        if possessor.explodeCountdown <= 0 then
-          local oldBody = possessor
-          possessor:explode()
-          --Nearby creature notice you, because your body just exploded:
-          for x=player.x-10,player.x+10,1 do
-            for y=player.y-10,player.y+10,1 do
-              local creat = currMap:get_tile_creature(x,y)
-              if creat and creat ~= player and creat:can_see_tile(player.x,player.y) then --if they can't see it, they won't become hostile
-                if creat.shitlist[oldBody] then
-                  creat.shitlist[player] = player --silently become hostile if you're already hostile
-                else
-                  output:out(creat:get_name() .. " sees you explode out of your old body.")
-                  creat:become_hostile(player)
-                end
-                creat:notice(player)
-              end --end creat if
-            end --end fory
-          end --end forx
-          if oldBody.possessTarget then
-            local ghost = game.newGhost and game.newGhost or player
-            ghost.possessTarget = oldBody.possessTarget
-            Spell('possession'):cast(oldBody.possessTarget,ghost)
-          else
-            advance_turn()
-          end
-        end --end countdown if
-      end --end update function
-    }),
-  
-  explodingAI = Condition({
-      name = "Exploding",
-      apply = function(self,possessor)
-        possessor.explodeCountdown = .5
-        --possessor.stopsInput = true
-        if possessor.deathSound then output:sound(possessor.deathSound)
-        elseif possessor.soundgroup then output:sound(possessor.soundgroup .. "_death")
-        elseif not output:sound(possessor.id .. "_death") then --output:sound return false if a sound doesn't exist
-          output:sound('genericdeath') --default death
-        end --end sound type if
-      end,
-      update = function(self,possessor,dt)
-        possessor.explodeCountdown = possessor.explodeCountdown - dt
-        possessor.xMod,possessor.yMod = random(-5,5),random(-5,5)
-        if possessor.explodeCountdown <= 0 then
-          possessor:explode()
-          local c = Creature('badghost')
-          currMap:add_creature(c,possessor.x,possessor.y)
-          Spell('blink'):cast(c,c)
-        end --end countdown if
-      end --end update function
-    }),
-  
-  explodingNoGhost = Condition({
-      name = "Exploding",
-      apply = function(self,possessor)
-        possessor.explodeCountdown = .5
-      end,
-      update = function(self,possessor,dt)
-        possessor.explodeCountdown = possessor.explodeCountdown - dt
-        possessor.xMod,possessor.yMod = random(-5,5),random(-5,5)
-        if possessor.explodeCountdown <= 0 then
-          possessor:explode()
-        end --end countdown if
-      end --end update function
-    }),
-  
-  adjusting = Condition({
-    name = "Adjusting to new body",
-    bonuses={damage_percent=75,critical_chance=-100,hit_chance=-15,dodge_chance=-15},
+      update = function(self,possessor)
+        --This is here so the message shows up in the right place.
+        if player:can_sense_creature(possessor) then output:out(possessor:get_name() .. " is knocked backwards!") end
+        possessor.conditions['knockback'] = nil --Remove the condition so it never actually shows up
+      end
   }),
 
-possessed = Condition({
-  name = "Possessed",
-  bonuses = {bravery=10000,aggression=10000,possession_chance=-10000},
-  ai = function(self,possessor)
-    if possessor.hp < possessor:get_mhp()/10 then
-      if calc_distance(possessor.x,possessor.y,player.x,player.y) < possessor.level then
-        Spell('enemyExitBody'):cast(possessor,possessor)
+asleep = Condition({ --Assumed to exist by the base game
+		name = "Asleep",
+    bonuses = {possession_chance=25,stealth=10,notice_chance=-30},
+		ai = function (self, possessor)
+			return false
+		end,
+    moves = function(self,possessor)
+      return false
+    end,
+    damaged = function(self,possessor,attacker)
+      possessor:cure_condition('asleep')
+    end,
+		attacks = function (self, possessor, target)
+			return false
+		end,
+    attacks = function(self,possessor)
+			return false
+    end,
+    apply = function (self,possessor)
+      if (possessor.conditions['recentlyawoken'] and not currMap:tile_has_feature(possessor.x,possessor.y,"bed")) or possessor:has_spell('sleepless') then return false end --if the creature woke up recently, they can't fall asleep again. Unless they're on a bed because them shits are just so comfy.
+      if player:can_sense_creature(possessor) then
+        output:sound('fall_asleep')
+      end
+    end,
+		cured = function (self,possessor)
+      possessor.zClock = nil
+			if player:can_see_tile(possessor.x,possessor.y) then output:out(possessor:get_name() .. " wakes up.") end
+      possessor:give_condition('recentlyawoken',100)
+		end,
+    notices = function (self,possessor,target)
+      if (possessor.id == 'mummy') then --mummies sleep until explicitly woken
+        return false
+      end
+      if possessor:is_enemy(target) then --only enemies wake creatures
+        local dist = calc_distance(possessor.x,possessor.y,target.x,target.y)
+        if random(1,possessor:get_perception()) < dist then
+          return false
+        else
+          possessor:cure_condition('asleep')
+        end
+      end
+    end,
+    update = function(self,possessor,dt)
+      if player:does_notice(possessor) then
+        possessor.zClock = (possessor.zClock or 0) - dt
+        if (possessor.zClock <= 0 and random(1,5) == 1) then
+          local z = Effect('sleepZ',possessor.x,possessor.y)
+          currMap:add_effect(z,possessor.x,possessor.y)
+          possessor.zClock = 1
+        end
       end
     end
-    return true --normal AI
-  end,
-  dies = function(self,possessor)
-    print('dying')
-    possessor:explode()
-    currMap:add_creature(Creature('badghost'),possessor.x,possessor.y)
-    return false
-  end
-}),
+	}),
+
+recentlyawoken = Condition({ --Assumed to exist by the base game
+    name = "Recently Awoken",
+  }),
 }

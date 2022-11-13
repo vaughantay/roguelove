@@ -6,7 +6,7 @@ local healing = Service({
 })
 function healing:get_cost_text()
   local amt = (player:get_mhp() - player.hp)
-  return "$1 per HP" .. (amt > 0 and ", " .. amt .. " Total" or "")
+  return get_money_name(1) .. " per HP" .. (amt > 0 and ", " .. amt .. " Total" or "")
 end
 function healing:requires()
   local hp, mhp = player.hp,player:get_mhp()
@@ -18,7 +18,7 @@ function healing:use(user)
   local amt = math.min((user:get_mhp() - user.hp),user.money)
   user.money = user.money-amt
   user:updateHP(amt)
-  return true,"You regain " .. amt .. " HP.\nYou pay $" .. amt .. "."
+  return true,"You regain " .. amt .. " HP.\nYou pay " .. get_money_name(amt) .. "."
 end
 possibleServices['healing'] = healing
 

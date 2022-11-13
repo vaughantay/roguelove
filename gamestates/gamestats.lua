@@ -45,9 +45,8 @@ function gamestats:enter(previous)
       abilityStats[id].sortBy = uses
     end
     table.sort(abilityStats,sortByMost)
-    local whichAbil = abilityStats[1] and (abilityStats[1].ability == "Possession" or abilityStats[1].ability == "Repair Body") and (abilityStats[2] and (abilityStats[2].ability == "Possession" or abilityStats[2].ability == "Repair Body") and 3 or 2) or 1
   end
-  self.stats[#self.stats+1] = {id="abilities",header="Ability Usage",label = (abilityStats[whichAbil] and "Favorite Ability: " .. abilityStats[whichAbil].ability .. " (" .. abilityStats[whichAbil].uses .. " uses)" or "Favorite Abilities"),stats=abilityStats,expand=true}
+  self.stats[#self.stats+1] = {id="abilities",header="Ability Usage",label = (abilityStats[1] and "Favorite Ability: " .. abilityStats[1].ability .. " (" .. abilityStats[1].uses .. " uses)" or "Favorite Abilities"),stats=abilityStats,expand=true}
   
   local killStats = {}
   if totalstats.creature_kills then
@@ -321,25 +320,12 @@ function gamestats:draw()
         end
         love.graphics.push()
         love.graphics.translate(0,self.sideTransY)
-        love.graphics.printf("Total Possessions: " .. (totalstats.total_possessions or 0) .. "\nTotal Explosions: " .. (totalstats.explosions or 0),sidebarX,80+padding*2+24,width-sidebarX,"center")
         local printY = 80+padding*2+fontSize*4
         for _,creat in pairs(stat.stats) do
           if possibleMonsters[creat.creat] then --check to make sure this creature exists (it might not due to mods loaded)
             local name = ucfirst(possibleMonsters[creat.creat].name)
             love.graphics.printf(name,sidebarX,printY,width-sidebarX,"center")
             printY=printY+fontSize
-            if creat.possessions then
-              love.graphics.print("Possessions: " .. creat.possessions,sidebarX+padding*2,printY)
-              printY = printY+fontSize
-            end
-            if creat.explosions then
-              love.graphics.print("Explosions: " .. creat.explosions,sidebarX+padding*2,printY)
-              printY = printY+fontSize
-            end
-            if creat.explosionPercent then
-              love.graphics.print("Explosion ratio: " .. creat.explosionPercent .. "%",sidebarX+padding*2,printY)
-              printY = printY+fontSize
-            end
             love.graphics.print("Turns: " .. creat.turns,sidebarX+padding*2,printY)
             if creat.ratio then
               printY = printY+fontSize

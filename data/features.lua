@@ -18,36 +18,6 @@ local sign = {
 }
 possibleFeatures['sign'] = sign
 
-local chunk = {
-    name = "chunks",
-    symbol = ".",
-    description = "The bloody remains of some unfortunate creature.",
-  image_name = "whitechunk1",
-    color={r=255,g=0,b=0,a=255},
-  use_color_with_tiles=true,
-    new = function (self, creature)
-        if (creature ~= nil) then
-            self.name = creature.name .. " chunks"
-        end
-    self.angle = random(1,360)
-        local chunkType = random(1,6)
-        if (chunkType == 2) then
-      self.image_name = "whitechunk2"
-            self.symbol = "*"
-        elseif (chunkType == 3) then
-      self.image_name = "whitechunk2"
-            self.symbol = "~"
-    elseif (chunkType == 4) then
-      self.image_name = "whitechunk3"
-      self.symbol = ","
-        end
-    if creature and creature.bloodColor then
-      self.color = copy_table(creature.bloodColor)
-    end
-    end
-}
-possibleFeatures['chunk'] = chunk
-
 local bloodstain = {
     name = "blood",
     symbol = ".",
@@ -122,7 +92,7 @@ local trap = {
     color={r=255,g=255,b=255},
   useWalkedOnImage = true,
   hazard = 10,
-    enter=function(self,entity,fromX,fromY)
+  enter=function(self,entity,fromX,fromY)
     local moved = not (self.x == fromX and self.y == fromY)
     if moved and entity:is_type('flyer') == false then
       local trapdmg = 7+2*(self.caster and self.caster.level or 1)
@@ -135,48 +105,9 @@ local trap = {
         currMap:add_effect(Effect('animation','trapclose',3,entity,{r=255,g=255,b=255},entity.x,entity.y,false,false))
       end
     end
-    end
+  end
 }
 possibleFeatures['trap'] = trap
-
-local corpse = {
-  name = "corpse",
-  id="corpse",
-  symbol = "%",
-  imageType = "creature",
-  angle = .5*math.pi,
-  useWalkedOnImage = true,
-  description = "A dead body.",
-  targetable = true,
-  alwaysDisplay = true,
-  new = function (self,creature)
-    if creature.spritesheet then
-      self.spritesheet = true
-      self.image_max = creature.image_max
-      self.image_frame=1
-    end
-    if creature.properName then
-      self.name = "corpse of " .. creature.properName .. ", " .. creature.name
-    else
-      self.name = creature.name .. " corpse"
-    end
-    self.creature = creature
-    self.image_name = (creature.image_name or creature.id)
-    self.scale = .75
-    self.color = creature.color
-    if not creature:is_type('bloodless') then
-      if not self.actions then self.actions = {} end
-      self.actions['extractblood'] = {text="Extract blood from " .. creature.name .. " corpse",description="Extract blood from a corpse.",requires=function(self,user) if not self.bloodless and user:has_item('bloodextractor') then return true else return false end end}
-    end
-  end
-}
-function corpse:action(entity,action)
-  if action == "extractblood" then
-    local extractor = entity:has_item('bloodextractor')
-    if extractor then return extractor:use(self,entity) end
-  end
-end
-possibleFeatures['corpse'] = corpse
 
 local statue = {
     name = "Statue",
@@ -232,83 +163,6 @@ local petrify_victim = {
 }
 possibleFeatures['petrify_victim'] = petrify_victim
 
-local door = {
-    name="Door",
-  id="door",
-    symbol="+",
-    color={r=133,g=87,b=0,a=255},
-    description = "A closed door.",
-  fireChance = 20,
-  passableFor={ghost=true},
-    blocksMovement = true,
-  pathThrough = true,
-  blocksSight = true,
-  ghostPassable=true,
-  alwaysDisplay = true,
-  actions={opendoor={text="Open Door",description="Open a nearby door.",requires=function(self,user) return self.closed end},closedoor={text="Close Door",description="Close a nearby door.",requires=function(self,user) return not self.closed end}},
-  closed=true,
-  enter=function(self,entity)
-    if not self.closed or entity:is_type('ghost') then
-      return true
-    elseif self.closed then
-      self:action(entity,"opendoor")
-      return false
-    end
-  end,
-  action = function(self,entity,action)
-    if self.closed then
-      local squeak = self.squeak or self.sleeper or random(1,4) == 1
-      if self.playerOnly and entity ~= player then return false end
-      self.symbol="'"
-      self.description = "An open door."
-      self.blocksMovement = false
-      self.blocksSight = false
-      self.alwaysDisplay = false
-      --self.actions={closedoor={text="Close Door",description="Close a nearby door."}}
-      self.closed = false
-      if player:can_see_tile(self.x,self.y) then
-        if squeak then
-          output:out("The door creaks loudly!")
-          output:sound('door_open_squeak' .. random(1,2))
-        else
-          output:sound('door_open' .. random(1,2))
-        end
-      end
-      if self.sleeper then
-        self.sleeper:cure_condition('asleep')
-        self.sleeper:become_hostile(entity)
-      end
-      if self.squeak then
-        for x = self.x-5,self.x+5,1 do
-          for y = self.y-5,self.y+5,1 do
-            local creat = currMap:get_tile_creature(x,y)
-            if creat and currMap:is_line(x,y,creat.x,creat.y) then
-              if creat:has_condition('asleep') then
-                creat:cure_condition('asleep')
-              end
-              creat:notice(entity)
-            end --end if creat
-          end --end fory
-        end --end forx
-      end --end if self squeak
-      self.image_name = "dooropen"
-    else -- close the door
-      self.symbol="+"
-      self.description = "A closed door."
-      self.blocksMovement = true
-      self.blocksSight = true
-      self.alwaysDisplay = true
-      --self.actions={opendoor={text="Open Door",description="Open the door."}}
-      self.image_name = "doorclosed"
-      self.closed=true
-      if player:can_see_tile(self.x,self.y) then
-        output:sound('door_close')
-      end
-    end
-  end
-}
-possibleFeatures['door'] = door
-
 local gate = {
     name="Gate",
     symbol="+",
@@ -317,7 +171,6 @@ local gate = {
   passableFor={ghost=true},
     blocksMovement = true,
   pathThrough = true,
-  ghostPassable=true,
     enter=function(self,entity)
     if entity:is_type('ghost') then return true end
     if self.symbol == "+" then
@@ -387,7 +240,6 @@ local tree = {
   blocksSight = true,
   fireChance = 20,
   fireTime = 30,
-  ghostPassable=true,
 }
 function tree:new()
   self.image_name = "tree" .. random(1,3)
@@ -406,7 +258,6 @@ local deadtree = {
   blocksSight = true,
   fireChance = 100,
   fireTime = 15,
-  ghostPassable=true,
 }
 function deadtree:new()
   self.image_name = "deadtree" .. random(1,3)
@@ -425,7 +276,6 @@ local mushroom = {
   blocksSight = true,
   attackable = true,
   fireChance = 10,
-  ghostPassable=true,
 }
 function mushroom:new()
   self.image_name = "mushroom" .. random(1,3)
@@ -884,40 +734,6 @@ function brokentiles:refresh_image_name()
 end --end get_image
 possibleFeatures['brokentiles'] = brokentiles
 
-local bridge = {
-  name = "Bridge",
-  description = "A bridge over troubled waters (or troubled lava, or whatever).",
-  symbol = "|",
-  color={r=120,g=85,b=6,a=255},
-  tilemap=true,
-  walkedOnTilemap = true,
-  tileDirection = "nsew",
-  image_name = "stonebridge",
-  walkedOnImage = "stonebridgecrossing"
-}
-function bridge:refresh_image_name()
-  local dir = ""
-  if not currMap:tile_has_feature(self.x,self.y-1,"bridge") then dir = dir .. "n" self.symbol = "–" end
-  if not currMap:tile_has_feature(self.x,self.y+1,"bridge") then dir = dir .. "s" self.symbol = "–" end
-  if not currMap:tile_has_feature(self.x+1,self.y,"bridge") then dir = dir .. "e" end
-  if not currMap:tile_has_feature(self.x-1,self.y,"bridge") then dir = dir .. "w" end
-  if dir == "nsew" then end
-  if dir == "" then
-    self.symbol = "+"
-    self.tileDirection = "middle"
-  else
-    self.tileDirection = dir
-  end
-  self.walkedOnImage = self.image_name .. "crossing"
-end
-function bridge:new(args)
-  args = args or {}
-  if (args.dir == 'ns') then self.symbol = "|" self.name = "bridgens"
-  elseif (args.dir == 'ew') then self.symbol = "–" self.image_name="woodbridgeew" end
-  if args.image_name then self.image_name = args.image_name end
-end
-possibleFeatures['bridge'] = bridge
-
 local flower = {
     name = "Flower",
   id = "flower",
@@ -931,22 +747,6 @@ local flower = {
     end
 }
 possibleFeatures['flower'] = flower
-
-local gravestone = {
-  name = "Gravestone",
-  symbol = "∏",
-  color={r=100,g=100,b=100},
-  new = function(self,text)
-        if (text ~= nil) then
-            self.description = "\"" .. text .. "\""
-        else
-      local creat = get_random_element(possibleMonsters)
-      local obituary = random(0,1) == 1 and "R.I.P" or (random(0,1) == 1 and "Here Lies" or (random(0,1) == 1 and "Resting Place of" or "Always Remembered"))
-      self.description = "\"" .. obituary .. " " .. namegen:generate_human_name() .. "\nKilled by " .. (creat.properNamed and "" or (vowel(creat.name) and "an " or "a ")) .. creat.name .. ".\""
-        end
-    end
-}
-possibleFeatures['gravestone'] = gravestone
 
 local grave = {
   name = "Grave",
@@ -966,14 +766,6 @@ local bonepile = {
     end,
 }
 possibleFeatures['bonepile'] = bonepile
-
-local baronbones = {
-  name = "Pile of Bones",
-  symbol = "%",
-  description = "A pile of old bones.",
-  color={r=200,g=200,b=200}
-}
-possibleFeatures['baronbones'] = baronbones
 
 local zombait = {
   name = "Bait",
@@ -1192,7 +984,6 @@ local urn = {
   description = "An urn, holding someone's remains.",
   color = {r=59,g=53,b=66,a=255},
   blocksMovement=true,
-  ghostPassable=true,
   passableFor={ghost=true},
   attackable=true,
   damage = function(self,_,attacker)
@@ -1233,7 +1024,6 @@ local icewall = {
   alwaysDisplay = true,
   blocksSight = false,
   attackable=true,
-  ghostPassable=true,
 }
 function icewall:damage(_,source)
   if source and source.baseType == "creature" and player:can_see_tile(self.x,self.y) then
@@ -1312,7 +1102,6 @@ local fountain = {
   color={r=255,g=255,b=255,a=255},
   hazard = 1,
   shootThrough = true,
-  ghostPassable=true,
   new = function(self,_,x,y)
     local fountainType = random(1,6)
     if fountainType == 1 then
@@ -1348,7 +1137,7 @@ local fountain = {
   end,
   enter = function(self,entity,fromX,fromY)
     local text = ""
-    if self.image_base == "fountainempty" or entity.id == "ghost" or entity ~= player then
+    if self.image_base == "fountainempty" or entity ~= player then
       return false
     elseif self.image_base == "fountainred" then
       local hp = tweak(entity:get_mhp()/4)
@@ -1400,7 +1189,7 @@ local landmine = {
         currMap:add_effect(Effect('explosion'),x,y)
         output:sound('bomb')
         local creat = currMap:get_tile_creature(x,y)
-        if creat and creat.id ~= "ghost" and creat:is_type('flyer') == false then
+        if creat and creat:is_type('flyer') == false then
           local dmg = creat:damage((creat.x == self.x and creat.y == self.y and 25 or 10),self.caster)
           if player:can_see_tile(creat.x,creat.y) then output:out(creat:get_name() .. " gets caught in the explosion and takes " .. dmg .. " damage.") end
         end --end creat if
@@ -1454,7 +1243,6 @@ local keg = {
   blocksSight=true,
   pushable=true,
   attackable=true,
-  ghostPassable=true,
 }
 function keg:damage(_,_,_,dtype)
   if dtype == "fire" then
@@ -1476,7 +1264,7 @@ function keg:combust(source)
     for y = self.y-1,self.y+1,1 do
       currMap:add_effect(Effect('explosion'),x,y)
       local creat = currMap:get_tile_creature(x,y)
-      if creat and creat.id ~= "ghost" then
+      if creat then
         local dmg = creat:damage(10,(source and source.caster or nil),"fire")
         if player:can_see_tile(creat.x,creat.y) then output:out(creat:get_name() .. " gets caught in the explosion and takes " .. dmg .. " damage.") end
       end --end creat if
@@ -1500,7 +1288,6 @@ local barrel = {
   blocksSight=true,
   pushable=true,
   attackable=true,
-  ghostPassable=true,
 }
 function barrel:damage(_,_,_,dtype)
   if dtype == "fire" then
@@ -1524,7 +1311,6 @@ local crate = {
   blocksSight=true,
   pushable=true,
   attackable=true,
-  ghostPassable=true,
   image_varieties=2
 }
 function crate:damage(_,_,_,dtype)
@@ -1582,7 +1368,6 @@ local bookshelf = {
   blocksMovement = true,
   blocksSight=true,
   pushable=true,
-  ghostPassable=true,
   attackable=true,
   alwaysDisplay=true
 }
@@ -1809,27 +1594,6 @@ local steppingStone = {
 }
 possibleFeatures['steppingstone'] = steppingStone
 
-local bossActivator = {
-  name = "boss activator",
-  noDesc = true,
-  noDisp = true,
-  symbol = "",
-  description = "Invisible tile that activates the boss when stepped on.",
-  color ={r=0,g=0,b=0,a=0},
-  enter = function(self,entity)
-    if entity == player then
-      generate_boss()
-      for x=2,currMap.width-1,1 do
-        for y=2,currMap.height-1,1 do
-          local ba = currMap:tile_has_feature(x,y,'bossactivator')
-          if ba then ba:delete() end
-        end
-      end
-    end
-  end --end enter functiomn
-}
-possibleFeatures['bossactivator'] = bossActivator
-
 local ashpile = {
   name = "pile of ashes",
   symbol = "^",
@@ -1892,7 +1656,6 @@ local tnt = {
   fireChance = 100,
   blocksMovement = true,
   pushable=true,
-  ghostPassable=true,
   attackable=true,
   alwaysDisplay=true,
 }
@@ -1924,7 +1687,7 @@ function tnt:combust(source)
         end
       end
       local creat = currMap:get_tile_creature(x,y)
-      if creat and creat.id ~= "ghost" then
+      if creat then
         local dmg = creat:damage(tweak(25),(source and source.caster or nil),"explosive")
         if player:can_see_tile(creat.x,creat.y) then output:out(creat:get_name() .. " gets caught in the explosion and takes " .. dmg .. " damage.") end
         if creat.hp <= 0 and self.hitByCart then
@@ -2013,7 +1776,6 @@ local candelabra = {
   name = "Candelabra",
   symbol = "¥",
   blocksMovement=true,
-  ghostPassable=true,
   passableFor={ghost=true},
   description = "A freestanding candelabra.",
   color={r=255,g=255,b=0,a=200},
@@ -2158,7 +1920,6 @@ local vase = {
   description = "A priceless antique vase.",
   color = {r=0,g=0,b=255,a=255},
   blocksMovement=true,
-  ghostPassable=true,
   passableFor={ghost=true},
   blocksSight = true,
   attackable=true,
@@ -2217,7 +1978,6 @@ local obelisk = {
   symbol = "∆",
   useWalkedOnImage = true,
   blocksMovement=true,
-  ghostPassable=true,
   passableFor={ghost=true},
   description = "A creepy obelisk.",
   color={r=255,g=255,b=255,a=255},
@@ -2242,7 +2002,6 @@ local crystal = {
   symbol = "∆",
   useWalkedOnImage = true,
   blocksMovement=true,
-  ghostPassable=true,
   passableFor={ghost=true},
   description = "A giant glowing crystal.",
   image_name="crystal1",
@@ -2263,7 +2022,6 @@ local lectern = {
   symbol = "¥",
   useWalkedOnImage = true,
   blocksMovement=true,
-  ghostPassable=true,
   passableFor={ghost=true},
   description = "A lectern, on which sits a heavy book that's undoubtedly very boring.",
   color={r=255,g=255,b=255,a=255}
@@ -2354,7 +2112,6 @@ local cage = {
   color={r=150,g=150,b=150,a=255},
   blocksMovement = true,
   pushable=true,
-  ghostPassable=true,
 }
 possibleFeatures['cage'] = cage
 
@@ -2365,7 +2122,6 @@ local archerytarget = {
   passableFor={ghost=true},
   color={r=255,g=255,b=255,a=255},
   blocksMovement = true,
-  ghostPassable=true,
   image_varieties=3,
   attackable=true,
   hp=100000
@@ -2379,7 +2135,6 @@ local trainingdummy = {
   passableFor={ghost=true},
   color={r=164,g=100,b=34,a=255},
   blocksMovement = true,
-  ghostPassable=true,
   attackable=true,
   hp=100000
 }
@@ -2391,7 +2146,6 @@ local weaponrack = {
   description = "A wooden rack holding weapons. They're of pretty poor quality, though. A lot of them are even rusty.",
   passableFor={ghost=true},
   color={r=164,g=100,b=34,a=255},
-  ghostPassable=true,
   image_varieties=3
 }
 possibleFeatures['weaponrack'] = weaponrack
@@ -2402,7 +2156,6 @@ local anvil = {
   description = "A heavy anvil",
   passableFor={flyer=true},
   color={r=66,g=66,b=66,a=255},
-  ghostPassable=true,
 }
 possibleFeatures['anvil'] = anvil
 
@@ -2413,7 +2166,6 @@ local torturedevice = {
   passableFor={ghost=true},
   color={r=255,g=255,b=255,a=255},
   blocksMovement = true,
-  ghostPassable=true,
   image_varieties=3,
 }
 possibleFeatures['torturedevice'] = torturedevice
@@ -2426,7 +2178,6 @@ local fence = {
   color={r=150,g=150,b=150,a=255},
   blocksMovement = true,
   attackable = true,
-  ghostPassable=true,
   tilemap = true,
   tileDirection = "middle"
 }
@@ -2452,6 +2203,218 @@ function fence:refresh_image_name()
   end
 end --end get_image
 possibleFeatures['fence'] = fence
+
+local valhalla = {
+  name = "Portal to Valhalla",
+  description = "A gateway to the afterlife of true heroes.",
+  symbol = "0",
+  alwaysDisplay=true,
+  color={r=255,g=0,b=255,a=255},
+  actions={exit={text="Ascend",description="Ascend to valhalla."}},
+  castsLight = true,
+  lightDist=1,
+}
+function valhalla:action(entity,action)
+  win()
+end
+possibleFeatures['valhalla'] = valhalla
+
+--Standard features used in the basic engine:
+
+local corpse = {
+  name = "corpse",
+  id="corpse",
+  symbol = "%",
+  imageType = "creature",
+  angle = .5*math.pi,
+  useWalkedOnImage = true,
+  description = "A dead body.",
+  targetable = true,
+  alwaysDisplay = true,
+  new = function (self,creature)
+    if creature.spritesheet then
+      self.spritesheet = true
+      self.image_max = creature.image_max
+      self.image_frame=1
+    end
+    if creature.properName then
+      self.name = "corpse of " .. creature.properName .. ", " .. creature.name
+    else
+      self.name = creature.name .. " corpse"
+    end
+    self.creature = creature
+    self.image_name = (creature.image_name or creature.id)
+    self.scale = .75
+    self.color = creature.color
+    if not creature:is_type('bloodless') then
+      if not self.actions then self.actions = {} end
+      self.actions['extractblood'] = {text="Extract blood from " .. creature.name .. " corpse",description="Extract blood from a corpse.",requires=function(self,user) if not self.bloodless and user:has_item('bloodextractor') then return true else return false end end}
+    end
+  end
+}
+function corpse:action(entity,action)
+  if action == "extractblood" then
+    local extractor = entity:has_item('bloodextractor')
+    if extractor then return extractor:use(self,entity) end
+  end
+end
+possibleFeatures['corpse'] = corpse
+
+local chunk = {
+    name = "chunks",
+    symbol = ".",
+    description = "The bloody remains of some unfortunate creature.",
+  image_name = "whitechunk1",
+    color={r=255,g=0,b=0,a=255},
+  use_color_with_tiles=true,
+    new = function (self, creature)
+        if (creature ~= nil) then
+            self.name = creature.name .. " chunks"
+        end
+    self.angle = random(1,360)
+        local chunkType = random(1,6)
+        if (chunkType == 2) then
+      self.image_name = "whitechunk2"
+            self.symbol = "*"
+        elseif (chunkType == 3) then
+      self.image_name = "whitechunk2"
+            self.symbol = "~"
+    elseif (chunkType == 4) then
+      self.image_name = "whitechunk3"
+      self.symbol = ","
+        end
+    if creature and creature.bloodColor then
+      self.color = copy_table(creature.bloodColor)
+    end
+    end
+}
+possibleFeatures['chunk'] = chunk
+
+local door = {
+    name="Door",
+  id="door",
+    symbol="+",
+    color={r=133,g=87,b=0,a=255},
+    description = "A closed door.",
+  fireChance = 20,
+  passableFor={ghost=true},
+  blocksMovement = true,
+  pathThrough = true,
+  blocksSight = true,
+  alwaysDisplay = true,
+  actions={opendoor={text="Open Door",description="Open a nearby door.",requires=function(self,user) return self.closed end},closedoor={text="Close Door",description="Close a nearby door.",requires=function(self,user) return not self.closed end}},
+  closed=true,
+  enter=function(self,entity)
+    if not self.closed or entity:is_type('ghost') then
+      return true
+    elseif self.closed then
+      self:action(entity,"opendoor")
+      return false
+    end
+  end,
+  action = function(self,entity,action)
+    if self.closed then
+      local squeak = self.squeak or self.sleeper or random(1,4) == 1
+      if self.playerOnly and entity ~= player then return false end
+      self.symbol="'"
+      self.description = "An open door."
+      self.blocksMovement = false
+      self.blocksSight = false
+      self.alwaysDisplay = false
+      --self.actions={closedoor={text="Close Door",description="Close a nearby door."}}
+      self.closed = false
+      if player:can_see_tile(self.x,self.y) then
+        if squeak then
+          output:out("The door creaks loudly!")
+          output:sound('door_open_squeak' .. random(1,2))
+        else
+          output:sound('door_open' .. random(1,2))
+        end
+      end
+      if self.sleeper then
+        self.sleeper:cure_condition('asleep')
+        self.sleeper:become_hostile(entity)
+      end
+      if self.squeak then
+        for x = self.x-5,self.x+5,1 do
+          for y = self.y-5,self.y+5,1 do
+            local creat = currMap:get_tile_creature(x,y)
+            if creat and currMap:is_line(x,y,creat.x,creat.y) then
+              if creat:has_condition('asleep') then
+                creat:cure_condition('asleep')
+              end
+              creat:notice(entity)
+            end --end if creat
+          end --end fory
+        end --end forx
+      end --end if self squeak
+      self.image_name = "dooropen"
+    else -- close the door
+      self.symbol="+"
+      self.description = "A closed door."
+      self.blocksMovement = true
+      self.blocksSight = true
+      self.alwaysDisplay = true
+      --self.actions={opendoor={text="Open Door",description="Open the door."}}
+      self.image_name = "doorclosed"
+      self.closed=true
+      if player:can_see_tile(self.x,self.y) then
+        output:sound('door_close')
+      end
+    end
+  end
+}
+possibleFeatures['door'] = door
+
+local bridge = {
+  name = "Bridge",
+  description = "A bridge over troubled waters (or troubled lava, or whatever).",
+  symbol = "|",
+  color={r=120,g=85,b=6,a=255},
+  tilemap=true,
+  walkedOnTilemap = true,
+  tileDirection = "nsew",
+  image_name = "stonebridge",
+  walkedOnImage = "stonebridgecrossing"
+}
+function bridge:refresh_image_name()
+  local dir = ""
+  if not currMap:tile_has_feature(self.x,self.y-1,"bridge") then dir = dir .. "n" self.symbol = "–" end
+  if not currMap:tile_has_feature(self.x,self.y+1,"bridge") then dir = dir .. "s" self.symbol = "–" end
+  if not currMap:tile_has_feature(self.x+1,self.y,"bridge") then dir = dir .. "e" end
+  if not currMap:tile_has_feature(self.x-1,self.y,"bridge") then dir = dir .. "w" end
+  if dir == "nsew" then end
+  if dir == "" then
+    self.symbol = "+"
+    self.tileDirection = "middle"
+  else
+    self.tileDirection = dir
+  end
+  self.walkedOnImage = self.image_name .. "crossing"
+end
+function bridge:new(args)
+  args = args or {}
+  if (args.dir == 'ns') then self.symbol = "|" self.name = "bridgens"
+  elseif (args.dir == 'ew') then self.symbol = "–" self.image_name="woodbridgeew" end
+  if args.image_name then self.image_name = args.image_name end
+end
+possibleFeatures['bridge'] = bridge
+
+local gravestone = {
+  name = "Gravestone",
+  symbol = "∏",
+  color={r=100,g=100,b=100},
+  new = function(self,text)
+        if (text ~= nil) then
+            self.description = "\"" .. text .. "\""
+        else
+      local creat = get_random_element(possibleMonsters)
+      local obituary = random(0,1) == 1 and "R.I.P" or (random(0,1) == 1 and "Here Lies" or (random(0,1) == 1 and "Resting Place of" or "Always Remembered"))
+      self.description = "\"" .. obituary .. " " .. namegen:generate_human_name() .. "\nKilled by " .. (creat.properNamed and "" or (vowel(creat.name) and "an " or "a ")) .. creat.name .. ".\""
+        end
+    end
+}
+possibleFeatures['gravestone'] = gravestone
 
 local store = {
   name="Store",
@@ -2565,17 +2528,25 @@ function exit:action(entity,action)
 end
 possibleFeatures['exit'] = exit
 
-local valhalla = {
-  name = "Portal to Valhalla",
-  description = "A gateway to the afterlife of true heroes.",
-  symbol = "0",
-  alwaysDisplay=true,
-  color={r=255,g=0,b=255,a=255},
-  actions={exit={text="Ascend",description="Ascend to valhalla."}},
-  castsLight = true,
-  lightDist=1,
+--Not required but potentially useful:
+
+local bossActivator = {
+  name = "boss activator",
+  noDesc = true,
+  noDisp = true,
+  symbol = "",
+  description = "Invisible tile that activates the boss when stepped on.",
+  color ={r=0,g=0,b=0,a=0},
+  enter = function(self,entity)
+    if entity == player then
+      generate_boss()
+      for x=2,currMap.width-1,1 do
+        for y=2,currMap.height-1,1 do
+          local ba = currMap:tile_has_feature(x,y,'bossactivator')
+          if ba then ba:delete() end
+        end
+      end
+    end
+  end --end enter functiomn
 }
-function valhalla:action(entity,action)
-  win()
-end
-possibleFeatures['valhalla'] = valhalla
+possibleFeatures['bossactivator'] = bossActivator

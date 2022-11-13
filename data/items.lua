@@ -1133,9 +1133,11 @@ local treasure = {
 }
 possibleItems['treasure'] = treasure
 
+--Standard items used within the engine
+
 local money = {
-  name = "$1",
-  description = "A pile of coins.",
+  name = "money",
+  description = "A pile of money.",
   symbol = "$",
   itemType="other",
   color={r=255,g=255,b=0,a=255},
@@ -1146,7 +1148,7 @@ function money:new(amount)
     amount = random(10,50)
   end
   self.value = amount
-  self.name = "$" .. amount
+  self.name = get_money_name(amount)
 end
 function money:pickup(possessor)
   possessor.money = possessor.money + self.value

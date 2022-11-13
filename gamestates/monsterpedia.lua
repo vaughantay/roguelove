@@ -258,11 +258,8 @@ function monsterpedia:draw()
 		end
     
     local statText = ""
-    if totalstats.creature_possessions and totalstats.creature_possessions[id] then
-      statText = statText .. ucfirst(creat.name) .. " possessions: " .. totalstats.creature_possessions[id] .. "\n"
-    end
     if totalstats.exploded_creatures and totalstats.exploded_creatures[id] then
-      statText = statText .. ucfirst(creat.name) .. " explosions: " .. totalstats.exploded_creatures[id] .. "\n"
+      statText = statText .. ucfirst(creat.name) .. " exploded: " .. totalstats.exploded_creatures[id] .. "\n"
     end
     if totalstats.creature_kills and totalstats.creature_kills[id] then
       statText = statText .. ucfirst(creat.name) .. "s killed: " .. totalstats.creature_kills[id] .. "\n"

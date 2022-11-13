@@ -601,25 +601,9 @@ function move_player(newX,newY,force)
 	output:setCursor(0,0)
   local clear = player:can_move_to(newX,newY)
   local entity = currMap:get_tile_creature(newX,newY,true)
-  local possessed = false
 	if (clear) then
-    --If player is a ghost, see if their new location will put them next to any enemies, and warn them:
-    if not force then 
-      if player.id == "ghost" then
-        for x = newX-1,newX+1,1 do
-          for y = newY-1,newY+1,1 do
-            local creat = currMap:get_tile_creature(x,y)
-            if creat ~= false and creat.id ~= "ghost" and creat:is_enemy(player) and player:can_sense_creature(creat) and player:does_notice(creat) then
-              game:warn_player(newX,newY,creat)
-              return false --break here, so turn doesn't pass
-            end --end creat if
-          end --end fory
-        end --end forx
-      end --end ghost if
-    end --end force if
-    
     --Check whether or not there are any dangerous features or effects at the new location, and give a warning if so
-    if (force or player.id == "ghost" or currMap:is_passable_for(newX,newY,player.pathType,true) or currMap:is_passable_for(player.x,player.y,player.pathType,true) == false) then --the second is_passable check means that it won't pop up a warning moving FROM dangerous territory TO dangerous territory
+    if (force or currMap:is_passable_for(newX,newY,player.pathType,true) or currMap:is_passable_for(player.x,player.y,player.pathType,true) == false) then --the second is_passable check means that it won't pop up a warning moving FROM dangerous territory TO dangerous territory
       player:moveTo(newX,newY)
     else
       game:warn_player(newX,newY)
@@ -647,7 +631,7 @@ function move_player(newX,newY,force)
       end --end feature/creature if
     end --end entity for
 	end
-  if not possessed and (clear or (entity and (entity.baseType == "creature" or (entity.baseType == "feature" and player.id ~= "ghost")))) then
+  if (clear or (entity and entity.baseType == "creature")) then
     advance_turn()
     return true
   end
@@ -968,4 +952,11 @@ function run_all_events_of_type(event_type)
       end
     end --end random event type
   end --end event for
+end
+
+---Returns the name of the money
+--@param amount Number. The amount of money
+--@return Text. The name of the money
+function get_money_name(amount)
+  return (gamesettings.money_prefix or "") .. amount .. (gamesettings.money_suffix or "") .. (gamesettings.money_name and " " .. gamesettings.money_name or "")
 end

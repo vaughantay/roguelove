@@ -128,7 +128,7 @@ function modloader:draw()
         printY = printY + padY
       end
       if mod.gameVersion then
-        love.graphics.print("For Possession version " .. mod.gameVersion,sidebarX+padding,printY)
+        love.graphics.print("For " .. gamesettings.name .. " version " .. mod.gameVersion,sidebarX+padding,printY)
         printY = printY + padY
         if mod.gameVersion ~= gamesettings.version then
           setColor(255,0,0,255)

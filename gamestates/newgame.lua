@@ -187,7 +187,7 @@ function newgame:draw()
           desc = desc .. "\n"
         end
         if creature.money then
-          desc = desc .. "Money: $" .. creature.money .. "\n"
+          desc = desc .. "Money: " .. get_money_name(creature.money) .. "\n"
         end
         if creature.factions and #creature.factions > 0 then
           desc = desc .. "Faction Membership: "
@@ -393,7 +393,7 @@ function newgame:draw()
           desc = desc .. "\n"
         end
         if class.money or creature.money then
-          desc = desc .. "Money: $" .. (class.money or 0)+(creature.money or 0) .. "\n"
+          desc = desc .. "Money: " .. get_money_name((class.money or 0)+(creature.money or 0)) .. "\n"
         end
         if (class.factions and #class.factions > 0) or (creature.factions and #creature.factions > 0) then
           desc = desc .. "Faction Membership: "

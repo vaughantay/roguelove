@@ -409,309 +409,6 @@ function spores:update(dt)
 end
 effects['spores'] = spores
 
-local fire = {
-  name = "Fire",
-  description = "A roaring flame.",
-  symbol = "^",
-  color={r=255,g=0,b=0},
-  countdown = .25,
-  timer = 10,
-  firstturn = true,
-  hazard = 1000,
-  castsLight=true,
-  lightDist=2,
-  lightColor={r=255,g=255,b=0}
-}
-function fire:new(data)
-  if data then
-    if data.timer then self.timer = data.timer end
-    if data.x and data.y then
-      self.x,self.y = data.x,data.y
-      local feats = currMap:get_tile_features(self.x,self.y)
-      for _,feat in pairs(feats) do
-        if feat.water == true then return false end
-      end
-      if type(currMap[self.x][self.y]) == "table" and currMap[self.x][self.y].water == true then return false end
-    end
-  end
-  self.timer = tweak(self.timer)
-  self.image_name = "fire" .. random(1,3)
-  if self.x and self.y and player:can_see_tile(self.x,self.y) then output:sound('ignite') end
-end --end new function
-function fire:update(dt)
-  self.countdown = self.countdown - dt
-  if (self.countdown <= 0) then
-    local newName = "fire" .. random(1,3)
-    while (newName == self.image_name) do newName = "fire" .. random(1,3) end
-    self.image_name = newName
-    self.countdown = .25
-    if (self.color.g == 0) then
-      self.color.g=255
-    elseif (self.color.g == 255) then
-      self.color.g=142
-    else
-      self.color.g=0
-    end
-    self.lightColor={r=random(200,255),g=random(200,255),b=0,a=50}
-    currMap:refresh_light(self)
-  end
-end --end update function
-function fire:advance()
-  local feats = currMap:get_tile_features(self.x,self.y)
-  for _,feat in pairs(feats) do
-    if feat.water == true then self:delete() return false end
-  end
-  if type(currMap[self.x][self.y]) == "table" and currMap[self.x][self.y].water == true then self:delete() return false end
-  --Burn creatures on tile:
-  local creat = currMap:get_tile_creature(self.x,self.y)
-  if (creat and creat.fireImmune ~= true and not creat:has_condition('onfire')) then
-    local dmg = creat:damage(tweak(5),self.caster,"fire")
-    if dmg > 0 and player:can_see_tile(self.x,self.y) then output:out(creat:get_name() .. " takes " .. dmg .. " damage from fire.") end
-    if (dmg> 0 and random(1,100) >= 60) then
-      if creat.conditions['onfire'] == nil and player:can_see_tile(creat.x,creat.y) then output:out(creat:get_name() .. " catches on fire!") end
-      creat:give_condition('onfire',random(1,5))
-    end
-  end
-  
-  if (self.firstturn == false) then
-    --Burn nearby features:
-    for x = self.x-1,self.x+1,1 do
-      for y = self.y-1,self.y+1,1 do
-        if type(currMap[x][y]) == "table" and currMap[x][y].fireChance and random(1,100) <= currMap[x][y].fireChance then
-          currMap[x][y]:combust()
-          currMap:change_tile(".",x,y)
-        end
-        for id, content in pairs(currMap.contents[x][y]) do
-          if content.fireChance and random(1,100) <= content.fireChance then
-            content:combust()
-          end --end feature check 
-        end --end for loop
-      end --end y loop
-    end --end x loop
-  else
-    self.firstturn = false
-  end --end grass and tree chunk
-  
-  -- Count down the fire:
-  self.timer = self.timer - 1
-  if (self.timer < 1) then
-    self:delete()
-  end
-end --end advance function
-effects['fire'] = fire
-
-local dmgPopup = {
-  name = "Damage",
-  description = "Shows how much damage just got done.",
-  countdown = 1,
-  symbol = "!",
-  noDesc = true,
-  color={r=255,g=0,b=0,a=255},
-  use_color_with_tiles = true,
-  yMod = 0,
-  speed=100
-}
-function dmgPopup:update(dt)
-  if (self.y) then
-    self.countdown = self.countdown - dt
-    self.color.a = 255*self.countdown
-    self.yMod = self.yMod - self.speed*dt-((1-self.countdown)*3)
-    if (self.countdown <= 0) then
-      self:delete()
-    end --end countdown if
-  end --end self.y if
-end --end function
-function dmgPopup:new()
-  self.speed = random(25,150)
-end
-effects['dmgpopup'] = dmgPopup
-
-local sleepZ = {
-  name = "Snore",
-  description = "zzzzzz",
-  countdown = 1.5,
-  symbol = "z",
-  noDesc = true,
-  color={r=0,g=255,b=255,a=225},
-  yMod = -10,
-  xMod = 0,
-  xChange = 50
-}
-function sleepZ:new()
-  if random(1,2) == 1 then self.xChange = -50 end 
-end
-function sleepZ:update(dt)
-  if (self.y) then
-    self.countdown = self.countdown - dt
-    self.color = {r=0,g=255,b=255,a=150*self.countdown,255}
-    self.yMod = self.yMod - 25*dt
-    self.xMod = self.xMod + self.xChange*dt
-    if self.xMod >= 10 then self.xChange = -50 elseif self.xMod <= -10 then self.xChange = 50 end
-    if (self.countdown <= 0) then
-      self:delete()
-    end --end countdown if
-  else
-    self:delete()
-  end --end self.y if
-end --end function
-effects['sleepZ'] = sleepZ
-
-local heart = {
-  name = "Heart",
-  description = "It loves you!",
-  countdown = 1.5,
-  symbol = "<3",
-  noDesc = true,
-  color={r=255,g=0,b=0,a=225},
-  yMod = -10,
-  xMod = 0,
-  xChange = 50
-}
-function heart:new()
-  if random(1,2) == 1 then self.xChange = -50 end 
-end
-function heart:update(dt)
-  if (self.y) then
-    self.countdown = self.countdown - dt
-    self.color = {r=255,g=0,b=0,a=150*self.countdown}
-    self.yMod = self.yMod - 25*dt
-    self.xMod = self.xMod + self.xChange*dt
-    if self.xMod >= 10 then self.xChange = -50 elseif self.xMod <= -10 then self.xChange = 50 end
-    if (self.countdown <= 0) then
-      self:delete()
-    end --end countdown if
-  else
-    self:delete()
-  end --end self.y if
-end --end function
-effects['heart'] = heart
-
-local bubble = {
-  name = "Bubble",
-  description = "Fun!",
-  countdown = 1.5,
-  symbol = "o",
-  noDesc = true,
-  use_color_with_tiles=true,
-  color={r=255,g=255,b=255,a=225},
-  yMod = -10,
-  xMod = 0,
-  xChange = 50,
-  scaleChange = 0,
-  spinDir=1,
-}
-function bubble:new()
-  if random(1,2) == 1 then self.xChange = -50 self.spinDir = -1 end 
-end
-function bubble:update(dt)
-  if (self.y) then
-    self.countdown = self.countdown - dt
-    self.color = {r=self.color.r,g=self.color.g,b=self.color.b,a=150*self.countdown,255}
-    self.yMod = self.yMod - 25*dt
-    self.xMod = self.xMod + self.xChange*dt
-    if self.xMod >= 10 then self.xChange = -50 elseif self.xMod <= -10 then self.xChange = 50 end
-    if self.scaleChange ~= 0 then
-      self.scale = self.scale+self.scaleChange*dt
-      if self.scale >= 1 or self.scale <= .50 then
-        self.scaleChange = -self.scaleChange
-      end
-    end
-    if self.spin then
-      self.angle = (self.angle or 0)+dt*math.pi*self.spinDir
-    end
-    if (self.countdown <= 0) then
-      self:delete()
-    end --end countdown if
-  else
-    self:delete()
-  end --end self.y if
-end --end function
-effects['bubble'] = bubble
-
-local chunkmaker = {
-  name = "Chunkmaker",
-  description = "Animated bit that makes creature chunks.",
-  countdown = .01,
-  symbol = "",
-  noDesc = true,
-  distance = 0,
-  stopsInput = true,
-  alreadyDone = {},
-  color={r=255,g=255,b=255,a=0}
-}
-function chunkmaker:new(creat)
-  self.creature = creat
-  self.maxDist = (creat.level > 0 and math.ceil(creat.level/3) + 1 or 1)
-  if self.creature and self.creature.bloodColor then
-    self.bloodColor = self.creature.bloodColor
-  end
-end
-function chunkmaker:update(dt)
-  if (self.countdown <= 0 and self.chunked ~= true) then
-    self.countdown = .01
-    for x=self.x-self.distance,self.x+self.distance do
-      for y=self.y-self.distance,self.y+self.distance do
-        if self.alreadyDone[x .. "," .. y] ~= true and calc_distance(x,y,self.x,self.y) <= self.maxDist and currMap:is_line(self.creature.x,self.creature.y,x,y) then
-          self.alreadyDone[x .. "," .. y] = true
-          local chunk = Feature('chunk',self.creature)
-          currMap:add_feature(chunk,x,y)
-          --display wall or stairs if chunk lands on wall or stairs:
-          if (currMap[x][y] == "#") then chunk.symbol="#"
-          else --make features display properly
-            local delete = false
-            if (currMap[x][y].baseType == "feature") then
-              if currMap[x][y].absorbs then delete = true
-              elseif currMap[x][y].water == true then --make the water red
-                chunk.color = (self.bloodColor or {r=255,g=0,b=0,a=125})
-                chunk.symbol = "≈"
-                currMap[x][y].color=(self.bloodColor or {r=255,g=0,b=0,a=255})
-              elseif currMap[x][y].alwaysDisplay == true then
-                content.color=(self.bloodColor or {r=255,g=0,b=0,a=content.color.a})
-              end
-            end ---end feature display if
-            --now go over the features of the tile to display right:
-            for id,content in pairs(currMap.contents[self.x][self.y]) do
-              if (content.baseType == "feature") then
-                if (content.id == "bridge") then delete = false --chunks will display on bridges
-                elseif (content.water == true) then --make the water red
-                  chunk.color = (self.creature.bloodColor or {r=255,g=0,b=0,a=125})
-                  chunk.symbol = "≈"
-                  content.color={r=255,g=0,b=0}
-                elseif (content.alwaysDisplay == true) then content.color=(self.bloodColor or {r=255,g=0,b=0,a=content.color.a}) --color other features that demand to be displayed red
-                elseif content.absorbs then delete = true end
-              end --end feature if
-            end --end content for
-            if delete == true then chunk:delete() end
-          end -- end tile display if
-          
-          --Damage creatures:
-          local creat = currMap:get_tile_creature(x,y)
-          if creat ~= false and not creat:is_type("ghost") then
-            local dmg = creat:damage(random(self.creature.level,self.creature.level*3))
-            output:out(creat:get_name() .. " gets hit by a flying " .. self.creature.name .. " chunk and takes " .. dmg .. " damage!")
-            if creat ~= player then creat:give_condition('stunned',1,self) end
-            if creat.hp <= 0 then
-              creat.explosiveDeath = true
-              creat.secondaryExplosion = true
-              achievements:give_achievement('explosion_kill')
-              if self.creature.secondaryExplosion then
-                achievements:give_achievement('chain_explosion_kill')
-              end
-            end
-          end --end if creat
-          
-        end --end distance/line check
-      end -- end fory
-    end -- end forx
-    --Increase distance for next chunks, or delete yourself
-    if self.distance == self.maxDist then self:delete()
-    else self.distance = self.distance + 1 end
-  else --if self.countdown is not 0
-    self.countdown = self.countdown - dt
-  end
-end
-effects['chunkmaker'] = chunkmaker
-
 local slimemaker = {
   name = "Slimemaker",
   description = "Animated bit that makes creature chunks.",
@@ -761,7 +458,7 @@ function slimemaker:update(dt)
           
           --Damage creatures:
           local creat = currMap:get_tile_creature(x,y)
-          if (creat ~= false and creat.id ~= "ghost") then
+          if creat ~= false then
             if player:can_sense_creature(creat) then output:out(creat:get_name() .. " gets covered in slime!") end
             creat:give_condition('slimy',5)
           end --end if creat
@@ -836,7 +533,7 @@ function lavamaker:update(dt)
           
           --Damage creatures:
           local creat = currMap:get_tile_creature(x,y)
-          if (creat ~= false and creat.id ~= "ghost") then
+          if creat ~= false then
             local dmg = creat:damage(random(10,25),nil,"fire")
             output:out(creat:get_name() .. " gets hit by flying lava and takes " .. dmg .. " damage!")
           end --end if creat
@@ -1223,64 +920,6 @@ function snowstorm:advance()
 end
 effects['snowstorm'] = snowstorm
 
-local animation = {
-  name = "animation",
-  description = "A n-frame animation..",
-  noDesc = true,
-  symbol = "",
-  countdown = .1,
-  tilemap = true,
-  color={r=255,g=255,b=255,a=255}
-}
-function animation:new(anim_name,frames,target,color,ascii,use_color_with_tiles,repetitions,backwards,ignoreTurns)
-  self.image_name = anim_name
-  self.image_max = frames
-  self.color = color or {r=255,g=255,b=255,a=255}
-  self.target = target
-  self.ascii = ascii or true
-  self.use_color_with_tiles = use_color_with_tiles or false
-  self.repetitions = repetitions or 0
-
-  self.image_frame = (backwards and frames or 1)
-  self.firstTurn = true
-  self.repetition = 1
-  self.backwards=backwards
-  self.ignoreTurns=ignoreTurns
-end
-function animation:update(dt)
-  self.countdown = self.countdown - dt
-  if self.countdown <= 0 then
-    self.countdown = .1
-    self.image_frame = math.max(self.image_frame + (self.backwards and -1 or 1),1)
-    if (not self.backwards and self.image_max >= self.image_frame) or (self.backwards and self.image_frame ~= 1) then --if you haven't reached the last frame
-      if self.ascii then
-        if self.image_frame == 2 then self.symbol = "*"
-        elseif self.image_frame == 3 then self.symbol = "#"
-        elseif self.image_frame == 4 then self.symbol = "*"
-        elseif self.image_frame == 5 then self.symbol = "." end
-      end
-    else
-      if self.repetitions == 0 or self.repetition == self.repetitions then
-        self.done = true
-        self:delete()
-      else
-        self.image_frame = (self.backwards and self.image_max or 1)
-        self.repetition = self.repetition + 1
-      end
-    end
-  end
-end
-function animation:advance()
-  if self.firstTurn ~= true and not self.ignoreTurns then
-    self.done = true
-    self:delete()
-  else
-    self.firstTurn = false
-    if self.target then self.x,self.y = self.target.x,self.target.y end
-  end
-end
-effects['animation'] = animation
-
 local cussin = {
   name = "cussin",
   description = "Angry!",
@@ -1368,52 +1007,6 @@ function explosion:update(dt)
 end
 effects['explosion'] = explosion
 
-local coinAttractor = {
-  name = "Coin Attractor",
-  description = "Draws enemies to coins.",
-  noDesc = true,
-  symbol = "",
-  color={r=150,g=150,b=0,a=0}
-}
-function coinAttractor:new(info)
-  self.x,self.y = info.x,info.y
-  local c = Feature('coins')
-  self.coins = c
-  currMap:add_feature(c,self.x,self.y)
-end
-function coinAttractor:advance()
-  local creat = currMap:get_tile_creature(self.x,self.y)
-  if creat and creat:is_type('intelligent') and not creat:is_type('undead') then
-    self:delete()
-    self.coins:delete()
-    creat.target = nil
-    if creat.id == "goblinbanker" then
-      creat.mp = creat.mp+1
-      if creat == player then
-        local p = Effect('dmgpopup',creat.x,creat.y)
-        p.color = {r=255,g=255,b=0,a=255}
-        p.symbol = "$"
-        p.image_name = "coin"
-        p.use_color_with_tiles = false
-        currMap:add_effect(p,creat.x,creat.y)
-        output:sound('coinstep_player')
-      end
-    end -- goblin bankers get more money by picking up coins
-    return
-  end
-  for x=self.x-10,self.x+10,1 do
-    for y=self.y-10,self.y+10,1 do
-      if (x>1 and y>1 and x<currMap.width and y<currMap.height) then
-        local creat = currMap:get_tile_creature(x,y)
-        if creat and creat:is_type("intelligent") and creat:can_see_tile(self.x,self.y) then
-          creat.target = self.coins
-        end --end intelligent if
-      end --end if checking if it's your actual location
-    end --end fory
-  end --end forx
-end --end advance
-effects['coinattractor'] = coinAttractor
-
 local methane = {
   name = "cloud of methane",
   description = "A thick cloud of methane gas has congregated here. It smells bad, and is pretty flammable too.",
@@ -1456,27 +1049,6 @@ function methane:refresh_image_name()
 end --end get_image
 effects['methane'] = methane
 
-local phoenixcountdown = {
-  name = "Phoenix Ashes",
-  noDesc = true,
-  symbol = "",
-  color={r=255,g=255,b=255,a=255},
-  new = function(self)
-    self.countdown = random(10,50)
-  end,
-  advance = function(self)
-    self.countdown = self.countdown - 1
-    if self.countdown < 1 then
-      if player:can_see_tile(self.x,self.y) then output:out("A phoenix rises from the ashes!") end
-      local phoenix = Creature('phoenix',currMap.depth)
-      currMap:add_creature(phoenix,self.x,self.y)
-      self:delete()
-      self.ashpile:delete()
-    end
-  end
-}
-effects['phoenixcountdown'] = phoenixcountdown
-
 local tornado = {
   name = "tornado",
   description = "A fierce mini-tornado! Thank goodness your house is nowhere around here.",
@@ -1502,7 +1074,7 @@ local tornado = {
       for x=self.x-1,self.x+1,1 do
         for y=self.y-1,self.y+1,1 do
           local c = currMap:get_tile_creature(x,y)
-          if c and c.id ~= ghost then neighbors[#neighbors+1] = c end
+          if c then neighbors[#neighbors+1] = c end
         end --end fory
       end --end forx
       if #neighbors > 0 then
@@ -1512,7 +1084,7 @@ local tornado = {
       end
     end
     local creat = currMap:get_tile_creature(self.x,self.y)
-    if creat and creat ~= "ghost" then
+    if creat then
       local dmg = creat:damage(tweak(25),self.caster)
       if dmg and player:can_sense_creature(creat) then output:out("The tornado deals " .. dmg .. " damage to " .. creat:get_name() .. ".") end
     end
@@ -1520,7 +1092,7 @@ local tornado = {
     for x=self.x-2,self.x+2,1 do
       for y=self.y-2,self.y+2,1 do
         local creat = currMap:get_tile_creature(x,y)
-        if creat and creat.id ~= "ghost" then
+        if creat then
           local line,complete = currMap:get_line(self.x,self.y,creat.x,creat.y)
           if complete and line and #line > 0 then
             creat:moveTo(line[1][1],line[1][2])
@@ -1751,7 +1323,7 @@ local minecart = {
       
       --Look to see if you bumped into any creatures:
       local creat = currMap:get_tile_creature(self.x,self.y)
-      if creat and creat.id ~= "ghost" then
+      if creat then
         local flyTo = {x=self.x,y=self.y}
         if self.direction == "e" then
           flyTo.x = flyTo.x + random(self.moves+1,4) -- Don't move just a bit and then get hit again
@@ -1798,62 +1370,6 @@ local minecart = {
   end --end update function
 }
 effects['minecart'] = minecart
-
-local asteroid = {
-  name = "Asteroid",
-  description = "A rock hurtling in from space!",
-  symbol = "*",
-  color = {r=255,g=0,b=0,a=255},
-  timer = 0,
-  stopsInput = true,
-  animated=true,
-  spritesheet=true,
-  image_max=4,
-  animation_time = 0.05
-}
-function asteroid:new(x,y)
-  self.x = x
-  self.y = y-10
-  self.targetY = y
-end
-function asteroid:update(dt)
-  if self.y == self.targetY and not self.done then
-    for x=self.x-1,self.x+1,1 do
-      for y=self.y-1,self.y+1,1 do
-        currMap:add_effect(Effect('explosion'),x,y)
-        if player:can_see_tile(self.x,self.y) then
-          output:sound('bomb')
-        end
-        for _,feat in pairs(currMap:get_tile_features(x,y)) do
-          if feat.fireChance then
-            feat:combust()
-          end --end firechance if
-        end --end feature for
-      end --end fory
-    end --end forx
-    --Add the golem:
-    local golem = Creature('asteroidgolem')
-    currMap:add_creature(golem,self.x,self.y)
-    currMap.boss = golem
-    golem:notice(player)
-    golem:become_hostile(player)
-    self.done = true
-    self.noDisp = true
-    self.color.a=0
-    self.timer = .7
-  end
-  self.timer = self.timer-dt
-  if self.timer <= 0 then
-    if self.done then
-      game:show_popup(currMap.boss.bossText)
-      self:delete()
-    else
-      self:moveTo(self.x,self.y+1,.01)
-      self.timer = .01
-    end
-  end
-end
-effects['asteroid'] = asteroid
 
 local soundwavemaker = {
   name = "Soundwavemaker",
@@ -2183,6 +1699,371 @@ function lavabeastcreator:advance()
 end
 effects['lavabeastcreator'] = lavabeastcreator
 
+local sleepZ = {
+  name = "Snore",
+  description = "zzzzzz",
+  countdown = 1.5,
+  symbol = "z",
+  noDesc = true,
+  color={r=0,g=255,b=255,a=225},
+  yMod = -10,
+  xMod = 0,
+  xChange = 50
+}
+function sleepZ:new()
+  if random(1,2) == 1 then self.xChange = -50 end 
+end
+function sleepZ:update(dt)
+  if (self.y) then
+    self.countdown = self.countdown - dt
+    self.color = {r=0,g=255,b=255,a=150*self.countdown,255}
+    self.yMod = self.yMod - 25*dt
+    self.xMod = self.xMod + self.xChange*dt
+    if self.xMod >= 10 then self.xChange = -50 elseif self.xMod <= -10 then self.xChange = 50 end
+    if (self.countdown <= 0) then
+      self:delete()
+    end --end countdown if
+  else
+    self:delete()
+  end --end self.y if
+end --end function
+effects['sleepZ'] = sleepZ
+
+local bubble = {
+  name = "Bubble",
+  description = "Fun!",
+  countdown = 1.5,
+  symbol = "o",
+  noDesc = true,
+  use_color_with_tiles=true,
+  color={r=255,g=255,b=255,a=225},
+  yMod = -10,
+  xMod = 0,
+  xChange = 50,
+  scaleChange = 0,
+  spinDir=1,
+}
+function bubble:new()
+  if random(1,2) == 1 then self.xChange = -50 self.spinDir = -1 end 
+end
+function bubble:update(dt)
+  if (self.y) then
+    self.countdown = self.countdown - dt
+    self.color = {r=self.color.r,g=self.color.g,b=self.color.b,a=150*self.countdown,255}
+    self.yMod = self.yMod - 25*dt
+    self.xMod = self.xMod + self.xChange*dt
+    if self.xMod >= 10 then self.xChange = -50 elseif self.xMod <= -10 then self.xChange = 50 end
+    if self.scaleChange ~= 0 then
+      self.scale = self.scale+self.scaleChange*dt
+      if self.scale >= 1 or self.scale <= .50 then
+        self.scaleChange = -self.scaleChange
+      end
+    end
+    if self.spin then
+      self.angle = (self.angle or 0)+dt*math.pi*self.spinDir
+    end
+    if (self.countdown <= 0) then
+      self:delete()
+    end --end countdown if
+  else
+    self:delete()
+  end --end self.y if
+end --end function
+effects['bubble'] = bubble
+
+--Standard effects used in the base engine:
+
+local fire = {
+  name = "Fire",
+  description = "A roaring flame.",
+  symbol = "^",
+  color={r=255,g=0,b=0},
+  countdown = .25,
+  timer = 10,
+  firstturn = true,
+  hazard = 1000,
+  castsLight=true,
+  lightDist=2,
+  lightColor={r=255,g=255,b=0}
+}
+function fire:new(data)
+  if data then
+    if data.timer then self.timer = data.timer end
+    if data.x and data.y then
+      self.x,self.y = data.x,data.y
+      local feats = currMap:get_tile_features(self.x,self.y)
+      for _,feat in pairs(feats) do
+        if feat.water == true then return false end
+      end
+      if type(currMap[self.x][self.y]) == "table" and currMap[self.x][self.y].water == true then return false end
+    end
+  end
+  self.timer = tweak(self.timer)
+  self.image_name = "fire" .. random(1,3)
+  if self.x and self.y and player:can_see_tile(self.x,self.y) then output:sound('ignite') end
+end --end new function
+function fire:update(dt)
+  self.countdown = self.countdown - dt
+  if (self.countdown <= 0) then
+    local newName = "fire" .. random(1,3)
+    while (newName == self.image_name) do newName = "fire" .. random(1,3) end
+    self.image_name = newName
+    self.countdown = .25
+    if (self.color.g == 0) then
+      self.color.g=255
+    elseif (self.color.g == 255) then
+      self.color.g=142
+    else
+      self.color.g=0
+    end
+    self.lightColor={r=random(200,255),g=random(200,255),b=0,a=50}
+    currMap:refresh_light(self)
+  end
+end --end update function
+function fire:advance()
+  local feats = currMap:get_tile_features(self.x,self.y)
+  for _,feat in pairs(feats) do
+    if feat.water == true then self:delete() return false end
+  end
+  if type(currMap[self.x][self.y]) == "table" and currMap[self.x][self.y].water == true then self:delete() return false end
+  --Burn creatures on tile:
+  local creat = currMap:get_tile_creature(self.x,self.y)
+  if (creat and creat.fireImmune ~= true and not creat:has_condition('onfire')) then
+    local dmg = creat:damage(tweak(5),self.caster,"fire")
+    if dmg > 0 and player:can_see_tile(self.x,self.y) then output:out(creat:get_name() .. " takes " .. dmg .. " damage from fire.") end
+    if (dmg> 0 and random(1,100) >= 60) then
+      if creat.conditions['onfire'] == nil and player:can_see_tile(creat.x,creat.y) then output:out(creat:get_name() .. " catches on fire!") end
+      creat:give_condition('onfire',random(1,5))
+    end
+  end
+  
+  if (self.firstturn == false) then
+    --Burn nearby features:
+    for x = self.x-1,self.x+1,1 do
+      for y = self.y-1,self.y+1,1 do
+        if type(currMap[x][y]) == "table" and currMap[x][y].fireChance and random(1,100) <= currMap[x][y].fireChance then
+          currMap[x][y]:combust()
+          currMap:change_tile(".",x,y)
+        end
+        for id, content in pairs(currMap.contents[x][y]) do
+          if content.fireChance and random(1,100) <= content.fireChance then
+            content:combust()
+          end --end feature check 
+        end --end for loop
+      end --end y loop
+    end --end x loop
+  else
+    self.firstturn = false
+  end --end grass and tree chunk
+  
+  -- Count down the fire:
+  self.timer = self.timer - 1
+  if (self.timer < 1) then
+    self:delete()
+  end
+end --end advance function
+effects['fire'] = fire
+
+local dmgPopup = {
+  name = "Damage",
+  description = "Shows how much damage just got done.",
+  countdown = 1,
+  symbol = "!",
+  noDesc = true,
+  color={r=255,g=0,b=0,a=255},
+  use_color_with_tiles = true,
+  yMod = 0,
+  speed=100
+}
+function dmgPopup:update(dt)
+  if (self.y) then
+    self.countdown = self.countdown - dt
+    self.color.a = 255*self.countdown
+    self.yMod = self.yMod - self.speed*dt-((1-self.countdown)*3)
+    if (self.countdown <= 0) then
+      self:delete()
+    end --end countdown if
+  end --end self.y if
+end --end function
+function dmgPopup:new()
+  self.speed = random(25,150)
+end
+effects['dmgpopup'] = dmgPopup
+
+local heart = {
+  name = "Heart",
+  description = "It loves you!",
+  countdown = 1.5,
+  symbol = "<3",
+  noDesc = true,
+  color={r=255,g=0,b=0,a=225},
+  yMod = -10,
+  xMod = 0,
+  xChange = 50
+}
+function heart:new()
+  if random(1,2) == 1 then self.xChange = -50 end 
+end
+function heart:update(dt)
+  if (self.y) then
+    self.countdown = self.countdown - dt
+    self.color = {r=255,g=0,b=0,a=150*self.countdown}
+    self.yMod = self.yMod - 25*dt
+    self.xMod = self.xMod + self.xChange*dt
+    if self.xMod >= 10 then self.xChange = -50 elseif self.xMod <= -10 then self.xChange = 50 end
+    if (self.countdown <= 0) then
+      self:delete()
+    end --end countdown if
+  else
+    self:delete()
+  end --end self.y if
+end --end function
+effects['heart'] = heart
+
+local chunkmaker = {
+  name = "Chunkmaker",
+  description = "Animated bit that makes creature chunks.",
+  countdown = .01,
+  symbol = "",
+  noDesc = true,
+  distance = 0,
+  stopsInput = true,
+  alreadyDone = {},
+  color={r=255,g=255,b=255,a=0}
+}
+function chunkmaker:new(creat)
+  self.creature = creat
+  self.maxDist = (creat.level > 0 and math.ceil(creat.level/3) + 1 or 1)
+  if self.creature and self.creature.bloodColor then
+    self.bloodColor = self.creature.bloodColor
+  end
+end
+function chunkmaker:update(dt)
+  if (self.countdown <= 0 and self.chunked ~= true) then
+    self.countdown = .01
+    for x=self.x-self.distance,self.x+self.distance do
+      for y=self.y-self.distance,self.y+self.distance do
+        if self.alreadyDone[x .. "," .. y] ~= true and calc_distance(x,y,self.x,self.y) <= self.maxDist and currMap:is_line(self.creature.x,self.creature.y,x,y) then
+          self.alreadyDone[x .. "," .. y] = true
+          local chunk = Feature('chunk',self.creature)
+          currMap:add_feature(chunk,x,y)
+          --display wall or stairs if chunk lands on wall or stairs:
+          if (currMap[x][y] == "#") then chunk.symbol="#"
+          else --make features display properly
+            local delete = false
+            if (currMap[x][y].baseType == "feature") then
+              if currMap[x][y].absorbs then delete = true
+              elseif currMap[x][y].water == true then --make the water red
+                chunk.color = (self.bloodColor or {r=255,g=0,b=0,a=125})
+                chunk.symbol = "≈"
+                currMap[x][y].color=(self.bloodColor or {r=255,g=0,b=0,a=255})
+              elseif currMap[x][y].alwaysDisplay == true then
+                content.color=(self.bloodColor or {r=255,g=0,b=0,a=content.color.a})
+              end
+            end ---end feature display if
+            --now go over the features of the tile to display right:
+            for id,content in pairs(currMap.contents[self.x][self.y]) do
+              if (content.baseType == "feature") then
+                if (content.id == "bridge") then delete = false --chunks will display on bridges
+                elseif (content.water == true) then --make the water red
+                  chunk.color = (self.creature.bloodColor or {r=255,g=0,b=0,a=125})
+                  chunk.symbol = "≈"
+                  content.color={r=255,g=0,b=0}
+                elseif (content.alwaysDisplay == true) then content.color=(self.bloodColor or {r=255,g=0,b=0,a=content.color.a}) --color other features that demand to be displayed red
+                elseif content.absorbs then delete = true end
+              end --end feature if
+            end --end content for
+            if delete == true then chunk:delete() end
+          end -- end tile display if
+          
+          --Damage creatures:
+          local creat = currMap:get_tile_creature(x,y)
+          if creat ~= false then
+            local dmg = creat:damage(random(self.creature.level,self.creature.level*3))
+            output:out(creat:get_name() .. " gets hit by a flying " .. self.creature.name .. " chunk and takes " .. dmg .. " damage!")
+            if creat ~= player then creat:give_condition('stunned',1,self) end
+            if creat.hp <= 0 then
+              creat.explosiveDeath = true
+              creat.secondaryExplosion = true
+              achievements:give_achievement('explosion_kill')
+              if self.creature.secondaryExplosion then
+                achievements:give_achievement('chain_explosion_kill')
+              end
+            end
+          end --end if creat
+          
+        end --end distance/line check
+      end -- end fory
+    end -- end forx
+    --Increase distance for next chunks, or delete yourself
+    if self.distance == self.maxDist then self:delete()
+    else self.distance = self.distance + 1 end
+  else --if self.countdown is not 0
+    self.countdown = self.countdown - dt
+  end
+end
+effects['chunkmaker'] = chunkmaker
+
+--Animation effects:
+
+local animation = {
+  name = "animation",
+  description = "A n-frame animation..",
+  noDesc = true,
+  symbol = "",
+  countdown = .1,
+  tilemap = true,
+  color={r=255,g=255,b=255,a=255}
+}
+function animation:new(anim_name,frames,target,color,ascii,use_color_with_tiles,repetitions,backwards,ignoreTurns)
+  self.image_name = anim_name
+  self.image_max = frames
+  self.color = color or {r=255,g=255,b=255,a=255}
+  self.target = target
+  self.ascii = ascii or true
+  self.use_color_with_tiles = use_color_with_tiles or false
+  self.repetitions = repetitions or 0
+
+  self.image_frame = (backwards and frames or 1)
+  self.firstTurn = true
+  self.repetition = 1
+  self.backwards=backwards
+  self.ignoreTurns=ignoreTurns
+end
+function animation:update(dt)
+  self.countdown = self.countdown - dt
+  if self.countdown <= 0 then
+    self.countdown = .1
+    self.image_frame = math.max(self.image_frame + (self.backwards and -1 or 1),1)
+    if (not self.backwards and self.image_max >= self.image_frame) or (self.backwards and self.image_frame ~= 1) then --if you haven't reached the last frame
+      if self.ascii then
+        if self.image_frame == 2 then self.symbol = "*"
+        elseif self.image_frame == 3 then self.symbol = "#"
+        elseif self.image_frame == 4 then self.symbol = "*"
+        elseif self.image_frame == 5 then self.symbol = "." end
+      end
+    else
+      if self.repetitions == 0 or self.repetition == self.repetitions then
+        self.done = true
+        self:delete()
+      else
+        self.image_frame = (self.backwards and self.image_max or 1)
+        self.repetition = self.repetition + 1
+      end
+    end
+  end
+end
+function animation:advance()
+  if self.firstTurn ~= true and not self.ignoreTurns then
+    self.done = true
+    self:delete()
+  else
+    self.firstTurn = false
+    if self.target then self.x,self.y = self.target.x,self.target.y end
+  end
+end
+effects['animation'] = animation
+
 local featureanimator = {
   name = "Feature Animator",
   noDesc = true,
@@ -2439,50 +2320,6 @@ function conditionanimation:update(dt)
 end
 effects['conditionanimation'] = conditionanimation
 
-local tentacleAnimator = {
-  name = "Tentacle Animator",
-  noDesc = true,
-  noDisp = true,
-  color={r=0,g=0,b=0,a=0},
-  symbol = "",
-  description = "This invisible effect animates tentacles going into the pit and reappearing in a nearby pit.",
-  stopsInput = true,
-  useWalkedOnImage=true,
-}
-function tentacleAnimator:update(dt)
-  if not self.startAnim or self.startAnim.done then
-    if not self.endAnim then
-      --[[local creat = currMap:get_tile_creature(self.tentacle.x,self.tentacle.y,false,true)
-      if creat and creat ~= self.tentacle then
-        for x=self.tentacle.x-5,self.tentacle.x+5,1 do
-          for y=self.tentacle.y-5,self.tentacle.y+5,1 do
-            if currMap:tile_has_feature(x,y,"chasm") and not currMap:get_tile_creature(x,y,false,true) then
-              self.tentacle.x,self.tentacle.y=x,y
-              break
-            end --end suitable location if
-          end --end fory
-        end --end forx
-      end]]
-      local animEnd = Effect('animation',(self.image_name or 'tentaclewither'),5,self.tentacle,{r=0,g=125,b=0},false,false,0,true,true)
-      animEnd.useWalkedOnImage=true
-      currMap:add_effect(animEnd,self.tentacle.x,self.tentacle.y)
-      self.endAnim = animEnd
-      animEnd.faceLeft = self.tentacle.faceLeft
-    elseif self.endAnim and self.endAnim.done then
-      self.tentacle.noDraw = nil
-      self.stopsInput=false
-      self:delete()
-      currMap.tentacleTeleportedAlready = false
-    end
-  end
-  if not self.tentacle.noDraw then
-    self.stopsInput=false
-    self:delete()
-    currMap.tentacleTeleportedAlready = false
-  end
-end
-effects['tentacleanimator'] = tentacleAnimator
-
 local screenShaker = {
   name = "Screen Shaker",
   noDesc = true,
@@ -2507,128 +2344,6 @@ function screenShaker:update(dt)
 end
 effects['screenshaker'] = screenShaker
 
-local beginningPlayerFlyer = {
-  name = "Beginning Player Flyer",
-  noDesc = true,
-  noDisp = true,
-  color={r=0,g=0,b=0,a=0},
-  symbol = "",
-  description = "This invisible effect waits for the chasm to open and makes the player fly out of it at the beginning of the game.",
-  stopsInput = true,
-  shakeTime=2,
-  waitTime=.5
-}
-function beginningPlayerFlyer:update(dt)
-  --Earthquake!
-  if self.shakeTime > 0 then
-    if self.shakeTime == 2 then
-      output:sound('rocks_falling')
-    end
-    self.shakeTime = self.shakeTime - dt
-    output.camera.xMod,output.camera.yMod = random(-5,5),random(-5,5)
-  end
-  
-  --If we haven't finished fading in yet,don't do anything:
-  if game.blackAmt then return end
-  
-  --If we're faded in, but still shaking, wait:
-  if self.shakeTime > 0 then return end
-  output.camera.xMod,output.camera.yMod = 0,0
-  
-  --If the chasm is still opening, just wait:
-  for _,eff in pairs(currMap.effects) do
-    if eff.id == "featuremaker" then return end
-  end
-  
-  --If it's not, but the chasm hasn't opened yet, open it!:
-  if type(currMap[player.x][player.y]) ~= "table" or currMap[player.x][player.y].id ~= "netherhole" then
-    local blob = mapgen:make_blob(currMap,player.x,player.y,false,50,true)
-    self.fmaker = currMap:add_effect(Effect('featuremaker',{tiles=blob,feature="netherhole",replace=true,destroy=true}),player.x,player.y)
-    player.color.a=255
-    --output:sound('ghost_reveal')
-    return
-  end
-  
-  --If the chasm is done opening,wait for a second:
-  if self.waitTime > 0 then
-    self.waitTime = self.waitTime-dt
-    return
-  end
-  
-  --OK, finally. Animate the features, zoom the player, and get ready to play!
-  local firsthole = currMap:tile_has_feature(self.x,self.y,'netherhole')
-  local anim = Effect('featureanimator',{x=self.x,y=self.y,feature=firsthole,image_base="netherhole" .. random(1,2) .. "_",image_max=3,sequence=true,reverse=true,speed=0.3})
-  currMap:add_effect(anim,self.x,self.y)
-  anim.seen = true
-  anim.features = self.fmaker.features
-  output:play_playlist('graveyard')
-  game:show_map_description()
-  self:delete()
-  --[[local count = 0
-  while player.zoomTo == nil do
-    count = count + 1
-    local flyX,flyY = random(player.x-5-math.ceil(count/10),player.x+5+math.ceil(count/10)),random(player.y-5-math.ceil(count/10),player.y+5+math.ceil(count/10))
-    local clear = currMap:in_map(flyX,flyY) and player:can_move_to(flyX,flyY)
-    --if clear and (currMap:tile_has_feature(flyX,flyY,'chasm') and count < 100) then clear = false end
-    if clear == true then
-      for x=flyX-1,flyX+1,1 do
-        for y=flyY-1,flyY+1,1 do
-          local creat = currMap:get_tile_creature(x,y)
-          if creat and creat ~= player then clear = false break end
-        end --end fory
-        if clear == false then break end
-      end --end forx
-    end --end if clear
-    --if clear == true then and currMap:is_line(player.x,player.y,flyX,flyY) then
-      --player:flyTo({x=flyX,y=flyY})
-      output:play_playlist('graveyard')
-      game:show_map_description()
-      self:delete()
-      --break
-    end --end if clear == true
-  --end --end while]]
-  --Freezy seed: 2084352046
-end
-effects['beginningPlayerFlyer'] = beginningPlayerFlyer
-
-local initialbossfight = {
-  name = "Beginning Player Flyer",
-  noDesc = true,
-  noDisp = true,
-  color={r=0,g=0,b=0,a=0},
-  symbol = "",
-  description = "This invisible effect runs the event for the first time you see the enemy possessor.",
-  stopsInput = true,
-  waitTime=1
-}
-function initialbossfight:update(dt)
-  if self.waitTime > 0 then
-    self.waitTime = self.waitTime - dt
-    return
-  end
-  
-  local afterFunc = function() --The function that will be called after the popup is closed
-    output:set_camera(player.x,player.y)
-    output:play_playlist('finallevelboss')
-  end
-  
-  game:show_popup([[As you approach the town square, you see a shadow floating in the center. The shadow swirls, then becomes more solid, taking on a ghostlike shape with glowing red eyes. Another possessor!
-    
-"Who are you?" you shout. "Why have you done this?" 
-
-The creature laughs. "Who are you to ask me that? Why did you do everything you did?" It leers at you. "Why did you kill all those people on the way here? Why did you force their souls out of their bodies just to turn them into blood stains and chunks of meat when they’d served their purpose?" 
-
-"That was different!" you say. "I did what I had to do to survive." 
-
-"You’re dead. You already had your chance to survive. You stole the lives of others, just because they were in your way. When it comes down to it, we’re not so different, you and I." 
-
-"Oh come on," you groan. "You were going somewhere, and then you had to pull out that cliche? Forget it, I’m done talking. I’m about to send you back to the Nether Regions!"
-]]
-,"",6,false,true,afterFunc)
-  self:delete()
-end
-effects['initialbossfight'] = initialbossfight
-
 local angelofdeath = {
   name = "Angel of Death",
   noDesc = true,
@@ -2639,7 +2354,7 @@ local angelofdeath = {
 }
 function angelofdeath:update(dt)
   for _,creat in pairs(currMap.creatures) do
-    if creat ~= player and creat.id ~= "badghost" then
+    if creat ~= player then
       if random(1,4) == 1 then
           creat.level = random(1,5)
           creat:explode()
@@ -2648,131 +2363,6 @@ function angelofdeath:update(dt)
       end
     end
   end
-  for x=2,currMap.width,1 do
-    for y=2,currMap.height,1 do
-      local corpse = currMap:tile_has_feature(x,y,'corpse')
-      if corpse then
-        corpse.description = "The dead body of someone you once knew. "
-        corpse.description = corpse.description .. namegen:generate_villager_description(corpse.creature)
-      end
-    end
-  end
   self:delete()
 end
 effects['angelofdeath'] = angelofdeath
-
-local finalbosshit = {
-  name = "Final Boss Hit",
-  noDesc = true,
-  noDisp = true,
-  color={r=0,g=0,b=0,a=0},
-  symbol = "",
-  description = "This invisible effect runs the event for when you hit the enemy possessor.",
-  stopsInput = true,
-}
-function finalbosshit:update(dt)
-  local hits = get_mission_status('finalboss')
-  if not self.badghost then
-    for _,creat in pairs(currMap.creatures) do
-      if creat.id == 'badghost' then
-        self.badghost = creat
-        break
-      end
-    end
-    if not self.badghost then print('no bad ghost!') return end --why?
-    self.creatsToMake = random(5,10)
-  end
-  if hits < 4 then
-    if not self.doneShaking then
-      if self.badghost.color.a > 125 then
-        return
-      elseif self.badghost.color.a == 125 and self.shakeTimer == nil then
-        self.shakeTimer = 1
-        return
-      elseif self.shakeTimer and self.shakeTimer > 0 then
-        self.shakeTimer = self.shakeTimer-dt
-        self.badghost.xMod,self.badghost.yMod = random(-5,5),random(-5,5)
-        return
-      elseif self.shakeTimer <= 0 then
-        self.doneShaking = true
-        self.badghost.xMod,self.badghost.yMod = 0,0
-        local blob = mapgen:make_blob(currMap,self.badghost.x,self.badghost.y,false,75,true)
-        self.fmaker = currMap:add_effect(Effect('featuremaker',{tiles=blob,feature="netherhole",replace=true,destroy=true,avoidPlayer=true}),self.badghost.x,self.badghost.y)
-        output:sound('creatures_burst_from_netherhole')
-        self.waitTime = .5
-        return
-      end --end code for before shaking is done
-    elseif self.creatsToMake > 0 then
-      --local x,y = random(self.x-10,self.x+10),random(self.y-10,self.y+10)
-      local c = mapgen:generate_creature((hits == 1 and random(1,3) or (hits == 2 and random(4,6) or random(7,9))),nil,true)
-      currMap:add_creature(c,self.x,self.y)
-      --if not currMap:get_tile_creature(x,y) and (not currMap:tile_has_feature(x,y,'netherhole') or c:is_type('flyer')) then
-        possibleSpells['blink']:cast(c,c)
-        --c:flyTo({x=x,y=y})
-        self.creatsToMake = self.creatsToMake - 1
-      --end
-    else
-      if self.waitTime > 0 then
-        self.waitTime = self.waitTime - dt
-        return
-      end
-      local firsthole = currMap:tile_has_feature(self.badghost.x,self.badghost.y,'netherhole')
-      local anim = Effect('featureanimator',{x=self.x,y=self.y,feature=firsthole,image_base="netherhole" .. random(1,2) .. "_",image_max=3,sequence=true,reverse=true,speed=0.3})
-      currMap:add_effect(anim,self.x,self.y)
-      anim.seen = true
-      anim.features = self.fmaker.features
-      self.badghost.color.a=255
-      self.badghost:cure_condition('peacefulpatron')
-      possibleSpells['blink']:cast(self.badghost,self.badghost)
-      self:delete()
-    end --end shaking or not if
-  elseif hits == 4 then -- real death
-    if not self.endFirst then
-      currMap:add_effect(Effect('screenshaker'),self.badghost.x,self.badghost.y)
-      self.endFirst = true
-      self.countdown = 3
-      output:sound('ghost_death')
-
-      --Make a netherhole:
-      local blob = mapgen:make_blob(currMap,self.badghost.x,self.badghost.y,false,75,true)
-      currMap:add_effect(Effect('featuremaker',{tiles=blob,feature="netherhole",replace=true,destroy=true,avoidPlayer=true}),self.badghost.x,self.badghost.y)
-    end
-    --Blow up everyone on the map:
-    for _,creat in pairs(currMap.creatures) do
-      if creat ~= player and creat ~= self.badghost and not creat:has_condition('explodingNoGhost') then
-        creat:give_condition('explodingNoGhost',-1)
-        break
-      end
-    end
-    --Spin and fade:
-    self.badghost.angle = (self.badghost.angle or 0) + 8*dt
-    self.badghost.scale = (self.badghost.scale or 1) - 0.5*dt
-    self.badghost.color.a = self.badghost.color.a - 125*dt
-    self.countdown = self.countdown - dt
-    --Once the spinning and fading is done, congratulate the player:
-    if (self.countdown <= 0) then
-      achievements:give_achievement('finalboss')
-      if player.id == "blacksmith" or player.id == "farmer" or player.id == "priest" or player.id == "hunter" or player.id == "alchemist" or player.id == "butcher" then
-        achievements:give_achievement('finalboss_special')
-      end
-      win()
-      self.badghost:remove()
-  
-      game:show_popup([[You did it. You defeated the possessor who killed all of your friends and family. And by doing so, no more obstacles stand between you and life. You've truly escaped from the Nether Regions.
-        
-But what now?
-Your home town is destroyed. Everyone you knew is dead. You're a ghost that can only exist by stealing life from others.
-
-
-
-Although...
-
-
-It is a very big world.
-And there is quite a lot of life out there to steal...]]
-    ,"",6,false,true,function() currGame = nil Gamestate.switch(credits) end)
-    self:delete()
-    end
-  end
-end
-effects['finalbosshit'] = finalbosshit
