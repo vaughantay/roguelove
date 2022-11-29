@@ -567,6 +567,7 @@ local townguard = {
   factions={"village"},
   symbol = "p",
   nameType = "human",
+  guardWanderDistance=5,
   gender="either",
   specialOnly=true,
   level = 1,

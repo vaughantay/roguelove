@@ -5,6 +5,7 @@ ai = {}
 --TODO: Handle pack animal behavior
 --TODO: Dedicated decision-making for healing
 --TODO: Swapping equipment if you find something better
+--TODO: Patrolling
   
 --Possible arguments: "noRunning", "forceStupid", "noRanged", "forceWander"
 ai['basic'] = function(self,args)
@@ -12,7 +13,7 @@ ai['basic'] = function(self,args)
   args = args or {}
   
   --If you're not close to the player, just move randomly:
-  if not self:has_ai_flag('stoic') and not self.target and not self:has_ai_flag('playerstalker') and (args.forceWander or calc_distance(self.x,self.y,player.x,player.y) > player.perception*2) then
+  if not self:has_ai_flag('stoic') and not self.guard_point and not self.target and not self:has_ai_flag('playerstalker') and (args.forceWander or calc_distance(self.x,self.y,player.x,player.y) > player.perception*2) then
     return ai.wander(self,args)
   end
   
@@ -72,10 +73,23 @@ ai['basic'] = function(self,args)
   
   --print('after attack: ' .. os.clock()-aitime)
   
+  --If you have a path already, and its endpoint matches your target's tile, continue to move along your path
+  if self.path and #self.path > 1 and self.target then
+    local endX,endY = (self.path[#self.path].x or self.path[#self.path[1]]),(self.path[#self.path].y or self.path[#self.path[2]])
+    if endX == self.target.x and endY == self.target.y then
+      local moved = ai.moveAlongPath(self,args)
+      if moved == true then return true end
+    else
+      self.path = nil
+    end
+  end
+  
   --If you have a target and didn't cast a spell or use a ranged attack, move towards them, if it won't put you too close
-  local moved = ai.moveToTarget(self,args)
-  --print('after movetotarget: ' .. os.clock()-aitime)
-  if moved == true then return true end
+  if self.target then
+    local moved = ai.moveToTarget(self,args)
+    --print('after movetotarget: ' .. os.clock()-aitime)
+    if moved == true then return true end
+  end
   
   --If you don't have a target or are too close to your target, just wander around, or cast a "random" spell. Later: head towards suspicious noise?
   if not args.noRanged and self.ranged_chance and random(0,100) <= self.ranged_chance then
@@ -95,18 +109,35 @@ ai['basic'] = function(self,args)
     
   local goX,goY = nil,nil
   --If you have a master, go towards them
-  if (self.master and calc_distance(self.x,self.y,self.master.x,self.master.y) > tweak(2)) then
+  if (self.master and calc_distance(self.x,self.y,self.master.x,self.master.y) > tweak(self.max_master_distance or self:get_perception())) then
       local path = currMap:findPath(self.x,self.y,self.master.x,self.master.y,self.pathType)
     if (type(path) == "table" and #path>1) then
+      self.path = path
       goX,goY = path[2]['x'],path[2]['y']
     end --end if path == table
   end --end self.master if
+  
+  --If you have a spot you're supposed to be guarding, go back there
+  if self.guard_point and (self.x ~= self.guard_point.x or self.y ~= self.guard_point.y) and (not self.guard_wander_distance or calc_distance(self.x,self.y,self.guard_point.x,self.guard_point.y) > tweak(self.guard_wander_distance)) then
+    local gmoved = false
+    if not self.target then
+      self.target = self.guard_point
+    end
+    if not self.path then 
+      gmoved = ai.moveToTarget(self,args)
+    end
+    if gmoved then return true end
+  end
+  
+  --TODO: If you have a patrol route, move along it
     
   --Move to a random nearby spot:
   if not goX or not goY then
-    if not self:has_ai_flag('stoic') then return ai.wander(self,args) end
+    if not self:has_ai_flag('stoic') and (not self.guard_point or (self.guard_wander_distance and calc_distance(self.x,self.y,self.guard_point.x,self.guard_point.y) <= self.guard_wander_distance)) then
+      return ai.wander(self,args)
+    end
   else
-    self:moveTo(goX,goY)
+    return self:moveTo(goX,goY)
   end --end goX/goY if
 end -- end basic ai function
 
@@ -190,7 +221,7 @@ ai['target'] = function(self,args)
   end
 
   --If you have no target and there are nearby enemies, select one
-  if self.target == nil and next(self.shitlist) ~= nil then
+  if (self.target == nil or self.target.baseType ~= "creature") and next(self.shitlist) ~= nil then
     if self:has_ai_flag('bully') or self:has_ai_flag('giantkiller') then --bullies and giantkillers will select least or most health, respectively
       local bully = self:has_ai_flag('bully') --assumption: if not bully, then giantkiller
       local currTar = nil
@@ -225,14 +256,13 @@ ai['moveToTarget'] = function(self,args)
     if not args.forceStupid and self:is_type('intelligent') == true and calc_distance(self.x,self.y,self.target.x,self.target.y) <= self:get_perception() then
       --Intelligent creatures: first, see if you can draw a straight line to your target
       local path, complete = currMap:get_line(self.x,self.y,self.target.x,self.target.y,self.pathType)
-      if complete and #path >= 1 and currMap:is_passable_for(path[1][1],path[1][2],self.pathType,true) then --if the path completed and it's safe to go to the first location on the path, do it!
-        if self.min_distance == nil or math.floor(calc_distance(self.target.x,self.target.y,path[1][1],path[1][2])) > self.min_distance then --if following the path wouldn't put you too close to your target, do it!
-          self:moveTo(path[1][1],path[1][2])
-          return true
-        end --end min_distance check
+      if complete and #path >= 1 and currMap:is_passable_for(path[1][1],path[1][2],self.pathType,true) and (self.min_distance == nil or math.floor(calc_distance(self.target.x,self.target.y,path[1][1],path[1][2])) > self.min_distance) then --if the path completed and it's safe to go to the first location on the path, do it!
+        self.path = path
+        return ai.moveAlongPath(self,args)
       else
         --If the line thing didn't work, make a Dijkstra map (to navigate hazards), and then go:
-          if ai.dijkstra(self,args) then return end
+        local dij = ai.dijkstra(self,args)
+        if dij then return true end
       end --end line vs Dijkstra map if
     else --nonintelligent creatures or intelligent creatures out of range
       local complete = ai.dumbpathfind(self,args)
@@ -392,40 +422,88 @@ ai['dijkstra'] = function(self,args)
   return false
 end
 
+--This function handles moving along your set path
+ai['moveAlongPath'] = function(self,args)
+  if self.path then
+    local intelligent = self:is_type('intelligent')
+    local moved = false
+    local path = self.path
+    local x,y = (path[2] and path[2].x or path[1][1]), (path[2] and path[2].y or path[1][2])
+    if not x or not y then
+      self.path = nil
+      return false
+    end
+    local creat = (currMap:get_tile_creature(x,y) or false) --is there a creature 
+    if creat then -- if the first tile in the path is blocked by a creature
+      if self:is_enemy(creat) then --if it's an enemy, attack them
+        self:attack(creat)
+        return true
+      else --if the blocking creature is not an enemy, move around them
+        local dist = calc_distance(self.x,self.y,self.target.x,self.target.y) --how far you are already
+        local xDir,yDir = (random(1,2) == 1 and 1 or -1),(random(1,2) == 1 and 1 or -1) --pick random starting direction, so the creatures don't always start at the upper left or whatever
+        local emergX,emergY = nil,nil
+        for tx=self.x-xDir,self.x+xDir,xDir do
+          for ty=self.y-yDir,self.y+yDir,yDir do
+            if moved == false and currMap:touching(self.x,self.y,tx,ty) and self:can_move_to(tx,ty) and (args.forceStupid or not intelligent or (intelligent and currMap:is_passable_for(tx,ty,self.pathType,true))) then -- check to make sure it's a tile that makes sense to enter
+              local tDist = calc_distance(tx,ty,self.target.x,self.target.y)
+              if tDist < dist then --if the distance to the new tile is less than your current distance, move there
+                moved = self:moveTo(tx,ty)
+                if moved ~= false then
+                  self.path = nil --delete the path if we stepped off it, since we'll need to recalculate
+                end
+              elseif tDist == dist or not emergX or not emergY then --if the distance to the new tile isn't less but it's a tile you could move to , store it as an emergency option
+                emergX,emergY = tx,ty
+              end --end calc_dist if
+            end --end can move to if
+          end --end fory
+        end --end forx
+        if emergX and emergY and moved == false then --if you didn't move to a "better" tile, just move to an available tile if there is one
+          moved = self:moveTo(emergX,emergX)
+          if moved ~= false then
+            self.path = nil --delete the path if we stepped off it, since we'll need to recalculate
+          end
+        end
+      end --end enemy or not if
+    else -- no blocking creature
+      if self:can_move_to(x,y) and (args.forceStupid or not intelligent or (intelligent and currMap:is_passable_for(x,y,self.pathType,true))) then
+        moved = self:moveTo(x,y)
+      end      
+    end --end block creature ifs
+    if moved ~= false then
+      if self.path and #self.path > 1 then
+        table.remove(self.path,1)
+      end
+      if self.path and (#self.path == 0) then
+        self.path = nil
+      end
+      return true
+    end
+  end
+  self.path = nil --If we weren't able to move, delete the path
+  return false
+end
+
 --This function handles pathfinding to an enemy, not avoiding hazards
 ai['dumbpathfind'] = function(self,args)
   --Just dumbly walk in a straight line to your target, if possible. If not, pathfind.
   local path, complete = currMap:get_line(self.x,self.y,self.target.x,self.target.y)
-  local creat = (path[1] and currMap:get_tile_creature(path[1][1],path[1][2]) or false) --is there a creature 
+  
   if (path[1] and path[#path]) and (complete or self:can_move_to(path[#path][1],path[#path][2])) and self:can_move_to(path[1][1],path[1][2]) then --if the path completed, or was blocked due to a dangerous feature, who cares, keep going if you can
-    if self.min_distance == nil or math.floor(calc_distance(self.target.x,self.target.y,path[1][1],path[1][2])) > self.min_distance then --if it doesn't put you too close to your target
-      self:moveTo(path[1][1],path[1][2])
-      return true
+    if self.min_distance == nil or math.floor(calc_distance(self.target.x,self.target.y,path[1][1],path[1][2])) > self.min_distance then --if it doesn't put you too close to your target TODO: move this elsewhere
+      self.path = path
+      return ai.moveAlongPath(self,args)
     end --end min_distance check
-  elseif complete == false and creat then -- if the first tile in the path is blocked by a creature
-    if self:is_enemy(creat) then --if it's an enemy, attack them
-      self:attack(creat)
-      return true
-    else --if the blocking creature is not an enemy, move around them
-      local dist = calc_distance(self.x,self.y,self.target.x,self.target.y) --how far you are already
-      local xDir,yDir = (random(1,2) == 1 and 1 or -1),(random(1,2) == 1 and 1 or -1) --pick random starting direction, so the creatures don't always start at the upper left or whatever
-      for x=self.x-xDir,self.x+xDir,xDir do
-        for y=self.y-yDir,self.y+yDir,yDir do
-          if calc_distance(x,y,self.target.x,self.target.y) < dist and self:can_move_to(x,y) then -- just move to the first open square you check that's closer
-            self:moveTo(x,y)
-            return true
-          end --end calc_dist if
-        end --end fory
-      end --end forx
-    end --end block creature ifs
   else --if the straight line won't work, do pathfinding
     --if (self.target.baseType == "creature" and self.target ~= player) then currMap:set_blocked(self.target.x,self.target.y,0) end
     local path = currMap:findPath(self.x,self.y,self.target.x,self.target.y,self.pathType)
     --if (self.target.baseType == "creature" and self.target ~= player) then currMap:set_blocked(self.target.x,self.target.y,1) end
     if type(path) == "table" and #path>1 then
       if self.min_distance == nil or math.floor(calc_distance(self.target.x,self.target.y,path[2]['x'],path[2]['y'])) > self.min_distance then
-        self:moveTo(path[2]['x'],path[2]['y'])
-        return true
+        --[[for i,v in ipairs(path) do
+          print(self.name .. " " .. i .. ":",v.x,v.y)
+        end]]
+        self.path = path
+        return ai.moveAlongPath(self,args)
       end --end min_distance check
     else --can't path there?
       if (self.target.baseType == "creature") then

@@ -5,8 +5,9 @@ Creature = Class{}
 --@param creatureType String. The ID of the creature you want to create.
 --@param level Number. The level to set the creature to (optional)
 --@param noItems Boolean. Whether to generate without items (optional)
+--@param noTweak Boolean. If true, don't randomize certain values
 --@return Creature. The creature itself.
-function Creature:init(creatureType,level,noItems)
+function Creature:init(creatureType,level,noItems,noTweak)
   local data = possibleMonsters[creatureType]
   if not data then
     output:out("Error: Tried to create non-existent creature " .. creatureType)
@@ -25,9 +26,15 @@ function Creature:init(creatureType,level,noItems)
   end
   self.id = creatureType
   self.level = self.level or 0
-  self.max_hp = tweak(self.max_hp)
+  self.max_hp = (noTweak and self.max_hp or tweak(self.max_hp))
+  self.max_mp = (noTweak and self.max_mp or tweak(self.max_mp))
 	self.hp = self.max_hp
   self.mp = self.max_mp
+  self.melee = (noTweak and self.melee or tweak(self.melee or 0))
+  self.dodging = (noTweak and self.dodging or tweak(self.dodging or 0))
+  self.ranged = (noTweak and self.ranged or tweak(self.ranged or 0))
+  self.strength = (noTweak and self.strength or tweak(self.strength or 0))
+  self.magic = (noTweak and self.magic or tweak(self.magic or 0))
 	self.conditions = {}
 	self.spells = {}
   if data.spells then
@@ -49,7 +56,7 @@ function Creature:init(creatureType,level,noItems)
   self.forbidden_spell_tags = self.forbidden_spell_tags or self.forbidden_tags or {}
   self.forbidden_item_tags = self.forbidden_item_tags or self.forbidden_tags or {}
   self.known_recipes = self.known_recipes or {}
-  self.money = tweak(self.money or 0)
+  self.money = (noTweak and (self.money or 0) or tweak(self.money or 0))
   self.xp = 0
   self.favor = self.favor or {}
   self.factions = self.factions or {}
@@ -74,7 +81,7 @@ function Creature:init(creatureType,level,noItems)
 	self.path = nil
 	self.baseType = "creature"
   self.types = self.types or {}
-  self.speed = tweak(self.speed or 100)
+  self.speed = (noTweak and (self.speed or 100) or tweak(self.speed or 100))
   self.energy = self.speed
   self.color = copy_table(self.color)
   self.color.a = self.color.a or 255
@@ -857,8 +864,9 @@ function Creature:advance(skip_conditions)
   self.can_move_cache = {}
   
   --AI Decision:
-  
+  local runs = 1
   while self.energy >= player.speed and self ~= player do
+    if self.name == "guard" then print(runs) runs = runs+1 end
     local x,y = self.x,self.y
     self.energy = self.energy - player:get_speed()
     if self:callbacks('ai') then

@@ -71,7 +71,7 @@ end
 --@param pronouns Table. A table of custom pronouns. Optional, only needed if using "custom" gender.
 function initialize_player(creatureID,class,name,gender,pronouns)
   creatureID = creatureID or gamesettings.default_player
-	player = Creature(creatureID,1)
+	player = Creature(creatureID,1,nil,true)
   if class then player:apply_class(class) end
 	player.isPlayer = true
   player.playerAlly = true

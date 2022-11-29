@@ -93,6 +93,9 @@ function town.create(map,width,height)
   local gatesc = Feature('exit',{branch="graveyard",exitName="Gate"})
   map:change_tile(gatesc,midX,2)
   
+  local guard = map:add_creature(Creature('townguard'),5,5)
+  guard.guardPoint = {x=2,y=2}
+  
   --Add spawn points to corners (silly, but demonstrates the use of spawn points)
   map.spawn_points = {{x=2,y=2},{x=width-1,y=2},{x=2,y=height-1},{x=width-1,y=height-1}}
 end
