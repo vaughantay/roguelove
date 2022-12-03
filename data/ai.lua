@@ -5,17 +5,36 @@ ai = {}
 --TODO: Handle pack animal behavior
 --TODO: Dedicated decision-making for healing
 --TODO: Swapping equipment if you find something better
---TODO: Patrolling
-  
+
+---Basic AI code
+--Decision making process is as follows:
+--1. If too far from the player for us to care about, just wander (possible finish point)
+--2. Look at creatures nearby to determine who you notice and who's an enemy
+--3. Decrease fear and alertness if no enemies are nearby
+--4. If too afraid and enemies are nearby, run away (possible finish point)
+--4. Pick a nearby target from nearby enemies
+--5. Perform a ranged attack if applicable (possible finish point)
+--6. Attack, if next to your target (possible finish point)
+--7. If you have a path set, move along that path (possible finish point)
+--8. If you don't have a path, but have a target, move towards them (possible finish point)
+--9. Cast a "random" spell if applicable (possible finish point)
+--10. If you have a master you're too far away from, move towards them (possible finish point)
+--11. If you have a guard point you're too far away from, move towards it (possible finish point)
+--12. If you're a patroller, move along your patrol route (possible finish point)
+--13. If you've exhausted all the above possibilities, just wander (final finish point)
 --Possible arguments: "noRunning", "forceStupid", "noRanged", "forceWander"
 ai['basic'] = function(self,args)
   local aitime = os.clock()
   args = args or {}
   
   --If you're not close to the player, just move randomly:
-  if not self:has_ai_flag('stoic') and not self.guard_point and not self.target and not self:has_ai_flag('playerstalker') and (args.forceWander or calc_distance(self.x,self.y,player.x,player.y) > player.perception*2) then
+  if args.forceWander or (not self.guard_point and not self.patrol_points and not self.target and not self:has_ai_flag('playerstalker')) then
     return ai.wander(self,args)
   end
+  
+  --Determine whether we're currently in danger (or too stupid to care)
+  local noDanger = (args.forceStupid or not self:is_type('intelligent') or currMap:is_passable_for(self.x,self.y,self.pathType,true))
+  args.noDanger = noDanger
   
   --Handle noticing creatures (and running, for creatures with a minimum distance to maintain)
   local creats = self:get_seen_creatures()
@@ -23,7 +42,7 @@ ai['basic'] = function(self,args)
   
   --print('after handlenotice: ' .. os.clock()-aitime)
   
-  --Decrease fear, and if you don't see any enemies, decrease alertness. Also decrease memory of seen creatures
+  --Decrease fear, and if you don't see any enemies, decrease alertness. After that, decrease memory of seen creatures
   local fearDec = 1 --base fear decrease by 1 every turn
   if (enemies == 0) then
     self.alert = math.max(self.alert - 1,0) --if you can't see any enemies, you alert will decrease by 1
@@ -35,10 +54,11 @@ ai['basic'] = function(self,args)
   self.fear = math.max(self.fear - fearDec,0)
   self:decrease_notice(creats)
   
-  local fearRun = self:get_fear() > self:get_bravery()
   --If you're too afraid, run away!
-  if  (defRun == true or fearRun == true) and args.noRunning ~= true and enemies > 0 then
-    if ai.run(self,(fearRun and 'fleeing' or 'defensive'),args) then return true end --pass it off to another function, don't deal with that shit here!
+  local fearRun = self:get_fear() > self:get_bravery()
+  if (defRun == true or fearRun == true) and args.noRunning ~= true and enemies > 0 then
+    local ran = ai.run(self,(fearRun and 'fleeing' or 'defensive'),args)
+    if ran == true then return true end
   end --end fear
   
   --print('after fear and running: ' .. os.clock()-aitime)
@@ -59,7 +79,7 @@ ai['basic'] = function(self,args)
   --print('after lastseening: ' .. os.clock()-aitime)
   
   --Ranged attacks/spells: If you have a ranged attack, and are able/willing to attack them
-  if not args.noRanged and self.ranged_chance and random(0,100) <= self.ranged_chance and (args.forceStupid or not self:is_type('intelligent') or currMap:is_passable_for(self.x,self.y,self.pathType,true)) then --I always get confused what this last clause is doing: Basically, don't use a ranged attack if you're standing in a hazardous area, unless you're too stupid to care
+  if not args.noRanged and self.ranged_chance and random(0,100) <= self.ranged_chance and noDanger then
     local finished = ai.rangedAttack(self,args)
     if finished == true then return true end
   end --end ranged chance if
@@ -67,8 +87,9 @@ ai['basic'] = function(self,args)
   --print('after ranged: ' .. os.clock()-aitime)
   
   --If you're next to your target, attack them:
-  if self.target and self.target.baseType == "creature" and self:touching(self.target) and (args.forceStupid or not self:is_type('intelligent') or currMap:is_passable_for(self.x,self.y,self.pathType,true)) and self:attack(self.target) then
-    return true
+  if self.target and self.target.baseType == "creature" and self:touching(self.target) and noDanger then
+    local attack = self:attack(self.target)
+    if attack == true then return true end
   end
   
   --print('after attack: ' .. os.clock()-aitime)
@@ -78,8 +99,11 @@ ai['basic'] = function(self,args)
     local endX,endY = (self.path[#self.path].x or self.path[#self.path[1]]),(self.path[#self.path].y or self.path[#self.path[2]])
     if endX == self.target.x and endY == self.target.y then
       local moved = ai.moveAlongPath(self,args)
-      if moved == true then return true end
-    else
+      if moved == true then
+        return true
+      end
+      self.path = nil --if we weren't able to move along the path for some reason, delete it
+    else --if the path does not end at your target anymore, delete it
       self.path = nil
     end
   end
@@ -91,7 +115,7 @@ ai['basic'] = function(self,args)
     if moved == true then return true end
   end
   
-  --If you don't have a target or are too close to your target, just wander around, or cast a "random" spell. Later: head towards suspicious noise?
+  --If you don't have a target or are too close to your target, cast a "random" spell if applicable
   if not args.noRanged and self.ranged_chance and random(0,100) <= self.ranged_chance then
     for _, spell in ipairs(self:get_spells()) do
       local id = spell.id
@@ -99,50 +123,46 @@ ai['basic'] = function(self,args)
         local target = spell:decide(self,self,'random')
         if target == true then target = self.target end
         if target and target.x and target.y and (not spell.range or math.floor(calc_distance(self.x,self.y,target.x,target.y)) <= spell.range) then --if there's a valid target to the spell within range
-          if spell:use(target,self) then return true end --this is on a seperate line because I want the rest to be skipped if the spell fails for some reason.
+          local used = spell:use(target,self)
+          if used == true then return true end
         end --end friendly spell range check
       end --end random flag check
     end --end spell for
   end
   
   --print('after random spell: ' .. os.clock()-aitime)
-    
-  local goX,goY = nil,nil
+  
   --If you have a master, go towards them
-  if (self.master and calc_distance(self.x,self.y,self.master.x,self.master.y) > tweak(self.max_master_distance or self:get_perception())) then
-      local path = currMap:findPath(self.x,self.y,self.master.x,self.master.y,self.pathType)
+  if self.master and not self:touching(self.master) and calc_distance(self.x,self.y,self.master.x,self.master.y) > tweak(self.max_master_distance or self:get_perception()) then
+    local path = currMap:findPath(self.x,self.y,self.master.x,self.master.y,self.pathType)
     if (type(path) == "table" and #path>1) then
       self.path = path
-      goX,goY = path[2]['x'],path[2]['y']
+      local moved = ai.moveAlongPath(self,args)
+      if moved then return true end
     end --end if path == table
   end --end self.master if
   
   --If you have a spot you're supposed to be guarding, go back there
-  if self.guard_point and (self.x ~= self.guard_point.x or self.y ~= self.guard_point.y) and (not self.guard_wander_distance or calc_distance(self.x,self.y,self.guard_point.x,self.guard_point.y) > tweak(self.guard_wander_distance)) then
-    local gmoved = false
-    if not self.target then
-      self.target = self.guard_point
-    end
-    if not self.path then 
-      gmoved = ai.moveToTarget(self,args)
-    end
-    if gmoved then return true end
+  if self.guard_point then
+    local guard = ai.guard(self,args)
+    if guard then return true end
   end
   
-  --TODO: If you have a patrol route, move along it
-    
-  --Move to a random nearby spot:
-  if not goX or not goY then
-    if not self:has_ai_flag('stoic') and (not self.guard_point or (self.guard_wander_distance and calc_distance(self.x,self.y,self.guard_point.x,self.guard_point.y) <= self.guard_wander_distance)) then
-      return ai.wander(self,args)
-    end
-  else
-    return self:moveTo(goX,goY)
-  end --end goX/goY if
+  --If you have a patrol route, move along it
+  if self.patrol_points then
+    local patrol = ai.patrol(self,args)
+    if patrol then return true end
+  end
+  
+  --If none of the above has applied, just wander
+  if not self.guard_point or (self.guard_wander_distance and calc_distance(self.x,self.y,self.guard_point.x,self.guard_point.y) <= self.guard_wander_distance) then
+    return ai.wander(self,args)
+  end
 end -- end basic ai function
 
---This function causes the creature to randomly wander
+---This function causes the creature to randomly wander
 ai['wander'] = function(self,args)
+  if not args.forceWander and self:has_ai_flag('stoic') then return false end
   if not self.direction or random(1,5) == 1 or currMap:is_passable_for(self.x+self.direction.x,self.y+self.direction.y,self.pathType) == false then
     local xMod,yMod = random(-1,1),random(-1,1)
     local count = 0
@@ -153,38 +173,40 @@ ai['wander'] = function(self,args)
     self.direction={x=xMod,y=yMod}
   end --end self.direction if
   local goX,goY = self.x+self.direction.x,self.y+self.direction.y
-  self:moveTo(goX,goY)
+  return self:moveTo(goX,goY)
 end
 
---This function handles noticing nearby enemies (and running, if this creature has a minimum distance they like to maintain)
+---This function handles noticing nearby enemies (and running, if this creature has a minimum distance they like to maintain)
 ai['handlenotice'] = function(self,creats,args)
   local enemies,defRun = 0,false
   --First, get all seen creatures. See if enemy creatures are noticed. Go on alert if enemy targets are noticed:
   for _,creat in pairs(creats) do --Loop through all seen creatures
-    local notice = self.notices[creat] or self:does_notice(creat)
     local enemy = self.shitlist[creat] or self:is_enemy(creat)
-    local distance = calc_distance(self.x,self.y,creat.x,creat.y)
+    local notice = self.notices[creat] or self:does_notice(creat)
     
-    --if they're an enemy and you notice them, keep count of enemies and go on alert:
     if enemy and notice then
+      local distance = calc_distance(self.x,self.y,creat.x,creat.y)
+      --Keep count of enemies and go on alert:
       enemies = enemies+1
       if (self.alert < self.memory) then self.alert = self.memory end
       self.notices[creat] = math.ceil(self.memory/2)
-    end
-    --If you're too close to an enemy for comfort, run away from them:
-    if enemy and self.min_distance and notice and distance < self.min_distance and (self.run_chance == nil or random(0,100) < self.run_chance) then
-      defRun = true
-      self.fear = self.fear + 2
-    end
-    --If you notice an enemy, see if you actually become hostile:
-    if enemy and random(0,100) <= self:get_aggression() and notice and (self.shitlist == nil or self.shitlist[creat] == nil) and (self.ignore_distance == nil or distance < self.ignore_distance) then
-      self:become_hostile(creat)
-    end --end aggression check 
+      
+      --If you're too close to an enemy for comfort, run away from them:
+      if self.min_distance and distance < self.min_distance and (self.run_chance == nil or random(0,100) < self.run_chance) then
+        defRun = true
+        self.fear = self.fear + 2
+      end
+      
+      --See if you actually become hostile:
+      if (self.shitlist == nil or self.shitlist[creat] == nil) and (self.ignore_distance == nil or distance < self.ignore_distance) and random(0,100) <= self:get_aggression() then
+        self:become_hostile(creat)
+      end --end aggression check 
+    end --end enemy if
   end --end for
   return enemies,defRun
 end
 
---This function handles targeting
+--This function handles setting a target among nearby hostile creatures
 ai['target'] = function(self,args)
   --If you have a master and they have a target, take your master's target
   if self:has_ai_flag('playerhater') and self:can_sense_creature(player) and self:does_notice(player) then self.target = player
@@ -250,7 +272,7 @@ ai['target'] = function(self,args)
   end --end target if
 end
 
---This function handles moving towards your target
+---This function handles moving towards your target
 ai['moveToTarget'] = function(self,args)
   if self.target and (self.target.baseType ~= "creature" or self:touching(self.target) == false) and (self.target.baseType ~= "creature" or self.min_distance == nil or math.floor(calc_distance(self.x,self.y,self.target.x,self.target.y)) > self.min_distance) and (self.target.baseType ~= "creature" or self.approach_chance == nil or random(0,100) <= self.approach_chance) and (self.target.baseType ~= "creature" or self:can_sense_creature(self.target) or self:has_ai_flag('stalker') or (self.target == player and self:has_ai_flag('playerstalker'))) then
     if not args.forceStupid and self:is_type('intelligent') == true and calc_distance(self.x,self.y,self.target.x,self.target.y) <= self:get_perception() then
@@ -271,7 +293,7 @@ ai['moveToTarget'] = function(self,args)
   end --end have target/target min distance
 end
 
---This function handles determining if you use a ranged attack
+---This function handles determining if you use a ranged attack
 ai['rangedAttack'] = function(self,args)
   --Try regular ranged attack first:
   if (self.target and self.target.baseType == "creature") and self:touching(self.target) == false and (self.ranged_attack ~= nil and (rangedAttacks[self.ranged_attack].projectile == false or self:can_shoot_tile(self.target.x,self.target.y)) and rangedAttacks[self.ranged_attack]:use(self.target,self)) then return true end
@@ -294,7 +316,7 @@ ai['rangedAttack'] = function(self,args)
   end --end spell for
 end
 
---This function handles running away
+---This function handles running away
 ai['run'] = function(self,runType,args)
   args = args or {}
   local sTime = os.clock()
@@ -337,7 +359,7 @@ ai['run'] = function(self,runType,args)
   --output:out("Time to calc fear map: " .. tostring(os.clock()-sTime))
 end --and AI run
 
---This function pathfinds to an enemy, ignoring hazards
+---This function pathfinds to an enemy, accounting for hazards
 ai['dijkstra'] = function(self,args)
   local createTime = 0
   local hTime = 0
@@ -422,7 +444,7 @@ ai['dijkstra'] = function(self,args)
   return false
 end
 
---This function handles moving along your set path
+---This function handles moving along your pre-set path
 ai['moveAlongPath'] = function(self,args)
   if self.path then
     local intelligent = self:is_type('intelligent')
@@ -483,7 +505,7 @@ ai['moveAlongPath'] = function(self,args)
   return false
 end
 
---This function handles pathfinding to an enemy, not avoiding hazards
+---This function handles pathfinding to an enemy, not avoiding hazards
 ai['dumbpathfind'] = function(self,args)
   --Just dumbly walk in a straight line to your target, if possible. If not, pathfind.
   local path, complete = currMap:get_line(self.x,self.y,self.target.x,self.target.y)
@@ -512,11 +534,104 @@ ai['dumbpathfind'] = function(self,args)
         if debugMode then output:out(self:get_name() .. " unable to path to " .. self.target.x .. ", " .. self.target.y) end
       end --end target type if
       self.target = nil
+      self.path = nil
+      return false
     end--end if path == table
   end --end line vs path if
 end
 
---[[ai['basicold'] = function(creature)
+---This code handles creatures guarding a specific point
+ai['guard'] = function(self,args)
+  if self.guard_point and (self.x ~= self.guard_point.x or self.y ~= self.guard_point.y) and (not self.guard_wander_distance or calc_distance(self.x,self.y,self.guard_point.x,self.guard_point.y) > tweak(self.guard_wander_distance)) then
+    local gmoved = false
+    if not self.target then
+      self.target = self.guard_point
+    end
+    if not self.path then 
+      gmoved = ai.moveToTarget(self,args)
+    end
+    if gmoved then return true end
+  end
+end
+
+---This code handles patrolling creatures moving between patrol points
+ai['patrol'] = function(self,args)
+  if self.patrol_points then
+    local pmoved = false
+    local atPoint = false
+    
+    local advance_path = function(atPoint)
+      local pointCount = #self.patrol_points
+      local maxPoint = (self.reverse_patrol_direciton and 1 or pointCount)
+      if atPoint == maxPoint then
+        if self.reverse_patrol_direction_at_end then
+          self.reverse_patrol_direction = not self.reverse_patrol_direction
+        end
+      end
+      local newPoint = atPoint+(self.reverse_patrol_direction and -1 or 1)
+      --Handle rollover:
+      if newPoint < 1 then newPoint = pointCount
+      elseif newPoint > pointCount then
+        newPoint = 1
+      end
+      --Set your current patrol point to be the new point:
+      self.current_patrol_target=newPoint
+    end
+    
+    
+    --First, check to see if you've reached your current target
+    if self.current_patrol_target then
+      local x,y = self.patrol_points[self.current_patrol_target].x,self.patrol_points[self.current_patrol_target].y
+      if self.x == x and self.y == y or currMap:touching(self.x,self.y,x,y) then
+        atPoint = self.current_patrol_target
+      else --if you haven't reached it, set it as your target and start moving
+        if not self.target then
+          self.target = self.patrol_points[self.current_patrol_target]
+        end
+      end
+    else --if you don't have a current patrol target, set it to the nearest point
+      local nearestDist = nil
+      local nearestPoint = nil
+      local nearestIndex = nil
+      for id,point in ipairs(self.patrol_points) do
+        local dist = calc_distance(self.x,self.y,point.x,point.y)
+        if not nearestDist or dist < nearestDist then
+          nearestDist = dist
+          nearestPoint = point
+          nearestIndex = id
+          if dist == 0 then
+            atPoint = id
+            break
+          end
+        end
+      end
+      self.current_patrol_target = nearestIndex
+    end
+    
+    --If you've reached a point on the path:
+    if atPoint then
+      advance_path(atPoint)
+    end
+    
+    --Start moving to your new point target if applicable:
+    if not self.target and self.current_patrol_target then
+      self.target = self.patrol_points[self.current_patrol_target]
+    end
+    --Try to pathfind to your new targte:
+    if self.target and not self.path then 
+      pmoved = ai.moveToTarget(self,args)
+    end
+    if pmoved then
+      return true
+    else --if weren't able to pathfind to it then ignore it and just move to the next target point:
+      advance_path(self.current_patrol_target)
+    end
+  end
+end
+
+--[[
+Old AI code, kept here for reference:
+ai['basicold'] = function(creature)
   -- Next to allied creature? attack them instead
 	for x=creature.x-1,creature.x+1,1 do
 		for y=creature.y-1,creature.y+1,1 do

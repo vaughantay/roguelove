@@ -94,7 +94,9 @@ function town.create(map,width,height)
   map:change_tile(gatesc,midX,2)
   
   local guard = map:add_creature(Creature('townguard'),5,5)
-  guard.guardPoint = {x=2,y=2}
+  guard.guard_point = {x=2,y=2}
+  local guard2 = map:add_creature(Creature('townguard'),6,6)
+  guard2.patrol_points = {{x=3,y=3},{x=3,y=7},{x=7,y=7},{x=7,y=3}}
   
   --Add spawn points to corners (silly, but demonstrates the use of spawn points)
   map.spawn_points = {{x=2,y=2},{x=width-1,y=2},{x=2,y=height-1},{x=width-1,y=height-1}}

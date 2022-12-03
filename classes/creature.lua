@@ -27,7 +27,7 @@ function Creature:init(creatureType,level,noItems,noTweak)
   self.id = creatureType
   self.level = self.level or 0
   self.max_hp = (noTweak and self.max_hp or tweak(self.max_hp))
-  self.max_mp = (noTweak and self.max_mp or tweak(self.max_mp))
+  self.max_mp = (noTweak and self.max_mp or tweak(self.max_mp or 0))
 	self.hp = self.max_hp
   self.mp = self.max_mp
   self.melee = (noTweak and self.melee or tweak(self.melee or 0))
@@ -2434,7 +2434,7 @@ function Creature:get_fear()
   for _, creat in pairs(self:get_seen_creatures()) do
     if creat:is_enemy(self) then
       enemies = enemies + 1
-    elseif creat == self or (self.faction and creat.faction and self.faction == creat.faction) or (self.playerAlly and creat.playerAlly) or (self.master and (creat == self.master or creat.master == self.master)) then
+    elseif self:is_friend(creat) then
       friends = friends+1
     end --end enemy/friend if
   end --end creat for
