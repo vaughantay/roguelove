@@ -518,9 +518,10 @@ function output:button(x,y,width,small,special,text,useScaling)
       end
     end
     if text then
+      local oldFont = love.graphics.getFont()
       love.graphics.setFont(fonts.buttonFont)
       love.graphics.printf(text,math.floor(x),math.floor(y-3),width,"center")
-      love.graphics.setFont(fonts.textFont)
+      love.graphics.setFont(oldFont)
     end
     return {minX=x,maxX=(x+math.max(width,64)),minY=y,maxY=(y+(small and 16 or 32)),hover=hover}
   else --imageless buttons
@@ -536,9 +537,10 @@ function output:button(x,y,width,small,special,text,useScaling)
     setColor(255,255,255,255)
     love.graphics.rectangle('line',x,y,math.max(width,64),(small and 16 or 32))
     if text then
+      local oldFont = love.graphics.getFont()
       love.graphics.setFont(fonts.buttonFont)
       love.graphics.printf(text,math.floor(x),math.floor(y+4),width,"center")
-      love.graphics.setFont(fonts.textFont)
+      love.graphics.setFont(oldFont)
     end
     return {minX=x,maxX=(x+math.max(width,64)),minY=y,maxY=(y+(small and 16 or 32)),hover=hover}
   end
@@ -656,9 +658,10 @@ function output:tinybutton(x,y,small,hover,text,useScaling)
     end
     love.graphics.draw(image,images[buttonname].small,x,y)
     if text then
+      local oldFont = love.graphics.getFont()
       love.graphics.setFont(fonts.buttonFont)
       love.graphics.printf(text,math.floor(x),math.floor(y-3),32,"center")
-      love.graphics.setFont(fonts.textFont)
+      love.graphics.setFont(oldFont)
     end
     return {minX=x,maxX=(x+32),minY=y,maxY=(y+(small and 16 or 32)),hover=hover}
   else --imageless buttons
@@ -674,9 +677,10 @@ function output:tinybutton(x,y,small,hover,text,useScaling)
     setColor(255,255,255,255)
     love.graphics.rectangle('line',x,y,(small and 16 or 32),(small and 16 or 32))
     if text then
+      local oldFont = love.graphics.getFont()
       love.graphics.setFont(fonts.buttonFont)
       love.graphics.printf(text,math.floor(x),math.floor(y+4),(small and 16 or 32),"center")
-      love.graphics.setFont(fonts.textFont)
+      love.graphics.setFont(oldFont)
     end
     return {minX=x,maxX=(x+(small and 16 or 32)),minY=y,maxY=(y+(small and 16 or 32)),hover=hover}
   end
