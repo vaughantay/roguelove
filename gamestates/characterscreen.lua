@@ -153,7 +153,7 @@ function characterscreen:draw()
       printY = printY + fontSize
     end --end resistances
     
-    printY = printY + 50
+    --[[printY = printY + 50
     love.graphics.printf("Special Abilities:",padding,printY,math.floor(width/uiScale)-padding,"center")
     printY=printY+fontSize*2
     local abilities = ""
@@ -165,7 +165,7 @@ function characterscreen:draw()
     end
     love.graphics.printf(abilities,padding,printY,math.floor(width/uiScale)-padding,"left")
     local _, wrappedtext = fonts.textFont:getWrap(abilities, math.floor(width/uiScale))
-    printY=printY+#wrappedtext*fontSize
+    printY=printY+#wrappedtext*fontSize]]
     
     --TODO: Add "choose-between" abilities:
     if #self.spell_purchases > 0 then

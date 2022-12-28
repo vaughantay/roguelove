@@ -19,6 +19,8 @@ function Spell:init(spellID)
   self.baseType = "spell"
   self.id = spellID
   self.flags = self.flags or {}
+  self.applied_upgrades = {}
+  self.level = self.level or 1
 	return self
 end
 
@@ -33,7 +35,7 @@ function Spell:get_description(no_reqtext)
     if req == false then reqtext = "\n\nYou can't use this ability right now."
     else reqtext = "" end
   end
-    return self.description .. (self.cost and "\nCost: " .. self.cost .. " MP" or "") .. (no_reqtext and "" or reqtext)
+    return self.description .. (no_reqtext and "" or reqtext)
 end
 
 ---Start targeting a spell (unless it's a self-only spell, in which case it just goes ahead and casts it).
@@ -151,4 +153,53 @@ function Spell:has_tag(tag)
   if self.tags and in_table(tag,self.tags) then
     return true
   end
+end
+
+---Get the stat for a spell
+--@param stat String. The stat to return
+--@return Anything. Whatever the stat's value is (or false if not set)
+function Spell:get_stat(stat)
+  local value = false
+  if self[stat] then 
+    value = self[stat]
+  elseif self.stats and self.stats[stat] then
+    value = self.stats[stat].value
+  end
+  --TODO: Modifiers?
+  return value
+end
+
+---Gets the possible upgrades for a spell
+--@return Table. A table of the possible upgrades, with the format {upgradeID=upgradeLevel}
+function Spell:get_possible_upgrades()
+  local upgrades = {}
+  if not self.possible_upgrades then return upgrades end
+  for id,details in pairs(self.possible_upgrades) do
+    local current_upgrade_level = self.applied_upgrades[id] or 0
+    local max_upgrade_level = #details
+    if current_upgrade_level < max_upgrade_level then
+      upgrades[id] = current_upgrade_level + 1
+    end
+  end
+  return upgrades
+end
+
+---Applies an upgrade to a spell
+--@return Boolean. Whether the upgrade was applied
+function Spell:apply_upgrade(upgradeID)
+  local upgrades = self:get_possible_upgrades()
+  local level = upgrades[upgradeID]
+  if level then
+    local stats = self.possible_upgrades[upgradeID][level]
+    for stat,value in pairs(stats) do
+      if self[stat] then
+        self[stat] = value
+      elseif self.stats and self.stats[stat] then
+        self.stats[stat].value = value
+      end
+    end
+    self.applied_upgrades[upgradeID] = level
+    return true
+  end
+  return false
 end

@@ -74,6 +74,7 @@ function hotkey:keypressed(key)
     elseif hotkeyItem.baseType == "item" then
       player.hotkeys[tonumber(key)] = {type="item",item=hotkeyItem}
     end
+    hotkeyItem.hotkey = tonumber(key)
     self:switchBack()
   end
 end

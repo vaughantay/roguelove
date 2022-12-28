@@ -50,6 +50,7 @@ function new_game(mapSeed,playTutorial,cheats,branch)
   for i,spell in ipairs(player.spells) do
     if i <= 10 and possibleSpells[spell.id].target_type ~= "passive" then
       player.hotkeys[#player.hotkeys+1] = {type="spell",spell=spell}
+      spell.hotkey=i
     end
   end
 end

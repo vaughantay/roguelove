@@ -21,7 +21,7 @@ Highlights:
   * Players can gain or lose favor with factions from killing specific creatures or creature types. Factions can view the player as an ally or enemy depending on their favor level.
   * You can join, learn spells from, trade items with, receive services from, learn recipes from, and get missions from factions.
 * Stores
-* Stores can dynamically generate their inventory from a list of tags rather than it being pre-defined (though pre-defining store inventory is also an option).
+  * Stores can dynamically generate their inventory from a list of tags rather than it being pre-defined (though pre-defining store inventory is also an option).
   * Stores can also offer "services" (arbitrary chunks of code that can do whatever) and teach abilities.
   * Stores can be defined with a list of tags they'll buy (or, again, a list of specific items). You can sell items to the store matching these tags rather than having to pre-define every single item the store will buy.
   * Stores can use an item as a currency rather than money.
@@ -37,9 +37,10 @@ Highlights:
   * Room and map decorators can be defined that apply.
 * Spells/abilities
   * Robust ability system, with support for active and passive abilities.
-  * Active abilities can use MP, have cooldowns, or neither.
+  * Active abilities can use MP, have cooldowns, have a set number of charges, or none of the above.
   * Abilities have a variety of callbacks that can run at various points in the game.
   * Abilities can appy passive buffs/debuffs.
+  * Abilities can be upgraded.
 * Conditions
   * Creatures can suffer/benefit from conditions, which can have callbacks that can run at various points in the game.
   * Conditions can apply passive buffs/debuffs.
@@ -61,10 +62,11 @@ Highlights:
   * Tutorial system.
   * Animated effects and creatures.
 * Miscellaneous:
+  * Customizable NPC AI enabling a range of behaviors. For example, ranged creatures prefering to keep a distance, creatures moving between patrol points or guarding certain areas, creatures with varying degrees of aggression and fear. NPC behavior also interacts with the faction system mentioned above.
   * Many game features are customizable and optional. For example, you don't have to have crafting (or even items) in the game, can disable species/class selection, bosses, etc.
   * Map features can have "actions" attached to them.
-  * Many types of content can have "tags" attached to them, which are used to dynamically determine where that content can be used, rather than having to explictly define what items/creatures/etc are available in places.
-  * Lighting system. Entire maps can be lit or unlit. Map features can cast light in unlit maps.
+  * Many types of content can have "tags" attached to them, which are used to dynamically determine where that content can be used, rather than having to explictly define what items/creatures/etc are available where.
+  * Lighting system. Entire maps can be lit or unlit. Map features, creatures, projectiles, and items can cast light in unlit maps.
 
 [Incomplete guide to using the Roguelove engine](https://docs.google.com/document/d/1bJmuokbK8Xtd2P9K8KRQRSeGdHd78HGKuOKaZltCoE4/edit?usp=sharing)
 

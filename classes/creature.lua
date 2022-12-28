@@ -501,8 +501,9 @@ function Creature:give_condition(name,turns,applier,force)
   local ap = ap
 	if force or conditions[name]:apply(self,applier,turns) ~= false then
     self.conditions[name]=(type(ap) == "number" and ap or turns)
+    return true
   end
-	return true
+	return false
 end
 
 ---Cure a condition.
@@ -1985,6 +1986,7 @@ end
 --@param creat Creature. The creature to forget
 function Creature:forget(creat)
   if self.notices[creat] then self.notices[creat] = nil end
+  if self.shitlist[creat] then self.shitlist[creat] = nil end
 end
 
 ---Become hostile to another creature
@@ -2381,6 +2383,7 @@ function Creature:level_up(force)
   end
   self.level = self.level + 1
   self.skillPoints = (self.skillPoints or 0) + gamesettings.skill_points_per_level
+  self.spellPoints = (self.spellPoints or 0) + gamesettings.spell_points_per_level --TODO: NPCs auto-upgrading spells
   if self ~= player or prefs.autoLevel then
     local stats = {'max_hp','strength','dodging','melee'}
     if self.magic and self.magic > 0 then stats[#stats+1]='magic' end

@@ -35,8 +35,8 @@ function inventory:enter(previous,whichFilter,action,creature)
   if previous == game then
     self.yModPerc = 100
     tween(0.2,self,{yModPerc=0})
+    output:sound('stoneslideshort',2)
   end
-  output:sound('stoneslideshort',2)
   self.buttons = {}
   self.filter = (whichFilter and whichFilter) or self.filter
   self.sidebarX = round(width/2)+(prefs['noImages'] and 16 or 32)

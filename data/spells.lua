@@ -7,10 +7,44 @@ blast = {
 	target_type = "creature",
 	flags = {aggressive=true},
   tags={'psychic','attack'},
+  stats={
+    min_damage={value=8,name="Minimum Damage",stat_type="damage",display_order=1},
+    max_damage={value=15,name="Maximum Damage",stat_type="damage",display_order=2},
+    confusion_chance={value=0,name="Chance of causing Confusion",hide_when_zero=true,stat_type="condition_chance",display_order=3},
+    stun_chance={value=0,name="Chance of causing Stun",hide_when_zero=true,stat_type="condition_chance",display_order=4},
+    min_stun={value=0,name="Minimum Stun Turns",stat_type="condition_turns",hide_when_zero=true,display_order=5},
+    max_stun={value=0,name="Maximum Stun Turns",stat_type="condition_turns",hide_when_zero=true,display_order=6},
+    min_confusion={value=0,name="Minimum Confusion Turns",stat_type="condition_turns",hide_when_zero=true,display_order=7},
+    max_confusion={value=0,name="Maximum Confusion Turns",stat_type="condition_turns",hide_when_zero=true,display_order=8},
+    amnesia={value=false,name="Amnesia",description="Causes the target to forget they ever saw you.",display_order=9} --values set to false will always be hidden
+  },
+  possible_upgrades={
+    damage={{min_damage=10,max_damage=18},{min_damage=15,max_damage=25},name="Damage"},
+    confusion={{confusion_chance=10,min_confusion=4,max_confusion=6},{confusion_chance=25,min_confusion=6,max_confusion=10},name="Confusion"},
+    stun={{stun_chance=10,min_stun=2,max_stun=3},{stun_chance=25,min_stun=3,max_stun=5},name="Stunning"},
+    amnesia={{amnesia=true},name="Amnesia",description="Causes the target to forget they ever saw you.",playerOnly=true},
+  },
 	cast = function(self,target,caster)
-		local dmg = target:damage(random(8,15),caster,"magic")
+    local min,max = self:get_stat('min_damage'),self:get_stat('max_damage')
+    local confusion = (self:get_stat('confusion_chance') or 0)
+    local stun = (self:get_stat('stun_chance') or 0)
+		local dmg = target:damage(random(min,max),caster,"magic")
+    local text = caster:get_name() .. " blasts " .. target:get_name() .. " with " .. target:get_pronoun('p') .. " mind, dealing " .. dmg .. " damage."
+    if random(1,100) <= stun then
+      local turns = random(self:get_stat('min_stun'),self:get_stat('max_stun'))
+      local s = target:give_condition('stunned',turns)
+      if s then text = text .. " " .. ucfirst(target:get_pronoun('n') .. " is stunned!") end
+    end
+    if random(1,100) <= confusion then
+      local turns = random(self:get_stat('min_confusion'),self:get_stat('max_confusion'))
+      local c = target:give_condition('confused',turns)
+      if c then text = text .. " " .. ucfirst(target:get_pronoun('n') .. " is confused!") end
+    end
+    if self:get_stat('amnesia') then
+      target:forget(caster)
+    end
 		if player:can_sense_creature(target) then
-      output:out(caster:get_name() .. " blasts " .. target:get_name() .. " with " .. target:get_pronoun('p') .. " mind, dealing " .. dmg .. " damage.")
+      output:out(text)
     end
 	end
 },
@@ -24,6 +58,9 @@ blink = {
   sound="teleport",
   flags={fleeing=true,defensive=true},
   tags={'teleport','magic'},
+  possible_upgrades={
+    cooldown={{cooldown=7},{cooldown=3},{cooldown=0},name="Cooldown"},
+  },
 	cast = function(self,target,caster)
     local origX,origY = caster.x,caster.y
     local x,y = caster.x,caster.y
@@ -58,31 +95,18 @@ demondamager = {
 	description = "You know a lot about demons. Particularly, how to hurt them.",
 	target_type = "passive",
   tags={'knowledge'},
+  stats = {
+    extra_damage={value=25,name="Extra Damage % to demons"}
+  },
+  possible_upgrades={
+    damage={{extra_damage=50,name="Demon Slayer"},{extra_damage=100,name="Demon Obliterator"},name="Increase Damage"}
+  },
   calc_damage = function(self,possessor,target,damage)
     if target:is_type('demon') then
-      return math.ceil(damage * 1.5)
+      local extra = math.ceil(damage * (self:get_stat('extra_damage')/100))
+      return math.ceil(damage + extra)
     else
       return damage
-    end
-  end
-},
-
-demondamager2 = {
-	name = "Demon Slayer",
-	description = "You know a ton about demons. Particularly, how to hurt them really badly.",
-	target_type = "passive",
-  calc_damage = function(self,possessor,target,damage)
-    if target:is_type('demon') then
-      return math.ceil(damage * 2)
-    else
-      return damage
-    end
-  end,
-  learn_requires = function(self,learner)
-    if learner:has_spell('demondamager') then
-      return true
-    else
-      return false,"You need to know the basics about hurting demons before you can learn this."
     end
   end
 },
@@ -114,13 +138,20 @@ smite = {
     cost=1,
     cooldown = 5,
     tags={'holy','attack'},
+    stats = {
+      damage={value=15,name="Damage"}
+    },
+    possible_upgrades={
+      damage={{damage=25},{damage=40},name="Damage"},
+      cooldown={{cooldown=0},name="Remove Cooldown"}
+    },
     cast = function(self,target,attacker)
       if (attacker.mp and attacker.mp == 0) then
         if attacker == player then output:out("You don't have enough piety to smite your enemies.") end
         return false
       end
       if target:is_type('demon') or target:is_type('undead') or target:is_type('abomination') or target == player or target:has_condition('possessed') then
-        dmg = target:damage(tweak(15),attacker,"holy")
+        dmg = target:damage(tweak(self:get_stat('damage')),attacker,"holy")
         if player:can_see_tile(attacker.x,attacker.y) then output:out(attacker:get_name() .. " smites " .. target:get_name() .. " for " .. dmg .. " holy damage.") end
         if random(1,3) == 1 then
           target:give_condition('stunned',random(2,4))
@@ -165,12 +196,18 @@ homecoming = {
     cooldown=9,
     AIcooldown=18,
     sound="unholydamage",
+    stats = {
+      turns={value=3,name="Stun Turns"}
+    },
+    possible_upgrades={
+      turns={{turns=5},{turns=7},{turns=10},name="Stun Turns"}
+    },
     cast = function(self,target,caster)
       if player:can_see_tile(target.x,target.y) then
         output:out(caster:get_name() .. " paralyzes " .. target:get_name() .. " with a touch!")
         currMap:add_effect(Effect('animation','unholydamage',5,target,{r=150,g=0,b=150}),target.x,target.y)
       end
-      target:give_condition('stunned',tweak(3))
+      target:give_condition('stunned',tweak(self:get_stat('turns')))
     end
   },
   
@@ -192,7 +229,7 @@ homecoming = {
 				eaten = true
       elseif content.id == "grave" and content.possessable == true then
         local hp = tweak(3)
-        output:out("You dig up the grave and chow down on the rotting corpse heald within, regaining " .. hp .. " HP.")
+        output:out("You dig up the grave and chow down on the rotting corpse held within, regaining " .. hp .. " HP.")
 				caster:updateHP(hp)
         content.image_name = "emptygrave"
         content.symbol="ø"
@@ -523,11 +560,11 @@ undeadlegion = {
 
 shademaker = {
     name = "Leader of the Dead",
-    description = "Anytime you kill a living creature, you'll draw forth a shade to join your unholy crusade.",
+    description = "Anytime you or your minions kill a living creature, you'll draw forth a shade to join your unholy crusade.",
     target_type = "passive",
     tags={'unholy','necromancy','summon','magic'},
     kills = function(self,possessor,victim)
-      if possessor.id == "deathknight" or possessor.master.id == "deathknight" then
+      if possessor.id == "deathknight" or (possessor.master and possessor.master.id == "deathknight") then
         if not victim:is_type('undead') and not victim:is_type('construct') and victim ~= player then
           local shade = Creature('shade')
           currMap:add_creature(shade,victim.x,victim.y)
@@ -557,12 +594,18 @@ lifedrain = {
   AIcooldown=20,
   flags={aggressive=true},
   tags={'unholy','attack','magic'},
+  stats = {
+    damage={value=15,name="Damage"}
+  },
+  possible_upgrades={
+    damage={{damage=20},{damage=30},name="Damage"}
+  },
   cast = function(self,target,caster)
     if target:is_type('undead') or target:is_type('construct') then
       if caster == player then output:out("You can't drain the life out of something that's not alive.") end
       return false
     end
-    local dmg = target:damage(tweak(15),caster,'dark')
+    local dmg = target:damage(tweak(self:get_stat('damage')),caster,'dark')
     caster:updateHP(dmg)
     if player:can_see_tile(caster.x,caster.y) then
       output:out(caster:get_name() .. " drains " .. dmg .. " HP from " .. target:get_name() .. ".")
@@ -581,10 +624,17 @@ graspingdead = {
   sound="graspingdead",
   flags={aggressive=true},
   tags={'unholy','necromancy','magic'},
+  stats = {
+    radius={value=1,name="Tile Radius"},
+  },
+  possible_upgrades={
+    radius={{radius=2},name="Tile Radius"}
+  },
   cast = function (self,target,caster)
 		if player:can_see_tile(caster.x,caster.y) then output:out(caster:get_name() .. " calls forth grasping dead from the earth!") end
-		for x=target.x-1,target.x+1,1 do
-			for y=target.y-1,target.y+1,1 do
+    local radius = self:get_stat('radius')
+		for x=target.x-radius,target.x+radius,1 do
+			for y=target.y-radius,target.y+radius,1 do
 				if (currMap[x][y] ~= "#") then
           local dead = currMap:tile_has_effect(x,y,'graspingdead')
           if dead then
@@ -600,8 +650,9 @@ graspingdead = {
 	end,
   get_target_tiles = function(self,target,caster)
     local targets = {}
-    for x=target.x-1,target.x+1,1 do
-      for y=target.y-1,target.y+1,1 do
+    local radius = self:get_stat('radius')
+    for x=target.x-radius,target.x+radius,1 do
+      for y=target.y-radius,target.y+radius,1 do
         targets[#targets+1] = {x=x,y=y}
       end --end fory
     end --end forx
@@ -619,10 +670,17 @@ bloodrain = {
   cooldown=10,
   sound="rain",
   tags={'unholy','blood','magic'},
+  stats = {
+    radius={value=3,name="Tile Radius"},
+  },
+  possible_upgrades={
+    radius={{radius=5},name="Tile Radius"}
+  },
   cast = function(self,target,caster)
-    for x = target.x-3,target.x+3,1 do
-      for y = target.y-3,target.y+3,1 do
-        if currMap:in_map(x,y) and calc_distance(x,y,target.x,target.y) <= 3 and currMap:isClear(x,y,nil,true) and currMap:is_line(x,y,target.x,target.y,true) then
+    local radius = self:get_stat('radius')
+    for x = target.x-radius,target.x+radius,1 do
+      for y = target.y-radius,target.y+radius,1 do
+        if currMap:in_map(x,y) and calc_distance(x,y,target.x,target.y) <= radius and currMap:isClear(x,y,nil,true) and currMap:is_line(x,y,target.x,target.y,true) then
           local rain = Effect('bloodrain')
           currMap:add_effect(rain,x,y)
         end --end x,y check if
@@ -631,9 +689,10 @@ bloodrain = {
   end,
   get_target_tiles = function(self,target,caster)
     local targets = {}
-    for x=target.x-3,target.x+3,1 do
-      for y=target.y-3,target.y+3,1 do
-        if calc_distance(x,y,target.x,target.y) <= 3 and currMap:is_line(x,y,target.x,target.y,true) then targets[#targets+1] = {x=x,y=y} end
+    local radius = self:get_stat('radius')
+    for x=target.x-radius,target.x+radius,1 do
+      for y=target.y-radius,target.y+radius,1 do
+        if calc_distance(x,y,target.x,target.y) <= radius and currMap:is_line(x,y,target.x,target.y,true) then targets[#targets+1] = {x=x,y=y} end
       end --end fory
     end --end forx
     return targets
@@ -645,17 +704,23 @@ bloodrain = {
 
 enfeeble = {
   name = "Enfeeble",
-  description = "Permanently reduces a creature's maximum HP by half.",
+  description = "Permanently reduces a creature's maximum HP.",
   target_type = "creature",
   cooldown=25,
   sound="enfeeble",
   tags={'unholy','curse','magic'},
+  stats = {
+    reduction={value=25,name="HP Reduction %"},
+  },
+  possible_upgrades={
+    reduction={{reduction=35},{reduction=50},name="HP Reduction %"}
+  },
   cast = function(self,target,caster)
     if target:is_type('undead') then
       if caster == player then output:out("You can't destroy the life force of an undead creature.") end
       return false
     end
-    local amt = math.ceil(target.max_hp/2)
+    local amt = math.ceil(target.max_hp * (self.get_stat('reduction')/100))
     target.max_hp = target.max_hp - amt
     if target.hp > target.max_hp then
       target.hp = target.max_hp
@@ -732,9 +797,16 @@ painbolt = {
     target_type="creature",
     cost=1,
     tags={'unholy','attack','magic'},
+    stats = {
+      damage={value=10,name="Damage"},
+    },
+    possible_upgrades={
+      damage={{damage=20},{damage=30},name="Damage"}
+    },
     cast = function(self,target,attacker)
+      local base_dmg = self:get_stat('damage')
       if target:is_type('undead') then
-        local dmg = tweak(10)
+        local dmg = tweak(base_dmg)
         if player:can_see_tile(attacker.x,attacker.y) then
           output:out(attacker:get_name() .. " heals " .. target:get_name() .. " for " .. dmg .. " damage.")
           currMap:add_effect(Effect('animation','unholydamage',5,target,{r=150,g=0,b=150}),target.x,target.y)
@@ -742,7 +814,7 @@ painbolt = {
         end
         target:updateHP(dmg)
       else
-        local dmg = target:damage(tweak(10),attacker,"unholy")
+        local dmg = target:damage(tweak(base_dmg),attacker,"unholy")
         if player:can_see_tile(attacker.x,attacker.y) then
           output:out(attacker:get_name() .. " gestures at " .. target:get_name() .. ". " .. ucfirst(target:get_pronoun('n')) .. " convulses with pain, taking " .. dmg .. " damage.")
           currMap:add_effect(Effect('animation','unholydamage',5,target,{r=150,g=0,b=150}),target.x,target.y)
@@ -987,7 +1059,7 @@ webshot = {
 
 poisonbite = {
     name = "Poison Bite",
-    description = "Sink your fangs and/or mandibles in..",
+    description = "Sink your fangs and/or mandibles in.",
     target_type = "creature",
     range=1,
     cooldown=9,

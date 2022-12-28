@@ -282,7 +282,7 @@ function load_data()
   require "gamestates.pausemenu"
   require "gamestates.pronoun_entry"
   require "gamestates.settings"
-  require "gamestates.spells"
+  require "gamestates.spellscreen"
   require "gamestates.splitstack"
   require "gamestates.storescreen"
 end
