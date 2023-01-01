@@ -169,7 +169,7 @@ function mapgen:generate_creature(min_level,max_level,list,allowAll)
   local noCreatures = true
   for _,cid in pairs(list) do
     local creat = (type(cid) == "string" and possibleMonsters[cid] or cid)
-    if (creat.level >= min_level and creat.level <= max_level) or (creat.max_level and creat.max_level >= min_level and creat.max_level <= max_level) then 
+    if ((creat.level >= min_level and creat.level <= max_level) or (creat.max_level and creat.max_level >= min_level and creat.max_level <= max_level)) and creat.isBoss ~= true and creat.neverSpawn ~= true and (allowAll or list or possibleMonsters[n].specialOnly ~= true) then
       noCreatures = false break
     end
   end
@@ -201,7 +201,7 @@ function mapgen:generate_item(min_level,max_level,list,tags,allowAll)
   local noItems = true
   for _,iid in pairs(list) do
     local item = (type(iid) == "string" and possibleItems[iid] or iid)
-    if not item.level or ((item.level >= min_level and item.level <= max_level) or (item.max_level and item.max_level >= min_level and item.max_level <= max_level)) then 
+    if not item.level or ((item.level >= min_level and item.level <= max_level) or (item.max_level and item.max_level >= min_level and item.max_level <= max_level)) and item.neverSpawn ~= true and (allowAll or list or possibleItems[n].specialOnly ~= true) then 
       noItems = false break
     end
   end
