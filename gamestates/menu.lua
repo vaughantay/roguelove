@@ -12,7 +12,7 @@ function menu:draw()
   local width, height = round(love.graphics:getWidth()/uiScale),round(love.graphics:getHeight()/uiScale)
   setColor(255,255,255,255)
 	love.graphics.setFont(fonts.graveFontBig)
-	love.graphics.printf("Roguelove Example Game",14,16,width-28,"center")
+	love.graphics.printf(gamesettings.name,14,16,width-28,"center")
 	love.graphics.setFont(fonts.graveFontSmall)
 	love.graphics.setFont(fonts.graveFontBig)
   local spacing = 40
