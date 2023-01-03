@@ -137,14 +137,15 @@ function game:print_cursor_game()
           love.graphics.setFont(fonts.mapFont)
           if debugMode then love.graphics.print("(" .. output.cursorX .. "," .. output.cursorY .. ")",printX,printY ) end
           love.graphics.setFont(fonts.mapFontWithImages)
-		
+    
+    self.hoveringCreat = nil
     if (player:can_see_tile(output.cursorX,output.cursorY) and self.contextualMenu == nil and self.warning == nil) then
       local text = ""
       if (next(currMap.contents[output.cursorX][output.cursorY]) ~= nil) then
         for id, entity in pairs(currMap.contents[output.cursorX][output.cursorY]) do
           if entity.baseType == "creature" and player:does_notice(entity) then
             text = ucfirst(currMap.contents[output.cursorX][output.cursorY][id]:get_description()) .. (text == "" and "" or "\n----\n" .. text)
-            self.hoveringCreat = entity
+            if entity ~= player then self.hoveringCreat = entity end
           elseif entity.baseType ~= "creature" and not entity.noDesc then
             if (text ~= "") then text = text .. "\n----\n" end
             if entity.baseType == "item" then
@@ -525,7 +526,7 @@ function game:print_sidebar()
   self.sidebarCreats = {}
   if player.sees ~= nil then
     for id, thing in ipairs(player.sees) do
-      if (printY+yPad < (player.target and height-240 or height-64) and thing ~= player and in_table(thing,alreadyPrinted) == false and player:does_notice(thing)) then
+      if (printY+yPad < ((player.target or self.hoveringCreat) and height-240 or height-64) and thing ~= player and in_table(thing,alreadyPrinted) == false and player:does_notice(thing)) then
         local minY,maxY,minX,maxX = printY+yPad-4,printY+yPad+tileSize,printX+5,printX+5+sidebarW
         self.sidebarCreats[thing] = {minX=minX*uiScale,maxX=maxX*uiScale,minY=minY*uiScale,maxY=maxY*uiScale}
         local trueHover = Gamestate.current() == game and (mouseX > minX and mouseX < maxX and mouseY > minY and mouseY < maxY)
@@ -539,9 +540,7 @@ function game:print_sidebar()
           if trueHover then
             --descBox = {desc=ucfirst(thing:get_description()),x=minX,y=minY}
             output:setCursor(thing.x,thing.y)
-            self.hoveringCreat = thing
-          else
-            self.hoveringCreat = nil
+            if thing ~= player then self.hoveringCreat = thing end
           end
         elseif target == thing then
           setColor(175,175,175,125)
@@ -585,46 +584,49 @@ end
 
 function game:print_target_sidebar()
   local uiScale = (prefs['uiScale'] or 1)
-  if (target ~= nil) then
+  local creat = self.hoveringCreat or target
+  if creat then
     local width, height = love.graphics:getWidth(),love.graphics:getHeight()
     local printX = math.ceil(width/uiScale)-365
     local maxX = printX+319
     local printY = math.ceil(height/uiScale)-225
-    local maxY = ((next(target.conditions) == nil and printY+65 or printY+95))
+    local maxY = ((next(creat.conditions) == nil and printY+65 or printY+95))
     local xPad = 5
     local yBonus = 2
     local fontPadding = 15
+    
     if not prefs.plainFonts then
       love.graphics.setFont(fonts.buttonFont)
       yBonus = 0
     else
       fontPadding = prefs['fontSize']+2
     end
-		if (target.properName ~= nil) then
-			love.graphics.printf(target.properName,printX,printY,335,"center")
+		if (creat.properName ~= nil) then
+			love.graphics.printf(creat.properName,printX,printY,335,"center")
 			printY = printY+fontPadding
 		end
-		love.graphics.printf((gamesettings.display_creature_levels and "Level " .. target.level .. " " or "") .. ucfirst(target.name),printX,printY,335,"center")
-    if target.master then 
+		love.graphics.printf((gamesettings.display_creature_levels and "Level " .. creat.level .. " " or "") .. ucfirst(creat.name),printX,printY,335,"center")
+    if creat.master then 
       printY = printY+fontPadding
-      love.graphics.printf("Master: " .. target.master:get_name(false,true),printX,printY,335,"center")
+      love.graphics.printf("Master: " .. creat.master:get_name(false,true),printX,printY,335,"center")
     end
-    output:draw_health_bar(self.targetHP,target:get_mhp(),printX+xPad,printY+fontPadding+5,325,16)
-    love.graphics.printf("Health: " .. math.ceil(self.targetHP) .. "/" .. target:get_mhp(),printX+xPad,printY+fontPadding+2+yBonus,335,"center")
+    local hp = (creat == target and self.targetHP or creat.hp)
+    output:draw_health_bar(hp,creat:get_mhp(),printX+xPad,printY+fontPadding+5,325,16)
+    love.graphics.printf("Health: " .. math.ceil(hp) .. "/" .. creat:get_mhp(),printX+xPad,printY+fontPadding+2+yBonus,335,"center")
     
     --Melee attack hit chance:
     local weapons = player:get_equipped_in_slot('weapon')
     local weapCount = count(weapons)
     printY = printY+fontPadding*3
     if weapCount == 0 then
-      love.graphics.print("Hit chance: " .. calc_hit_chance(player,target) .. "%",printX+xPad,printY)
+      love.graphics.print("Hit chance: " .. calc_hit_chance(player,creat) .. "%",printX+xPad,printY)
       printY = printY+fontPadding
     elseif weapCount == 1 then
-      love.graphics.print(weapons[1]:get_name(true) .. " hit chance: " .. calc_hit_chance(player,target,player.equipment.weapon[1]) .. "%",printX+xPad,printY)
+      love.graphics.print(weapons[1]:get_name(true) .. " hit chance: " .. calc_hit_chance(player,creat,player.equipment.weapon[1]) .. "%",printX+xPad,printY)
       printY = printY+fontPadding
     else
       for _,weap in pairs(weapons) do
-        love.graphics.printf(weap:get_name(true) .. " hit chance" .. (weap.ranged_attack and " (melee)" or "") .. ": " .. calc_hit_chance(player,target,weap) .. "%",printX+xPad,printY,335,"left")
+        love.graphics.printf(weap:get_name(true) .. " hit chance" .. (weap.ranged_attack and " (melee)" or "") .. ": " .. calc_hit_chance(player,creat,weap) .. "%",printX+xPad,printY,335,"left")
         printY = printY+fontPadding
       end
     end --end weapon count if
@@ -632,10 +634,10 @@ function game:print_target_sidebar()
     --Ranged attack hit chance:
     local ranged_attacks = player:get_ranged_attacks()
     if #ranged_attacks > 0 then
-      local dist = calc_distance(player.x,player.y,target.x,target.y)
+      local dist = calc_distance(player.x,player.y,creat.x,creat.y)
       for i,attack_instance in ipairs(ranged_attacks) do
         local attack = rangedAttacks[attack_instance.attack]
-        local hit_chance = attack:calc_hit_chance(player,target,attack.item)
+        local hit_chance = attack:calc_hit_chance(player,creat,attack.item)
         local rangedText = attack:get_name() .. " hit chance: "
         if hit_chance < 1 then
           rangedText = rangedText .. "Impossible"
@@ -647,12 +649,12 @@ function game:print_target_sidebar()
     end --end if #ranged_attacks> 0
 
     local yPadNow = fontPadding*#ranged_attacks
-    love.graphics.print("Chance to Be Hit: " .. calc_hit_chance(target,player) .. "%",printX+xPad,printY+yPadNow)
-		if (next(target.conditions) ~= nil) then
+    love.graphics.print("Chance to Be Hit: " .. calc_hit_chance(creat,player) .. "%",printX+xPad,printY+yPadNow)
+		if (next(creat.conditions) ~= nil) then
       love.graphics.printf("Conditions:",printX,printY+fontPadding*2+yPadNow,335,"center")
       local conText = ""
       local count = 1
-      for condition, turns in pairs(target.conditions) do
+      for condition, turns in pairs(creat.conditions) do
         if (conditions[condition].hidden ~= true) then
           if (count > 1) then conText = conText .. ", " end
           conText = conText .. conditions[condition].name
@@ -727,13 +729,13 @@ function game:display_map(map)
                   setColor(50,50,50,255)
                 elseif map[x][y] == "<" then
                   setColor(255,255,0,255)
-                elseif map.tileset and map[x][y] == "." and tilesets[map.tileset].floorColor then
+                elseif map.tileset and tilesets[map.tileset] and map[x][y] == "." and tilesets[map.tileset].floorColor then
                   local tc = tilesets[map.tileset].floorColor
                   setColor(tc.r,tc.g,tc.b,tc.a)
-                elseif map.tileset and map[x][y] == "#" and tilesets[map.tileset].wallColor then
+                elseif map.tileset and tilesets[map.tileset] and map[x][y] == "#" and tilesets[map.tileset].wallColor then
                   local tc = tilesets[map.tileset].wallColor
                   setColor(tc.r,tc.g,tc.b,tc.a)
-                elseif map.tileset and tilesets[map.tileset].textColor then
+                elseif map.tileset and tilesets[map.tileset] and tilesets[map.tileset].textColor then
                   local tc = tilesets[map.tileset].textColor
                   setColor(tc.r,tc.g,tc.b,tc.a)
                 else
@@ -754,7 +756,7 @@ function game:display_map(map)
             else
               img = images[map.images[x][y]]
             end
-            if map.tileset and img and img ~= -1 then
+            if map.tileset and tilesets[map.tileset] and img and img ~= -1 then
               --Set color depending on Fog of War
               if seen == false then setColor(100,100,100,255)
               else setColor(255,255,255,255) end
@@ -793,13 +795,13 @@ function game:display_map(map)
                   setColor(50,50,50,255)
                 elseif map[x][y] == "<" then
                   setColor(255,255,0,255)
-                elseif map.tileset and map[x][y] == "." and tilesets[map.tileset].floorColor then
+                elseif map.tileset and tilesets[map.tileset] and map[x][y] == "." and tilesets[map.tileset].floorColor then
                   local tc = tilesets[map.tileset].floorColor
                   setColor(tc.r,tc.g,tc.b,tc.a)
-                elseif map.tileset and map[x][y] == "#" and tilesets[map.tileset].wallColor then
+                elseif map.tileset and tilesets[map.tileset] and map[x][y] == "#" and tilesets[map.tileset].wallColor then
                   local tc = tilesets[map.tileset].wallColor
                   setColor(tc.r,tc.g,tc.b,tc.a)
-                elseif map.tileset and tilesets[map.tileset].textColor then
+                elseif map.tileset and tilesets[map.tileset] and tilesets[map.tileset].textColor then
                   local tc = tilesets[map.tileset].textColor
                   setColor(tc.r,tc.g,tc.b,tc.a)
                 else
@@ -1058,7 +1060,7 @@ function game:display_minimap(map)
   --Draw the border:
   setColor(25,25,25,math.ceil((prefs['noImages'] and 225 or 150)*(mouseOver and 0.25 or 1)))
   love.graphics.rectangle('fill',baseX-tileSize,baseY-tileSize,width+tileSize,height+tileSize)
-  if map.tileset and tilesets[map.tileset].textColor then
+  if map.tileset and tilesets[map.tileset] and tilesets[map.tileset].textColor then
     local tc = tilesets[map.tileset].textColor
     setColor(tc.r,tc.g,tc.b,math.ceil(tc.a*(mouseOver and 0.25 or 1)))
   end
@@ -1096,7 +1098,7 @@ function game:display_minimap(map)
             setColor((seen and tc.r or math.ceil(tc.r*.5)),(seen and tc.g or math.ceil(tc.g*.5)),(seen and tc.b or math.ceil(tc.b*.5)),math.ceil(255*(mouseOver and 0.25 or 1)))
             love.graphics.print("o",printX,printY)
           elseif map[x][y] == "." then
-            if map.tileset and tilesets[map.tileset].textColor then
+            if map.tileset and tilesets[map.tileset] and tilesets[map.tileset].textColor then
               local tc = tilesets[map.tileset].textColor
               setColor((seen and tc.r or math.ceil(tc.r*.5)),(seen and tc.g or math.ceil(tc.g*.5)),(seen and tc.b or math.ceil(tc.b*.5)),math.ceil(255*(mouseOver and 0.25 or 1)))
             else
@@ -1136,7 +1138,7 @@ function game:display_minimap(map)
             local tc= bf.color
             setColor((seen and tc.r or math.ceil(tc.r*.5)),(seen and tc.g or math.ceil(tc.g*.5)),(seen and tc.b or math.ceil(tc.b*.5)),math.ceil(200*(mouseOver and 0.25 or 1)))
           elseif map[x][y] == "." then
-            if map.tileset and tilesets[map.tileset].textColor then
+            if map.tileset and tilesets[map.tileset] and tilesets[map.tileset].textColor then
               local tc = tilesets[map.tileset].textColor
               setColor((seen and tc.r or math.ceil(tc.r*.5)),(seen and tc.g or math.ceil(tc.g*.5)),(seen and tc.b or math.ceil(tc.b*.5)),math.ceil(200*(mouseOver and 0.25 or 1)))
             else
@@ -2150,9 +2152,10 @@ end
 local Popup = Class{}
 
 function game:show_map_description()
-  local _, count = string.gsub(currMap.description, "\n", "\n")
+  local desc = currMap.description or ""
+  local _, count = string.gsub(desc, "\n", "\n")
   local branch = currWorld.branches[currMap.branch]
-  self.popup = Popup(currMap.description,currMap:get_name() .. "\n" .. " ",4+count,true)
+  self.popup = Popup(desc,currMap:get_name() .. "\n" .. " ",4+count,true)
   output:sound('interface_bang')
 end
 

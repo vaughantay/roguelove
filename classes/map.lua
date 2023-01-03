@@ -464,10 +464,19 @@ function Map:add_item(item,x,y,ignoreFunc)
   --Check for stacking:
   if item.stacks then
     for _,groundItem in pairs(self.contents[x][y]) do
-      if item ~= groundItem and groundItem.baseType == "item" and groundItem.id == item.id and (not item.sortBy or item[item.sortBy] == groundItem[item.sortBy]) then
-        groundItem.amount = groundItem.amount + item.amount
-        self.contents[x][y][item] = nil
-        self.lights[item] = nil
+      if item ~= groundItem and groundItem.baseType == "item" and groundItem.id == item.id and (not item.sortBy or item[item.sortBy] == groundItem[item.sortBy]) and (not groundItem.max_stack or groundItem.amount < groundItem.max_stack) then
+        local max_stack = item.max_stack
+        local space_in_stack = (max_stack and max_stack - groundItem.amount or nil)
+        if not max_stack or space_in_stack >= item.amount then
+          groundItem.amount = groundItem.amount + item.amount
+          self.contents[x][y][item] = nil
+          self.lights[item] = nil
+        else
+          groundItem.amount = max_stack
+          local new_stack_amt = item.amount - space_in_stack
+          item.amount = new_stack_amt
+          return self:add_item(item,x,y,ignoreFunc) --run this again, so it'll look at the next stack
+        end
       end --end checking if they should stack
     end --end item for
   end --end if item.stacks
@@ -480,6 +489,11 @@ end
 --@param y Number. The y-coordinate
 --@return Feature or String. The feature added, or the string the tile was turned into.
 function Map:change_tile(feature,x,y,dontRefreshSight)
+  if not feature or type(feature) ~= "table" or feature.baseType ~= "feature" then
+    output:out("Error: Tried to add non-existent feature to map " .. self:get_name())
+    print("Tried to add non-existent feature to map " .. self:get_name())
+    return false
+  end
 	self[x][y] = feature
   if type(feature) == "table" then
     feature.x,feature.y = x,y

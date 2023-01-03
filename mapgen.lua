@@ -163,13 +163,14 @@ end
 --@param allowAll Boolean. If True, creatures with the specialOnly flag can still be chosen (but bosses or creatures with the neverSpawn flag set still cannot). Optional
 --@return Creature. The new creature
 function mapgen:generate_creature(min_level,max_level,list,allowAll)
+  local origList = list
   if not list then list = possibleMonsters end
 
   --Prevent an infinite loop if there are no creatures of a given level:
   local noCreatures = true
   for _,cid in pairs(list) do
-    local creat = (type(cid) == "string" and possibleMonsters[cid] or cid)
-    if ((creat.level >= min_level and creat.level <= max_level) or (creat.max_level and creat.max_level >= min_level and creat.max_level <= max_level)) and creat.isBoss ~= true and creat.neverSpawn ~= true and (allowAll or list or possibleMonsters[n].specialOnly ~= true) then
+    local creat = (type(cid) == "table" and cid or possibleMonsters[cid] or nil)
+    if creat and ((creat.level >= min_level and creat.level <= max_level) or (creat.max_level and creat.max_level >= min_level and creat.max_level <= max_level)) and creat.isBoss ~= true and creat.neverSpawn ~= true and (allowAll or origList or possibleMonsters[n].specialOnly ~= true) then
       noCreatures = false break
     end
   end
@@ -179,7 +180,7 @@ function mapgen:generate_creature(min_level,max_level,list,allowAll)
   while (1 == 1) do -- endless loop, broken by the "return"
     local n = get_random_element(list)
     local creat = (type(n) == "table" and n or possibleMonsters[n])
-    if creat and (((creat.level >= min_level and creat.level <= max_level) or (creat.max_level and creat.max_level >= min_level and creat.max_level <= max_level)) and creat.isBoss ~= true and creat.neverSpawn ~= true and (allowAll or list or possibleMonsters[n].specialOnly ~= true) and random(1,100) >= (creat.rarity or 0)) then
+    if creat and (((creat.level >= min_level and creat.level <= max_level) or (creat.max_level and creat.max_level >= min_level and creat.max_level <= max_level)) and creat.isBoss ~= true and creat.neverSpawn ~= true and (allowAll or origList or possibleMonsters[n].specialOnly ~= true) and random(1,100) >= (creat.rarity or 0)) then
       local level = random(math.max(creat.level,min_level),math.min(creat.max_level or creat.level,max_level))
       return Creature(n,level)
     end
@@ -195,13 +196,14 @@ end
 --@return Item. The new item
 function mapgen:generate_item(min_level,max_level,list,tags,allowAll)
   local newItem = nil
+  local origList = list
   if not list then list = possibleItems end
 
   --Prevent an infinite loop if there are no items of a given level:
   local noItems = true
   for _,iid in pairs(list) do
-    local item = (type(iid) == "string" and possibleItems[iid] or iid)
-    if not item.level or ((item.level >= min_level and item.level <= max_level) or (item.max_level and item.max_level >= min_level and item.max_level <= max_level)) and item.neverSpawn ~= true and (allowAll or list or possibleItems[n].specialOnly ~= true) then 
+    local item = (type(iid) == "table" and iid or possibleItems[iid] or nil)
+    if item and (not item.level or ((item.level >= min_level and item.level <= max_level) or (item.max_level and item.max_level >= min_level and item.max_level <= max_level)) and item.neverSpawn ~= true and (allowAll or origList or possibleItems[n].specialOnly ~= true)) then 
       noItems = false break
     end
   end
@@ -211,7 +213,7 @@ function mapgen:generate_item(min_level,max_level,list,tags,allowAll)
   while (1 == 1) do -- endless loop, broken by the "return"
     local n = (list == possibleItems and get_random_key(list) or get_random_element(list))
     local item = (type(n) == "table" and n or possibleItems[n])
-    if item and ((not item.level or ((item.level >= min_level and item.level <= max_level) or (item.max_level and item.max_level >= min_level and item.max_level <= max_level))) and item.neverSpawn ~= true and (allowAll or list or possibleItems[n].specialOnly ~= true) and random(1,100) >= (item.rarity or 0)) then
+    if item and ((not item.level or ((item.level >= min_level and item.level <= max_level) or (item.max_level and item.max_level >= min_level and item.max_level <= max_level))) and item.neverSpawn ~= true and (allowAll or origList or possibleItems[n].specialOnly ~= true) and random(1,100) >= (item.rarity or 0)) then
       newItem = n
       break
     end

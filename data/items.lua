@@ -585,6 +585,7 @@ local dart = {
 	color={r=200,g=200,b=200,a=255},
 	ranged_attack="dart",
   stacks=true,
+  max_stack=10,
   level = 1,
   max_level = 5,
   value=1,
@@ -592,7 +593,6 @@ local dart = {
 }
 function dart:new()
   self.amount = tweak(100)
-  self.level = random(1,5)
 end
 possibleItems['dart'] = dart
 

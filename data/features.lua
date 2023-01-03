@@ -2512,7 +2512,7 @@ function exit:new(args)
   self.exitName = args.exitName or "Exit"
 end
 function exit:placed(map)
-  local tileset = tilesets[map.tileset]
+  local tileset = tilesets[map.tileset] or {}
   self.color = tileset.floorColor or tileset.textColor or self.color
   local matches = (map.branch == self.branch)
   self.name = (matches and self.exitName .. " to " .. (currWorld.branches[self.branch].depthName or "Depth") .. " " .. self.depth or self.exitName .. " to " .. currWorld.branches[self.branch].name)

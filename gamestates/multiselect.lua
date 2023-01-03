@@ -88,7 +88,7 @@ function multiselect:draw()
   love.graphics.setStencilTest()
   
   --Description:
-  if (self.list[self.cursorY] ~= nil) then
+  if self.list[self.cursorY] ~= nil and self.list[self.cursorY].description ~= nil then
     local oldFont = love.graphics.getFont()
     love.graphics.setFont(fonts.descFont)
     local descText = self.list[self.cursorY].description

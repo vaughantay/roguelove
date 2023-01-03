@@ -1322,10 +1322,19 @@ end
 --@param item Item. The item to give.
 function Creature:give_item(item)
   if (item.stacks == true) then
-    local _,inv_id = self:has_item(item.id,(item.sortBy and item[item.sortBy]),item.enchantments,item.level)
+     local _,inv_id = self:has_item(item.id,(item.sortBy and item[item.sortBy]),item.enchantments,item.level,true)
     if inv_id then
-      self.inventory[inv_id].amount = self.inventory[inv_id].amount + item.amount
-      item = self.inventory[inv_id]
+      local max_stack = item.max_stack
+      local space_in_stack = (max_stack and max_stack - self.inventory[inv_id].amount or nil)
+      if not max_stack or space_in_stack >= item.amount then
+        self.inventory[inv_id].amount = self.inventory[inv_id].amount + item.amount
+        item = self.inventory[inv_id]
+      else --if picking up would cause too big of a stack
+        self.inventory[inv_id].amount = max_stack
+        local new_stack_amt = item.amount - space_in_stack
+        item.amount = new_stack_amt
+        return self:give_item(item) --run this again, so it'll look at the next stack
+      end
     else
       table.insert(self.inventory,item)
     end
@@ -1342,14 +1351,14 @@ end
 function Creature:drop_item(item)
 	local id = in_table(item,self.inventory)
 	if (id) then
+    if player:can_sense_creature(self) then output:out(self:get_name() .. " dropped " .. item:get_name() .. ".") end
     currMap:add_item(item,self.x,self.y,true)
 		table.remove(self.inventory,id)
-		if player:can_sense_creature(self) then output:out(self:get_name() .. " dropped " .. item:get_name() .. ".") end
     if self:is_equipped(item) then
       self:unequip(item)
-      item.x,item.y=self.x,self.y
-      item.owner=nil
     end
+    item.x,item.y=self.x,self.y
+    item.owner=nil
 	end
 end
 
@@ -1405,13 +1414,14 @@ end
 --@param sortBy Text. What the "sortBy" value you're checking is (optional)
 --@param enchantments Table. The table of echantments to match (optional)
 --@param level Number. The level of the item (optional)
+--@param ignore_full_stack Boolean. If true, don't send an item if it's already fully stacked (optional)
 --@return either Boolean or Item. False, or the specific item they have in their inventory
 --@return either nil or Number. The index of the item in the inventory
 --@return either nil or Number. The amount of the item the player has
-function Creature:has_item(itemID,sortBy,enchantments,level)
+function Creature:has_item(itemID,sortBy,enchantments,level,ignore_full_stack)
   enchantments = enchantments or {}
 	for id, it in ipairs(self.inventory) do
-		if (itemID == it.id) and (not level or it.level == level) and (not it.sortBy or sortBy == it[it.sortBy]) then
+		if (itemID == it.id) and (not level or it.level == level) and (not it.sortBy or sortBy == it[it.sortBy]) and (not it.max_stack or it.amount < it.max_stack) then
       local matchEnch = true
       --Compare enchantments:
       if (enchantments and count(enchantments) or 0) == (it.enchantments and count(it.enchantments) or 0) then
