@@ -43,7 +43,7 @@ local circle = function(minX,minY,maxX,maxY,map)
   local radius = math.min(midX-minX,midY-minY) -- radius is the smaller of the two in case it's a rectangular space
   for x=minX+1,maxX-1,1 do
     for y=minY+1,maxY-1,1 do
-      if (x>1 and y>1 and x<map.width and y<map.height) and calc_distance(midX,midY,x,y) <= radius then
+      if (x>1 and y>1 and x<map.width and y<map.height) and calc_distance(midX,midY,x,y) < radius then
         map[x][y] = "."
         floors[#floors+1] = {x=x,y=y}
       end

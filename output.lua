@@ -132,7 +132,7 @@ function output:setCursor(x,y,force,allow_current_creature)
   if Gamestate.current() == game then
     local width,height = love.graphics.getWidth(),love.graphics.getHeight()
     local newX,newY = self:tile_to_coordinates(x,y)
-    if (x<2 or y <2 or x>currMap.width-1 or y>currMap.height-1) then return false end --if you'd move off the map, don't move cursor
+    if (x<1 or y <1 or x>currMap.width or y>currMap.height) then return false end --if you'd move off the map, don't move cursor
     if newX < 0 then self:move_camera(-1,0) end
     if newY < 0 then self:move_camera(0,-1) end
     if newX > width then self:move_camera(1,0) end
