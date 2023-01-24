@@ -69,49 +69,49 @@ function characterscreen:draw()
     printY = printY + fontSize
     love.graphics.print("Max HP: " .. player.max_hp,printX,printY)
     if skillPoints > 0 then
-      self.skillButtons[buttonY] = output:tinybutton(printX-32,printY,true,self.cursorY==buttonY,"+",true)
+      self.skillButtons[buttonY] = output:tinybutton(printX-32,printY,true,(self.cursorY==buttonY or nil),"+",true)
       self.skillButtons[buttonY].skill = "max_hp"
       buttonY = buttonY+1
     end
     printY = printY + fontSize
     love.graphics.print("Max MP: " .. player.max_mp,printX,printY)
     if skillPoints > 0 then
-      self.skillButtons[buttonY] = output:tinybutton(printX-32,printY,true,self.cursorY==buttonY,"+",true)
+      self.skillButtons[buttonY] = output:tinybutton(printX-32,printY,true,(self.cursorY==buttonY or nil),"+",true)
       self.skillButtons[buttonY].skill = "max_mp"
       buttonY = buttonY+1
     end
     printY = printY + fontSize
     love.graphics.print("Strength: " .. player.strength,printX,printY)
     if skillPoints > 0 then
-      self.skillButtons[buttonY] = output:tinybutton(printX-32,printY,true,self.cursorY==buttonY,"+",true)
+      self.skillButtons[buttonY] = output:tinybutton(printX-32,printY,true,(self.cursorY==buttonY or nil),"+",true)
       self.skillButtons[buttonY].skill = "strength"
       buttonY = buttonY+1
     end
     printY = printY + fontSize
     love.graphics.print("Melee Skill: " .. player.melee,printX,printY)
     if skillPoints > 0 then
-      self.skillButtons[buttonY] = output:tinybutton(printX-32,printY,true,self.cursorY==buttonY,"+",true)
+      self.skillButtons[buttonY] = output:tinybutton(printX-32,printY,true,(self.cursorY==buttonY or nil),"+",true)
       self.skillButtons[buttonY].skill = "melee"
       buttonY = buttonY+1
     end
     printY = printY + fontSize
     love.graphics.print("Ranged Skill: " .. player.ranged,printX,printY)
     if skillPoints > 0 then
-      self.skillButtons[buttonY] = output:tinybutton(printX-32,printY,true,self.cursorY==buttonY,"+",true)
+      self.skillButtons[buttonY] = output:tinybutton(printX-32,printY,true,(self.cursorY==buttonY or nil),"+",true)
       self.skillButtons[buttonY].skill = "ranged"
       buttonY = buttonY+1
     end
     printY = printY + fontSize
     love.graphics.print("Magic Skill: " .. player.magic,printX,printY)
     if skillPoints > 0 then
-      self.skillButtons[buttonY] = output:tinybutton(printX-32,printY,true,self.cursorY==buttonY,"+",true)
+      self.skillButtons[buttonY] = output:tinybutton(printX-32,printY,true,(self.cursorY==buttonY or nil),"+",true)
       self.skillButtons[buttonY].skill = "magic"
       buttonY = buttonY+1
     end
     printY = printY + fontSize
     love.graphics.print("Dodge Skill: " .. player.dodging,printX,printY)
     if skillPoints > 0 then
-      self.skillButtons[buttonY] = output:tinybutton(printX-32,printY,true,self.cursorY==buttonY,"+",true)
+      self.skillButtons[buttonY] = output:tinybutton(printX-32,printY,true,(self.cursorY==buttonY or nil),"+",true)
       self.skillButtons[buttonY].skill = "dodging"
       buttonY = buttonY+1
     end
@@ -119,7 +119,7 @@ function characterscreen:draw()
     if player.extra_stats then
       for stat_id,stat in pairs(player.extra_stats) do
         if stat.can_increase_with_points and skillPoints > 0 then
-          self.skillButtons[buttonY] = output:tinybutton(printX-32,printY,true,self.cursorY==buttonY,"+",true)
+          self.skillButtons[buttonY] = output:tinybutton(printX-32,printY,true,(self.cursorY==buttonY or nil),"+",true)
           self.skillButtons[buttonY].skill = stat_id
           buttonY = buttonY+1
         end

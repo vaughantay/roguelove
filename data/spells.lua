@@ -19,9 +19,9 @@ blast = {
     amnesia={value=false,name="Amnesia",description="Causes the target to forget they ever saw you.",display_order=9} --values set to false will always be hidden
   },
   possible_upgrades={
-    damage={{min_damage=10,max_damage=18},{min_damage=15,max_damage=25},name="Damage"},
-    confusion={{confusion_chance=10,min_confusion=4,max_confusion=6},{confusion_chance=25,min_confusion=6,max_confusion=10},name="Confusion"},
-    stun={{stun_chance=10,min_stun=2,max_stun=3},{stun_chance=25,min_stun=3,max_stun=5},name="Stunning"},
+    damage={{min_damage=2,max_damage=3},{min_damage=5,max_damage=7},name="Damage"},
+    confusion={{confusion_chance=10,min_confusion=4,max_confusion=6},{confusion_chance=15,min_confusion=2,max_confusion=4},name="Confusion"},
+    stun={{stun_chance=10,min_stun=2,max_stun=3},{stun_chance=15,min_stun=1,max_stun=2},name="Stunning"},
     amnesia={{amnesia=true},name="Amnesia",description="Causes the target to forget they ever saw you.",playerOnly=true},
   },
 	cast = function(self,target,caster)
@@ -59,7 +59,7 @@ blink = {
   flags={fleeing=true,defensive=true},
   tags={'teleport','magic'},
   possible_upgrades={
-    cooldown={{cooldown=7},{cooldown=3},{cooldown=0},name="Cooldown"},
+    cooldown={{cooldown=-3},{cooldown=-2},{cooldown=-5},name="Cooldown"},
   },
 	cast = function(self,target,caster)
     local origX,origY = caster.x,caster.y

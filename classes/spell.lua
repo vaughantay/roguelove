@@ -193,9 +193,9 @@ function Spell:apply_upgrade(upgradeID)
     local stats = self.possible_upgrades[upgradeID][level]
     for stat,value in pairs(stats) do
       if self[stat] then
-        self[stat] = value
+        self[stat] = (type(value) == "number" and self[stat] + value or value)
       elseif self.stats and self.stats[stat] then
-        self.stats[stat].value = value
+        self.stats[stat].value = (type(value) == "number" and self.stats[stat].value + value or value)
       end
     end
     self.applied_upgrades[upgradeID] = level

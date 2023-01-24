@@ -686,6 +686,33 @@ function output:tinybutton(x,y,small,hover,text,useScaling)
   end
 end
 
+---Draw a description box
+--@param text Text. The text to display
+--@param x Number. The x-coordinate of the button
+--@param y Number. The y-coordinate of the button
+--@param maxWidth Number. The maximum width of the box
+--@param scroll Number. The amount the screen requesting this box is scrolled
+function output:description_box(text,x,y,maxWidth,scroll)
+  local uiScale = prefs['uiScale']
+  scroll = scroll or 0
+  maxWidth = maxWidth or 300
+  local oldFont = love.graphics.getFont()
+  love.graphics.setFont(fonts.descFont)
+  local width, tlines = fonts.descFont:getWrap(text,maxWidth)
+  local height = #tlines*(prefs['descFontSize']+3)+prefs['descFontSize']
+  x,y = round(x),round(y-height/2)
+  while (y+height-scroll > love.graphics.getHeight()) do
+    y = y-prefs['descFontSize']
+  end
+  setColor(255,255,255,185)
+  love.graphics.rectangle("line",x,y,302,height)
+  setColor(0,0,0,185)
+  love.graphics.rectangle("fill",x+1,y+1,301,height-1)
+  setColor(255,255,255,255)
+  love.graphics.printf(ucfirst(text),x+2,y+2,300)
+  love.graphics.setFont(oldFont)
+end
+
 ---Move the camera
 --@param xAmt Number. The number of tiles by which to move the camera, x-coordinate
 --@param yAmt Number. The number of tiles by which to move the camera, y-coordinate

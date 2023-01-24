@@ -202,18 +202,26 @@ function spellscreen:draw()
       statText = statText .. "\nMax Range: " .. spell.range
     end
     if spell.stats then
+      local tempstats = {}
       local stats = {}
+      local lastorder = 0
       for stat,info in pairs(spell.stats) do
         info.id = stat
         local display_order = info.display_order
         if display_order then
-          table.insert(stats,display_order,info)
+          lastorder = math.max(lastorder,display_order)
+          table.insert(tempstats,display_order,info)
         else
-          table.insert(stats,info)
+          table.insert(tempstats,info)
+          lastorder = math.max(lastorder,#tempstats)
+        end
+      end
+      for i=1,lastorder,1 do
+        if tempstats[i] then
+          stats[#stats+1] = tempstats[i]
         end
       end
       for i,stat in pairs(stats) do
-        print(i,stat.name,stat.value)
         if stat.value ~= false and (stat.value ~= 0 or stat.hide_when_zero ~= true) and stat.hide ~= true then
           statText = statText .. "\n" .. stat.name .. (type(stat.value) ~= "boolean" and ": " .. stat.value or "") .. (stat.description and " (" .. stat.description .. ")" or "")
         end
@@ -224,35 +232,48 @@ function spellscreen:draw()
     local sHeight = (#slines+2)*fontSize
     printY = printY+sHeight
     
-    --Print upgrades --TODO: Show stat changes of upgrade when hovered
+    --Print upgrades
     if spell.possible_upgrades then
       local upgrades = spell:get_possible_upgrades()
       if count(upgrades) > 0 then
         self.upgradebuttons = {}
         love.graphics.printf("Upgrades:",printX,printY,window2w,"left")
-        printY=printY+fontSize
+        printY=printY+fontSize+5
         local buttonY = 1
         local mod = (spell.target_type == "passive" and 0 or 2)
+        local upDesc,upY = nil,nil
         for id,level in pairs(upgrades) do
           if spellPoints < 1 then
             setColor(100,100,100,255)
           elseif not selected then
             setColor(175,175,175,255)
           end
-          self.upgradebuttons[buttonY] = output:tinybutton(printX,printY+2,true,self.sidebarCursorY==buttonY+mod,"+",true)
+          self.upgradebuttons[buttonY] = output:tinybutton(printX,printY+3,true,(self.sidebarCursorY==buttonY+mod or nil),"+",true)
           self.upgradebuttons[buttonY].upgradeID = id
           setColor(255,255,255,255)
           local buttonW = 34
           local details = spell.possible_upgrades[id]
-          local upText = (details.name or ucfirst(id)) .. (details.description and " (" .. details.description .. ")" or "")
-          love.graphics.printf(upText,printX+buttonW,printY,window2w,"left")
-          local _, dlines = fonts.textFont:getWrap(upText,window2w)
-          local dHeight = #dlines*fontSize
+          local level_details = spell.possible_upgrades[id][level]
+          local name = (level_details.name and details.name or ucfirst(id))
+          local description = (level_details.description or details.description or nil)
+          local i = 1
+          for stat,amt in pairs(level_details) do
+            if type(amt) ~= "boolean" then
+              local statName = (spell.stats and spell.stats[stat].name or ucfirst(stat))
+              if i == 1 then description = (description and description .. " " or "") end
+              description = description .. (i > 1 and ", " or "") .. statName .. (type(amt) == "number" and (amt < 0 and " -" or " +") or ": ") .. amt
+              i = i + 1
+            end
+          end --end stat for
+          local upText = name .. (description and " (" .. description .. ")" or "")
+          love.graphics.printf(upText,printX+buttonW,printY,window2w-padding,"left")
+          local _, dlines = fonts.textFont:getWrap(upText,window2w-padding)
+          local dHeight = #dlines*fontSize+5
           printY = printY+dHeight
           buttonY=buttonY+1
-        end
-      end
-    end
+        end --end upgrade for
+      end --end count upgrades > 0
+    end --end if upgrades
     
     --TODO: Print scrollbars
     
