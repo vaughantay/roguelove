@@ -520,7 +520,7 @@ function output:button(x,y,width,small,special,text,useScaling)
     if text then
       local oldFont = love.graphics.getFont()
       love.graphics.setFont(fonts.buttonFont)
-      love.graphics.printf(text,math.floor(x),math.floor(y-3),width,"center")
+      love.graphics.printf(text,math.floor(x),math.floor(y+4),width,"center")
       love.graphics.setFont(oldFont)
     end
     return {minX=x,maxX=(x+math.max(width,64)),minY=y,maxY=(y+(small and 16 or 32)),hover=hover}
@@ -660,7 +660,7 @@ function output:tinybutton(x,y,small,hover,text,useScaling)
     if text then
       local oldFont = love.graphics.getFont()
       love.graphics.setFont(fonts.buttonFont)
-      love.graphics.printf(text,math.floor(x),math.floor(y-3),32,"center")
+      love.graphics.printf(text,math.floor(x),math.floor(y+(small and -3 or 4)),32,"center")
       love.graphics.setFont(oldFont)
     end
     return {minX=x,maxX=(x+32),minY=y,maxY=(y+(small and 16 or 32)),hover=hover}
@@ -679,7 +679,7 @@ function output:tinybutton(x,y,small,hover,text,useScaling)
     if text then
       local oldFont = love.graphics.getFont()
       love.graphics.setFont(fonts.buttonFont)
-      love.graphics.printf(text,math.floor(x),math.floor(y+4),(small and 16 or 32),"center")
+      love.graphics.printf(text,math.floor(x),math.floor(y+(small and -3 or 4)),(small and 16 or 32),"center")
       love.graphics.setFont(oldFont)
     end
     return {minX=x,maxX=(x+(small and 16 or 32)),minY=y,maxY=(y+(small and 16 or 32)),hover=hover}

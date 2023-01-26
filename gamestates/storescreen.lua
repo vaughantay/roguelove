@@ -1,27 +1,29 @@
 storescreen = {}
 
-function storescreen:enter(_,whichStore)
-  self.yModPerc = 100
-  self.blackScreenAlpha=0
-  tween(0.2,self,{yModPerc=0,blackScreenAlpha=125})
-  output:sound('stoneslideshort',2)
-  self.cursorY = 1
-  self.cursorX = 1
-  self.store = whichStore
-  self.screen="Buy"
-  self.outText = nil
-  self.lineCountdown = 0.5
-  self.totalCost = 0
-  self.scrollY=0
-  self.scrollMax=1000
-  self.currency_item = self.store.currency_item and possibleItems[self.store.currency_item]
-  self.costMod = 0
-  if self.store.faction then
-    self.faction = currWorld.factions[self.store.faction]
-    self.playerMember = player:is_faction_member(self.store.faction)
-    self.costMod = self.faction:get_cost_modifier(player)
+function storescreen:enter(previous,whichStore)
+  if previous ~= examine_item then
+    self.yModPerc = 100
+    self.blackScreenAlpha=0
+    tween(0.2,self,{yModPerc=0,blackScreenAlpha=125})
+    output:sound('stoneslideshort',2)
+    self.cursorY = 1
+    self.cursorX = 1
+    self.store = whichStore
+    self.screen="Buy"
+    self.outText = nil
+    self.lineCountdown = 0.5
+    self.totalCost = 0
+    self.scrollY=0
+    self.scrollMax=1000
+    self.currency_item = self.store.currency_item and possibleItems[self.store.currency_item]
+    self.costMod = 0
+    if self.store.faction then
+      self.faction = currWorld.factions[self.store.faction]
+      self.playerMember = player:is_faction_member(self.store.faction)
+      self.costMod = self.faction:get_cost_modifier(player)
+    end
+    self:refresh_lists()
   end
-  self:refresh_lists()
 end
 
 function storescreen:refresh_lists()
@@ -145,33 +147,33 @@ function storescreen:draw()
     love.graphics.printf(reasonText,windowX+padding,printY,windowWidth-(padding*2),"center")
   elseif self.screen == "Buy" then
     local buybuttonW = fonts.buttonFont:getWidth("Buy")+padding
-    local nameX = windowX+padding
-    local costX = 0
-    local amountX = 0
-    local buyButtonX = windowX+windowWidth-buybuttonW
+    local exambuttonW = fonts.buttonFont:getWidth("Examine")+padding
+    local exambuttonX = windowX+padding
+    local nameX = exambuttonX+exambuttonW+3
     local yPad = 8
     local buyBoxW = fonts.textFont:getWidth("1000")+8
     local buyBoxX = windowX+windowWidth-buyBoxW-padding*(self.scrollMax == 0 and 1 or 2)
-    local priceX = buyBoxX-32-16-buyBoxW
-    local amtX = priceX-fonts.textFont:getWidth("x1000")
-    local nameMaxLen = amtX-nameX
+    local buyButtonX = round((buyBoxX+buyBoxW/2)-buybuttonW/2)
+    local priceW = fonts.textFont:getWidth(self:get_cost_text(1000))
+    local priceX = buyBoxX-32-16-priceW
+    local nameMaxLen = priceX-nameX
     local canBuy = false
-    local itemText = self.currency_item and (self.currency_item.pluralName or " x " .. self.currency_item.name) or nil
     local costlineW = 0
     local lastY = 0
     local descrItem = nil
     if self.currency_item then
       local playerItem = player:has_item(self.store.currency_item)
       local playerAmt = playerItem and playerItem.amount or 0
-      local itemText = self.currency_item.pluralName or "x " .. self.currency_item.name
-      local costText = "Cost: " .. self.totalCost .. " " .. itemText .. ". You have " .. playerAmt .. ". "
+      local costText = "You have " .. self:get_cost_text(playerAmt) .. ". " .. "Cost: "
       costlineW = fonts.textFont:getWidth(costText)
-      love.graphics.print(costText,buyButtonX-costlineW,printY+4)
+      costText = costText .. self:get_cost_text(self.totalCost) .. ". "
+      love.graphics.print(costText,priceX-costlineW,printY+4)
       canBuy = (self.totalCost <= playerAmt)
     else
-      local costText = "Cost: " .. get_money_name(self.totalCost) .. ". You have " .. get_money_name(player.money) .. ". "
+      local costText = "You have " .. self:get_cost_text(player.money) .. ". " .. "Cost: " 
       costlineW = fonts.textFont:getWidth(costText)
-      love.graphics.print(costText,buyButtonX-costlineW,printY+4)
+      costText = costText .. self:get_cost_text(self.totalCost) .. ". "
+      love.graphics.print(costText,priceX-costlineW,printY+4)
       canBuy = (self.totalCost <= player.money)
     end
     
@@ -182,7 +184,7 @@ function storescreen:draw()
     if not canBuy then
       setColor(255,255,255,255)
     end
-    printY = printY+32
+    printY = printY+round(fontSize*1.5)
     local listStartY = printY
     self.listStartY = listStartY
     self.totalCost = 0
@@ -199,31 +201,34 @@ function storescreen:draw()
       local selected = self.cursorY == id+2
       local buyTextY = printY+math.floor(padding/4)
       info.minX,info.minY = windowX+yPad,buyTextY-yPad
-      local nameLen,tlines = fonts.textFont:getWrap(info.name,nameMaxLen)
+      local name = (info.amount == -1 and "∞" or info.amount) .. " x " .. info.name
+      local nameLen,tlines = fonts.textFont:getWrap(name,nameMaxLen)
       info.maxX,info.maxY = info.minX+nameLen+yPad,info.minY+(#tlines*fontSize)+yPad*2
       if selected then
         setColor(50,50,50,255)
         love.graphics.rectangle('fill',info.minX,info.minY,windowWidth+yPad*2,(info.maxY-info.minY))
         setColor(255,255,255,255)
-      end
-      if selected and self.cursorX == 1 then
-        setColor(100,100,100,255)
-        love.graphics.rectangle('fill',nameX-yPad,info.minY,nameLen+yPad*2,info.maxY-info.minY)
+      elseif mouseX > windowX and mouseX < windowX+windowWidth and mouseY > info.minY and mouseY < info.maxY then
+        setColor(33,33,33,255)
+        love.graphics.rectangle('fill',info.minX,info.minY,windowWidth+yPad*2,(info.maxY-info.minY))
         setColor(255,255,255,255)
       end
-      love.graphics.printf(info.name,nameX,buyTextY,nameMaxLen)
-      love.graphics.print("x " .. (info.amount == -1 and "∞" or info.amount),amtX,buyTextY)
-      if self.currency_item then
-        love.graphics.print(info.cost .. " " .. itemText,priceX,buyTextY)
-      else
-        love.graphics.print(get_money_name(info.cost),priceX,buyTextY)
+      --Examine Button:
+      local examineMouse = false
+      if info.examineButton and mouseX > info.examineButton.minX and mouseX < info.examineButton.maxX and mouseY > info.examineButton.minY-self.scrollY and mouseY < info.examineButton.maxY-self.scrollY then
+        examineMouse = true
       end
+      info.examineButton = output:button(exambuttonX,printY+4,exambuttonW,false,((examineMouse or (selected and self.cursorX == 1)) and "hover" or false),"Examine",true)
+      --Name:
+      love.graphics.printf(name,nameX,buyTextY,nameMaxLen)
+      --Cost:
+      love.graphics.print(self:get_cost_text(info.cost),priceX,buyTextY)
       --Minus button:
       local minusMouse = false
       if info.minusButton and mouseX > info.minusButton.minX and mouseX < info.minusButton.maxX and mouseY > info.minusButton.minY-self.scrollY and mouseY < info.minusButton.maxY-self.scrollY then
         minusMouse = true
       end
-      info.minusButton = output:tinybutton(buyBoxX-48,printY+8,nil,(minusMouse or (selected and self.cursorX == 2) and "hover" or false),"-")
+      info.minusButton = output:tinybutton(buyBoxX-48,printY+4,nil,(minusMouse or (selected and self.cursorX == 2) and "hover" or false),"-")
       --Handle the item amount box:
       info.numberEntry = {minX=buyBoxX,minY=buyTextY-2,maxX=buyBoxX+buyBoxW,maxY=buyTextY-2+fontSize+4}
       local amountMouse = (mouseX > info.numberEntry.minX and mouseX < info.numberEntry.maxX and mouseY > info.numberEntry.minY-self.scrollY and mouseY < info.numberEntry.maxY-self.scrollY)
@@ -244,9 +249,11 @@ function storescreen:draw()
       if info.plusButton and mouseX > info.plusButton.minX and mouseX < info.plusButton.maxX and mouseY > info.plusButton.minY-self.scrollY and mouseY < info.plusButton.maxY-self.scrollY then
         plusMouse = true
       end
-      info.plusButton = output:tinybutton(buyBoxX+buyBoxW+16,printY+8,nil,(plusMouse or (selected and self.cursorX == 4) and "hover" or false),"+")
+      info.plusButton = output:tinybutton(buyBoxX+buyBoxW+16,printY+4,nil,(plusMouse or (selected and self.cursorX == 4) and "hover" or false),"+")
       --Display description if necessary:
-      if (selected and self.cursorX == 1 and not descrItem) or (mouseX > nameX and mouseX < priceX and mouseY > info.minY-self.scrollY and mouseY < info.maxY-self.scrollY and not plusMouse and not minusMouse and not amountMouse) then
+      if plusMouse or minusMouse or amountMouse or (mouseY > listStartY and mouseY < info.maxY and mouseX >= priceX and mouseX <= windowX+windowWidth) then
+        descrItem = nil
+      elseif (selected and self.cursorX == 1 and not descrItem) or (mouseX > exambuttonX and mouseX <= windowX+windowWidth and mouseY > info.minY-self.scrollY and mouseY < info.maxY-self.scrollY) then
         descrItem = info
       end
       printY = printY+(#tlines*fontSize)+16
@@ -255,9 +262,9 @@ function storescreen:draw()
     end
     love.graphics.setStencilTest()
     if descrItem and descrItem.maxY-self.scrollY > listStartY then
-      local text = descrItem.item:get_name(true,1) .. "\n" .. descrItem.item:get_description() .. "\n" .. descrItem.item:get_info(true)
-      local descX = nameX+round((amtX-nameX)/2)
-      self:description_box(text,descX,descrItem.minY)
+      local text = descrItem.item:get_name(true,1) .. "\n" .. descrItem.item:get_description()
+      local descX = nameX+round(nameMaxLen/2)
+      output:description_box(text,descX,descrItem.maxY,nil,self.scrollY)
     end
     love.graphics.pop()
     --Scrollbars
@@ -270,30 +277,24 @@ function storescreen:draw()
     end
   elseif self.screen == "Sell" then
     local sellbuttonW = fonts.buttonFont:getWidth("Sell")+padding
-    local nameX = windowX+padding
-    local costX = 0
-    local amountX = 0
-    local sellButtonX = windowX+windowWidth-sellbuttonW
+    local exambuttonW = fonts.buttonFont:getWidth("Examine")+padding
+    local exambuttonX = windowX+padding
+    local nameX = exambuttonX+exambuttonW+3
     local yPad = 8
     local sellBoxW = fonts.textFont:getWidth("1000")+8
     local sellBoxX = windowX+windowWidth-sellBoxW-padding*(self.scrollMax == 0 and 1 or 2)
-    local priceX = sellBoxX-32-16-sellBoxW
-    local amtX = priceX-fonts.textFont:getWidth("x1000")
-    local nameMaxLen = amtX-nameX
-    local itemText = self.currency_item and (self.currency_item.pluralName or " x " .. self.currency_item.name) or nil
+    local sellButtonX = round((sellBoxX+sellBoxW/2)-sellbuttonW/2)
+    local priceW = fonts.textFont:getWidth(self:get_cost_text(1000))
+    local priceX = sellBoxX-32-16-priceW
+    local nameMaxLen = priceX-nameX
     local costlineW = 0
     local lastY = 0
     local descrItem = nil
     
-    if self.currency_item then
-      local costText = "You will receive: " .. self.totalCost .. " " .. itemText .. ". "
-      costlineW = fonts.textFont:getWidth(costText)
-      love.graphics.print(costText,sellButtonX-costlineW,printY+4)
-    else
-      local costText = "You will receive: " .. get_money_name(self.totalCost) .. ". "
-      costlineW = fonts.textFont:getWidth(costText)
-      love.graphics.print(costText,sellButtonX-costlineW,printY+4)
-    end
+    local costText = "You will receive: "
+    costlineW = fonts.textFont:getWidth(costText)
+    costText = costText .. self:get_cost_text(self.totalCost) .. ". "
+    love.graphics.print(costText,priceX-costlineW,printY+4)
 
     self.actionButton = output:button(sellButtonX,printY-2,sellbuttonW,false,(self.cursorY == 2 and "hover" or nil),"Sell",true)
     printY = printY+32
@@ -311,6 +312,7 @@ function storescreen:draw()
     love.graphics.setStencilTest("greater",0)
     love.graphics.translate(0,-self.scrollY)
     for id,info in ipairs(self.buying_list) do
+      local name = (info.amount == -1 and "∞" or info.amount) .. " x " .. info.name
       local selected = self.cursorY == id+2
       local sellTextY = printY+math.floor(padding/4)
       info.minX,info.minY = windowX+yPad,sellTextY-yPad
@@ -320,25 +322,27 @@ function storescreen:draw()
         setColor(50,50,50,255)
         love.graphics.rectangle('fill',info.minX,info.minY,windowWidth+yPad,fontSize+yPad*2)
         setColor(255,255,255,255)
-      end
-      if selected and self.cursorX == 1 then
-        setColor(100,100,100,255)
-        love.graphics.rectangle('fill',nameX-yPad,info.minY,nameLen+yPad*2,info.maxY-info.minY)
+      elseif mouseX > windowX and mouseX < windowX+windowWidth and mouseY > info.minY and mouseY < info.maxY then
+        setColor(33,33,33,255)
+        love.graphics.rectangle('fill',info.minX,info.minY,windowWidth+yPad*2,(info.maxY-info.minY))
         setColor(255,255,255,255)
       end
-      love.graphics.printf(info.name,nameX,sellTextY,nameMaxLen)
-      love.graphics.print("x " .. (info.amount == -1 and "∞" or info.amount),amtX,sellTextY)
-      if self.currency_item then
-        love.graphics.print(info.cost .. " " .. itemText,priceX,sellTextY)
-      else
-        love.graphics.print(get_money_name(info.cost),priceX,sellTextY)
+      --Examine Button:
+      local examineMouse = false
+      if info.examineButton and mouseX > info.examineButton.minX and mouseX < info.examineButton.maxX and mouseY > info.examineButton.minY-self.scrollY and mouseY < info.examineButton.maxY-self.scrollY then
+        examineMouse = true
       end
+      info.examineButton = output:button(exambuttonX,printY+4,exambuttonW,false,((examineMouse or (selected and self.cursorX == 1)) and "hover" or false),"Examine",true)
+      --Name:
+      love.graphics.printf(name,nameX,sellTextY,nameMaxLen)
+      --Cost:
+      love.graphics.print(self:get_cost_text(info.cost),priceX,sellTextY)
       --Minus button:
       local minusMouse = false
       if info.minusButton and mouseX > info.minusButton.minX and mouseX < info.minusButton.maxX and mouseY > info.minusButton.minY-self.scrollY and mouseY < info.minusButton.maxY-self.scrollY then
         minusMouse = true
       end
-      info.minusButton = output:tinybutton(sellBoxX-48,printY+8,nil,(minusMouse or (selected and self.cursorX == 2) and "hover" or false),"-",true)
+      info.minusButton = output:tinybutton(sellBoxX-48,printY+4,nil,(minusMouse or (selected and self.cursorX == 2) and "hover" or false),"-",true)
       --Handle the item amount box:
       info.numberEntry = {minX=sellBoxX,minY=sellTextY-2,maxX=sellBoxX+sellBoxW,maxY=sellTextY-2+fontSize+4}
       local amountMouse = (mouseX > info.numberEntry.minX and mouseX < info.numberEntry.maxX and mouseY > info.numberEntry.minY-self.scrollY and mouseY < info.numberEntry.maxY-self.scrollY)
@@ -359,9 +363,11 @@ function storescreen:draw()
       if info.plusButton and mouseX > info.plusButton.minX and mouseX < info.plusButton.maxX and mouseY > info.plusButton.minY-self.scrollY and mouseY < info.plusButton.maxY-self.scrollY then
         plusMouse = true
       end
-      info.plusButton = output:tinybutton(sellBoxX+sellBoxW+16,printY+8,nil,(plusMouse or (selected and self.cursorX == 4) and "hover" or false),"+",true)
-      --Display description if necessary:
-      if (selected and self.cursorX == 1 and not descrItem) or (mouseX > nameX and mouseX < priceX and mouseY > info.minY-self.scrollY and mouseY < info.maxY-self.scrollY and not plusMouse and not minusMouse and not amountMouse) then
+      info.plusButton = output:tinybutton(sellBoxX+sellBoxW+16,printY+4,nil,(plusMouse or (selected and self.cursorX == 4) and "hover" or false),"+",true)
+      --Display description if necessary
+      if plusMouse or minusMouse or amountMouse or (mouseY > listStartY and mouseY < info.maxY and mouseX >= priceX and mouseX <= windowX+windowWidth) then
+        descrItem = nil
+      elseif (selected and self.cursorX == 1 and not descrItem) or (mouseX > exambuttonX and mouseX <= windowX+windowWidth and mouseY > info.minY-self.scrollY and mouseY < info.maxY-self.scrollY) then
         descrItem = info
       end
       printY = printY+(#tlines*fontSize)+16
@@ -370,9 +376,9 @@ function storescreen:draw()
     end
     love.graphics.setStencilTest()
     if descrItem and descrItem.maxY-self.scrollY > listStartY then
-      local text = descrItem.item:get_name(true,1) .. "\n" .. descrItem.item:get_description() .. "\n" .. descrItem.item:get_info(true)
-      local descX = nameX+round((amtX-nameX)/2)
-      self:description_box(text,descX,descrItem.minY)
+      local text = descrItem.item:get_name(true,1) .. "\n" .. descrItem.item:get_description()
+      local descX = nameX+round(nameMaxLen/2)
+      output:description_box(text,descX,descrItem.maxY,nil,self.scrollY)
     end
     love.graphics.pop()
     --Scrollbars
@@ -403,7 +409,7 @@ function storescreen:draw()
       serviceCount = serviceCount+1
       local servID = servData.service
       local service = possibleServices[servID]
-      local costText = service:get_cost_text(player) or servData.costText or service.costText or (servData.cost and (self.currency_item and servData.cost+round(servData.cost*(self.costMod/100)) .. " " .. (self.currency_item.pluralName or " x " .. self.currency_item.name) or "$" .. servData.cost+round(servData.cost*(self.costMod/100))) or nil)
+      local costText = service:get_cost_text(player) or servData.costText or service.costText or (servData.cost and self:get_cost_text(servData.cost+round(servData.cost*(self.costMod/100))) or nil)
       local serviceText = service.name .. (costText and " (Cost: " .. costText .. ")" or "") .. "\n" .. service.description
       local __, wrappedtext = fonts.textFont:getWrap(serviceText, windowWidth)
       love.graphics.printf(serviceText,windowX,printY,windowWidth,"center")
@@ -430,13 +436,13 @@ function storescreen:draw()
         printY=printY+(#wrappedtext)*fontSize
         self.serviceButtons[#self.serviceButtons+1] = false
       else
-        local serviceW = fonts.textFont:getWidth("Select " .. service.name)+padding
+        local serviceW = fonts.buttonFont:getWidth("Select " .. service.name)+padding
         local buttonX = math.floor(midX-serviceW/2)
         local buttonHi = false
         if mouseX > buttonX and mouseX < buttonX+serviceW and mouseY > printY-self.scrollY and mouseY < printY+32-self.scrollY then
           buttonHi = true
         end
-        self.serviceButtons[#self.serviceButtons+1] = output:button(buttonX,printY,serviceW,false,((buttonHi or self.cursorY == 1+i) and "hover" or false),"Select " .. service.name,true)
+        self.serviceButtons[#self.serviceButtons+1] = output:button(buttonX,printY+8,serviceW,false,((buttonHi or self.cursorY == 1+i) and "hover" or false),"Select " .. service.name,true)
         printY=printY+32
       end
       printY=printY+fontSize
@@ -477,11 +483,7 @@ function storescreen:draw()
         local spell = possibleSpells[spellDef.spell]
         local costText = nil
         if spellDef.cost then
-          if self.currency_item then
-            costText = " (Cost: " .. spellDef.cost+round(spellDef.cost*(self.costMod/100)) .. " " .. (self.currency_item.pluralName or self.currency_Item.name) .. ")"
-          else
-            costText = " (Cost: " .. get_money_name(spellDef.cost+round(spellDef.cost*(self.costMod/100))) .. ")"
-          end
+          costText = " (Cost: " .. self:get_cost_text(spellDef.cost+round(spellDef.cost*(self.costMod/100))) .. ")"
         end
         local spellText = spell.name .. (costText or "") .. "\n" .. spell.description
         local __, wrappedtext = fonts.textFont:getWrap(spellText, windowWidth)
@@ -592,7 +594,7 @@ function storescreen:keypressed(key)
       local id = self.cursorY-2
       local list = (self.screen == "Buy" and self.selling_list or self.buying_list)
       if self.cursorX == 1 and self.cursorY > 2 then
-        self.cursorX = 3
+        Gamestate.switch(examine_item,list[id].item)
       elseif self.cursorX == 2 and self.cursorY > 2 then --minus button
         list[id].buyAmt = math.max(list[id].buyAmt-1,0)
       elseif self.cursorX == 4 and self.cursorY > 2 then --plus button
@@ -618,7 +620,17 @@ function storescreen:keypressed(key)
   elseif key == "north" then
     if self.cursorY > 1 then
       self.cursorY = self.cursorY - 1
-      if self.screen == "Buy" or self.screen == "Sell" then
+      if self.cursorY == 1 then
+        if self.screen == "Buy" then
+          self.cursorX = 1
+        elseif self.screen == "Sell" then
+          self.cursorX = 2
+        elseif self.screen == "Services" then
+          self.cursorX = 2+(self.store.noBuy and 0 or 1)
+        elseif self.screen == "Spells" then
+          self.cursorX = #self.navButtons
+        end
+      elseif self.screen == "Buy" or self.screen == "Sell" then
         local whichList = (self.screen == "Buy" and self.selling_list or self.buying_list)
         if whichList[self.cursorY-2] then
           if whichList[self.cursorY-2].minY-self.scrollY < (self.listStartY or 0) and self.scrollY > 0 then
@@ -635,24 +647,35 @@ function storescreen:keypressed(key)
     end --end cursorY check
   elseif key == "south" then
     if self.screen == "Services" then
-      for i=self.cursorY-1,#self.serviceButtons,1 do
-        if self.serviceButtons[i] ~= false then
-          self.cursorY = i+1
-          break
-        end
-      end
+      if (self.cursorY == 1 and self.serviceButtons[1]) then
+        self.cursorY = 2
+      else
+        for i=self.cursorY-1,#self.serviceButtons,1 do
+          if self.serviceButtons[i] then
+            self.cursorY = i+1
+            break
+          end
+        end --end cursorY for
+      end --end if 1
     elseif self.screen == "Spells" then
-      for i=self.cursorY-1,#self.spellButtons,1 do
-        if self.spellButtons[i] then
-          self.cursorY = i+1
-          break
-        end
-      end --end cursorY for
-    else
+      if (self.cursorY == 1 and self.spellButtons[1]) then
+        self.cursorY = 2
+      else
+        for i=self.cursorY-1,#self.spellButtons,1 do
+          if self.spellButtons[i] or (self.cursorY == 1 and self.spellButtons[1]) then
+            self.cursorY = i+1
+            break
+          end
+        end --end cursorY for
+      end --end if 1
+    else --buy or sell screen
       local whichList = (self.screen == "Buy" and self.selling_list or self.buying_list)
       local max = #whichList+2
       if self.cursorY < max then
         self.cursorY = self.cursorY + 1
+        if self.cursorY == 2 then
+          self.cursorX = 1
+        end
         if whichList[self.cursorY-2] then
           if whichList[self.cursorY-2].minY-self.scrollY < (self.listStartY or 0) and self.scrollY > 0 then
             while whichList[self.cursorY-2].minY-self.scrollY < (self.listStartY or 0) and self.scrollY > 0 do
@@ -683,6 +706,41 @@ function storescreen:keypressed(key)
     local amt = tostring(list[id].buyAmt)
     local newAmt = tonumber(string.sub(amt,1,#amt-1))
     list[id].buyAmt = (newAmt or 0)
+  elseif key == "nextTarget" then
+    if self.cursorY == 1 then
+      local buttonCount = #self.navButtons
+      if self.cursorX == buttonCount then
+        self:keypressed(keybindings.south[1])
+        if self.cursorY == 2 then --if going down didn't change anything, loop to beginning
+          self.cursorX = 1
+        end
+      else
+        self:keypressed(keybindings.east[1])
+      end
+    elseif self.screen == "Buy" or self.screen == "Sell" then
+      if self.cursorY == 2 then
+        self:keypressed(keybindings.south[1])
+      else
+        if self.cursorX == 4 then
+          local whichList = (self.screen == "Buy" and self.selling_list or self.buying_list)
+          local max = #whichList+2
+          self.cursorX = 1
+          if self.cursorY == max then
+            self.cursorY = 2
+          else
+            self:keypressed(keybindings.south[1])
+          end
+        else
+          self:keypressed(keybindings.east[1])
+        end
+      end
+    else --services, missions, or spells
+      local whichList = (self.screen == "Services" and self.serviceButtons or self.spellButtons)
+      if self.cursorY-1 == #whichList then
+        self.cursorY = 1
+      end
+      self:keypressed(keybindings.south[1])
+    end
   end --end key if
 end
 
@@ -695,19 +753,23 @@ function storescreen:mousepressed(x,y,button)
   --Buy/Sell Buttons:
   if self.buyButton and x > self.buyButton.minX and x < self.buyButton.maxX and y > self.buyButton.minY and y < self.buyButton.maxY then
       self.screen = "Buy"
-      self.cursorY = 2
+      self.cursorX = 1
+      self.cursorY = 1
       self.scrollY = 0
     elseif self.sellButton and x > self.sellButton.minX and x < self.sellButton.maxX and y > self.sellButton.minY and y < self.sellButton.maxY then
       self.screen = "Sell"
-      self.cursorY = 2
+      self.cursorX = 2
+      self.cursorY = 1
       self.scrollY = 0
     elseif self.serviceButton and x > self.serviceButton.minX and x < self.serviceButton.maxX and y > self.serviceButton.minY and y < self.serviceButton.maxY then
       self.screen = "Services"
-      self.cursorY = 2
+      self.cursorX = 2+(self.store.noBuy and 0 or 1)
+      self.cursorY = 1
       self.scrollY = 0
     elseif self.spellsButton and x > self.spellsButton.minX and x < self.spellsButton.maxX and y > self.spellsButton.minY and y < self.spellsButton.maxY then
       self.screen = "Spells"
-      self.cursorY = 2
+      self.cursorX = #self.navButtons
+      self.cursorY = 1
       self.scrollY = 0
   elseif self.screen == "Services" and self.serviceButtons then --Services:
     for i,button in ipairs(self.serviceButtons) do
@@ -752,7 +814,7 @@ function storescreen:mousepressed(x,y,button)
     if listItem.minY and y > listItem.minY-self.scrollY and y < listItem.maxY-self.scrollY then
       self.cursorY = id+2
       self.cursorX = 1
-      local minus,plus,action,numberEntry = listItem.minusButton,listItem.plusButton,listItem.actionButton,listItem.numberEntry
+      local minus,plus,action,numberEntry,examine = listItem.minusButton,listItem.plusButton,listItem.actionButton,listItem.numberEntry,listItem.examineButton
       if x > minus.minX and x < minus.maxX and y > minus.minY-self.scrollY and y < minus.maxY-self.scrollY then
         listItem.buyAmt = math.max(listItem.buyAmt-1,0)
         self.cursorX = 2
@@ -761,6 +823,8 @@ function storescreen:mousepressed(x,y,button)
         self.cursorX = 4
       elseif x > numberEntry.minX and x < numberEntry.maxX and y > numberEntry.minY-self.scrollY and y < numberEntry.maxY-self.scrollY then
         self.cursorX = 3
+      elseif x > examine.minX and x < examine.maxX and y > examine.minY-self.scrollY and y < examine.maxY-self.scrollY then
+        Gamestate.switch(examine_item,listItem.item)
       end
       break --no reason to continue looking at other list items if we've already seen one
     end --end x/y check
@@ -812,25 +876,6 @@ function storescreen:switchBack()
   Timer.after(0.2,function() self.switchNow=true end)
 end
 
-function storescreen:description_box(text,x,y,maxWidth)
-  maxWidth = maxWidth or 300
-  local oldFont = love.graphics.getFont()
-  love.graphics.setFont(fonts.descFont)
-  local width, tlines = fonts.descFont:getWrap(text,maxWidth)
-  local height = #tlines*(prefs['descFontSize']+3)+prefs['descFontSize']
-  x,y = round(x),round(y-height/2)
-  while (y+height-self.scrollY > love.graphics.getHeight()) do
-    y = y-prefs['descFontSize']
-  end
-    setColor(255,255,255,185)
-    love.graphics.rectangle("line",x,y,302,height)
-    setColor(0,0,0,185)
-    love.graphics.rectangle("fill",x+1,y+1,301,height-1)
-    setColor(255,255,255,255)
-    love.graphics.printf(ucfirst(text),x+2,y+2,300)
-  love.graphics.setFont(oldFont)
-end
-
 function storescreen:player_buys()
   if self.totalCost <= player.money then
     for id,info in ipairs(self.selling_list) do
@@ -876,5 +921,13 @@ function storescreen:scrollDown()
     if self.scrollMax-self.scrollY < prefs.fontSize then
       self.scrollY = self.scrollMax
     end
+  end
+end
+
+function storescreen:get_cost_text(amt)
+  if self.currency_item then
+    return amt .. (self.currency_item.pluralName and " " .. self.currency_item.pluralName or " x " .. self.currency_item.name)
+  else
+    return get_money_name(amt)
   end
 end

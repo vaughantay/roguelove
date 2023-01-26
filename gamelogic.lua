@@ -959,5 +959,5 @@ end
 --@param amount Number. The amount of money
 --@return Text. The name of the money
 function get_money_name(amount)
-  return (gamesettings.money_prefix or "") .. amount .. (gamesettings.money_suffix or "") .. (gamesettings.money_name and " " .. gamesettings.money_name or "")
+  return (gamesettings.money_prefix or "") .. amount .. (gamesettings.money_suffix or "") .. (amount == 1 and gamesettings.money_name_single and " " .. gamesettings.money_name_single or (gamesettings.money_name and " " .. gamesettings.money_name or ""))
 end

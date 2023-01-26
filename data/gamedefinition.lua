@@ -39,5 +39,6 @@ gamesettings = {
   display_creature_levels=true,
   money_prefix = nil,
   money_suffix = nil,
-  money_name = "coins"
+  money_name = "coins",
+  money_name_single = "coin"
 }
