@@ -1088,15 +1088,15 @@ function game:display_minimap(map)
           elseif currMap:get_tile_creature(x,y) and seen then
             setColor(255,0,0,math.ceil(255*(mouseOver and 0.25 or 1)))
             love.graphics.print("x",printX,printY)
-          elseif type(map[x][y]) == "table" then
-            local tc= map[x][y].color
-            setColor((seen and tc.r or math.ceil(tc.r*.5)),(seen and tc.g or math.ceil(tc.g*.5)),(seen and tc.b or math.ceil(tc.b*.5)),math.ceil(255*(mouseOver and 0.25 or 1)))
-            love.graphics.print("·",printX,printY)
           elseif map:get_blocking_feature(x,y) then
             local bf = map:get_blocking_feature(x,y)
             local tc= bf.color
             setColor((seen and tc.r or math.ceil(tc.r*.5)),(seen and tc.g or math.ceil(tc.g*.5)),(seen and tc.b or math.ceil(tc.b*.5)),math.ceil(255*(mouseOver and 0.25 or 1)))
             love.graphics.print("o",printX,printY)
+          elseif type(map[x][y]) == "table" then
+            local tc= map[x][y].color
+            setColor((seen and tc.r or math.ceil(tc.r*.5)),(seen and tc.g or math.ceil(tc.g*.5)),(seen and tc.b or math.ceil(tc.b*.5)),math.ceil(255*(mouseOver and 0.25 or 1)))
+            love.graphics.print("·",printX,printY)
           elseif map[x][y] == "." then
             if map.tileset and tilesets[map.tileset] and tilesets[map.tileset].textColor then
               local tc = tilesets[map.tileset].textColor
@@ -1130,12 +1130,12 @@ function game:display_minimap(map)
             setColor(255,255,0,math.ceil(200*(mouseOver and 0.25 or 1)))
           elseif currMap:get_tile_creature(x,y) and seen then
             setColor(255,0,0,math.ceil(200*(mouseOver and 0.25 or 1)))
-          elseif type(map[x][y]) == "table" then
-            local tc= map[x][y].color
-            setColor((seen and tc.r or math.ceil(tc.r*.5)),(seen and tc.g or math.ceil(tc.g*.5)),(seen and tc.b or math.ceil(tc.b*.5)),math.ceil(200*(mouseOver and 0.25 or 1)))
           elseif map:get_blocking_feature(x,y) then
             local bf = map:get_blocking_feature(x,y)
             local tc= bf.color
+            setColor((seen and tc.r or math.ceil(tc.r*.5)),(seen and tc.g or math.ceil(tc.g*.5)),(seen and tc.b or math.ceil(tc.b*.5)),math.ceil(200*(mouseOver and 0.25 or 1)))
+          elseif type(map[x][y]) == "table" then
+            local tc= map[x][y].color
             setColor((seen and tc.r or math.ceil(tc.r*.5)),(seen and tc.g or math.ceil(tc.g*.5)),(seen and tc.b or math.ceil(tc.b*.5)),math.ceil(200*(mouseOver and 0.25 or 1)))
           elseif map[x][y] == "." then
             if map.tileset and tilesets[map.tileset] and tilesets[map.tileset].textColor then
