@@ -122,9 +122,7 @@ function spellscreen:draw()
       setColor(255,255,(upgrade and 0 or 255),255)
     end --end cooldowns if
 		love.graphics.print((spell.hotkey and spell.hotkey .. ") " or "") .. name .. (player.cooldowns[name] and " (" .. player.cooldowns[name] .. " turns to recharge)" or "") .. (target_type == "passive" and " (Passive)" or "") .. (upgrade and " (+)" or ""),x+padX,printY)
-    if player.cooldowns[name] or spell:requires(player) == false then
-      setColor(255,255,255,255)
-    end
+    setColor(255,255,255,255)
 		line = line+1
     self.spellLines[i] = {minY=printY,maxY=printY+fontSize+2}
     printY = printY+fontSize+2

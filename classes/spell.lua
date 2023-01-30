@@ -43,7 +43,7 @@ end
 --@param caster Creature. The caster of the spell.
 --@param ignoreCooldowns Boolean. If set to true, this will ignore whether or not the spell is on a cooldown.
 --@return Boolean. Whether the spell was successfully able to be cast/targeted or not.
-function Spell:target(target,caster, ignoreCooldowns)
+function Spell:target(target,caster, ignoreCooldowns, ignoreMP)
   local req, reqtext = self:requires(caster)
   if (not ignoreCooldowns and caster.cooldowns[self.name]) then
 		if (caster == player) then output:out("You can't use that ability again for another " .. caster.cooldowns[self.name] .. " turns.") end
@@ -51,6 +51,12 @@ function Spell:target(target,caster, ignoreCooldowns)
   elseif req == false then
     if (caster == player) then output:out((reqtext or "You can't use that ability right now.")) end
     return false
+  elseif not ignoreMP and caster.mp and self.cost and self.cost > caster.mp then
+    if (caster == player) then output:out("You don't have enough magic points to use that ability.") end
+		return false
+  elseif not ignoreMP and self.charges and self.charges < 1 then
+    if (caster == player) then output:out("You're out of charges for that ability.") end
+		return false
   end
   if not caster:callbacks('casts',target,self,ignoreCooldowns) then --We're hoping the callback itself will provide any necessary feedback
     return false
@@ -84,8 +90,11 @@ function Spell:use(target, caster, ignoreCooldowns, ignoreMP)
   elseif req == false then
     if (caster == player) then output:out((reqtext or "You can't use that ability right now.")) end
     return false
-  elseif not ignoreCooldowns and caster.mp and self.cost and self.cost > caster.mp then
+  elseif not ignoreMP and caster.mp and self.cost and self.cost > caster.mp then
     if (caster == player) then output:out("You don't have enough magic points to use that ability.") end
+		return false
+  elseif not ignoreMP and self.charges and self.charges < 1 then
+    if (caster == player) then output:out("You're out of charges for that ability.") end
 		return false
 	elseif possibleSpells[self.id].cast then
     local status,r = pcall(possibleSpells[self.id].cast,self,target,caster)
@@ -103,6 +112,9 @@ function Spell:use(target, caster, ignoreCooldowns, ignoreMP)
       end
       if not ignoreMP and caster.mp and self.cost then
         caster.mp = caster.mp - self.cost
+      end
+      if not ignoreMP and self.charges then
+        self.charges = self.charges - 1
       end
     end --end false/nil if
 		return (r == nil and true or r) -- this looks weird, but it's so that spells can return false
