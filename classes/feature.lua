@@ -227,6 +227,18 @@ function Feature:give_item(item)
   return item
 end
 
+---Have a feature "drop" an item it contains on to the tile it's on
+--@param item Item. The item to drop
+function Feature:drop_item(item)
+	local id = in_table(item,self.inventory)
+	if (id) then
+    currMap:add_item(item,self.x,self.y,true)
+		table.remove(self.inventory,id)
+    item.x,item.y=self.x,self.y
+    item.owner=nil
+	end
+end
+
 ---Check if a feature has an instance of an item ID
 --@param item String. The item ID to check for
 --@param sortBy Text. What the "sortBy" value you're checking is (optional)
