@@ -943,8 +943,8 @@ local broguelike = function(map,width,height,arguments)
     end --end fory
   end --end forx
   
-  local minX,minY = random(2,map.width-10),love.math.random(2,map.height-10)
-  local maxX,maxY = math.min(love.math.random(minX,minX+10),map.width-1),math.min(love.math.random(minY,minY+10),map.height-1)
+  local minX,minY = random(2,map.width-10),random(2,map.height-10)
+  local maxX,maxY = math.min(random(minX,minX+10),map.width-1),math.min(random(minY,minY+10),map.height-1)
   rooms[#rooms+1] = generate_room(minX,minY,maxX,maxY,map,rectChance)
   
   for _,tile in pairs(rooms[1].floors) do

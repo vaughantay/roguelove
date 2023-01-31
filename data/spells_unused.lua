@@ -902,7 +902,7 @@ sacrifice = Spell({
       end
     end,
     decide = function(self,target,caster,use_type)
-      if caster.hp < caster.max_hp/love.math.random(2,5) then --threshhold for using is random
+      if caster.hp < caster.max_hp/random(2,5) then --threshhold for using is random
         if caster.thralls and count(caster.thralls) > 0 then
           return get_random_element(caster.thralls)
         end --end thralls if
@@ -2252,7 +2252,7 @@ servedrinks = Spell({
         output:out(target:get_name() .. " can't drink alcohol.")
         return false
       end
-      target:updateHP(love.math.random(5,10))
+      target:updateHP(random(5,10))
       if player:can_see_tile(caster.x,caster.y) then
         output:out(caster:get_name() .. " serves a ridiculously strong cocktail to " .. target:get_name() .. ".")
         currMap:add_effect(Effect('animation','splash',5,target,{r=170,g=142,b=177},target.x,target.y,nil,true))

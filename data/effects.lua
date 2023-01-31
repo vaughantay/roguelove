@@ -1458,7 +1458,7 @@ local zombieplaguecountdown = {
 }
 function zombieplaguecountdown:new(countdown)
   if not self.countdown then
-    self.countdown = love.math.random(4,10)
+    self.countdown = random(4,10)
   else
     self.countdown = tweak(countdown)
   end

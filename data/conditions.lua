@@ -9,7 +9,7 @@ conditions = {
 		end,
 		advance = function(self,possessor)
 			if (random(1,3) == 1) then 
-        local dmg = possessor:damage(love.math.random(1,math.floor(possessor.max_hp/10)),nil,"poison")
+        local dmg = possessor:damage(random(1,math.floor(possessor.max_hp/10)),nil,"poison")
         if player:can_see_tile(possessor.x,possessor.y) and player:does_notice(possessor) then output:out(possessor:get_name() .. " takes " .. dmg .. " damage from poison.") end
       end
 		end,
@@ -59,7 +59,7 @@ bleeding=Condition({
 		end,
 		advance = function(self,possessor)
 			if (random(1,3) == 1) then 
-        local dmg = possessor:damage(love.math.random(math.ceil(possessor.max_hp/20),math.floor(possessor.max_hp/10)),nil,"physical")
+        local dmg = possessor:damage(random(math.ceil(possessor.max_hp/20),math.floor(possessor.max_hp/10)),nil,"physical")
         if player:can_see_tile(possessor.x,possessor.y) and player:does_notice(possessor) then output:out(possessor:get_name() .. " takes " .. dmg .. " damage from bleeding.") end
         if not currMap:tile_has_feature(possessor.x,possessor.y,'bloodstain') then currMap:add_feature(Feature('bloodstain',possessor.bloodColor),possessor.x,possessor.y) end
       end

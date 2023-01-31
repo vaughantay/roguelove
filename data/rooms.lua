@@ -283,7 +283,7 @@ end
 roomTypes['cave'] = cave --]]
 
 function generate_room(minX,minY,maxX,maxY,map,rectChance)
-  if love.math.random(1,100) <= rectChance then
+  if random(1,100) <= rectChance then
     return roomTypes.rectangle(minX,minY,maxX,maxY,map)
   end
   local room = get_random_element(roomTypes)
