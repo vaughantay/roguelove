@@ -58,7 +58,7 @@ function Feature:get_description()
   if self.inventory and not self.inventory_inaccessible then
     txt = txt .. "\nIt contains: "
     for i,item in ipairs(self.inventory) do
-      txt = txt .. (i ~= 1 and ", " or "") .. item:get_name()
+      txt = txt .. (i ~= 1 and ", " or "") .. item:get_name(true)
     end
   end
   return txt

@@ -700,7 +700,7 @@ function output:description_box(text,x,y,maxWidth,scroll)
   love.graphics.setFont(fonts.descFont)
   local width, tlines = fonts.descFont:getWrap(text,maxWidth)
   local height = #tlines*(prefs['descFontSize']+3)+prefs['descFontSize']
-  x,y = round(x),round(y-height/2)
+  x,y = round(x),round(y)
   while (y+height-scroll > love.graphics.getHeight()) do
     y = y-prefs['descFontSize']
   end

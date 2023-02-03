@@ -166,7 +166,7 @@ function game:print_cursor_game()
         if (text ~= "") then text = text .. "\n----\n" end
         text = text .. ucfirst(currMap[output.cursorX][output.cursorY]:get_description())
       end
-      if text ~= "" then self:description_box(text,printX,printY) end
+      if text ~= "" then output:description_box(text,printX+tileSize/2,printY+tileSize/2) end
     end
   else --if you move the cursor to a spot you can't see and aren't targeting, clear the line display
     output.targetLine = {}
@@ -431,11 +431,11 @@ function game:print_sidebar()
       local hotkeyItem = nil
       if hotkeyInfo.type == "spell" then
         hotkeyItem = hotkeyInfo.spell
-        name = hotkeyItem.name .. (player.cooldowns[hotkeyItem.name] and " (" .. player.cooldowns[hotkeyItem.name] .. " turns to recharge)" or "")
+        name = hotkeyItem.name .. (player.cooldowns[hotkeyItem.name] and " (" .. player.cooldowns[hotkeyItem.name] .. " turns)" or "") .. (hotkeyItem.charges and " (" .. hotkeyItem.charges .. ")" or "")
         canUse = not player.cooldowns[hotkeyItem.name] and hotkeyItem:requires(player)
       elseif hotkeyInfo.type == "item" then
         hotkeyItem = hotkeyInfo.item or player:has_item(hotkeyItem.id)
-        name = hotkeyItem:get_name(true) .. (player.cooldowns[hotkeyItem] and " (" .. player.cooldowns[hotkeyItem] .. " turns to recharge)" or "")
+        name = hotkeyItem:get_name(true) .. (player.cooldowns[hotkeyItem] and " (" .. player.cooldowns[hotkeyItem] .. " turns)" or "") .. (hotkeyItem.charges and " (" .. hotkeyItem.charges .. ")" or "")
         canUse,canUseText = player:can_use_item(hotkeyItem)
       end
       local description = hotkeyItem:get_description()
@@ -578,7 +578,7 @@ function game:print_sidebar()
   end --end player sees if
   setColor(255,255,255,255)
   if descBox then
-    self:description_box(descBox.desc,descBox.x,descBox.y)
+    output:description_box(descBox.desc,descBox.x+20,descBox.y+fontSize)
   end
 end
 
@@ -1782,32 +1782,6 @@ function game:keypressed(key,scancode,isRepeat)
     end --end hotkey check
   end -- end key if
 end -- end function
-
-function game:description_box(text,x,y)
-  if Gamestate.current() == game then
-    local oldFont = love.graphics.getFont()
-    love.graphics.setFont(fonts.descFont)
-    local width, tlines = fonts.descFont:getWrap(text,300)
-    local height = #tlines*(prefs['descFontSize']+3)+math.ceil(prefs['descFontSize']/2)
-    x,y = round(x),round(y)
-    if (y+20+height < love.graphics.getHeight()) then
-      setColor(255,255,255,185)
-      love.graphics.rectangle("line",x+22,y+20,302,height)
-      setColor(0,0,0,185)
-      love.graphics.rectangle("fill",x+23,y+21,301,height-1)
-      setColor(255,255,255,255)
-      love.graphics.printf(ucfirst(text),x+24,y+22,300)
-    else
-      setColor(255,255,255,185)
-      love.graphics.rectangle("line",x+22,y+20-height,302,height)
-      setColor(0,0,0,185)
-      love.graphics.rectangle("fill",x+23,y+21-height,301,height-1)
-      setColor(255,255,255,255)
-      love.graphics.printf(ucfirst(text),x+24,y+22-height,300)
-    end
-    love.graphics.setFont(oldFont)
-  end
-end
 
 function game:blackOut(seconds,win)
   seconds = seconds or 5

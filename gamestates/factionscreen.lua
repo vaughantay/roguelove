@@ -385,7 +385,7 @@ function factionscreen:draw()
       love.graphics.setStencilTest()
       if descrItem and descrItem.maxY-self.scrollY > listStartY then
         local text = descrItem.item:get_name(true,1) .. "\n" .. descrItem.item:get_description()
-        local descX = nameX+round(nameMaxLen/2)
+        local descX = nameX
         output:description_box(text,descX,descrItem.maxY,nil,self.scrollY)
       end
       love.graphics.pop()
@@ -507,7 +507,7 @@ function factionscreen:draw()
       love.graphics.setStencilTest()
       if descrItem and descrItem.maxY-self.scrollY > listStartY then
       local text = descrItem.item:get_name(true,1) .. "\n" .. descrItem.item:get_description()
-      local descX = nameX+round(nameMaxLen/2)
+      local descX = nameX
       output:description_box(text,descX,descrItem.maxY,nil,self.scrollY)
     end
       love.graphics.pop()
