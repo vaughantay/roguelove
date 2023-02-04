@@ -20,7 +20,6 @@ function healthPotionMinor:use(user)
   local heal = math.max(5,math.ceil(user:get_mhp()*(healPerc/100)))
 	output:out(user.name .. " drinks a Potion of Minor Healing and regains " .. heal .. " HP!")
 	user:updateHP(heal)
-	user:delete_item(self)
 end
 possibleItems['healthpotionminor'] = healthPotionMinor
 
@@ -44,7 +43,6 @@ function healthPotionModerate:use(user)
   local heal = math.max(10,math.ceil(user:get_mhp()*(healPerc/100)))
 	output:out(user.name .. " drinks a Potion of Moderate Healing and regains " .. heal .. " HP!")
 	user:updateHP(heal)
-	user:delete_item(self)
 end
 possibleItems['healthpotionmoderate'] = healthPotionModerate
 
@@ -68,7 +66,6 @@ function magicPotionMinor:use(user)
   local heal = math.max(5,math.ceil(user:get_max_mp()*(healPerc/100)))
 	output:out(user.name .. " drinks a Potion of Minor Magic and regains " .. heal .. " MP!")
   user.mp = math.min(user:get_max_mp(),user.mp+heal)
-	user:delete_item(self)
 end
 possibleItems['magicpotionminor'] = magicPotionMinor
 
@@ -90,7 +87,6 @@ function poison:use(user)
 	user = user or player
 	output:out(user.name .. " drinks poison and becomes poisoned!")
   user:give_condition('poisoned',tweak(25))
-	user:delete_item(self)
 end
 possibleItems['poison'] = poison
 
@@ -113,7 +109,6 @@ function herbs:use(user)
 	local heal = tweak(2)
 	output:out(user.name .. " eats a medicinal herb and regains " .. heal .. " HP!")
 	user:updateHP(heal)
-	user:delete_item(self)
 end
 possibleItems['herbs'] = herbs
 
@@ -135,7 +130,6 @@ function poisonshroom:use(user)
 	user = user or player
 	output:out(user.name .. " eats a poisonous mushroom and becomes poisoned!")
 	user:give_condition('poisoned',tweak(5))
-  user:delete_item(self)
 end
 possibleItems['poisonshroom'] = poisonshroom
 
@@ -159,7 +153,6 @@ function blood:use(user)
     local dmg = tweak(10)
     output:out(user:get_name() .. " drinks some blood and regains " .. dmg .. " health!")
     user:updateHP(dmg)
-    user:delete_item(self)
   else
     if user == player then output:out("You're not going to drink blood. That's disgusting.") end
     return false
@@ -185,7 +178,6 @@ function demonblood:use(user)
 	user = user or player
 	local dmg = user:damage(5,nil,"fire")
 	output:out(user.name .. " drinks demon blood and takes " .. dmg .. " fire damage!")
-	user:delete_item(self)
 end
 possibleItems['demonblood'] = demonblood
 
