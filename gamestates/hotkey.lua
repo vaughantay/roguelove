@@ -64,17 +64,20 @@ function hotkey:keypressed(key)
   if (origKey == "escape") or key == "enter" then
     self:switchBack()
   elseif tonumber(key) then
+    local keynum = tonumber(key)
+    --Delete old item from hotkey:
+    if player.hotkeys[keynum] then
+      player.hotkeys[keynum].hotkeyItem.hotkey = nil
+    end
+    --Delete old hotkey for this item, if applicable
     for i=1,10 do
-      if player.hotkeys[i] and ((hotkeyItem.baseType == "item" and player.hotkeys[i].item == hotkeyItem) or (hotkeyItem.baseType == "spell" and player.hotkeys[i].id == hotkeyItem.id)) then
+      if player.hotkeys[i] and player.hotkeys[i].hotkeyItem == hotkeyItem then
         player.hotkeys[i] = nil
       end
     end
-    if hotkeyItem.baseType == "spell" then
-      player.hotkeys[tonumber(key)] = {type="spell",spell=hotkeyItem}
-    elseif hotkeyItem.baseType == "item" then
-      player.hotkeys[tonumber(key)] = {type="item",item=hotkeyItem}
-    end
-    hotkeyItem.hotkey = tonumber(key)
+    --Actually assign the key:
+    player.hotkeys[keynum] = {type=hotkeyItem.baseType,hotkeyItem=hotkeyItem}
+    hotkeyItem.hotkey = keynum
     self:switchBack()
   end
 end

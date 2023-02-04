@@ -174,7 +174,7 @@ function spellscreen:draw()
       end
       printY = printY+buttonHeight
       local hotkeyText = (hotkey and "Change Hotkey" or "Assign Hotkey")
-      local buttonWidth = fonts.buttonFont:getWidth(hotkeyText)+25
+      buttonWidth = fonts.buttonFont:getWidth(hotkeyText)+25
       self.buttons.hotkey = output:button(printX,printY,buttonWidth,false,(self.cursorX == 2 and self.sidebarCursorY == 2 and "hover" or nil),hotkeyText,true)
       printY = printY+buttonHeight
       if not selected then
@@ -257,7 +257,7 @@ function spellscreen:draw()
           local i = 1
           for stat,amt in pairs(level_details) do
             if type(amt) ~= "boolean" then
-              local statName = (spell.stats and spell.stats[stat].name or ucfirst(stat))
+              local statName = (spell.stats and spell.stats[stat] and spell.stats[stat].name or ucfirst(stat))
               if i == 1 then description = (description and description .. " " or "") end
               description = description .. (i > 1 and ", " or "") .. statName .. (type(amt) == "number" and (amt < 0 and " -" or " +") or ": ") .. amt
               i = i + 1

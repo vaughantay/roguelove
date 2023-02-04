@@ -428,33 +428,35 @@ function game:print_sidebar()
       local name = ""
       local canUse = true
       local canUseText = nil
-      local hotkeyItem = nil
-      if hotkeyInfo.type == "spell" then
-        hotkeyItem = hotkeyInfo.spell
-        name = hotkeyItem.name .. (player.cooldowns[hotkeyItem.name] and " (" .. player.cooldowns[hotkeyItem.name] .. " turns)" or "") .. (hotkeyItem.charges and " (" .. hotkeyItem.charges .. ")" or "")
-        canUse = not player.cooldowns[hotkeyItem.name] and hotkeyItem:requires(player)
-      elseif hotkeyInfo.type == "item" then
-        hotkeyItem = hotkeyInfo.item or player:has_item(hotkeyItem.id)
-        name = hotkeyItem:get_name(true) .. (player.cooldowns[hotkeyItem] and " (" .. player.cooldowns[hotkeyItem] .. " turns)" or "") .. (hotkeyItem.charges and " (" .. hotkeyItem.charges .. ")" or "")
-        canUse,canUseText = player:can_use_item(hotkeyItem)
-      end
-      local description = hotkeyItem:get_description()
-      
-      --Draw the actual button:
-      local spellwidth = whichFont:getWidth((i == 10 and 0 or i) .. ") " .. name)
-      local minX,minY=printX+xPad-2,printY+buttonPadding*(hkcount-1)
-      local maxX,maxY=minX+spellwidth+4,minY+(smallButtons and 16 or 32)
-      local buttonType = ((canUse == false) and "disabled" or (actionResult and actionResult == hotkeyItem and "hover" or nil))
-      self.spellButtons[i] = output:button(minX,minY+2,(maxX-minX),smallButtons,buttonType,nil,true)
-      if self.spellButtons[i].hover == true then
-        descBox = {desc=description .. (canUseText and "\n" .. canUseText or ""),x=minX,y=minY}
-      end
-      if canUse == false then
-        setColor(200,200,200,255)
-      end
-      love.graphics.print((i == 10 and 0 or i) .. ") " .. name,printX+xPad,printY+buttonPadding*(hkcount-1)-2+yBonus)
-      if canUse == false then
-        setColor(255,255,255,255)
+      local hotkeyItem = hotkeyInfo.hotkeyItem
+      if not hotkeyItem then
+        player.hotkeys[i] = nil
+      else
+        if hotkeyInfo.type == "spell" then
+          name = hotkeyItem.name .. (player.cooldowns[hotkeyItem.name] and " (" .. player.cooldowns[hotkeyItem.name] .. " turns)" or "") .. (hotkeyItem.charges and " (" .. hotkeyItem.charges .. ")" or "")
+          canUse = not player.cooldowns[hotkeyItem.name] and hotkeyItem:requires(player)
+        elseif hotkeyInfo.type == "item" then
+          name = hotkeyItem:get_name(true) .. (player.cooldowns[hotkeyItem] and " (" .. player.cooldowns[hotkeyItem] .. " turns)" or "") .. (hotkeyItem.charges and " (" .. hotkeyItem.charges .. ")" or "")
+          canUse,canUseText = player:can_use_item(hotkeyItem)
+        end
+        local description = hotkeyItem:get_description()
+        
+        --Draw the actual button:
+        local spellwidth = whichFont:getWidth((i == 10 and 0 or i) .. ") " .. name)
+        local minX,minY=printX+xPad-2,printY+buttonPadding*(hkcount-1)
+        local maxX,maxY=minX+spellwidth+4,minY+(smallButtons and 16 or 32)
+        local buttonType = ((canUse == false) and "disabled" or (actionResult and actionResult == hotkeyItem and "hover" or nil))
+        self.spellButtons[i] = output:button(minX,minY+2,(maxX-minX),smallButtons,buttonType,nil,true)
+        if self.spellButtons[i].hover == true then
+          descBox = {desc=description .. (canUseText and "\n" .. canUseText or ""),x=minX,y=minY}
+        end
+        if canUse == false then
+          setColor(200,200,200,255)
+        end
+        love.graphics.print((i == 10 and 0 or i) .. ") " .. name,printX+xPad,printY+buttonPadding*(hkcount-1)-2+yBonus)
+        if canUse == false then
+          setColor(255,255,255,255)
+        end
       end
     end
   end
@@ -1402,12 +1404,7 @@ function game:mousepressed(x,y,button)
             self:keypressed(keybindings.action[1])
           else
             local hotkeyInfo = player.hotkeys[spell]
-            local hotkeyItem = nil
-            if hotkeyInfo.type == "spell" then
-              hotkeyItem = hotkeyInfo.spell
-            elseif hotkeyInfo.type == "item" then
-              hotkeyItem = hotkeyInfo.item or player:has_item(hotkeyItem.id)
-            end
+            local hotkeyItem = hotkeyInfo.hotkeyItem
             if (hotkeyItem.target_type == "self" or not hotkeyItem.target_type) and hotkeyItem:use(player,player) ~= false then
               advance_turn()
             elseif (hotkeyItem.target_type and hotkeyItem.target_type ~= "self") then
@@ -1757,12 +1754,7 @@ function game:keypressed(key,scancode,isRepeat)
       end --end innate/passive
     end --end spell for]]
     local hotkeyInfo = player.hotkeys[key] or player.hotkeys[tonumber(key)]
-    local hotkeyItem = nil
-    if hotkeyInfo.type == "spell" then
-      hotkeyItem = hotkeyInfo.spell
-    elseif hotkeyInfo.type == "item" then
-      hotkeyItem = hotkeyInfo.item or player:has_item(hotkeyItem.id)
-    end
+    local hotkeyItem =  hotkeyInfo.hotkeyItem
     if action == "targeting" and actionResult == hotkeyItem then
       setTarget(output.cursorX,output.cursorY)
     elseif (hotkeyItem.target_type == "self" or not hotkeyItem.target_type) and hotkeyItem:use(player,player) ~= false then
