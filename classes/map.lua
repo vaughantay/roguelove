@@ -141,7 +141,7 @@ end
 --@return Boolean. Whether or not the tile blocks vision
 function Map:can_see_through(x,y,args)
   if self.sightblock_cache[x .. ',' .. y] ~= nil then return self.sightblock_cache[x .. ',' .. y] end
-	if (x<2 or y<2 or x>self.width-1 or y>self.height-1 or self[x][y] == "#") then
+	if (not self:in_map(x,y) or self[x][y] == "#") then
     self.sightblock_cache[x .. ',' .. y] = false 
 		return false
 	end
@@ -220,7 +220,7 @@ end
 --@param id String. The ID of the feature to check for.
 --@return Boolean. Whether or not the tile has this feature
 function Map:tile_has_feature(x,y,id)
-  if x<2 or y<2 or x>self.width-1 or y>self.height-1 then return false end
+  if not self:in_map(x,y) then return false end
   if type(self[x][y]) == "table" and self[x][y].id == id then return self[x][y] end
   for _,entity in pairs(self:get_tile_features(x,y)) do
     if entity.id == id then return entity end
@@ -262,7 +262,7 @@ function Map:get_tile_items(x,y,getAdjacent)
   if getAdjacent then
     for x2=x-1,x+1,1 do
       for y2=y-1,y+1,1 do
-        if x ~= x2 or y ~= y2 then
+        if (x ~= x2 or y ~= y2) and self:in_map(x2,y2) then
           for id, entity in pairs(self.contents[x2][y2]) do
             if (entity and entity.baseType == "item") then
               items[#items+1] = entity
@@ -400,7 +400,7 @@ function Map:add_creature(creature,x,y,ignoreFunc)
 	creature.x, creature.y = x,y
 	self.contents[x][y][creature] = creature
 	self.creatures[creature] = creature
-  if not ignoreFunc and possibleMonsters[creature.id].new then possibleMonsters[creature.id].new(creature,self) end
+  if not ignoreFunc and possibleMonsters[creature.id].placed then possibleMonsters[creature.id].placed(creature,self) end
   if creature.castsLight then self.lights[creature] = creature end
   self.creature_cache[x .. "," .. y] = creature
   return creature

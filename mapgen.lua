@@ -302,8 +302,8 @@ function mapgen:generate_branch(branchID)
       newBranch[key] = data[key]
     end
   end
-  if data.nameGen then
-    newBranch.name = data:nameGen()
+  if data.generateName then
+    newBranch.name = data.generateName(newBranch)
   elseif data.nameType then
     newBranch.name = namegen:generate_name(data.nameType)
   end
@@ -495,41 +495,6 @@ function mapgen:addRiver(map, tile, noBridges,bridgeData,minDist,clearTiles)
         end --end if makebridge if
       end -- end map isclear if
     end --end shore for
-    --[[for id, shore in ipairs(shores) do
-      if (shore[1].x > 2 and shore[1].x < map.width-1 and shore[1].y > 2 and shore[1].y < map.height-1 and shore[2].x > 2 and shore[2].x < map.width-1 and shore[2].y > 2 and shore[2].y < map.height-1 and map:isClear(shore[1].x,shore[1].y) and map:isClear(shore[2].x,shore[2].y)) then
-        local path = map:findPath(shore[1].x,shore[1].y,shore[2].x,shore[2].y)
-        if path == false or #path > 15 then
-          local _,size1 = mapgen:floodFill(map,".",shore[1].x,shore[1].y)
-          local _,size2 = mapgen:floodFill(map,".",shore[2].x,shore[2].y)
-          if (size1 > 10 and size2 > 10) then
-            mapgen:buildBridge(map,shore[1].x,shore[1].y,shore[2].x,shore[2].y)
-            if (shore[1].x == shore[2].x) then
-              local s1,s2 = math.min(shore[1].y,shore[2].y),math.max(shore[1].y,shore[2].y)
-              for y=s1+1,s2-1,1 do
-                --map.contents[shore[1].x][y] = {}
-                map:add_feature(Feature('bridge',{dir='ns'}),shore[1].x,y)
-                map.collisionMaps['basic'][y][shore[1].x] = 0
-                map[shore[1].x][y].impassable = false
-                map[shore[1].x][y].hazard = false
-              end --end for y=s1,s2,1
-            else
-              --local s1,s2 = math.min(shore[1].x,shore[2].x),math.max(shore[1].x,shore[2].x)
-              for x=s1,s2,1 do
-                --map.contents[x][shore[1].y] = {}
-                local b = Feature('bridge',{dir='ew'})
-                map:add_feature(b,x,shore[1].y)
-                map.collisionMaps['basic'][shore[1].y][x] = 0
-                if type(map[x][shore[1].y]) ~= "string" then
-                  map[x][shore[1].y].impassable = false
-                  map[x][shore[1].y].hazard = false
-                end
-                if (x==s1) then b.image_name="woodbridgee" elseif (x==s2) then b.image_name = "woodbridgew" end
-              end --end for x=s1,s2,1
-            end
-          end --end size check if
-        end --end findPath if
-      end --end if
-    end --end shore for]]
   end --end nobridges if
   map:refresh_pathfinder()
   return shores

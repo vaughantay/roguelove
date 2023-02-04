@@ -41,7 +41,8 @@ function Store:generate_items()
   if self.sells_items then
     for _,info in pairs(self.sells_items) do
       local itemID = info.item
-      local item = Item(itemID,(info.passed_info or (possibleItems[itemID].acceptTags and tags) or nil),(info.amount or -1)) --If an amount is not defined, set it to -1, which fills in for infinite
+      local item = Item(itemID,(info.passed_info or (possibleItems[itemID].acceptTags and tags) or nil))
+      item.amount = (info.amount or -1) --If an amount is not defined, set it to -1, which fills in for infinite
       if info.artifact then
         mapgen:make_artifact(item,tags)
       elseif info.enchantments then
@@ -85,7 +86,8 @@ function Store:restock()
     for _,info in pairs(self.sells_items) do
       if info.amount and info.amount ~= -1 then --don't restock infinite-stock items
         local itemID = info.item
-        local item = Item(itemID,(info.passed_info or (possibleItems[itemID].acceptTags and tags) or nil),(info.amount or -1))
+        local item = Item(itemID,(info.passed_info or (possibleItems[itemID].acceptTags and tags) or nil))
+        item.amount = (info.amount or -1)
         local index = self:get_inventory_index(item)
         local currAmt = self:get_count(item) or 0
         local restock_amt = info.restock_amount or 0

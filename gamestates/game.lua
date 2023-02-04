@@ -133,11 +133,11 @@ function game:print_cursor_game()
         love.graphics.draw(images.uicrosshair,printX+16*(currGame.zoom or 1),printY+16*(currGame.zoom or 1),0,(currGame.zoom or 1),(currGame.zoom or 1),16,16)
       end
     end
-          setColor(255,255,255,255)
-          love.graphics.setFont(fonts.mapFont)
-          if debugMode then love.graphics.print("(" .. output.cursorX .. "," .. output.cursorY .. ")",printX,printY ) end
-          love.graphics.setFont(fonts.mapFontWithImages)
-    
+    setColor(255,255,255,255)
+    love.graphics.setFont(fonts.mapFont)
+    if debugMode then love.graphics.print("(" .. output.cursorX .. "," .. output.cursorY .. ")",printX,printY ) end
+    love.graphics.setFont(fonts.mapFontWithImages)
+    --Description box for targeted tile:
     self.hoveringCreat = nil
     if (player:can_see_tile(output.cursorX,output.cursorY) and self.contextualMenu == nil and self.warning == nil) then
       local text = ""
@@ -587,7 +587,7 @@ end
 function game:print_target_sidebar()
   local uiScale = (prefs['uiScale'] or 1)
   local creat = self.hoveringCreat or target
-  if creat then
+  if (creat ~= nil) then
     local width, height = love.graphics:getWidth(),love.graphics:getHeight()
     local printX = math.ceil(width/uiScale)-365
     local maxX = printX+319
@@ -1754,7 +1754,7 @@ function game:keypressed(key,scancode,isRepeat)
       end --end innate/passive
     end --end spell for]]
     local hotkeyInfo = player.hotkeys[key] or player.hotkeys[tonumber(key)]
-    local hotkeyItem =  hotkeyInfo.hotkeyItem
+    local hotkeyItem = hotkeyInfo.hotkeyItem
     if action == "targeting" and actionResult == hotkeyItem then
       setTarget(output.cursorX,output.cursorY)
     elseif (hotkeyItem.target_type == "self" or not hotkeyItem.target_type) and hotkeyItem:use(player,player) ~= false then

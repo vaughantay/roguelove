@@ -55,7 +55,7 @@ function Feature:get_description()
 	local txt = self.name .. "\n" .. self.description
   if self.attackable then txt = txt .. "\nYou can attack it." end
   if self.pushable then txt = txt .. "\nYou can push it." end
-  if self.inventory and not self.inventory_inaccessible then
+  if self.inventory and not self.inventory_inaccessible and #self.inventory > 0 then
     txt = txt .. "\nIt contains: "
     for i,item in ipairs(self.inventory) do
       txt = txt .. (i ~= 1 and ", " or "") .. item:get_name(true)

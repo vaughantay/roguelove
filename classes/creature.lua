@@ -6,8 +6,10 @@ Creature = Class{}
 --@param level Number. The level to set the creature to (optional)
 --@param noItems Boolean. Whether to generate without items (optional)
 --@param noTweak Boolean. If true, don't randomize certain values
+--@param info Anything. Passed to the new() function
+--@param ignorenewFunc Boolean. Whether to ignore the new() function
 --@return Creature. The creature itself.
-function Creature:init(creatureType,level,noItems,noTweak)
+function Creature:init(creatureType,level,noItems,noTweak,info,ignoreNewFunc)
   local data = possibleMonsters[creatureType]
   if not data then
     output:out("Error: Tried to create non-existent creature " .. creatureType)
@@ -18,6 +20,9 @@ function Creature:init(creatureType,level,noItems,noTweak)
     if type(val) ~= "function" then
       self[key] = data[key]
     end
+	end
+  if not ignoreNewFunc and (possibleMonsters[creatureType].new ~= nil) then
+		possibleMonsters[creatureType].new(self,(info or nil))
 	end
   if self.gender == "either" then
     self.gender = (random(0,1) == 1 and 'male' or 'female')
@@ -628,17 +633,19 @@ function Creature:get_description()
         if self.target.baseType == "creature" then desc = desc .. "\nTarget: " .. self.target:get_name()
         else desc = desc .. "\nTarget: " .. self.target.x .. ", " .. self.target.y end
       end --end if self.target
-      desc = desc .. "\nWeapons : "
-      for _,item in ipairs(self.equipment.weapon) do
-        desc = desc .. item:get_name(true) .. ", "
-      end
-      desc = desc .. "\nAccessories : "
-      for _,item in ipairs(self.equipment.accessory) do
-        desc = desc .. item:get_name(true) .. ", "
-      end
-      desc = desc .. "\nInventory : "
-      for _,item in ipairs(self.inventory) do
-        desc = desc .. item:get_name(true) .. ", "
+      if self.equipment then
+        if self.equipment.weapon then
+          desc = desc .. "\nWeapons : "
+          for _,item in ipairs(self.equipment.weapon) do
+            desc = desc .. item:get_name(true) .. ", "
+          end
+        end
+      end --end self.equipment if
+      if self.inventory then
+        desc = desc .. "\nInventory : "
+        for _,item in ipairs(self.inventory) do
+          desc = desc .. item:get_name(true) .. ", "
+        end
       end
     end --end debugmode if
   end --end isPlayer
@@ -938,7 +945,7 @@ end
 function Creature:can_move_to(x,y,inMap)
   --First, check to see if the target is A) even in the map, B) has a wall or creature
   inMap = inMap or currMap
-  if x<2 or y<2 or x>inMap.width-1 or y>inMap.height-1 then return false end
+  if not inMap:in_map(x,y) then return false end
   if self.can_move_cache[x .. ',' .. y] ~= nil then return self.can_move_cache[x .. ',' .. y] end
   if inMap[x][y] == "#" or inMap:get_tile_creature(x,y) then
     self.can_move_cache[x .. ',' .. y] = false
@@ -1384,7 +1391,8 @@ function Creature:drop_all_items(deathItems)
   end
   --Money:
   if self.money and self.money > 0 then
-    local money = Item('money',self.money)
+    local money = Item('money')
+    money.amount = self.money
     currMap:add_item(money,self.x,self.y,true)
   end
   self.inventory = {}
