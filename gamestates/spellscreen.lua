@@ -96,6 +96,7 @@ function spellscreen:draw()
 		spells[i] = spellID
     local name = spell.name
     local target_type = spell.target_type
+    local active = spell.active
     local upgrade = (spellPoints > 0 and (count(spell:get_possible_upgrades()) > 0))
     --Draw the highlight box:
     if (self.cursorY == i) then
@@ -114,14 +115,15 @@ function spellscreen:draw()
     end
     if player.cooldowns[name] or spell:requires(player) == false then
       if moused or self.cursorY == i then
-        setColor(25,25,(upgrade and 0 or 25),255)
+        setColor((active and (upgrade and 12 or 0) or 25),25,(upgrade and 0 or (active and 0 or 25)),255)
       else
-        setColor(100,100,(upgrade and 0 or 100),255)
+        setColor((active and (upgrade and 50 or 0) or 100),100,(upgrade and 0 or (active and 0 or 100)),255)
       end
     else
-      setColor(255,255,(upgrade and 0 or 255),255)
+      setColor((active and (upgrade and 200 or 100) or 255),255,(upgrade and 0 or (active and 100 or 255)),255)
     end --end cooldowns if
-		love.graphics.print((spell.hotkey and spell.hotkey .. ") " or "") .. name .. (player.cooldowns[name] and " (" .. player.cooldowns[name] .. " turns to recharge)" or "") .. (target_type == "passive" and " (Passive)" or "") .. (upgrade and " (+)" or ""),x+padX,printY)
+    local fullText = (spell.hotkey and spell.hotkey .. ") " or "") .. name .. (player.cooldowns[name] and " (" .. player.cooldowns[name] .. " turns to recharge)" or "") .. (target_type == "passive" and " (Passive)" or "") .. (active and " (Active)" or "") .. (upgrade and " (+)" or "")
+		love.graphics.print(fullText,x+padX,printY)
     setColor(255,255,255,255)
 		line = line+1
     self.spellLines[i] = {minY=printY,maxY=printY+fontSize+2}
@@ -146,6 +148,37 @@ function spellscreen:draw()
     if target_type == "passive" then
       spellText = spellText .. "\n\nThis ability is passive and is used automatically when needed."
     end
+    if spell.toggled then
+      if not spell.no_manual_deactivate then
+        spellText = spellText .. "\n\nThis ability can be toggled on and off at will and has an effect over time while activated."
+      else
+        spellText = spellText .. "\n\nThis ability can be toggled on and has an effect over time while activated."
+      end
+      local move = spell.deactivate_on_move or spell.deactivate_on_all_actions
+      local attack = spell.deactivate_on_attack or spell.deactivate_on_all_actions
+      local ranged = spell.deactivate_on_ranged_attack or spell.deactivate_on_all_actions
+      local item = spell.deactivate_on_item or spell.deactivate_on_all_actions
+      local cast = spell.deactivate_on_cast or spell.deactivate_on_all_actions
+      if move or attack or ranged or item or cast then
+        spellText = spellText .. "\nThis ability is deactivated when you"
+        if move then
+          spellText = spellText .. " move"
+        end
+        if attack then
+          spellText = spellText .. (move and "," .. (not cast and not ranged and not item and " or" or "") or "") .. " attack"
+        end
+        if ranged then
+          spellText = spellText .. ((move or attack) and "," .. (not cast and not item and " or" or "") or "") .. " use a ranged attack"
+        end
+        if item then
+          spellText = spellText .. ((move or ranged or attack) and "," .. (not cast and " or" or "") or "") .. " use an item"
+        end
+        if cast then
+          spellText = spellText .. ((move or ranged or item or attack) and ", or" or "") .. " cast another spell"
+        end
+        spellText = spellText .. "."
+      end
+    end
     
     local oldFont = love.graphics.getFont()
     love.graphics.setFont(fonts.textFont)
@@ -162,13 +195,13 @@ function spellscreen:draw()
         setColor(175,175,175,255)
       end
       local buttonHeight = 32
-      local useText = "Use"
+      local useText = ((spell.active and not spell.no_manual_deactivate) and "Stop" or "Use")
       local buttonWidth = fonts.buttonFont:getWidth(useText)+25
-      if player.cooldowns[spell.name] or spell:requires(player) == false then
+      if player.cooldowns[spell.name] or spell:requires(player) == false or (spell.active and spell.no_manual_deactivate) then
         setColor(100,100,100,255)
       end
       self.buttons.use = output:button(printX,printY,buttonWidth,false,(self.cursorX == 2 and self.sidebarCursorY == 1 and "hover" or nil),useText,true)
-      if player.cooldowns[spell.name] or spell:requires(player) == false then
+      if player.cooldowns[spell.name] or spell:requires(player) == false or (spell.active and spell.no_manual_deactivate) then
         if selected then setColor(255,255,255,255)
         else setColor(175,175,175,255) end
       end
@@ -190,6 +223,12 @@ function spellscreen:draw()
     if spell.cost then
       statText = statText .. "\nMP Cost: " .. spell.cost
     end
+    if spell.cost_per_turn then
+      statText = statText .. "\nMP Cost per Turn: " .. spell.cost_per_turn
+    end
+    if spell.max_active_turns then
+      statText = statText .. "\nMax Active Turns: " .. spell.max_active_turns
+    end
     if spell.cooldown then
       statText = statText .. "\nCooldown: " .. spell.cooldown .. " Turns"
     end
@@ -198,6 +237,9 @@ function spellscreen:draw()
     end
     if spell.range then
       statText = statText .. "\nMax Range: " .. spell.range
+    end
+    if spell.deactivate_on_damage_chance then
+      statText = statText .. "\nChance of Deactivation when Damaged: " .. spell.deactivate_on_damage_chance .. "%"
     end
     if spell.stats then
       local tempstats = {}
@@ -252,14 +294,15 @@ function spellscreen:draw()
           local buttonW = 34
           local details = spell.possible_upgrades[id]
           local level_details = spell.possible_upgrades[id][level]
-          local name = (level_details.name and details.name or ucfirst(id))
+          local name = (level_details.name or details.name or ucfirst(id))
           local description = (level_details.description or details.description or nil)
           local i = 1
           for stat,amt in pairs(level_details) do
             if type(amt) ~= "boolean" then
               local statName = (spell.stats and spell.stats[stat] and spell.stats[stat].name or ucfirst(stat))
+              statName = string.gsub(statName,'_',' ')
               if i == 1 then description = (description and description .. " " or "") end
-              description = description .. (i > 1 and ", " or "") .. statName .. (type(amt) == "number" and (amt < 0 and " -" or " +") or ": ") .. amt
+              description = description .. (i > 1 and ", " or "") .. statName .. (type(amt) == "number" and (amt < 0 and " " or " +") or ": ") .. amt
               i = i + 1
             end
           end --end stat for

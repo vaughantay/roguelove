@@ -42,6 +42,7 @@ function Creature:init(creatureType,level,noItems,noTweak,info,ignoreNewFunc)
   self.magic = (noTweak and self.magic or tweak(self.magic or 0))
 	self.conditions = {}
 	self.spells = {}
+  self.active_spells = {}
   if data.spells then
     for _,spellID in ipairs(data.spells) do
       self:learn_spell(spellID)
@@ -490,6 +491,15 @@ function Creature:damage(amt,attacker,damage_type,armor_piercing,noSound,item)
     for _,item in pairs(self.equipment_list) do
       item:decrease_all_enchantments('damaged')
     end
+    --Cancel active spells if applicable:
+    for id,data in pairs(self.active_spells) do
+      if data.spell.deactivate_on_damage_chance and random(1,100) <= data.spell.deactivate_on_damage_chance then
+        local t = data.target
+        local mp = data.ignoreMP
+        local cd = data.ignoreCooldowns
+        data.spell:finish(t, self, cd, mp)
+      end
+    end
 		return amt
 	else
 		return 0
@@ -700,7 +710,7 @@ function Creature:get_bonus(bonusType)
 	end
   for _, spell in pairs(self:get_spells()) do
     local spellID = spell.id
-		if (spell.bonuses ~= nil) then
+		if spell.bonuses ~= nil and (not spell.bonuses_only_when_active or spell.active) then
 			local b = spell.bonuses[bonusType]
 			if (b ~= nil) then
         bonus = bonus + b
@@ -849,6 +859,15 @@ function Creature:attack(target,forceHit,ignore_callbacks)
 				end -- end condition chance
 			end	-- end condition forloop
 		end -- end hit if
+    --Cancel active spells if applicable:
+    for id,data in pairs(self.active_spells) do
+      if data.spell.deactivate_on_attack or data.spell.deactivate_on_all_actions then
+        local t = data.target
+        local mp = data.ignoreMP
+        local cd = data.ignoreCooldowns
+        data.spell:finish(t, self, cd, mp)
+      end
+    end
 		return dmg
 	else -- if not touching target
 		return false
@@ -927,6 +946,14 @@ function Creature:advance(skip_conditions)
       end --end max_charges if
     end --end ranged_attack if
   end --end skip_conditions if
+  
+  --Active spells:
+  if self.active_spells then
+    for id,data in pairs(self.active_spells) do
+      local spell = data.spell
+      spell:advance_active(data.target,self,data.ignoreColldowns,data.ignoreMP)
+    end
+  end
   local totalTime = os.clock()-startTime
   --profiler.stop()
   if totalTime >= 0.005 then
@@ -1067,6 +1094,15 @@ function Creature:moveTo(x,y, skip_callbacks,noTween)
         --Update seen creatures:
         self.sees = nil
         if self == player then self.sees = self:get_seen_creatures() end
+        --Cancel active spells if applicable:
+        for id,data in pairs(self.active_spells) do
+          if data.spell.deactivate_on_move or data.spell.deactivate_on_all_actions then
+            local t = data.target
+            local mp = data.ignoreMP
+            local cd = data.ignoreCooldowns
+            data.spell:finish(t, self, cd, mp)
+          end
+        end
       end --end if(canEnter)
 		else -- if the square isn't clear
 			local blocker = currMap:get_tile_creature(x,y,true)
@@ -1200,6 +1236,14 @@ function Creature:die(killer)
     if self.lastAttackerWeapon then
       weap.kills = (weap.kills or 0)+1
       weap:decrease_all_enchantments('kill') --decrease the turns left for any enchantments that decrease on kill
+    end
+    
+    --Deactivate all active spells:
+    for id,data in pairs(self.active_spells) do
+      local t = data.target
+      local mp = data.ignoreMP
+      local cd = data.ignoreCooldowns
+      data.spell:finish(t, self, cd, mp)
     end
     
     --Corpse time:
@@ -2612,7 +2656,7 @@ function Creature:can_learn_spell(spellID)
     end
   elseif player.forbidden_spell_tags and count(player.forbidden_spell_tags) > 0 then
     for _,tag in ipairs(player.forbidden_spell_tags) do
-      if spell:has_tag(tag) then
+      if spell.tags and in_table(tag,spell.tags) then
         return false,"You're unable to learn this type of ability."
       end
     end

@@ -97,6 +97,15 @@ function ranged_attack:use(target, attacker, item)
     end
     proj.source_item = item
   end --end if item
+  --Deactivate applicable spells:
+  for id,data in pairs(attacker.active_spells) do
+    if data.spell.deactivate_on_ranged_attack or data.spell.deactivate_on_all_actions then
+      local t = data.target
+      local mp = data.ignoreMP
+      local cd = data.ignoreCooldowns
+      data.spell:finish(t, attacker, cd, mp)
+    end
+  end
   return proj
 end
 

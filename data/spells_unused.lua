@@ -409,19 +409,6 @@ fireshield = Spell({
 	end
 }),
 
-fireaura = Spell({
-	name = "Fiery Aura",
-	description = "A radius of intense heat flares out from you when you get hit, dealing damage to all who dare approach.",
-	cooldown = 0,
-	target_type = "passive",
-	damaged = function(self,possessor,attacker)
-    if possessor.magic > 0 then
-      possessor:give_condition('fireaura',random(5,10),attacker)
-      conditions['fireaura']:advance(possessor)
-    end
-	end
-}),
-
 veganism = Spell({
 	name = "Vegan Metabolism",
 	description = "Your healthy lifestyle has massively accelerated your body's healing process. You regain HP over time, as long as you stay active.",

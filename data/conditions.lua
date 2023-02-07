@@ -135,21 +135,17 @@ bleeding=Condition({
 		advance = function(self,possessor)
 			for x=possessor.x-1,possessor.x+1,1 do
 				for y=possessor.y-1,possessor.y+1,1 do
-					local makeFire = true
-           for _,e in pairs(currMap:get_tile_effects(x,y)) do
-            if e.id == "fireaura" then makeFire = false end
-          end --end effect for
-          if makeFire == true then
-            local fire = Effect('fireaura',possessor)
-            currMap:add_effect(fire,x,y)
-            fire:refresh_image_name()
+          if currMap:in_map(x,y) then
+            local e = currMap:tile_has_effect(x,y,'fireaura')
+            if not e then
+              local fire = Effect('fireaura',possessor)
+              currMap:add_effect(fire,x,y)
+              fire:refresh_image_name()
+            end
           end --end makeFire if
 				end --end yfor
 			end --end xfor
-		end, --end advance function
-    moved = function(self,possessor)
-      self:advance(possessor)
-    end
+		end
 	}),
 	
 	slimy = Condition({

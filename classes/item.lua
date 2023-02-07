@@ -233,6 +233,15 @@ function Item:use(target,user,ignoreCooldowns)
         self.charges = self.charges - 1
       end
     end
+    --Deactivate applicable spells:
+    for id,data in pairs(user.active_spells) do
+    if data.spell.deactivate_on_item or data.spell.deactivate_on_all_actions then
+      local t = data.target
+      local mp = data.ignoreMP
+      local cd = data.ignoreCooldowns
+      data.spell:finish(t, user, cd, mp)
+    end
+  end
     return (status == nil and true or status),r
   end
   --TODO: Generic item use here:

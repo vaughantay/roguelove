@@ -337,7 +337,7 @@ function fireaura:refresh_image_name()
   if directions == "" then self.tileDirection = "middle" else self.tileDirection = directions end
 end
 function fireaura:advance()
-	if (self.owner.conditions['fireaura'] == nil or math.floor(calc_distance(self.owner.x,self.owner.y,self.x,self.y)) > 1 or self.owner.hp < 1) then
+	if (self.owner.conditions['fireaura'] == nil or not currMap:touching(self.owner.x,self.owner.y,self.x,self.y) or self.owner.hp < 1) then
 		self:delete()
 	else
     self:refresh_image_name()

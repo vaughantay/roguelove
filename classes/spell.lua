@@ -44,13 +44,24 @@ end
 --@param ignoreCooldowns Boolean. If set to true, this will ignore whether or not the spell is on a cooldown.
 --@return Boolean. Whether the spell was successfully able to be cast/targeted or not.
 function Spell:target(target,caster, ignoreCooldowns, ignoreMP)
+  if self.active then --If the spell is already active, don't cast it
+    print(self.name)
+    if self.no_manual_deactivate then
+      return false
+    end
+    local data = caster.active_spells[self.id]
+    local t = data.target
+    local mp = data.ignoreMP
+    local cd = data.ignoreCooldowns
+    return self:finish(t, caster, cd, mp)
+  end
   local req, reqtext = self:requires(caster)
-  if (not ignoreCooldowns and caster.cooldowns[self.name]) then
-		if (caster == player) then output:out("You can't use that ability again for another " .. caster.cooldowns[self.name] .. " turns.") end
-		return false
-  elseif req == false then
+  if req == false then
     if (caster == player) then output:out((reqtext or "You can't use that ability right now.")) end
     return false
+  elseif (not ignoreCooldowns and caster.cooldowns[self.name]) then
+		if (caster == player) then output:out("You can't use that ability again for another " .. caster.cooldowns[self.name] .. " turns.") end
+		return false
   elseif not ignoreMP and caster.mp and self.cost and self.cost > caster.mp then
     if (caster == player) then output:out("You don't have enough magic points to use that ability.") end
 		return false
@@ -83,13 +94,24 @@ end
 --@param ignoreMP Boolean. If set to true, this will make the spell not use MP when cast
 --@return Boolean. Whether the spell was successfully able to be cast or not.
 function Spell:use(target, caster, ignoreCooldowns, ignoreMP)
+  if self.active then --If the spell is already active, don't cast it
+    if self.no_manual_deactivate then
+      return false
+    end
+    local data = caster.active_spells[self.id]
+    local t = data.target
+    local mp = data.ignoreMP
+    local cd = data.ignoreCooldowns
+    return self:finish(t, caster, cd, mp)
+  end
+  --First, check all requirements:
   local req, reqtext = self:requires(caster)
-	if (not ignoreCooldowns and caster.cooldowns[self.name]) then
-		if (caster == player) then output:out("You can't use that ability again for another " .. caster.cooldowns[self.name] .. " turns.") end
-		return false
-  elseif req == false then
+  if req == false then
     if (caster == player) then output:out((reqtext or "You can't use that ability right now.")) end
     return false
+	elseif (not ignoreCooldowns and caster.cooldowns[self.name]) then
+		if (caster == player) then output:out("You can't use that ability again for another " .. caster.cooldowns[self.name] .. " turns.") end
+		return false
   elseif not ignoreMP and caster.mp and self.cost and self.cost > caster.mp then
     if (caster == player) then output:out("You don't have enough magic points to use that ability.") end
 		return false
@@ -104,24 +126,111 @@ function Spell:use(target, caster, ignoreCooldowns, ignoreMP)
       print(errtxt)
       return false
     end
-    if r ~= false or r == nil then
+    if r ~= false or r == nil then --if the cast succeeded
+      --Stop active spells that deactivate on cast
+      for id,data in pairs(caster.active_spells) do
+        if data.spell.deactivate_on_cast or data.spell.deactivate_on_all_actions then
+          local t = data.target
+          local mp = data.ignoreMP
+          local cd = data.ignoreCooldowns
+          data.spell:finish(t, caster, cd, mp)
+        end
+      end
       if self.sound and player:can_see_tile(caster.x,caster.y) then output:sound(self.sound) end
       if caster == player then update_stat('ability_used',self.name) end
-      if ((self.cooldown and self.cooldown > 0) or (caster ~= player and self.AIcooldown and self.AIcooldown > 0)) and not ignoreCooldowns then 
+      --Add cooldown
+      if ((self.cooldown and self.cooldown > 0) or (caster ~= player and self.AIcooldown and self.AIcooldown > 0)) and not ignoreCooldowns and not self.toggled then --Don't add cooldown to a toggled spell, add it when the spell is finished
         caster.cooldowns[self.name] = (caster ~= player and self.AIcooldown or self.cooldown)
       end
+      --Decrease MP
       if not ignoreMP and caster.mp and self.cost then
         caster.mp = caster.mp - self.cost
       end
+      --Decrease charges
       if not ignoreMP and self.charges then
         self.charges = self.charges - 1
       end
+      --If it's a toggled spell, save necessary info to the caster
+      if self.toggled then
+        caster.active_spells[self.id] = {caster=caster,target=target,ignoreMP=ignoreMP,ignoreCooldowns=ignoreCooldowns,turns=0,spell=self}
+        self.active = true
+      end
     end --end false/nil if
-		return (r == nil and true or r) -- this looks weird, but it's so that spells can return false
+		return (r == nil and true or r) -- this looks weird, but it's so that spells return false by default if they don't return anything
 	end
 end
 
---Placeholder for the decide() callback, which is used by the AI to decide where to target a spell. Defaults to the already-selected target.
+---Placeholder for the advance_active() callback, which is called every turn a spell is active
+--@param target Entity. The target of the spell.
+--@param caster Creature. The caster of the spell.
+--@param ignoreCooldowns Boolean. If set to true, this will ignore whether or not the spell is on a cooldown.
+--@param ignoreMP Boolean. If set to true, this will make the spell not use MP when cast
+--@return Boolean. False if the spell ends, true otherwise
+function Spell:advance_active(target,caster, ignoreCooldowns, ignoreMP)
+  local data = caster.active_spells[self.id]
+  target = target or data.target
+  ignoreCooldowns = ignoreCooldowns or data.ignoreCooldowns
+  ignoreMP = ignoreMP or data.ignoreMP
+  --First check to see if we have enough MP:
+  if not ignoreMP and self.cost_per_turn then
+    if caster.mp < self.cost_per_turn then
+      self:finish(target, caster, ignoreCooldowns, ignoreMP)
+      return false
+    end
+  end
+  --Do the spell code:
+  if possibleSpells[self.id].advance_active then
+    local status,r = pcall(possibleSpells[self.id].advance_active,self,target,caster)
+    if not status then
+      local errtxt = "Error from " .. caster:get_name() .. " channeling spell " .. self.name .. ": " .. r
+      output:out(errtxt)
+      print(errtxt)
+      return false
+    end
+    if r == false then return false end
+  end
+  --The below should only run if the cast was successful:
+  --Decrease MP
+  if self.cost_per_turn then caster.mp = caster.mp - self.cost_per_turn end
+  --Increment turn count
+    data.turns = (data.turns or 0) + 1
+  --if turn count is too high, turn it off
+  if self.max_active_turns and data.turns >= self.max_active_turns then
+    self:finish(target, caster, ignoreCooldowns, ignoreMP)
+    return false
+  end
+  return true
+end
+
+---Placeholder for the finish() callback, which is called when a spell is toggled off or stops being channeled.
+--@param target Entity. The target of the spell.
+--@param caster Creature. The caster of the spell.
+--@param ignoreCooldowns Boolean. If set to true, this will ignore whether or not the spell is on a cooldown.
+--@param ignoreMP Boolean. If set to true, this will make the spell not use MP when cast
+function Spell:finish(target,caster, ignoreCooldowns, ignoreMP)
+  local data = caster.active_spells[self.id]
+  target = target or data.target
+  ignoreCooldowns = ignoreCooldowns or data.ignoreCooldowns
+  ignoreMP = ignoreMP or data.ignoreMP
+  if possibleSpells[self.id].finish then
+    local status,r = pcall(possibleSpells[self.id].finish,self,target,caster)
+    if not status then
+      local errtxt = "Error from " .. caster:get_name() .. " finishing spell " .. self.name .. ": " .. r
+      output:out(errtxt)
+      print(errtxt)
+      return false
+    end
+    if r == false then return false end
+  end
+  if ((self.cooldown and self.cooldown > 0) or (caster ~= player and self.AIcooldown and self.AIcooldown > 0)) and not ignoreCooldowns then 
+    caster.cooldowns[self.name] = (caster ~= player and self.AIcooldown or self.cooldown)
+  end
+  caster.active_spells[self.id] = nil
+  self.active = false
+  return true
+end
+
+---Placeholder for the decide() callback, which is used by the AI to decide where to target a spell. Defaults to the already-selected target.
 --@param target Entity. The original target of the spell.
 --@param caster Creature. The creature casting the spell.
 --@param use_type String. The way in which this spell is being used. Either aggressive, defensive, fleeing or friendly.
@@ -131,7 +240,7 @@ function Spell:decide(target,caster,use_type)
   return target --default to already-selected target
 end
 
---Placeholder for the requires() callback, used to determine if the creature meets the requirements for using the spell
+---Placeholder for the requires() callback, used to determine if the creature meets the requirements for using the spell
 --@param possessor Creature. The creature who's trying to use the spell.
 --@return true
 function Spell:requires(possessor)
@@ -139,7 +248,7 @@ function Spell:requires(possessor)
   return true
 end
 
---Placeholder for the learn_requires() callback, used to determine if the creature meets the requirements for using the spell
+---Placeholder for the learn_requires() callback, used to determine if the creature meets the requirements for using the spell
 --@param possessor Creature. The creature who's trying to use the spell.
 --@return true
 function Spell:learn_requires(possessor)
@@ -147,7 +256,7 @@ function Spell:learn_requires(possessor)
   return true
 end
 
---Placeholder for the get_target_tiles() function
+---Placeholder for the get_target_tiles() function
 --@param possessor Creature. The creature who's trying to use the spell.
 --@return true
 function Spell:get_target_tiles(target,possessor)

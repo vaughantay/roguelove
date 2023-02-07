@@ -433,8 +433,12 @@ function game:print_sidebar()
         player.hotkeys[i] = nil
       else
         if hotkeyInfo.type == "spell" then
-          name = hotkeyItem.name .. (player.cooldowns[hotkeyItem.name] and " (" .. player.cooldowns[hotkeyItem.name] .. " turns)" or "") .. (hotkeyItem.charges and " (" .. hotkeyItem.charges .. ")" or "")
-          canUse = not player.cooldowns[hotkeyItem.name] and hotkeyItem:requires(player)
+          local no_deactivate = (hotkeyItem.active and hotkeyItem.no_manual_deactivate)
+          name = hotkeyItem.name .. (player.cooldowns[hotkeyItem.name] and " (" .. player.cooldowns[hotkeyItem.name] .. " turns)" or "") .. (hotkeyItem.charges and " (" .. hotkeyItem.charges .. ")" or "") .. (hotkeyItem.active and " (Active)" or "")
+          canUse = not player.cooldowns[hotkeyItem.name] and hotkeyItem:requires(player) and not no_deactivate
+          if no_deactivate then
+            canUseText = "You cannot manually deactivate this ability."
+          end
         elseif hotkeyInfo.type == "item" then
           name = hotkeyItem:get_name(true) .. (player.cooldowns[hotkeyItem] and " (" .. player.cooldowns[hotkeyItem] .. " turns)" or "") .. (hotkeyItem.charges and " (" .. hotkeyItem.charges .. ")" or "")
           canUse,canUseText = player:can_use_item(hotkeyItem)
@@ -450,13 +454,13 @@ function game:print_sidebar()
         if self.spellButtons[i].hover == true then
           descBox = {desc=description .. (canUseText and "\n" .. canUseText or ""),x=minX,y=minY}
         end
-        if canUse == false then
+        if hotkeyItem.active then
+          setColor(100,(canUse and 255 or 175),100,255)
+        elseif canUse == false then
           setColor(200,200,200,255)
         end
         love.graphics.print((i == 10 and 0 or i) .. ") " .. name,printX+xPad,printY+buttonPadding*(hkcount-1)-2+yBonus)
-        if canUse == false then
-          setColor(255,255,255,255)
-        end
+        setColor(255,255,255,255)
       end
     end
   end
@@ -503,7 +507,7 @@ function game:print_sidebar()
   end
   printY = printY+(buttonPadding*spellcount)]]
 	
-	if (next(player.conditions) ~= nil) then
+	if (next(player.conditions) ~= nil or next(player.active_spells) ~= nil) then
     love.graphics.printf("Conditions:",printX,printY,335,"center")
 		local conText = ""
 		local count = 1
@@ -514,6 +518,11 @@ function game:print_sidebar()
 				count = count + 1
 			end
 		end
+    for sid,data in pairs(player.active_spells) do
+      if (count > 1) then conText = conText .. ", " end
+      conText = conText .. data.spell.name
+      count = count + 1
+    end
 		love.graphics.printf(conText,printX+xPad,printY+fontSize,335)
     local currFont = love.graphics.getFont()
     local _,wrapText = currFont:getWrap(conText,335)
@@ -652,7 +661,7 @@ function game:print_target_sidebar()
 
     local yPadNow = fontPadding*#ranged_attacks
     love.graphics.print("Chance to Be Hit: " .. calc_hit_chance(creat,player) .. "%",printX+xPad,printY+yPadNow)
-		if (next(creat.conditions) ~= nil) then
+		if (next(creat.conditions) ~= nil or next(creat.active_spells) ~= nil) then
       love.graphics.printf("Conditions:",printX,printY+fontPadding*2+yPadNow,335,"center")
       local conText = ""
       local count = 1
@@ -662,6 +671,11 @@ function game:print_target_sidebar()
           conText = conText .. conditions[condition].name
           count = count + 1
         end
+      end
+      for sid, data in pairs(creat.active_spells) do
+        if (count > 1) then conText = conText .. ", " end
+        conText = conText .. data.spell.name
+        count = count + 1
       end
       love.graphics.printf(conText,printX+5,printY+fontPadding*3+yPadNow,335)
     end

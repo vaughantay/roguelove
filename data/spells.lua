@@ -18,13 +18,13 @@ blast = {
     max_stun={value=0,name="Maximum Stun Turns",stat_type="condition_turns",hide_when_zero=true,display_order=6},
     min_confusion={value=0,name="Minimum Confusion Turns",stat_type="condition_turns",hide_when_zero=true,display_order=7},
     max_confusion={value=0,name="Maximum Confusion Turns",stat_type="condition_turns",hide_when_zero=true,display_order=8},
-    amnesia={value=false,name="Amnesia",description="Causes the target to forget they ever saw you.",display_order=9} --values set to false will always be hidden
+    amnesia={value=false,name="Amnesia",description="Causes the target to forget they ever saw you.",display_order=9} --values set to false will be hidden
   },
   possible_upgrades={
     damage={{min_damage=2,max_damage=3},{min_damage=5,max_damage=7},name="Damage"},
     confusion={{confusion_chance=10,min_confusion=4,max_confusion=6},{confusion_chance=15,min_confusion=2,max_confusion=4},name="Confusion"},
     stun={{stun_chance=10,min_stun=2,max_stun=3},{stun_chance=15,min_stun=1,max_stun=2},name="Stunning"},
-    amnesia={{amnesia=true},name="Amnesia",description="Causes the target to forget they ever saw you.",playerOnly=true},
+    amnesia={{amnesia=true},name="Amnesia",description="Causes the target to forget they ever saw you.",playerOnly=true}, --Value set to true will just display the name and description
   },
 	cast = function(self,target,caster)
     local min,max = self:get_stat('min_damage'),self:get_stat('max_damage')
@@ -145,7 +145,7 @@ smite = {
     },
     possible_upgrades={
       damage={{damage=25},{damage=40},name="Damage"},
-      cooldown={{cooldown=0},name="Remove Cooldown"}
+      cooldown={{cooldown=-5},name="Remove Cooldown"}
     },
     cast = function(self,target,attacker)
       if (attacker.mp and attacker.mp == 0) then
@@ -325,6 +325,30 @@ smallfireball = {
 	end
 },
 
+fireaura = {
+	name = "Fiery Aura",
+	description = "A radius of intense heat flares out from you, dealing damage to all who dare approach.",
+	toggled=true,
+  cost_per_turn=2,
+	target_type = "self",
+	cast = function(self,target,caster)
+    caster:give_condition('fireaura',-1,caster)
+	end,
+  finish = function(self,target,caster)
+    caster:cure_condition('fireaura')
+    for x=caster.x-1,caster.x+1,1 do
+      for y=caster.y-1,caster.y+1,1 do
+        if currMap:in_map(x,y) then
+          local eff = currMap:tile_has_effect(x,y,'fireaura')
+          if eff then
+            eff:delete()
+          end
+        end
+      end
+    end
+  end
+},
+
 explodingfireball = {
 	name="Exploding Fireball",
 	description="Blasts an enormous fireball at an area.",
@@ -357,6 +381,7 @@ firebrand = {
 	target_type = "self",
 	flags = {aggressive=true},
   tags={'fire','buff','magic'},
+  toggled=true,
 	cast = function (self,target,caster)
     local weapons = caster:get_equipped_in_slot('weapon')
     if #weapons > 0 then
@@ -596,23 +621,39 @@ lifedrain = {
   AIcooldown=20,
   flags={aggressive=true},
   tags={'unholy','attack','magic'},
+  toggled=true,
+  deactivate_on_all_actions=true,
+  no_manual_deactivate=true,
+  cost_per_turn=1,
+  max_active_turns=3,
+  deactivate_on_damage_chance=50,
   stats = {
     damage={value=15,name="Damage"}
   },
   possible_upgrades={
-    damage={{damage=20},{damage=30},name="Damage"}
+    damage={{damage=20},{damage=30},name="Damage"},
+    turns={{max_active_turns=2},{max_active_turns=5},name="Max Active Turns"},
+    deactivate_chance={{deactivate_on_damage_chance=-25},{deactivate_on_damage_chance=-25},name="Deactivation Chance"}
   },
   cast = function(self,target,caster)
     if target:is_type('undead') or target:is_type('construct') then
       if caster == player then output:out("You can't drain the life out of something that's not alive.") end
       return false
     end
+    if player:can_see_tile(caster.x,caster.y) then
+      output:out(caster:get_name() .. " begins draining the life from " .. target:get_name() .. ".")
+    end
+  end,
+  advance_active = function(self,target,caster)
     local dmg = target:damage(tweak(self:get_stat('damage')),caster,'dark')
     caster:updateHP(dmg)
     if player:can_see_tile(caster.x,caster.y) then
       output:out(caster:get_name() .. " drains " .. dmg .. " HP from " .. target:get_name() .. ".")
       currMap:add_effect(Effect('animation','unholydamage',5,target,{r=150,g=0,b=150}),target.x,target.y)
       output:sound('unholydamage')
+    end
+    if target.hp < 1 then
+      self:finish(target,caster)
     end
   end
 },
