@@ -24,6 +24,7 @@ keybindings = {
   drop={"d",description="Drop Item",category="Inventory"},
   throw={"t",description="Throw Item",category="Inventory"},
   action={"e",description="Interact with Map Feature",category="Game Commands"},
+  attack={"a",description="Force Attack",category="Game Commands"},
   crafting={"m",description="View Crafting Screen",category="Inventory"},
   yes={"y",description="Yes/Confirm",category="Miscellaneous"},
   no={"n",description="No/Deny",category="Miscellaneous"},

@@ -54,6 +54,12 @@ function game:draw()
     love.graphics.printf(text,2,33,width,"center")
     setColor(255,255,255,255)
     love.graphics.printf(text,0,32,width,"center")
+  elseif action == "attacking" then
+    local text = "Select Direction to Attack\nPress Escape to Cancel"
+    setColor(0,0,0,255)
+    love.graphics.printf(text,2,33,width,"center")
+    setColor(255,255,255,255)
+    love.graphics.printf(text,0,32,width,"center")
   end
 	love.graphics.setFont(fonts.mapFont)
   if self.warning then self.warning:draw() end
@@ -1520,7 +1526,7 @@ function game:keypressed(key,scancode,isRepeat)
       return game_over()
     end
     return false
-	elseif (player.path ~= nil or action=="exploring") then
+	elseif player.path ~= nil then
 		player.path = nil
 		action = "moving"
   elseif self.warning then
@@ -1570,6 +1576,17 @@ function game:keypressed(key,scancode,isRepeat)
 			output.cursorY = 0
     else
       action="targeting"
+    end
+  elseif key == "attack" then
+    if action == "moving" then
+      action = "attacking"
+    elseif action == "attacking" then
+      action = "moving"
+    elseif action == "targeting" then
+      action="attacking"
+      actionResult = nil
+			output.cursorX = 0
+			output.cursorY = 0
     end
   elseif (key == "nextTarget") then
     if action == "targeting" and #output.potentialTargets > 0 then
@@ -1691,6 +1708,8 @@ function game:keypressed(key,scancode,isRepeat)
 			actionResult = nil
 			output.cursorX = 0
 			output.cursorY = 0
+    elseif action == "attacking" then
+      action="moving"
 		else
 			Gamestate.switch(pausemenu)
 		end
@@ -1825,9 +1844,23 @@ function ContextualMenu:init(x,y,printX,printY)
   -- Make the box:
   self.entries = {}
   local spellY = self.y
+  if not self.creature then
+    local feat = currMap:get_blocking_feature(x,y)
+    if feat and feat.attackable then
+      self.attackable_feature = feat
+      self.entries[#self.entries+1] = {name="Attack " .. feat.name,y=spellY,action="attack"}
+      spellY = spellY+fontPadding
+    end
+  end
   if self.creature then
-    self.entries[1] = {name="Set as Target",y=spellY+fontPadding,action="target"}
-    spellY = spellY+fontPadding*2
+    spellY = spellY+fontPadding
+    local touching = player:touching(self.creature)
+    if touching then
+      self.entries[#self.entries+1] = {name="Attack",y=spellY,action="attack"}
+      spellY = spellY+fontPadding
+    end
+    self.entries[#self.entries+1] = {name="Set as Target",y=spellY,action="target"}
+    spellY = spellY+fontPadding
     local ranged_attacks = player:get_ranged_attacks()
     if #ranged_attacks > 0 then
       local ranged_text = "Ranged: "
@@ -1841,7 +1874,7 @@ function ContextualMenu:init(x,y,printX,printY)
         if i < #ranged_attacks then ranged_text = ranged_text .. ", " end
       end --end ranged attack for
       
-      self.entries[2] = {name=ranged_text,y=spellY,action="ranged",cooldown=player.ranged_recharge_countdown}
+      self.entries[#self.entries+1] = {name=ranged_text,y=spellY,action="ranged",cooldown=player.ranged_recharge_countdown}
       spellY = spellY+fontPadding
       --[[if attack.active_recharge then
         self.entries[3] = {name="Recharge/Reload",y=spellY,action="recharge"}
@@ -1849,7 +1882,7 @@ function ContextualMenu:init(x,y,printX,printY)
       end]]
     end
   else
-    self.entries[1] = {name="Move To",y=spellY,action="moveto"}
+    self.entries[#self.entries+1] = {name="Move To",y=spellY,action="moveto"}
     spellY = spellY+fontPadding
   end
   local touching = currMap:touching(player.x,player.y,x,y)
@@ -1865,7 +1898,7 @@ function ContextualMenu:init(x,y,printX,printY)
   for _,spell in pairs(player:get_spells()) do
     local spellID = spell.id
     if spell.target_type == "tile" or spell.target_type == "self" or (spell.target_type == "creature" and self.creature) then
-      self.entries[#self.entries+1] = {name=spell.name,y = spellY,action=spell,cooldown=player.cooldowns[spell.name]}
+      self.entries[#self.entries+1] = {name=spell.name,y = spellY,action=spell,cooldown=player.cooldowns[spell.name],charges=spell.charges,active=spell.active}
       spellY = spellY+fontPadding
     end
   end
@@ -1923,11 +1956,12 @@ function ContextualMenu:draw()
     love.graphics.line(self.x,self.y+fontPadding,self.x+self.width+1,self.y+fontPadding)
   end
   for _,item in ipairs(self.entries) do
-    if item.cooldown then
+    local no_deactivate = (item.active and item.no_manual_deactivate)
+    if item.cooldown or no_deactivate then
       setColor(100,100,100,255)
     end
-    love.graphics.print(item.name .. (item.cooldown and " (" .. item.cooldown .. " turns)" or ""),self.x,item.y)
-    if item.cooldown then
+    love.graphics.print(item.name .. (item.cooldown and " (" .. item.cooldown .. " turns)" or "") .. (item.charges and " (" .. item.charges .. ")" or "") ..(item.active and " (Active)" or ""),self.x,item.y)
+    if item.cooldown or no_deactivate then
       setColor(255,255,255,255)
     end
   end
@@ -1948,7 +1982,10 @@ function ContextualMenu:click(x,y)
     end
   end
   if useItem then
-    if useItem.action == "target" then
+    if useItem.action == "attack" then
+      player:attack(self.creature or self.attackable_feature)
+      advance_turn()
+    elseif useItem.action == "target" then
       target = self.creature
     elseif useItem.action == "moveto" then
       if player:touching(self.target) then
@@ -2047,8 +2084,7 @@ function ContextualMenu:click(x,y)
       if useItem.action.target_type == "self" then
         if useItem.action:use(self.creature or self.target,player) then advance_turn() end
       else
-        action = "targeting"
-        actionResult = useItem.action
+        useItem.action:target(nil,player)
         setTarget(self.target.x,self.target.y)
       end --end target type if
     end

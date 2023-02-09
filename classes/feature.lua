@@ -121,6 +121,8 @@ function Feature:moveTo(x,y,noTween)
     self.moveTween = tween(.1,self,{xMod=0,yMod=0},'linear')
   end
   currMap.contents[self.x][self.y][self] = nil
+  currMap.feature_cache[x .. ',' .. y] = nil
+  currMap.feature_cache[self.x .. ',' .. self.y] = nil
   self.x,self.y=x,y
   currMap.contents[x][y][self] = self
   if possibleFeatures[self.id].moves then return possibleFeatures[self.id].moves(self,x,y) end
@@ -190,6 +192,7 @@ function Feature:is_hazardous_for(ctype)
   if self.hazard and ((self.hazardousFor == nil and (ctype == nil or self.safeFor == nil or self.safeFor[ctype] ~= true)) or (ctype ~= nil and self.hazardousFor and self.hazardousFor[ctype] == true)) then
     return true 
   end
+  return false
 end
 
 ---Checks a feature's combust() callback, if applicable, and then lights it on fire if applicable.

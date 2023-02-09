@@ -589,8 +589,19 @@ function perform_move(direction)
 	end
   if action == "targeting" then
     output:moveCursor(xMod,yMod)
-	elseif (action == "moving") then
+	elseif action == "moving" then
     move_player(player.x+xMod,player.y+yMod)
+  elseif action == "attacking" then
+    local entity = currMap:get_tile_creature(player.x+xMod,player.y+yMod,true)
+    if entity then
+      player:attack(entity)
+      if entity.baseType == "creature" then
+        target = entity
+      end
+      action = "moving"
+    else
+      output:out("There's nothing there to attack.")
+    end
   end
 end
   
@@ -624,9 +635,11 @@ function move_player(newX,newY,force)
         break --if there's a creature, we'll deal with them and ignore features
       elseif entity.baseType == "feature" then
         if entity.pushable == true and entity:push(player) then
+          player.can_move_cache[newX .. ',' .. newY] = nil
           player:moveTo(newX,newY)
         elseif entity.attackable == true then
           player:attack(entity)
+          player.can_move_cache[newX .. ',' .. newY] = nil
         else
           --return false
         end --end possessable if

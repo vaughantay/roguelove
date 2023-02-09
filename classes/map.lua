@@ -172,7 +172,7 @@ end
 --@return Entity or Boolean. Will be FALSE if there's nothing there.
 function Map:get_tile_creature(x,y,get_attackable_features,ignoreNoDraw)
   if (x<2 or y<2 or x>=self.width or y>=self.height) then return false end
-  if self.creature_cache[x .. ',' .. y] ~= nil then return self.creature_cache[x .. ',' .. y] end
+  if not get_attackable_features and self.creature_cache[x .. ',' .. y] ~= nil then return self.creature_cache[x .. ',' .. y] end
 	if (next(self.contents) == nil) then
     self.creature_cache[x .. ',' .. y] = false
 		return false
@@ -187,7 +187,6 @@ function Map:get_tile_creature(x,y,get_attackable_features,ignoreNoDraw)
 			end
 		end
     if tileFeat then
-      self.creature_cache[x .. ',' .. y] = tileFeat
       return tileFeat
     end
 	end
@@ -556,6 +555,10 @@ function Map:swap(creature1,creature2)
 	creature1.x,creature1.y,creature2.x,creature2.y = orig1x,orig1y,orig2x,orig2y
 	currMap.contents[orig1x][orig1y][creature1] = nil
 	currMap.contents[orig2x][orig2y][creature2] = nil
+  currMap.creature_cache[creature1.x .. "," .. creature1.y] = nil
+  currMap.creature_cache[creature2.x .. "," .. creature2.y] = nil
+  creature1.can_move_cache[orig2x .. ',' .. orig2y] = nil
+  creature2.can_move_cache[orig1x .. ',' .. orig1y] = nil
 	creature1:moveTo(orig2x,orig2y)
 	creature2:moveTo(orig1x,orig1y)
 end

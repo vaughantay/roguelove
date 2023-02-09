@@ -47,6 +47,7 @@ function Spell:target(target,caster, ignoreCooldowns, ignoreMP)
   if self.active then --If the spell is already active, don't cast it
     print(self.name)
     if self.no_manual_deactivate then
+      output:out("That ability can't be manually deactivated.")
       return false
     end
     local data = caster.active_spells[self.id]
@@ -96,6 +97,7 @@ end
 function Spell:use(target, caster, ignoreCooldowns, ignoreMP)
   if self.active then --If the spell is already active, don't cast it
     if self.no_manual_deactivate then
+      output:out("That ability can't be manually deactivated.")
       return false
     end
     local data = caster.active_spells[self.id]
