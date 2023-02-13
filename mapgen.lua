@@ -46,7 +46,8 @@ function mapgen:generate_map(branchID, depth,force)
   local build = Map(width,height)
   build.depth = depth
   build.branch = branchID
-  build.id = branchID .. depth --the ID for this individual map
+  build.branchType = branch.id
+  build.id = branchID .. "_" .. depth --the ID for this individual map
   build.mapType = id --the ID of the mapType used to create the map
   --End initialization
   --Pull over the mapType's info

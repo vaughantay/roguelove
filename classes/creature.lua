@@ -177,7 +177,11 @@ function Creature:generate_inventory(source)
       if not def.chance or random(1,100) <= def.chance then
         local amt = def.amount or random((def.min_amt or 1),(def.max_amt or 1))
         for i=1,amt,1 do
-          self:give_item(Item(def.item))
+          local it = Item(def.item)
+          if def.identified then
+            it.identified=true
+          end
+          self:give_item(it)
         end
       end --end chance
     end --end loopthrough possible_inventory
@@ -275,21 +279,29 @@ function Creature:apply_class(classID)
       local itemID = item.item
       local count = item.amount or 1
       for i=1,count,1 do
-        local it = self:give_item(Item(itemID,item.passed_info))
+        local it = Item(itemID,item.passed_info)
+        if it.identified then
+          it.identified=true
+        end
         if item.enchantment then
           it:apply_enchantment(item.enchantment,item.enchantment_turns or -1)
         end
+        self:give_item(it)
       end
     end
   end --end if items
   if class.equipment then
     for _,item in ipairs(class.equipment) do
       local itemID = item.item
-      local it = self:give_item(Item(itemID,item.passed_info))
-      self:equip(it)
+      local it = Item(itemID,item.passed_info)
+      if it.identified then
+        it.identified=true
+      end
       if item.enchantment then
         it:apply_enchantment(item.enchantment,item.enchantment_turns or -1)
       end
+      self:give_item(it)
+      self:equip(it)
     end
   end--end if equipment
   if class.stat_modifiers then

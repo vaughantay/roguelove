@@ -18,14 +18,14 @@ function Item:init(type_name,info,ignoreNewFunc)
       self[key] = data[key]
     end
 	end
-	if not ignoreNewFunc and (possibleItems[type_name].new ~= nil) then
-		possibleItems[type_name].new(self,(info or nil))
-	end
   self.id = self.id or type_name
 	self.baseType = "item"
   self.itemType = self.itemType or "other"
   self.color = copy_table(self.color)
   self.amount = self.amount or 1
+  if not ignoreNewFunc and (possibleItems[type_name].new ~= nil) then
+		possibleItems[type_name].new(self,(info or nil))
+	end
   if data.spells_granted then
     self.spells_granted = {}
     for _,spellID in ipairs(data.spells_granted) do
@@ -64,12 +64,13 @@ end
 --@param withName Boolean. Whether to also include the name of the item.
 --@return String. The description of the item.
 function Item:get_description(withName)
-	return (withName and self:get_name(true) .. "\n"  or "") .. self.description
+	return (withName and self:get_name(true) .. "\n"  or "") .. (not self:is_identified() and self.unidentified_description or self.description)
 end
 
 --Get the extended information of the item. Charges, damage, range, etc.
 --@return String. The info text of the item.
 function Item:get_info()
+  if not self:is_identified() then return "Its properties are unknown." end
 	local uses = ""
   if self.charges and not self.hide_charges then
     uses = uses .. (self.charge_name and ucfirst(self.charge_name) or "Charges") .. (self.ammo_name and " (" .. self.ammo_name .. ")" or "") .. ": " .. self.charges .. (self.max_charges and "/" .. self.max_charges or "")
@@ -123,12 +124,15 @@ end
 --@param withLevel Boolean. If true, show the item's level if it has one (optional)
 --@return String. The name of the item
 function Item:get_name(full,amount,withLevel)
+  local identified = self:is_identified()
+  local name = (not identified and self.unidentified_name or self.name)
+  local pname = (not identified and self.unidentified_plural_name or self.plural_name)
   amount = amount or self.amount or 1
   local prefix = ""
   local suffix = ""
-  local levelSuffix = (withLevel and gamesettings.display_item_levels and self.level and " (Level " .. self.level .. ")" or "")
-  local levelPrefix = (withLevel and gamesettings.display_item_levels and self.level and "Level " .. self.level .. " " or "")
-  if self.enchantments then
+  local levelSuffix = (withLevel and gamesettings.display_item_levels and self.level and identified and " (Level " .. self.level .. ")" or "")
+  local levelPrefix = (withLevel and gamesettings.display_item_levels and self.level and identified and "Level " .. self.level .. " " or "")
+  if self.enchantments and identified then
     for ench,_ in pairs(self:get_enchantments()) do
       local enchantment = enchantments[ench]
       if enchantment.prefix then
@@ -140,30 +144,30 @@ function Item:get_name(full,amount,withLevel)
     end
   end --end enchantment info
 	if (full == true) then
-		if (self.properName ~= nil) then
-			return self.properName .. " (" .. levelPrefix .. prefix .. self.name .. suffix .. ")"
+		if (identified or self.proper_name_when_unidentified) and self.properName ~= nil then
+			return self.properName .. " (" .. levelPrefix .. prefix .. name .. suffix .. ")"
 		else
       if self.stacks and amount > 1 then
-        if self.pluralName then
-          return amount .. " " .. ucfirst(prefix .. self.pluralName .. suffix .. levelSuffix)
+        if pname then
+          return amount .. " " .. ucfirst(prefix .. pname .. suffix .. levelSuffix)
         else
-          return amount .. " x " .. ucfirst(prefix .. self.name .. suffix .. levelSuffix)
+          return amount .. " x " .. ucfirst(prefix .. name .. suffix .. levelSuffix)
         end
       else
-        return ucfirst(prefix .. self.name .. suffix .. levelSuffix)
+        return ucfirst(prefix .. name .. suffix .. levelSuffix)
       end
 		end
-	elseif (self.properName ~= nil) then
+	elseif (identified or self.proper_name_when_unidentified) and self.properName ~= nil then
 		return self.properName
 	else
     if self.stacks and amount > 1 then
-      if self.pluralName then
-          return amount .. " " .. prefix .. self.pluralName .. suffix .. levelSuffix
+      if pname then
+          return amount .. " " .. prefix .. pname .. suffix .. levelSuffix
         else
-          return amount .. " x " .. prefix .. self.name .. suffix .. levelSuffix
+          return amount .. " x " .. prefix .. name .. suffix .. levelSuffix
         end
     else
-      return (vowel(prefix .. self.name) and "an " or "a " ) .. prefix .. self.name .. suffix
+      return (vowel(prefix .. name) and "an " or "a " ) .. prefix .. name .. suffix
     end
 	end
 end
@@ -774,7 +778,7 @@ function Item:delete(map)
   if self.castsLight then map.lights[self] = nil end
 end
 
----Increase an items level
+---Increase an item's level
 function Item:level_up()
   if self.stats_per_level or self.bonuses_per_level then
     self.level = self.level+1
@@ -789,5 +793,23 @@ function Item:level_up()
         self.bonuses[bonus_id] = (self.bonuses[bonus_id] or 0) + value
       end
     end
+  end
+end
+
+---Checks whether an item is identified
+function Item:is_identified()
+  local ID = self.id .. (self.sortBy and self[self.sortBy] or "")
+  if not self.requires_identification or self.identified or currGame.identified_items[ID] then
+    return true
+  end
+  return false
+end
+
+---Mark an item as identified
+function Item:identify()
+  self.identified=true
+  if self.identify_all_of_type then
+    local ID = self.id .. (self.sortBy and self[self.sortBy] or "")
+    currGame.identified_items[ID] = true
   end
 end

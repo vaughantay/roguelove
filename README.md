@@ -36,11 +36,11 @@ Highlights:
   * Branches and MapTypes can define the specific creatures/items that will spawn in them, or list creature/item types, factions, and tags they'll pull stuff from.
   * Room and map decorators can be defined that apply.
 * Spells/abilities
-  * Robust ability system, with support for active and passive abilities.
+  * Robust ability system, with support for active and passive abilities, as well as abilities that can be toggled on and off.
   * Active abilities can use MP, have cooldowns, have a set number of charges, or none of the above.
   * Abilities have a variety of callbacks that can run at various points in the game.
   * Abilities can appy passive buffs/debuffs.
-  * Abilities can be upgraded.
+  * Abilities' stats can be upgraded.
 * Conditions
   * Creatures can suffer/benefit from conditions, which can have callbacks that can run at various points in the game.
   * Conditions can apply passive buffs/debuffs.

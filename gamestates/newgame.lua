@@ -7,7 +7,7 @@ function newgame:enter(previous)
   if previous ~= cheats and previous ~= pronoun_entry then
     --Clear all game variables, so there's not any bleed from the previous game
     player = nil
-    currGame = nil
+    initialize_game()
     initialize_world()
     currMap = nil
     if not self.seed or previous == menu then self.seed = random(999999,2147483647) end

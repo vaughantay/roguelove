@@ -55,7 +55,6 @@ function multipickup:draw()
   local x,y=self.x,self.y
   local fontSize = prefs['fontSize']
 	
-  love.graphics.line(x,descY,x+padX+boxW,descY)
   output:draw_window(x,y,x+boxW,y+boxH)
   
   love.graphics.setFont(fonts.textFont)
@@ -93,11 +92,11 @@ function multipickup:draw()
     if (item.y or item.owner.y) < player.y then direction = direction .. "north"
     elseif (item.y or item.owner.y) > player.y then direction = direction .. "south" end
     if (item.x or item.owner.x) < player.x then direction = direction .. "west"
-    elseif (item.x or item.owner.x) then direction = direction .. "east" end
+    elseif (item.x or item.owner.x) > player.x then direction = direction .. "east" end
     if item.owner then extra = " (In " .. item.owner.name .. (direction and ", " .. direction or "") .. ")" end
-    if extra == nil and direction then extra = "(" .. ucfirst(direction) .. ")" end
+    if extra == nil and direction ~= "" then extra = "(" .. ucfirst(direction) .. ")" end
     
-		love.graphics.print(letter .. ") " .. name .. extra,x+padX,itemY)
+		love.graphics.print(letter .. ") " .. name .. (extra or ""),x+padX,itemY)
 		line = line+1
     self.itemLines[i] = {minY=itemY,maxY=itemY+fontSize+2}
     bottom = itemY+fontSize+2
@@ -113,25 +112,9 @@ function multipickup:draw()
     local info = item:get_info(true)
     local oldFont = love.graphics.getFont()
     love.graphics.setFont(fonts.descFont)
-    local descText = desc .. (info ~= "" and "\n\n" or info)
-    local width, tlines = fonts.descFont:getWrap(descText,300)
-    local height = #tlines*(prefs['descFontSize']+3)+math.ceil(fontSize/2)
-    x,y = round((x+boxW)/2),self.itemLines[self.cursorY].minY+round(fontSize/2)
-    if (y+20+height < love.graphics.getHeight()) then
-      setColor(255,255,255,185)
-      love.graphics.rectangle("line",x+22,y+20,302,height)
-      setColor(0,0,0,185)
-      love.graphics.rectangle("fill",x+23,y+21,301,height-1)
-      setColor(255,255,255,255)
-      love.graphics.printf(ucfirst(descText),x+24,y+22,300)
-    else
-      setColor(255,255,255,185)
-      love.graphics.rectangle("line",x+22,y+20-height,302,height)
-      setColor(0,0,0,185)
-      love.graphics.rectangle("fill",x+23,y+21-height,301,height-1)
-      setColor(255,255,255,255)
-      love.graphics.printf(ucfirst(descText),x+24,y+22-height,300)
-    end
+    local descText = desc .. (info ~= "" and "\n\n" .. info or "")
+    x,y = round((x+boxW/2)),self.itemLines[self.cursorY].minY+round(fontSize)/2
+    output:description_box(ucfirst(descText),x,y)
     love.graphics.setFont(oldFont)
   end
   love.graphics.pop()

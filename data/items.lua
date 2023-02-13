@@ -194,9 +194,13 @@ local scroll = {
   sortBy = "spell",
   usable=true,
   useVerb="read",
-  consumed=true,
   tags={'paper','magic'},
-  value=10
+  value=10,
+  requires_identification=true,
+  unidentified_name="unknown scroll",
+  unidentified_names="unknown scrolls",
+  unidentified_description = "A faded parchment, bearing arcane writing.",
+  identify_all_of_type=true
 }
 function scroll:new(spell)
   if type(spell) == "string" and possibleSpells[spell] and possibleSpells[spell].target_type ~= "passive" then --spell provided
@@ -237,6 +241,16 @@ function scroll:new(spell)
   self.pluralName = "scrolls of " .. possibleSpells[spell].name
   self.description = possibleSpells[spell].description
   if possibleSpells[spell].tags then self:add_tags(possibleSpells[spell].tags) end
+  if player and player:has_spell(self.spell) then
+    self:identify()
+    return
+  end
+  if not self:is_identified() then
+    local writing = currGame.unidentified_item_info['scroll' .. self.spell] or namegen:generate_phoneme_name()
+    if not currGame.unidentified_item_info['scroll' .. self.spell] then currGame.unidentified_item_info['scroll' .. self.spell] = writing end
+    self.unidentified_name = "scroll marked \"" .. writing .. "\"" .. "_" .. possibleSpells[self.spell].name
+    self.unidentified_plural_name = "scrolls marked \"" .. writing  .. "\"" .. "_" .. possibleSpells[self.spell].name
+  end
 end
 function scroll:target(target,user)
   action="targeting"
@@ -249,6 +263,7 @@ function scroll:use(target,user)
     target = user
     local spResult = Spell(self.spell):use(target,user,true,true)
     if spResult ~= false then
+      self:identify()
       user:delete_item(self)
     else
       return false
@@ -256,6 +271,7 @@ function scroll:use(target,user)
   elseif action == "targeting" then
     local spResult = Spell(self.spell):use(target,user,true,true)
      if spResult ~= false then
+       self:identify()
       user:delete_item(self)
     else
       return false
@@ -280,7 +296,9 @@ local spellBook = {
   useVerb="study",
   tags={'paper','magic'},
   acceptTags=true,
-  value=100
+  value=100,
+  requires_identification=true,
+  proper_name_when_unidentified=true
 }
 function spellBook:new(tags,spells,spellCount)
 	require "data.spells"
@@ -329,6 +347,12 @@ function spellBook:new(tags,spells,spellCount)
   self.info = text
 end
 function spellBook:use()
+  local turn = false
+  if not self:is_identified() then
+    output:out("You study the book, and discover which spells it contains.")
+    self:identify()
+    turn = true
+  end
   local list = {}
   for _, spellid in ipairs(self.spells) do
     local alreadyLearned = player:has_spell(spellid)
@@ -336,7 +360,7 @@ function spellBook:use()
     list[#list+1] = {text="Learn " .. possibleSpells[spellid].name,description=possibleSpells[spellid].description .. (alreadyLearned and "\nYou already know this spell." or "") .. (canText and "\n" .. canText or ""),selectFunction=player.learn_spell,selectArgs={player,spellid},disabled=(alreadyLearned or not canLearn)}
   end
   Gamestate.switch(multiselect,list,"Learn a Spell from " .. self.properName,true,true)
-  return false
+  return turn
 end
 possibleItems['spellbook'] = spellBook
 
@@ -583,9 +607,6 @@ local dart = {
   value=1,
   tags={'sharp'}
 }
-function dart:new()
-  self.amount = tweak(100)
-end
 possibleItems['dart'] = dart
 
 local bomb = {
