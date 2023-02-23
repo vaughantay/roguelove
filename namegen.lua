@@ -111,6 +111,12 @@ namegen.lists.bookNames = {"Atlas","Book","Codex","Dictionary","Encyclopedia","G
 
 namegen.lists.goodConcepts = {"beauty","brightness","cheer","delight","friendship","fun","giggles","goodness","goodwill","happiness","harmony","joy","kindness","laughter","life","light","love","nourishment","peace","positivity","rainbows","smiles","sunshine","sweetness","thanksgiving","truth","virtue","warmth","welcome","wisdom","wonder"}
 
+namegen.lists.colors = {"blue","brown","chartreuse","cyan","green","magenta","mauve","orange","purple","red","teal","turquoise","yellow"}
+
+namegen.lists.colorModifiers = {"bright","dark","faded","flourescent","glossy","iridescent","light","muted","pale","pastel","shimmering","shiny","translucent"}
+
+namegen.lists.liquidAdjectives = {"bubbly","fizzy","roiling","thick","thin","viscous","watery"}
+
 --Metafunctions start here:
 function namegen:get_from_list(list)
   if self.lists[list] then

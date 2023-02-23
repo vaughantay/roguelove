@@ -248,8 +248,8 @@ function scroll:new(spell)
   if not self:is_identified() then
     local writing = currGame.unidentified_item_info['scroll' .. self.spell] or namegen:generate_phoneme_name()
     if not currGame.unidentified_item_info['scroll' .. self.spell] then currGame.unidentified_item_info['scroll' .. self.spell] = writing end
-    self.unidentified_name = "scroll marked \"" .. writing .. "\"" .. "_" .. possibleSpells[self.spell].name
-    self.unidentified_plural_name = "scrolls marked \"" .. writing  .. "\"" .. "_" .. possibleSpells[self.spell].name
+    self.unidentified_name = "scroll marked \"" .. writing .. "\""
+    self.unidentified_plural_name = "scrolls marked \"" .. writing  .. "\""
   end
 end
 function scroll:target(target,user)

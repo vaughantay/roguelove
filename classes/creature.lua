@@ -178,7 +178,7 @@ function Creature:generate_inventory(source)
         local amt = def.amount or random((def.min_amt or 1),(def.max_amt or 1))
         for i=1,amt,1 do
           local it = Item(def.item)
-          if def.identified then
+          if it.requires_identification and not def.unidentified then
             it.identified=true
           end
           self:give_item(it)
@@ -280,7 +280,7 @@ function Creature:apply_class(classID)
       local count = item.amount or 1
       for i=1,count,1 do
         local it = Item(itemID,item.passed_info)
-        if it.identified then
+        if it.requires_identification and not item.unidentified then
           it.identified=true
         end
         if item.enchantment then
@@ -294,7 +294,7 @@ function Creature:apply_class(classID)
     for _,item in ipairs(class.equipment) do
       local itemID = item.item
       local it = Item(itemID,item.passed_info)
-      if it.identified then
+      if it.requires_identification and not item.unidentified then
         it.identified=true
       end
       if item.enchantment then
@@ -1389,6 +1389,9 @@ end
 ---Transfer an item to a creature's inventory
 --@param item Item. The item to give.
 function Creature:give_item(item)
+  if self == player and item.identified and item.identify_all_of_type then
+    item:identify() --If this instance of the item is already identified, run identify() so that ALL instances of this item are now identified
+  end
   if (item.stacks == true) then
      local _,inv_id = self:has_item(item.id,(item.sortBy and item[item.sortBy]),item.enchantments,item.level,true)
     if inv_id then

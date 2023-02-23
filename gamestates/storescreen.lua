@@ -89,7 +89,7 @@ function storescreen:draw()
     if reqText then reasonText = reqText end
   end
   
-  if canEnter and (not self.store.noBuy or count(self.store.offers_services) or count(self.store.teaches_spells) > 0) then
+  if canEnter and (not self.store.noBuy or count(self.store.offers_services) > 0 or count(self.store.teaches_spells) > 0) then
     printY=printY+fontSize
     local padX = 8
     local buybuttonW = fonts.buttonFont:getWidth("Buying")+padding

@@ -81,9 +81,9 @@ playerClasses = {
   wimp = {
     name="Total Wimp",
     description="A scrawny nerd.",
-    items={{item="healthpotionminor",amount=5},{item="scroll",amount=3,displayName="Random Scrolls"},{item="scroll",passed_info="blink",displayName = "Scroll of Blink"},{item="scroll",passed_info="homecoming",displayName = "Scroll of Homecoming"},{item="crossbow"},{item="bolt",amount=25},{item="weaponpoison",amount=2},{item="painwand"},{item="dart",amount=25}}, --These items will be granted on game start
+    items={{item="healthpotionminor",amount=5},{item="scroll",amount=3,displayName="Random Scrolls",unidentified=true},{item="scroll",passed_info="blink",displayName = "Scroll of Blink"},{item="scroll",passed_info="homecoming",displayName = "Scroll of Homecoming"},{item="crossbow"},{item="bolt",amount=25},{item="weaponpoison",amount=2},{item="painwand"},{item="dart",amount=25}}, --These items will be granted on game start
     stat_modifiers={strength=1,melee=1,ranged=5,magic=5,max_hp=-25,max_mp=5}, --These values will be added to the characters' base stats
-    spells={"scrawny"}, --These are spells the character will start with
+    spells={"scrawny","blast"}, --These are spells the character will start with
     money=100 --Amount of money the character starts with
   },
   pyromancer = {
@@ -92,7 +92,7 @@ playerClasses = {
     resistances={fire=10}, --These will be added the the characters' base resistances
     favor={lightchurch=-10}, --List of favor scores the character starts with
     items={}, --These items will be granted on game start
-    spells={"smallfireball"},
+    spells={"smallfireball",'fireaura'},
     --spells={"ignite","explodingfireball","flameline","flameshield","flameimmunity","firebrand"}, --These are spells the character will start with
     learns_spells={}, --These spells will be automatically granted once a certain level is reached
     spell_purchases={}, --These spells will show up as options to learn (requiring spending points on them)
@@ -107,7 +107,7 @@ playerClasses = {
     resistances={unholy=10}, --These will be added the the characters' base resistances
     favor={lightchurch=-100}, --List of favor scores the character starts with
     items={{item="spellbook",passed_info={'necromancy'},displayName = "Necromancy Spellbook"}}, --These items will be granted on game start
-    spells={}, --These are spells the character will start with
+    spells={'lifedrain'}, --These are spells the character will start with
     learns_spells={}, --These spells will be automatically granted once a certain level is reached
     spell_purchases={}, --These spells will show up as options to learn (requiring spending points on them)
     spell_choices={}, --These spells will show up as options when you reach their level, and you can choose one of them

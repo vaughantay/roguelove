@@ -3,7 +3,7 @@ Store = Class{}
 
 ---Initiate a store from its definition. You shouldn't use this function, the game uses it at loadtime to instantiate the stores.
 --@param data Table. The table of store data.
---@return self Store. The faction itself.
+--@return self Store. The store itself.
 function Store:init(store_id)
   local data = possibleStores[store_id]
   if not data then
@@ -49,6 +49,9 @@ function Store:generate_items()
         for _,eid in ipairs(info.enchantments) do
           item:apply_enchantment(eid,-1)
         end
+      end
+      if item.requires_identification and not info.unidentified then
+        item.identified = true --default to all items in a store being identified
       end
       self:add_item(item,info)
     end --end sells_items for
@@ -101,6 +104,9 @@ function Store:restock()
             end
           else
             self:add_item(item,info)
+            if item.requires_identification and not info.unidentified then
+              item.identified = true --default to all items in a store being identified
+            end
           end
         end --end currAmt < restock to amount
       end --end if amount
@@ -295,7 +301,7 @@ function Store:creature_buys_item(item,cost,amt,creature)
   return false,"You don't have enough to buy " .. item:get_name(true,amt) .. " ."
 end
 
----Have a creature learn a spell from a faction.
+---Have a creature learn a spell from a store.
 --@param spellID String. The ID of the spell they're trying to learn.
 --@param creature Creature. The creature learning the spell. (optional, defaults to the player)
 --@return Boolean. Whether learning the spell was successful or not.
@@ -386,6 +392,9 @@ function Store:generate_random_item(list)
     end
   end
   if not item.amount then item.amount = 1 end --This is here because non-stackable items don't generate with amounts
+  if item.requires_identification and not self.random_items_unidentified then
+    item.identified = true
+  end
   self:add_item(item,{randomly_generated=true,delete_on_restock=self.delete_random_items_on_restock})
 end
 

@@ -11,6 +11,7 @@ function new_game(mapSeed,playTutorial,cheats,branch)
   if cheats then currGame.cheats = cheats end
   currGame.fileName = player.properName
   currGame.seed = mapSeed
+  currGame.playTutorial = playTutorial
   update_stat('games')
   currMap = mapgen:generate_map(branch,1)
   player:forceMove(currMap.stairsUp.x,currMap.stairsUp.y) --TODO: move a creature that's already here out of the way
@@ -89,7 +90,7 @@ end
 
 ---Create the currGame object
 function initialize_game()
-  currGame = {startTime=os.date(),playTutorial=playTutorial,tutorialsSeen={},missionStatus={},finishedMissions={},achievementDisqualifications={},cheats={},autoSave=prefs['autosaveTurns'],stats={},events_occured={},event_countdown=0,identified_items={},unidentified_item_info={}}
+  currGame = {startTime=os.date(),tutorialsSeen={},missionStatus={},finishedMissions={},achievementDisqualifications={},cheats={},autoSave=prefs['autosaveTurns'],stats={},events_occured={},event_countdown=0,identified_items={},unidentified_item_info={}}
 end
 
 ---Generate stores, factions, and dungeon branches

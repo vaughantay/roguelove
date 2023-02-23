@@ -28,8 +28,8 @@ function multiselect:enter(origin,list,title,closeAfter,advanceAfter)
   local startY = y+(#titleLines+2)*fontSize
   for i,item in ipairs(self.list) do
     local code = i+96
-		local letter = string.char(code)
-    local _,textLines = fonts.textFont:getWrap((code <=122 and letter .. ") " or "") .. item.text,boxW-padX)
+		local letter = (code > 32 and code <=122 and string.char(code) or nil)
+    local _,textLines = fonts.textFont:getWrap((letter and letter .. ") " or "") .. item.text,boxW-padX)
     item.y = (i == 1 and startY or self.list[i-1].maxY)
     item.height = #textLines*fontSize
     item.maxY = item.y+item.height
@@ -126,6 +126,7 @@ function multiselect:draw()
 end
 
 function multiselect:keypressed(key)
+  local typed = key
   key = input:parse_key(key)
 	if (key == "escape") then
 		self:switchBack()
@@ -147,9 +148,9 @@ function multiselect:keypressed(key)
         self:scrollDown()
       end
 		end
-	else
-		local id = string.byte(key)-96
-		if (self.list[id] ~= nil) then
+	elseif string.len(typed) == 1 then
+		local id = string.byte(typed)-96
+		if id >= 1 and id < 26 and self.list[id] ~= nil then
 			self:select(self.list[id])
 		end
 	end

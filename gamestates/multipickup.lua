@@ -82,7 +82,8 @@ function multipickup:draw()
   local bottom = 0
 	local items = {}
 	for i, item in ipairs(self.items) do
-		local letter = string.char(i+96)
+		local code = i+96
+    local letter = (code > 32 and code <=122 and string.char(code) or nil)
     local name = item:get_name(true)
     local itemY = y+padY+((line-1)*fontSize)
     
@@ -96,7 +97,7 @@ function multipickup:draw()
     if item.owner then extra = " (In " .. item.owner.name .. (direction and ", " .. direction or "") .. ")" end
     if extra == nil and direction ~= "" then extra = "(" .. ucfirst(direction) .. ")" end
     
-		love.graphics.print(letter .. ") " .. name .. (extra or ""),x+padX,itemY)
+		love.graphics.print((letter and letter .. ") " or "") .. name .. (extra or ""),x+padX,itemY)
 		line = line+1
     self.itemLines[i] = {minY=itemY,maxY=itemY+fontSize+2}
     bottom = itemY+fontSize+2
@@ -130,6 +131,7 @@ function multipickup:draw()
 end
 
 function multipickup:keypressed(key)
+  local typed = key
   key = input:parse_key(key)
 	if (key == "escape") then
 		self:switchBack()
@@ -151,9 +153,10 @@ function multipickup:keypressed(key)
         self:scrollDown()
       end
 		end
-	else
-		local id = string.byte(key)-96
-		if (self.items[id] ~= nil) then
+	elseif string.len(typed) == 1 then
+		local id = string.byte(typed)-96
+    print(id)
+		if id >= 1 and id <=26 and self.items[id] ~= nil then
 			self:pickup(self.items[id])
 		end
 	end
