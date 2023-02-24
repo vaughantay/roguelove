@@ -1,8 +1,12 @@
 multiselect = {}
 
-function multiselect:enter(origin,list,title,closeAfter,advanceAfter)
+function multiselect:enter(previous,list,title,closeAfter,advanceAfter,description)
+  if previous == multiselect then
+    self.ignoreAfter = true
+  end
   self.list = list
   self.title = title or "Select an Option"
+  self.description = description
   self.closeAfter = closeAfter
   self.advanceAfter = advanceAfter
   self.cursorY = 0
@@ -26,6 +30,10 @@ function multiselect:enter(origin,list,title,closeAfter,advanceAfter)
   output:sound('stoneslideshort',2)
   local _,titleLines = fonts.textFont:getWrap(self.title,boxW-padX)
   local startY = y+(#titleLines+2)*fontSize
+  if self.description then
+    local _,descLines = fonts.textFont:getWrap(self.description,boxW-padX)
+    startY = startY+(#descLines*fontSize)
+  end
   for i,item in ipairs(self.list) do
     local code = i+96
 		local letter = (code > 32 and code <=122 and string.char(code) or nil)
@@ -38,8 +46,11 @@ end
 
 function multiselect:select(item)
   if not item.disabled and item.selectFunction(unpack(item.selectArgs)) ~= false then
-    if self.closeAfter then self:switchBack() end
-    if self.advanceAfter then advance_turn() end
+    if not self.ignoreAfter then
+      if self.closeAfter then self:switchBack() end
+      if self.advanceAfter then advance_turn() end
+    end
+    self.ignoreAfter = nil
   end
 end
 
@@ -58,12 +69,19 @@ function multiselect:draw()
   output:draw_window(x,y,x+boxW,y+boxH)
   
   love.graphics.setFont(fonts.textFont)
-  love.graphics.printf(self.title,x+padX,y+padY,boxW-16,"center")
+  local printY = y+padY
+  love.graphics.printf(self.title,x+padX,printY,boxW-16,"center")
+  printY=printY+fontSize
+  if self.description then
+    love.graphics.printf(self.description,x+padX,printY,boxW-16,"center")
+    local _,descLines = fonts.textFont:getWrap(self.description,boxW-padX)
+    printY = printY+(#descLines*fontSize)
+  end
   
   love.graphics.push()
   --Create a "stencil" that stops 
   local function stencilFunc()
-    love.graphics.rectangle("fill",x+padX,y+padY+fontSize,boxW-padX*2,boxH-padY)
+    love.graphics.rectangle("fill",x+padX,printY,boxW-padX*2,boxH-padY)
   end
   love.graphics.stencil(stencilFunc,"replace",1)
   love.graphics.setStencilTest("greater",0)
@@ -79,8 +97,8 @@ function multiselect:draw()
 	for i, item in ipairs(self.list) do
     if item.disabled then setColor(150,150,150,255) end
     local code = i+96
-		local letter = string.char(code)
-		love.graphics.printf((code <=122 and letter .. ") " or "") .. item.text,x+padX,item.y,boxW-padX)
+		local letter = (code > 32 and code <=122 and string.char(code) or nil)
+		love.graphics.printf((letter and letter .. ") " or "") .. item.text,x+padX,item.y,boxW-padX)
     if item.disabled then setColor(255,255,255,255) end
 	end
   local bottom = self.list[#self.list].maxY+fontSize
@@ -94,23 +112,8 @@ function multiselect:draw()
     local descText = self.list[self.cursorY].description
     local width, tlines = fonts.descFont:getWrap(descText,300)
     local height = #tlines*(prefs['descFontSize']+3)+math.ceil(prefs['fontSize']/2)
-    x,y = round((x+boxW)/2),self.list[self.cursorY].y+round(self.list[self.cursorY].height/2)
-    if (y+20+height < love.graphics.getHeight()) then
-      setColor(255,255,255,185)
-      love.graphics.rectangle("line",x+22,y+20,302,height)
-      setColor(0,0,0,185)
-      love.graphics.rectangle("fill",x+23,y+21,301,height-1)
-      setColor(255,255,255,255)
-      love.graphics.printf(ucfirst(descText),x+24,y+22,300)
-    else
-      setColor(255,255,255,185)
-      love.graphics.rectangle("line",x+22,y+20-height,302,height)
-      setColor(0,0,0,185)
-      love.graphics.rectangle("fill",x+23,y+21-height,301,height-1)
-      setColor(255,255,255,255)
-      love.graphics.printf(ucfirst(descText),x+24,y+22-height,300)
-    end
-    love.graphics.setFont(oldFont)
+    x,y = round(x+boxW/2),self.list[self.cursorY].y+round(self.list[self.cursorY].height/2)
+    output:description_box(ucfirst(descText),x,y)
   end
   love.graphics.pop()
   

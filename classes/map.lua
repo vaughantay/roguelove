@@ -1152,7 +1152,7 @@ function Map:populate_items(itemTotal,forceGeneric)
       if ni == false then break end
       local ix,iy = random(2,self.width-1),random(2,self.height-1)
       local tries = 0
-      while (self:isClear(ix,iy) == false or self[ix][iy] == "<" or self[ix][iy] == ">") do
+      while self:isClear(ix,iy) == false or self:tile_has_feature(ix,iy,"exit") do
         ix,iy = random(2,self.width-1),random(2,self.height-1)
         tries = tries+1
         if tries > 100 then break end
@@ -1201,7 +1201,7 @@ function Map:populate_stores(forceGeneric)
       local newStore = Feature('store',selected)
       local tries = 0
       local ix,iy = random(2,self.width-1),random(2,self.height-1)
-      while (self:isClear(ix,iy) == false) do
+      while self:isClear(ix,iy) == false or self:tile_has_feature(ix,iy,"exit") do
         ix,iy = random(2,self.width-1),random(2,self.height-1)
         tries = tries+1
         if tries > 100 then break end
@@ -1240,7 +1240,7 @@ function Map:populate_factions(forceGeneric)
       local hq = Feature('factionHQ',selected)
       local tries = 0
       local ix,iy = random(2,self.width-1),random(2,self.height-1)
-      while (self:isClear(ix,iy) == false or self[ix][iy] == "<" or self[ix][iy] == ">") do
+      while self:isClear(ix,iy) == false or self:tile_has_feature(ix,iy,"exit") do
         ix,iy = random(2,self.width-1),random(2,self.height-1)
         tries = tries+1
         if tries > 100 then break end
