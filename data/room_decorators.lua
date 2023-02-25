@@ -1,24 +1,9 @@
-local roomDecorators = {}
+roomDecorators = {}
 
-function decorate_room(room,map,roomDec,...)
-  local dec = nil
-  if roomDec == "random" or not roomDec then
-    dec = get_random_element(roomDecorators)
-  elseif roomDecorators[roomDec] then
-    dec = roomDecorators[roomDec]
-  elseif type(roomDec) == "table" then
-    get_random_element(roomDec)
-    if roomDecorators[roomDec] then
-      dec = roomDecorators[roomDec]
-    end
-  end
-  if dec then
-    dec(room,map,unpack({...}))
-  end
-  return
-end
-
-function roomDecorators.temple(room,map,focusList,pewsOnly,altarArgs)
+local temple = {
+  tags={'organized','dungeon'}
+}
+function temple.decorate(room,map,focusList,pewsOnly,altarArgs)
   local roomW,roomH = room.maxX-room.minX,room.maxY-room.minY
   local safeTiles = mapgen:get_all_safe_to_block(map,room)
   local wallTiles = mapgen:get_all_safe_to_block(map,room,"wallsCorners")
@@ -110,8 +95,12 @@ function roomDecorators.temple(room,map,focusList,pewsOnly,altarArgs)
     end
   end
 end
+roomDecorators[temple] = temple
 
-function roomDecorators.tavern(room,map)
+local tavern = {
+  tags={'organized','dungeon'}
+}
+function tavern.decorate(room,map)
   local roomW,roomH = room.maxX-room.minX,room.maxY-room.minY
   local safeTiles = mapgen:get_all_safe_to_block(map,room)
   local wallTiles = mapgen:get_all_safe_to_block(map,room,"wallsCorners")
@@ -167,8 +156,12 @@ function roomDecorators.tavern(room,map)
     end
   end
 end
+roomDecorators[tavern] = tavern
 
-function roomDecorators.bedroom(room,map)
+local bedroom = {
+  tags={'organized','dungeon'}
+}
+function bedroom.decorate(room,map)
   local roomW,roomH = room.maxX-room.minX,room.maxY-room.minY
   local safeTiles = mapgen:get_all_safe_to_block(map,room)
   local wallTiles = mapgen:get_all_safe_to_block(map,room,"wallsCorners")
@@ -228,8 +221,12 @@ function roomDecorators.bedroom(room,map)
     end
   end
 end
+roomDecorators[bedroom] = bedroom
 
-function roomDecorators.storeroom(room,map)
+local storeroom = {
+  tags={'organized','dungeon'}
+}
+function storeroom.decorate(room,map)
   local roomW,roomH = room.maxX-room.minX,room.maxY-room.minY
   local safeTiles = mapgen:get_all_safe_to_block(map,room)
   local wallTiles = mapgen:get_all_safe_to_block(map,room,"wallsCorners")
@@ -255,8 +252,12 @@ function roomDecorators.storeroom(room,map)
     if count(safeTiles) < 1 then break end
   end
 end
+roomDecorators[storeroom] = storeroom
 
-function roomDecorators.trainingroom(room,map)
+local trainingroom = {
+  tags={'organized','dungeon'}
+}
+function trainingroom.decorate(room,map)
   local roomW,roomH = room.maxX-room.minX,room.maxY-room.minY
   local safeTiles = mapgen:get_all_safe_to_block(map,room)
   local wallTiles = mapgen:get_all_safe_to_block(map,room,"wallsCorners")
@@ -307,3 +308,4 @@ function roomDecorators.trainingroom(room,map)
     if count(safeTiles) < 1 or tries >= 100 then break end
   end
 end
+roomDecorators[trainingroom] = trainingroom

@@ -285,7 +285,7 @@ local dungeon = function(build,rooms,hallways)
   local width,height = build.width,build.height
   for id, room in ipairs(rooms) do
     if not room.exit and not room.entrance and random(1,3) == 1 then
-      decorate_room(room,build)
+      mapgen:decorate_room(room,build)
     end
   end
   local hazardType = (random(1,2) == 1 and "lava" or "chasm")

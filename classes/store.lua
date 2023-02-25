@@ -41,7 +41,7 @@ function Store:generate_items()
   if self.sells_items then
     for _,info in pairs(self.sells_items) do
       local itemID = info.item
-      local item = Item(itemID,(info.passed_info or (possibleItems[itemID].acceptTags and tags) or nil))
+      local item = Item(itemID,tags,info.passed_info)
       item.amount = (info.amount or -1) --If an amount is not defined, set it to -1, which fills in for infinite
       if info.artifact then
         mapgen:make_artifact(item,tags)
@@ -89,7 +89,7 @@ function Store:restock()
     for _,info in pairs(self.sells_items) do
       if info.amount and info.amount ~= -1 then --don't restock infinite-stock items
         local itemID = info.item
-        local item = Item(itemID,(info.passed_info or (possibleItems[itemID].acceptTags and tags) or nil))
+        local item = Item(itemID,tags,info.passed_info)
         item.amount = (info.amount or -1)
         local index = self:get_inventory_index(item)
         local currAmt = self:get_count(item) or 0
@@ -381,7 +381,7 @@ function Store:generate_random_item(list)
   local possibles = list or self:get_possible_random_items()
   local itemID = possibles[random(#possibles)]
   local tags = self.passedTags
-  local item = Item(itemID,(possibleItems[itemID].acceptTags and tags or nil))
+  local item = Item(itemID,tags)
   if random(1,100) <= (self.artifact_chance or gamesettings.artifact_chance or 0) then
     mapgen:make_artifact(item,tags)
   elseif random(1,100) <= (self.enchantment_chance or gamesettings.enchantment_chance or 0) then

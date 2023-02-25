@@ -279,7 +279,7 @@ function Creature:apply_class(classID)
       local itemID = item.item
       local count = item.amount or 1
       for i=1,count,1 do
-        local it = Item(itemID,item.passed_info)
+        local it = Item(itemID,item.passedTags,item.passed_info)
         if it.requires_identification and not item.unidentified then
           it.identified=true
         end
@@ -293,7 +293,7 @@ function Creature:apply_class(classID)
   if class.equipment then
     for _,item in ipairs(class.equipment) do
       local itemID = item.item
-      local it = Item(itemID,item.passed_info)
+      local it = Item(itemID,item.passedTags,item.passed_info)
       if it.requires_identification and not item.unidentified then
         it.identified=true
       end
@@ -1731,7 +1731,7 @@ end
 --@return Boolean. Whether or not they can see it.
 function Creature:can_see_tile(x,y,forceRefresh)
   if (self == player) and currGame.cheats.seeAll==true then return true end
-  if not currMap or not currMap:in_map(x,y,true) then return false end
+  if not currMap or not currMap:in_map(x,y) then return false end
   if not self.x or not self.y then output:out(self:get_name() .. " does not have a location but is trying to see stuff somehow.") return false end --If you don't exist, you can't see anything
   
   if self == player and not forceRefresh then

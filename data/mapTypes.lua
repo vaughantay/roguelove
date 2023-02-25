@@ -20,6 +20,7 @@ local dungeon = {
   nameType = "dungeon",
   descType = "dungeon",
   tileset="dungeon",
+  tags={'dungeon'}
 }
 function dungeon.create(map,width,height)
   local rooms,hallways = layouts['bsptree'](map,width,height)

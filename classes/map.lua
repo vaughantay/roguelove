@@ -8,7 +8,7 @@ Map = Class{}
 --@return Map. The map itself.
 function Map:init(width,height,gridOnly)
   if not gridOnly then
-    self.creatures,self.contents,self.effects,self.projectiles,self.seenMap,self.lightMap,self.lights,self.pathfinders,self.grids,self.collisionMaps,self.exits={},{},{},{},{},{},{},{},{},{},{}
+    self.creatures, self.contents, self.effects, self.projectiles, self.seenMap, self.lightMap, self.lights, self.pathfinders, self.grids, self.collisionMaps, self.exits, self.tile_info = {},{},{},{},{},{},{},{},{},{},{},{}
     self.sightblock_cache, self.creature_cache, self.feature_cache, self.effect_cache = {},{},{},{}
     self.boss=nil
     self.stairsUp,self.stairsDown = {x=0,y=0},{x=0,y=0}
@@ -20,12 +20,14 @@ function Map:init(width,height,gridOnly)
       self.contents[x] = {}
       self.seenMap[x] = {}
       self.lightMap[x] = {}
+      self.tile_info[x] = {}
     end
 		for y = 1, height, 1 do
       if not gridOnly then
         self.seenMap[x][y] = false
         self.contents[x][y] = {}
         self.lightMap[x][y] = false
+        self.tile_info[x][y] = {}
       end
 			self[x][y] = "#"
 		end
@@ -688,12 +690,12 @@ end
 ---Checks if a tile is within the map boundaries
 --@param x Number. The x-coordinate
 --@param yNumber.  The y-coordinate
---@param include_borders Boolean. Whether or not to include the tiles on the border of the map 
-function Map:in_map(x,y,include_borders)
+--@param exclude_borders Boolean. Whether or not to exclude the tiles on the border of the map 
+function Map:in_map(x,y,exclude_borders)
   if not x or not y then return false end
-  if include_borders and x >= 1 and y >= 1 and x <= self.width and y <= self.height then
+  if not exclude_borders and x >= 1 and y >= 1 and x <= self.width and y <= self.height then
     return true
-  elseif not include_borders and x > 1 and y > 1 and x < self.width and y < self.height then
+  elseif exclude_borders and x > 1 and y > 1 and x < self.width and y < self.height then
     return true
   end
   return false --if x or y = 1 or width and height
@@ -1049,6 +1051,7 @@ function Map:populate_creatures(creatTotal,forceGeneric)
 			local nc = mapgen:generate_creature(min_level,max_level,specialCreats)
       if nc == false then break end
       local placed = false
+      
       --Spawn in designated spawn points first:
       if not allSpawnsUsed and self.spawn_points and #self.spawn_points > 0 then
         for i,sp in ipairs(self.spawn_points) do
@@ -1068,15 +1071,18 @@ function Map:populate_creatures(creatTotal,forceGeneric)
           end
         end
       end
+      
       --If we weren't able to spawn in a spawn point, spawn randomly
       local cx,cy = random(2,self.width-1),random(2,self.height-1)
       if placed == false then
         local tries = 0
-        while self:is_passable_for(cx,cy,nc.pathType) == false or self:tile_has_feature(cx,cy,'door') or self:tile_has_feature(cx,cy,'gate') or self:tile_has_feature(cx,cy,'exit') or not self:isClear(cx,cy,nc.pathType) do
+        while self:is_passable_for(cx,cy,nc.pathType) == false or self:tile_has_feature(cx,cy,'door') or self:tile_has_feature(cx,cy,'gate') or self:tile_has_feature(cx,cy,'exit') or not self:isClear(cx,cy,nc.pathType) or self.tile_info[cx][cy].noCreatures do
           cx,cy = random(2,self.width-1),random(2,self.height-1)
           tries = tries+1
           if tries > 100 then break end
         end
+        
+        --Place the actual creature:
         if tries ~= 100 then 
           if random(1,4) == 1 then nc:give_condition('asleep',random(10,100)) end
           local creat = self:add_creature(nc,cx,cy)
@@ -1084,6 +1090,7 @@ function Map:populate_creatures(creatTotal,forceGeneric)
           placed = creat
         end --end tries if
       end
+      
       --Place group spawns:
       if placed and (nc.group_spawn or nc.group_spawn_max) then
         local spawn_amt = (nc.group_spawn or random((nc.group_spawn_min or 1),nc.group_spawn_max))
@@ -1093,7 +1100,7 @@ function Map:populate_creatures(creatTotal,forceGeneric)
         for i=1,spawn_amt,1 do
           local tries = 1
           local cx,cy = random(x-tries,x+tries),random(y-tries,y+tries)
-          while self:is_passable_for(cx,cy,nc.pathType) == false or self:tile_has_feature(cx,cy,'door') or self:tile_has_feature(cx,cy,'gate') or self:tile_has_feature(cx,cy,'exit') or not self:isClear(cx,cy,nc.pathType) do
+          while self:is_passable_for(cx,cy,nc.pathType) == false or self:tile_has_feature(cx,cy,'door') or self:tile_has_feature(cx,cy,'gate') or self:tile_has_feature(cx,cy,'exit') or not self:isClear(cx,cy,nc.pathType) or self.tile_info[cx][cy].noCreatures do
             cx,cy = random(x-tries,x+tries),random(y-tries,y+tries)
             tries = tries + 1
             if tries > 10 then break end
@@ -1133,7 +1140,7 @@ function Map:populate_items(itemTotal,forceGeneric)
   
   local passedTags = nil
   if mapType.passedTags then
-    if mapType.noBranchItems or not branch.passedTags then
+    if mapType.noBranchItems or mapType.noBranchContent or not branch.passedTags then
       passedTags = mapType.passedTags
     else
       passedTags =  merge_tables(mapType.passedTags,branch.passedTags)
@@ -1152,7 +1159,7 @@ function Map:populate_items(itemTotal,forceGeneric)
       if ni == false then break end
       local ix,iy = random(2,self.width-1),random(2,self.height-1)
       local tries = 0
-      while self:isClear(ix,iy) == false or self:tile_has_feature(ix,iy,"exit") do
+      while self:isClear(ix,iy) == false or self:tile_has_feature(ix,iy,"exit") or self.tile_info[ix][iy].noItems do
         ix,iy = random(2,self.width-1),random(2,self.height-1)
         tries = tries+1
         if tries > 100 then break end
@@ -1283,4 +1290,21 @@ end
 function Map:get_max_level()
   local branch = currWorld.branches[self.branch]
   return round((branch.max_level_base or 1)+(self.depth-1)*(branch.level_increase_per_depth or 1))
+end
+
+---Get a map's tags
+--@param tagType String. The type of tag
+--@param noBranch Boolean. If true, don't look at branch's tags
+function Map:get_content_tags(tagType,noBranch)
+  local tagLabel = (tagType and tagType .. "Tags" or "contentTags")
+  noBranch = noBranch or self.noBranchContent or (tagType and self['noBranch' .. ucfirst(tagType) .. "s"])
+  local tags = (self[tagLabel] or self.contentTags or {})
+  if not noBranch then
+    local branch = currWorld.branches[self.branch]
+    local bTags = branch[tagLabel] or branch.contentTags
+    if bTags then
+      tags = merge_tables(tags,bTags)
+    end
+  end
+  return tags
 end

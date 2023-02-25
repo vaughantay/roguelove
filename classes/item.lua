@@ -3,10 +3,11 @@ Item = Class{}
 
 ---Create an instance of the item. Don't call this directly. Called via Item('itemID')
 --@param type_name String. The ID of the item.
+--@param tags Table. A table of tags to pass to the item's new() function
 --@param info Anything. Argument to pass into the item's new() function.
 --@param ignoreNewFunc Boolean. Whether to ignore the item's new() function
 --@return Item. The item itself.
-function Item:init(type_name,info,ignoreNewFunc)
+function Item:init(type_name,tags,info,ignoreNewFunc)
   local data = possibleItems[type_name]
   if not data then
     output:out("Error: Tried to create non-existent item " .. type_name)
@@ -24,7 +25,7 @@ function Item:init(type_name,info,ignoreNewFunc)
   self.color = copy_table(self.color)
   self.amount = self.amount or 1
   if not ignoreNewFunc and (possibleItems[type_name].new ~= nil) then
-		possibleItems[type_name].new(self,(info or nil))
+		possibleItems[type_name].new(self,tags,info)
 	end
   if data.spells_granted then
     self.spells_granted = {}
@@ -49,7 +50,7 @@ end
 --@param ignoreNewFunc Boolean. Whether to ignore the item's new() function
 --@return Item. The item itself.
 function Item:clone()
-  local newItem = Item(self.id,nil,true)
+  local newItem = Item(self.id,nil,nil,true)
 	for key, val in pairs(self) do
     if type(val) ~= "function" and type(val) ~= "table" then
       newItem[key] = self[key]
