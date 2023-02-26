@@ -173,7 +173,7 @@ end
 --@param ignoreNoDraw Boolean. Whether creatures that have noDraw set will be included (optional, defaults to false)
 --@return Entity or Boolean. Will be FALSE if there's nothing there.
 function Map:get_tile_creature(x,y,get_attackable_features,ignoreNoDraw)
-  if (x<2 or y<2 or x>=self.width or y>=self.height) then return false end
+  if not self:in_map(x,y) then return false end
   if not get_attackable_features and self.creature_cache[x .. ',' .. y] ~= nil then return self.creature_cache[x .. ',' .. y] end
 	if (next(self.contents) == nil) then
     self.creature_cache[x .. ',' .. y] = false

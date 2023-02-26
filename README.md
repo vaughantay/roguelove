@@ -34,7 +34,7 @@ Highlights:
   * By default, you can return to previously-visited floors within a branch, but this can be turned off.
   * Branches can be set to ensure each floor within the branch is a different map type, so it doesn't repeat.
   * Branches and MapTypes can define the specific creatures/items that will spawn in them, or list creature/item types, factions, and tags they'll pull stuff from.
-  * Room and map decorators can be defined that apply.
+  * Room and map decorators can be defined that customize appearance and content of rooms and maps.
 * Spells/abilities
   * Robust ability system, with support for active and passive abilities, as well as abilities that can be toggled on and off.
   * Active abilities can use MP, have cooldowns, have a set number of charges, or none of the above.

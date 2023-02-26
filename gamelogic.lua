@@ -626,7 +626,8 @@ function move_player(newX,newY,force)
     if (force or currMap:is_passable_for(newX,newY,player.pathType,true) or currMap:is_passable_for(player.x,player.y,player.pathType,true) == false) then --the second is_passable check means that it won't pop up a warning moving FROM dangerous territory TO dangerous territory
       player:moveTo(newX,newY)
     else
-      game:warn_player(newX,newY)
+      local text = "That tile may be dangerous. Are you sure you want to move there?"
+      game:warn_player(newX,newY,text,move_player,{newX,newY,true})
       return false --break here, so turn doesn't pass
     end
   elseif entity then
@@ -637,7 +638,13 @@ function move_player(newX,newY,force)
           output:out("You swap places with " .. entity:get_name() .. ".")
         else
           target = entity
-          player:attack(entity)
+          if force or entity:is_enemy(player) then
+            player:attack(entity)
+          else
+            local text = ucfirst(entity:get_name()) .. " isn't hostile towards you. Are you sure you want to attack " .. entity:get_pronoun('o') .. "?"
+            game:warn_player(newX,newY,text,move_player,{newX,newY,true})
+            return false --break here, so turn doesn't pass
+          end
         end
         break --if there's a creature, we'll deal with them and ignore features
       elseif entity.baseType == "feature" then

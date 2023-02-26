@@ -1386,7 +1386,8 @@ function game:mousepressed(x,y,button)
       local yes = self.warning.yesButton
       local no = self.warning.noButton
       if x/uiScale > yes.minX and x/uiScale < yes.maxX and y/uiScale > yes.minY and y/uiScale < yes.maxY then
-        move_player(self.warning.tile.x,self.warning.tile.y,true)
+        local args = self.warning.afterArgs or {}
+        self.warning.afterFunc(unpack(args))
         self.warning = nil
       elseif x/uiScale > no.minX and x/uiScale < no.maxX and y/uiScale > no.minY and y/uiScale < no.maxY then
         self.warning = nil
@@ -1531,7 +1532,8 @@ function game:keypressed(key,scancode,isRepeat)
 		action = "moving"
   elseif self.warning then
     if key == "yes" or key == "enter" then
-      move_player(self.warning.tile.x,self.warning.tile.y,true)
+      local args = self.warning.afterArgs or {}
+      self.warning.afterFunc(unpack(args))
       self.warning = nil
     elseif key == "no" or key == "escape" then
       self.warning = nil
@@ -2108,46 +2110,25 @@ function ContextualMenu:scrollDown()
   end
 end
 
--- Warning bullshit:
+-- Warning:
 local Warning = Class{}
 
-function game:warn_player(x,y,creat)
-  local w = Warning(x,y,creat)
-  if w.danger then self.warning = w end
+function game:warn_player(x,y,text,afterFunc,afterArgs)
+  self.warning = Warning(x,y,text,afterFunc,afterArgs)
+  if not self.warning.afterFunc then self.warning = nil end --if no function or an is passed, cancel the warning
 end
 
-function Warning:init(x,y,creat)
+function Warning:init(x,y,text,afterFunc,afterArgs)
   local uiScale = prefs['uiScale']
   local fontSize = prefs['fontSize']
   self.tile={x=x,y=y}
-  self.text = nil
-  if creat then
-    self.danger = creat
-    self.text = "Are you sure you want to move next to " .. self.danger:get_name() .. "?"
-  elseif type(currMap[x][y]) == "table" and currMap[x][y].baseType == "feature" and currMap[x][y]:is_hazardous_for(player.pathType) then
-    self.danger = currMap[x][y]
-  else  --if the tile is a boring old square, or nonthreatening feature
-    for _,feat in pairs(currMap:get_tile_features(x,y)) do
-      if feat:is_hazardous_for(player.pathType) then
-        self.danger = feat
-        break
-      end --end hazard if
-    end --end feature for
-    for _,eff in pairs(currMap:get_tile_effects(x,y)) do
-      if eff:is_hazardous_for(player.pathType) then
-        self.danger = eff
-        break
-      end --end hazard if
-    end --end effect for
-  end --end feature if
-  if self.danger and self.danger.baseType == "feature" or self.danger.baseType == "effect" then
-    self.text = "Are you sure you want to step into the " .. self.danger.name .. "?"
-  end
-  self.x,self.y=round(love.graphics.getWidth()/uiScale/2-100),round(love.graphics.getHeight()/uiScale/2-50)
+  self.text = text or "Are you sure you want to do that?"
+  self.afterFunc = type(afterFunc) == "function" and afterFunc or nil
+  self.afterArgs = afterArgs
   self.width = math.ceil(love.graphics.getWidth()/uiScale/2)
   local _,hlines = fonts.textFont:getWrap(self.text,self.width)
   self.height = #hlines*(fontSize+1)+32
-  if not self.danger then return false end
+  self.x,self.y=round(love.graphics.getWidth()/uiScale/2-self.width/2),round(love.graphics.getHeight()/uiScale/2-self.height/2)
 end
 
 function Warning:draw()
@@ -2157,10 +2138,11 @@ function Warning:draw()
   love.graphics.scale(uiScale,uiScale)
   love.graphics.setFont(fonts.textFont)
   output:draw_window(self.x,self.y,self.x+self.width,self.y+self.height)
-  love.graphics.printf(self.text,self.x,self.y,self.width,"center")
-  local buttonW = math.max(fonts.buttonFont:getWidth("(Y)es"),fonts.buttonFont:getWidth("(N)o"))
-  self.yesButton = output:button(round(self.x+(self.width)/2)-buttonW,self.y+self.height-8,buttonW,nil,nil,"(Y)es",true)
-  self.noButton = output:button(round(self.x+(self.width)/2)+buttonW,self.y+self.height-8,buttonW,nil,nil,"(N)o",true)
+  love.graphics.printf(self.text,self.x,self.y+fontSize,self.width,"center")
+  local buttonPad = 16
+  local buttonW = math.max(fonts.buttonFont:getWidth("(Y)es"),fonts.buttonFont:getWidth("(N)o"))+buttonPad
+  self.yesButton = output:button(round(self.x+(self.width)/2)-(buttonW-buttonPad),self.y+self.height-8,buttonW,nil,nil,"(Y)es",true)
+  self.noButton = output:button(round(self.x+(self.width)/2)+(buttonW-buttonPad),self.y+self.height-8,buttonW,nil,nil,"(N)o",true)
   love.graphics.pop()
 end
 
