@@ -627,7 +627,7 @@ function move_player(newX,newY,force)
       player:moveTo(newX,newY)
     else
       local text = "That tile may be dangerous. Are you sure you want to move there?"
-      game:warn_player(newX,newY,text,move_player,{newX,newY,true})
+      game:warn_player(text,move_player,{newX,newY,true})
       return false --break here, so turn doesn't pass
     end
   elseif entity then
@@ -642,7 +642,7 @@ function move_player(newX,newY,force)
             player:attack(entity)
           else
             local text = ucfirst(entity:get_name()) .. " isn't hostile towards you. Are you sure you want to attack " .. entity:get_pronoun('o') .. "?"
-            game:warn_player(newX,newY,text,move_player,{newX,newY,true})
+            game:warn_player(text,move_player,{newX,newY,true})
             return false --break here, so turn doesn't pass
           end
         end

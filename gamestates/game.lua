@@ -2113,15 +2113,14 @@ end
 -- Warning:
 local Warning = Class{}
 
-function game:warn_player(x,y,text,afterFunc,afterArgs)
-  self.warning = Warning(x,y,text,afterFunc,afterArgs)
+function game:warn_player(text,afterFunc,afterArgs)
+  self.warning = Warning(text,afterFunc,afterArgs)
   if not self.warning.afterFunc then self.warning = nil end --if no function or an is passed, cancel the warning
 end
 
-function Warning:init(x,y,text,afterFunc,afterArgs)
+function Warning:init(text,afterFunc,afterArgs)
   local uiScale = prefs['uiScale']
   local fontSize = prefs['fontSize']
-  self.tile={x=x,y=y}
   self.text = text or "Are you sure you want to do that?"
   self.afterFunc = type(afterFunc) == "function" and afterFunc or nil
   self.afterArgs = afterArgs
