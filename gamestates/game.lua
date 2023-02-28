@@ -747,10 +747,8 @@ function game:display_map(map)
             end
             if not noFloor then
               if (type(map[x][y]) == "string") then --if there are no creatures or features, just print the tile
-                if seen == false and map[x][y] ~= "<" then
+                if not seen then
                   setColor(50,50,50,255)
-                elseif map[x][y] == "<" then
-                  setColor(255,255,0,255)
                 elseif map.tileset and tilesets[map.tileset] and map[x][y] == "." and tilesets[map.tileset].floorColor then
                   local tc = tilesets[map.tileset].floorColor
                   setColor(tc.r,tc.g,tc.b,tc.a)
@@ -763,7 +761,7 @@ function game:display_map(map)
                 else
                   setColor(255,255,255,255)
                 end
-                  love.graphics.print(map[x][y],printX,printY)
+                love.graphics.print(map[x][y],printX,printY)
               else
                 output.display_entity(map[x][y],printX,printY,seen)
               end
@@ -779,21 +777,45 @@ function game:display_map(map)
               img = images[map.images[x][y]]
             end
             if map.tileset and tilesets[map.tileset] and img and img ~= -1 then
-              --Set color depending on Fog of War
-              if seen == false then setColor(100,100,100,255)
-              else setColor(255,255,255,255) end
+              local sbColor={r=255,g=255,b=255,a=255}
+              --Set color:
+              if tilesets[map.tileset].use_color_with_tiles or (gamesettings.always_use_color_with_tiles and tilesets[map.tileset].use_color_with_tiles ~= false) then
+                if (map[x][y] == "." or type(map[x][y]) == "table") and tilesets[map.tileset].floorColor then
+                  local tc = tilesets[map.tileset].floorColor
+                  setColor(tc.r,tc.g,tc.b,tc.a)
+                  sbColor={r=tc.r/255,g=tc.g/255,b=tc.b/255,a=tc.a/255}
+                elseif map[x][y] == "#" and tilesets[map.tileset].wallColor then
+                  local tc = tilesets[map.tileset].wallColor
+                  setColor(tc.r,tc.g,tc.b,tc.a)
+                  sbColor={r=tc.r/255,g=tc.g/255,b=tc.b/255,a=tc.a/255}
+                elseif tilesets[map.tileset].textColor then
+                  local tc = tilesets[map.tileset].textColor
+                  setColor(tc.r,tc.g,tc.b,tc.a)
+                  sbColor={r=tc.r/255,g=tc.g/255,b=tc.b/255,a=tc.a/255}
+                else
+                  setColor(255,255,255,255)
+                end
+              else --if not using tileset colors
+                if seen == false then setColor(100,100,100,255)
+                else setColor(255,255,255,255) end
+              end --end tileset color if
+              
               --pClock:clearTime()
               if tilesets[map.tileset].tilemap and map[x][y] == "#" then
                 if seen then
                   if not self.batches[img] then
                     self.batches[img] = love.graphics.newSpriteBatch(img,map.width*map.height)
                   end
+                  self.batches[img]:setColor(sbColor.r,sbColor.g,sbColor.b,sbColor.a)
                   self.batches[img]:add(quads[map.images[x][y].direction],printX+16*(currGame.zoom or 1),printY+16*(currGame.zoom or 1),0,(currGame.zoom or 1),(currGame.zoom or 1),16,16)
+                  self.batches[img]:setColor(1,1,1,1)
                 else
                   if not self.batchesDark[img] then
                     self.batchesDark[img] = love.graphics.newSpriteBatch(img,map.width*map.height)
                   end
+                  self.batchesDark[img]:setColor(sbColor.r,sbColor.g,sbColor.b,sbColor.a)
                   self.batchesDark[img]:add(quads[map.images[x][y].direction],printX+16*(currGame.zoom or 1),printY+16*(currGame.zoom or 1),0,(currGame.zoom or 1),(currGame.zoom or 1),16,16)
+                  self.batchesDark[img]:setColor(1,1,1,1)
                 end
                 --love.graphics.draw(img,quads[map.images[x][y].direction],printX+16,printY+16,0,1,1,16,16)
               else --uses individual images? draw the image
@@ -801,22 +823,25 @@ function game:display_map(map)
                   if not self.batches[img] then
                     self.batches[img] = love.graphics.newSpriteBatch(img,map.width*map.height)
                   end
+                  self.batches[img]:setColor(sbColor.r,sbColor.g,sbColor.b,sbColor.a)
                   self.batches[img]:add(printX+16*(currGame.zoom or 1),printY+16*(currGame.zoom or 1),0,(currGame.zoom or 1),(currGame.zoom or 1),16,16)
+                  self.batches[img]:setColor(1,1,1,1)
                 else
                   if not self.batchesDark[img] then
                     self.batchesDark[img] = love.graphics.newSpriteBatch(img,map.width*map.height)
                   end
+                  self.batchesDark[img]:setColor(sbColor.r,sbColor.g,sbColor.b,sbColor.a)
                   self.batchesDark[img]:add(printX+16*(currGame.zoom or 1),printY+16*(currGame.zoom or 1),0,(currGame.zoom or 1),(currGame.zoom or 1),16,16)
+                  self.batchesDark[img]:setColor(1,1,1,1)
                 end
+                setColor(255,255,255,255)
                 --love.graphics.draw(img,printX+16,printY+16,0,1,1,16,16)
               end
             else --don't have an image
               love.graphics.setFont(fonts.mapFontWithImages)
               if (type(map[x][y]) == "string") then --if there are no creatures or features, just print the tile
-                if seen == false and map[x][y] ~= "<" then
+                if not seen then
                   setColor(50,50,50,255)
-                elseif map[x][y] == "<" then
-                  setColor(255,255,0,255)
                 elseif map.tileset and tilesets[map.tileset] and map[x][y] == "." and tilesets[map.tileset].floorColor then
                   local tc = tilesets[map.tileset].floorColor
                   setColor(tc.r,tc.g,tc.b,tc.a)

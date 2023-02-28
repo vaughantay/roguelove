@@ -1,4 +1,8 @@
 tilesets = {
+  default = {
+    floorColor = {r=77,g=77,b=77,a=255},
+    wallColor = {r=120,g=120,b=120,a=255},
+  }
   graveyard = {
     floorColor = {r=98,g=73,b=22,a=255},
     floor_tiles = 5,

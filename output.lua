@@ -59,7 +59,7 @@ function output.display_entity(entity,x,y, seen,ignoreDistMods,scale)
       colorMod = 1.5
     end
     if entity.temporaryColor then setColor(round(entity.temporaryColor.r/colorMod),round(entity.temporaryColor.g/colorMod),round(entity.temporaryColor.b/colorMod),(entity.temporaryColor.a or alpha))
-    elseif entity.use_color_with_tiles then setColor(round(entity.color.r/colorMod),round(entity.color.g/colorMod),round(entity.color.b/colorMod),alpha)
+    elseif entity.use_color_with_tiles or (gamesettings.always_use_color_with_tiles and entity.use_color_with_tiles ~= false) then setColor(round(entity.color.r/colorMod),round(entity.color.g/colorMod),round(entity.color.b/colorMod),alpha)
     elseif seen then setColor(round(255/colorMod),round(255/colorMod),round(255/colorMod),alpha)
     else setColor(100,100,100,alpha) end
     

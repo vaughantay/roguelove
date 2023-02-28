@@ -40,5 +40,6 @@ gamesettings = {
   money_prefix = nil,
   money_suffix = nil,
   money_name = "coins",
-  money_name_single = "coin"
+  money_name_single = "coin",
+  always_use_color_with_tiles=true
 }

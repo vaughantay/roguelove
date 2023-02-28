@@ -55,7 +55,7 @@ function mapgen:generate_map(branchID, depth,force)
   build.fullName = build:get_name()
   build.description = whichMap.description or (whichMap.generateDesc and whichMap.generateDesc()) or (whichMap.descType and namegen:generate_description(whichMap.descType)) or false
   build.bossID = whichMap.bossID or (branch.bossIDs and branch.bossIDs[depth])
-  build.tileset = whichMap.tileset
+  build.tileset = whichMap.tileset or branch.tileset or "default"
   build.playlist = whichMap.playlist or id
   build.bossPlaylist = whichMap.bossPlaylist or id .. "boss"
   build.lit = whichMap.lit or branch.lit

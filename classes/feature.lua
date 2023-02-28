@@ -242,6 +242,14 @@ function Feature:drop_item(item)
 	end
 end
 
+---Have a feature drop all their items on the tile they're on
+function Feature:drop_all_items()
+	for _,item in ipairs(self.inventory) do
+    currMap:add_item(item,self.x,self.y,true)
+	end --end inventory for loop
+  self.inventory = {}
+end
+
 ---Check if a feature has an instance of an item ID
 --@param item String. The item ID to check for
 --@param sortBy Text. What the "sortBy" value you're checking is (optional)
