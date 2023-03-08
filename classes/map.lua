@@ -411,8 +411,9 @@ end
 --@param feature Feature. A specific feature object, NOT its ID. Usually a new feature, called using Feature('featureID')
 --@param x Number. The x-coordinate
 --@param y Number. The y-coordinate
+--@param args Anything. Arguments to pass to the feature's new() code
 --@return Feature. The feature added
-function Map:add_feature(feature,x,y)
+function Map:add_feature(feature,x,y,args)
   if not feature or type(feature) ~= "table"  or feature.baseType ~= "feature" then
     output:out("Error: Tried to add non-existent feature to map " .. self:get_name())
     print("Tried to add non-existent feature to map " .. self:get_name())
@@ -422,7 +423,7 @@ function Map:add_feature(feature,x,y)
 	y = (y or random(2,self.height-1))
 	self.contents[x][y][feature] = feature
   feature.x,feature.y = x,y
-  if possibleFeatures[feature.id].placed then possibleFeatures[feature.id].placed(feature,self) end
+  if possibleFeatures[feature.id].placed then possibleFeatures[feature.id].placed(feature,self,args) end
   if feature.castsLight then self.lights[feature] = feature end
   self.feature_cache[#self.feature_cache+1] = feature
   return feature --return the feature so if it's created when this function is called, you can still access it
@@ -1298,10 +1299,10 @@ end
 function Map:get_content_tags(tagType,noBranch)
   local tagLabel = (tagType and tagType .. "Tags" or "contentTags")
   noBranch = noBranch or self.noBranchContent or (tagType and self['noBranch' .. ucfirst(tagType) .. "s"])
-  local tags = (self[tagLabel] or self.contentTags or {})
+  local tags = (self[tagLabel] or (tagLabel ~= "passedTags" and self.contentTags) or {})
   if not noBranch then
     local branch = currWorld.branches[self.branch]
-    local bTags = branch[tagLabel] or branch.contentTags
+    local bTags = branch[tagLabel] or (tagLabel ~= "passedTags" and branch.contentTags)
     if bTags then
       tags = merge_tables(tags,bTags)
     end

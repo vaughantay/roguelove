@@ -1442,10 +1442,14 @@ function Creature:drop_all_items(deathItems)
       self:unequip(item)
       item.x,item.y=self.x,self.y
     end
+    item.x,item.y=self.x,self.y
+    item.owner=nil
 	end --end inventory for loop
   if deathItems and self.death_items then
     for _,item in ipairs(self.death_items) do
       currMap:add_item(item,self.x,self.y,true)
+      item.x,item.y=self.x,self.y
+      item.owner=nil
     end --end inventory for loop
   end
   --Money:
@@ -2663,24 +2667,25 @@ function Creature:can_learn_spell(spellID)
   local spell = possibleSpells[spellID]
   if spell.level_requirement and self.level < spell.level_requirement then
     return false,"You're not a high enough level to learn this ability."
-  elseif spell.stat_requirements then
+  end
+  if spell.stat_requirements then
     for stat,requirement in pairs(spell.stat_requirements) do
       if self:get_stat(stat,true) < requirement and self:get_bonus_stat(stat,true) < requirement then
         return false,"Your " .. stat .. " stat is too low to learn this ability."
       end
     end
-  elseif player.forbidden_spell_tags and count(player.forbidden_spell_tags) > 0 then
+  end
+  if player.forbidden_spell_tags and count(player.forbidden_spell_tags) > 0 then
     for _,tag in ipairs(player.forbidden_spell_tags) do
       if spell.tags and in_table(tag,spell.tags) then
         return false,"You're unable to learn this type of ability."
       end
     end
-  else
-    local s = Spell(spellID)
-    local ret,text = s:learn_requires(self)
-    if ret == false then
-      return false,text
-    end
+  end
+  local s = Spell(spellID)
+  local ret,text = s:learn_requires(self)
+  if ret == false then
+    return false,text
   end
   return true
 end

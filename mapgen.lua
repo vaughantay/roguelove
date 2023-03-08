@@ -1139,20 +1139,8 @@ function mapgen:populate_items_in_room(room,map,decID)
     end --end if items
     if dec.itemTags or dec.contentTags then
       local tags = dec.itemTags or dec.contentTags
-      for iid,item in pairs(possibleItems) do
-        local done = false
-        if tags and not done then
-          for _,tag in ipairs(tags) do
-            if not item.specialOnly and Item.has_tag(item,tag,true) then
-              done = true
-              break
-            end
-          end --end tags for
-        end --end tags if
-        if done then
-          item_list[#item_list+1] = iid
-        end
-      end --end item for
+      local tagged_items = mapgen:get_content_list_from_tags('item',tags)
+      item_list = merge_tables(item_list,tagged_items)
     end --end if item or tags listed in room decorator 
   end --end if decid
   
@@ -1162,12 +1150,8 @@ function mapgen:populate_items_in_room(room,map,decID)
     
     --Passed tags:
     local passedTags = dec.passedTags
-    if map.passedTags then
-      passedTags = merge_tables((passedTags or {}),map.passedTags)
-    end
-    if not mapTypes[map.mapType].noBranchItems and not mapTypes[map.mapType].noBranchContent and branch.passedTags then
-      passedTags = merge_tables((passedTags or {}),branch.passedTags)
-    end
+    local mapPassed = map:get_content_tags('passed')
+    passedTags = merge_tables((passedTags or {}),mapPassed)
     
     local clearSpace = 0
     local current_items = 0
@@ -1209,4 +1193,41 @@ function mapgen:populate_items_in_room(room,map,decID)
       end
     end
   end --end if creature list
+end
+
+function mapgen:get_content_list_from_tags(content_type,tags)
+  local content_list
+  local contents = {}
+  if content_type == "creature" then
+    content_list = possibleMonsters
+  elseif content_type == "feature" then
+    content_list = possibleFeatures
+  elseif content_type == "item" then
+    content_list = possibleItems
+  elseif content_type == "spell" then
+    content_list = possibleSpells
+  elseif content_type == "store" then
+    content_list = possibleStores
+  elseif content_type == "faction" then
+    content_list = possibleFactions
+  end
+  if not content_list or not tags or #tags < 1 then
+    return contents
+  end
+  
+  for id,content in pairs(content_list) do
+    local done = false
+    if tags and not done then
+      for _,tag in ipairs(tags) do
+        if not content.specialOnly and content.tags and in_table(tag,content.tags) then
+          done = true
+          break
+        end
+      end --end tags for
+    end --end tags if
+    if done then
+      contents[#contents+1] = id
+    end
+  end --end content for
+  return contents
 end

@@ -410,7 +410,7 @@ end
 
 function characterscreen:refresh_spell_purchase_list()
   self.spell_purchases = {}
-  if playerClasses[player.class].spell_purchases then
+  if player.class and playerClasses[player.class].spell_purchases then
     for _,info in ipairs(playerClasses[player.class].spell_purchases) do
       if not info.level or info.level <= player.level then
         self.spell_purchases[#self.spell_purchases+1] = info

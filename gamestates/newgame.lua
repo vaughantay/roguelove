@@ -79,7 +79,7 @@ function newgame:draw()
     self.classDescSplit = descBoxX-windowPadding
   
     --***Screen 1 - Species:
-    if not self.player.species and gamesettings.player_species then
+    if screen == "species" then
       local printY = classBoxY
       local whichSpecies = self.species[self.cursorY].creatureID
 

@@ -698,6 +698,7 @@ function game:display_map(map)
   local alwaysDisplay = {}
   local effectsToDisplay = {}
   local lightsToDisplay = {}
+  local itemsToDisplay = {}
   local terrainStringUnseen = ""
   local terrainStringSeen = ""
   if not player.seeTiles then refresh_player_sight() end
@@ -874,9 +875,10 @@ function game:display_map(map)
               if content.baseType ~= "creature" then
                 if content.alwaysDisplay == true then --don't display "alwaysdisplay" content yet, save it for later
                   alwaysDisplay[content] = {printX,printY,seen} --store the content
-                else
+                elseif content.baseType == "feature" then
                   featuresToDisplay[#featuresToDisplay+1] = {feature=content,x=printX,y=printY,seen=seen}
-                  --output.display_entity(content,printX,printY,seen)
+                elseif content.baseType == "item" then
+                  itemsToDisplay[#itemsToDisplay+1] = {item=content,x=printX,y=printY,seen=seen}
                 end
               end
             end --end for
@@ -963,6 +965,9 @@ function game:display_map(map)
   end
   for f,args in pairs(alwaysDisplay) do
     output.display_entity(f,args[1],args[2],args[3],nil,(currGame.zoom or 1))
+  end
+  for _,item in ipairs(itemsToDisplay) do
+    output.display_entity(item.item,item.x,item.y,item.seen,nil,(currGame.zoom or 1))
   end
   --stats = love.graphics.getStats()
   --print('draw calls after features: ' .. tostring(stats.drawcalls))
