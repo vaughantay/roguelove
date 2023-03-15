@@ -991,7 +991,7 @@ end
 
 function newgame:startGame()
   initialize_player(self.player.species,self.player.class,self.player.name,self.player.gender,self.player.pronouns)
-  local branch = playerClasses[self.player.class].starting_branch or possibleMonsters[self.player.species].starting_branch or gamesettings.default_starting_branch
+  local branch = (playerClasses[self.player.class] and playerClasses[self.player.class].starting_branch) or possibleMonsters[self.player.species].starting_branch or gamesettings.default_starting_branch
   new_game((tonumber(self.seed) > 0 and tonumber(self.seed) or 1),self.tutorial,self.cheats,branch)
   self.cursorY=0
   self.blackAmt = 0

@@ -300,19 +300,48 @@ function Spell:get_possible_upgrades()
   for id,details in pairs(self.possible_upgrades) do
     local current_upgrade_level = self.applied_upgrades[id] or 0
     local max_upgrade_level = #details
-    if current_upgrade_level < max_upgrade_level then
-      upgrades[id] = current_upgrade_level + 1
+    if current_upgrade_level < max_upgrade_level and (self.possessor == player or not details.playerOnly) then
+      local level = current_upgrade_level + 1
+      upgrades[id] = level
     end
   end
   return upgrades
 end
 
+---Determines whether you're able to perform an upgrade
+--@param upgradeID String. The ID of the upgrade
+--@param level Number. The level of the upgrade
+function Spell:can_upgrade(upgrade,level)
+  local details = (self.possible_upgrades and self.possible_upgrades[upgrade][level])
+  local possessor = self.possessor
+  if details and possessor then
+    local pointCost = details.point_cost or 1
+    if (possessor.spellPoints or 0) < pointCost then
+      return false
+    end
+    if details.item_cost then
+      for _,item_details in ipairs(details.item_cost) do
+        local amount = item_details.amount or 1
+        local sortByVal = item_details.sortBy
+        local _,_,has_amt = self.possessor:has_item(item_details.item,sortByVal)
+        if has_amt < amount then
+          return false
+        end
+      end --end item_cost for
+    end --end if item_cost
+    return true
+  end --end if details and possessor
+  return false
+end
+
 ---Applies an upgrade to a spell
+--@param upgradeID String. The ID of the upgrade to apply
+--@param force Boolean. If true, ignore upgrade requirements
 --@return Boolean. Whether the upgrade was applied
-function Spell:apply_upgrade(upgradeID)
+function Spell:apply_upgrade(upgradeID,force)
   local upgrades = self:get_possible_upgrades()
   local level = upgrades[upgradeID]
-  if level then
+  if level and (force or self:can_upgrade(upgradeID,level)) then
     local stats = self.possible_upgrades[upgradeID][level]
     for stat,value in pairs(stats) do
       if self[stat] then
@@ -322,6 +351,18 @@ function Spell:apply_upgrade(upgradeID)
       end
     end
     self.applied_upgrades[upgradeID] = level
+    if self.possessor then
+      local point_cost = stats.point_cost or 1
+      self.possessor.spellPoints = self.possessor.spellPoints - point_cost
+      if stats.item_cost then
+        for _,item_details in pairs(stats.item_cost) do
+          local amount = item_details.amount or 1
+          local sortByVal = item_details.sortBy
+          local item = self.possessor:has_item(item_details.item,sortByVal)
+          self.possessor:delete_item(item,amount)
+        end
+      end
+    end --end if self possessor
     return true
   end
   return false

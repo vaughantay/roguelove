@@ -1440,7 +1440,6 @@ function Creature:drop_all_items(deathItems)
     currMap:add_item(item,self.x,self.y,true)
     if self:is_equipped(item) then
       self:unequip(item)
-      item.x,item.y=self.x,self.y
     end
     item.x,item.y=self.x,self.y
     item.owner=nil
@@ -2655,7 +2654,9 @@ end
 --@param spellID Text. The ID of the spell to learn
 function Creature:learn_spell(spellID)
   if not self:has_spell(spellID,true) then
-    self.spells[#self.spells+1] = Spell(spellID)
+    local newSpell = Spell(spellID)
+    self.spells[#self.spells+1] = newSpell
+    newSpell.possessor = self
   end
 end
 

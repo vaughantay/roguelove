@@ -67,7 +67,7 @@ function spellscreen:draw()
   love.graphics.printf("Spells and Abilities",padding,padding,window1w,"center")
   local spellPoints = (not player.spellPoints and 0 or player.spellPoints)
   if spellPoints > 0 then
-    love.graphics.printf("You have " .. spellPoints .. " points to spend.",padding,padding+fontSize,window1w,"center")
+    love.graphics.printf("You have " .. spellPoints .. " ability point" .. (spellPoints == 1 and "" or "s") .. " to spend.",padding,padding+fontSize,window1w,"center")
     printY = printY+fontSize
   end
   self.startY = printY
@@ -283,12 +283,12 @@ function spellscreen:draw()
         local mod = (spell.target_type == "passive" and 0 or 2)
         local upDesc,upY = nil,nil
         for id,level in pairs(upgrades) do
-          if spellPoints < 1 then
+          if not spell:can_upgrade(id,level) then
             setColor(100,100,100,255)
           elseif not selected then
             setColor(175,175,175,255)
           end
-          self.upgradebuttons[buttonY] = output:tinybutton(printX,printY+3,true,(self.sidebarCursorY==buttonY+mod or nil),"+",true)
+          self.upgradebuttons[buttonY] = output:tinybutton(printX,printY+1,true,(self.sidebarCursorY==buttonY+mod or nil),"+",true)
           self.upgradebuttons[buttonY].upgradeID = id
           setColor(255,255,255,255)
           local buttonW = 34
@@ -297,19 +297,38 @@ function spellscreen:draw()
           local name = (level_details.name or details.name or ucfirst(id))
           local description = (level_details.description or details.description or nil)
           local i = 1
+          local point_cost = level_details.point_cost or 1
+          local statText = ""
           for stat,amt in pairs(level_details) do
-            if type(amt) ~= "boolean" then
+            if type(amt) ~= "boolean" and type(amt) ~= "table" and stat ~= "point_cost" then
               local statName = (spell.stats and spell.stats[stat] and spell.stats[stat].name or ucfirst(stat))
               statName = string.gsub(statName,'_',' ')
-              if i == 1 then description = (description and description .. " " or "") end
-              description = description .. (i > 1 and ", " or "") .. statName .. (type(amt) == "number" and (amt < 0 and " " or " +") or ": ") .. amt
-              i = i + 1
+              statText = statText .. "\n\t" .. statName .. (type(amt) == "number" and (amt < 0 and " " or " +") or ": ") .. amt
             end
           end --end stat for
-          local upText = name .. (description and " (" .. description .. ")" or "")
+          local costText = ""
+          if point_cost > 0 or level_details.item_cost then
+            costText = " - Cost: "
+            local firstCost = true
+            if point_cost > 0 then
+              costText = costText .. point_cost .. " ability point" .. (point_cost > 1 and "s" or "")
+              firstCost = false
+            end
+            if level_details.item_cost then
+              for _,item_details in ipairs(level_details.item_cost) do
+                local amount = item_details.amount or 1
+                local sortByVal = item_details.sortBy
+                local _,_,has_amt = player:has_item(item_details.item,sortByVal)
+                local name = item_details.displayName or (amount > 1 and possibleItems[item_details.item].pluralName or possibleItems[item_details.item].name)
+                costText = costText .. (firstCost == false and ", " or "") .. amount .. " " .. name .. " (You have " .. has_amt .. ")"
+                firstCost = false
+              end --end item cost for
+            end --end item cost if
+          end
+          local upText = name .. costText .. (description and "\n" .. description or "") .. statText
           love.graphics.printf(upText,printX+buttonW,printY,window2w-padding,"left")
           local _, dlines = fonts.textFont:getWrap(upText,window2w-padding)
-          local dHeight = #dlines*fontSize+5
+          local dHeight = (#dlines+1)*fontSize
           printY = printY+dHeight
           buttonY=buttonY+1
         end --end upgrade for
@@ -505,6 +524,6 @@ function spellscreen:perform_upgrade(upgradeID)
     return false
   end
   if spell:apply_upgrade(upgradeID) then
-    player.spellPoints = player.spellPoints-1
+    return true
   end
 end
