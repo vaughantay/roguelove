@@ -1885,4 +1885,14 @@ asleep = Condition({ --Assumed to exist by the base game
 recentlyawoken = Condition({ --Assumed to exist by the base game
     name = "Recently Awoken",
   }),
+
+overloaded = Condition({ --Assumed to exist by the base game if using inventory space. Do with this what you will, does nothing by default except clear itself if it's not needed. If you're not using inventory space, feel free to delete
+    name = "Overloaded",
+    update = function(self,possessor,dt)
+      local space = possessor:get_free_inventory_space()
+      if not space or (type(space) == "number" and space >= 0) then
+        possessor:cure_condition('overloaded')
+      end
+    end
+  }),
 }

@@ -40,6 +40,7 @@ function Creature:init(creatureType,level,noItems,noTweak,info,ignoreNewFunc)
   self.ranged = (noTweak and self.ranged or tweak(self.ranged or 0))
   self.strength = (noTweak and self.strength or tweak(self.strength or 0))
   self.magic = (noTweak and self.magic or tweak(self.magic or 0))
+  self.inventory_space = self.inventory_space or gamesettings.default_inventory_space
 	self.conditions = {}
 	self.spells = {}
   self.active_spells = {}
@@ -1362,28 +1363,68 @@ function Creature:remove(map)
   --currMap:set_blocked(self.x,self.y,0)
 end
 
+---Gets the list of items the creature has
+--@return Table. The creature's inventory
+function Creature:get_inventory(ignoreEquip)
+  if ignoreEquip then
+    --TODO: ignoreEquip
+  else
+    return self.inventory
+  end
+end
+
+---Gets the number of slots the creature has used in its inventory
+--@return Number. The number of slots the creature has used in its inventory
+function Creature:get_used_inventory_space()
+  local used_slots = 0
+  for _,item in ipairs(self:get_inventory()) do
+    if not item.equipped then
+      used_slots = used_slots + (item.size or 1)
+    end
+  end --end inventory for
+  return used_slots
+end
+
+---Gets the number of free inventory slots a creature has
+--@return Number. The number of slots the creature has free in its inventory, or false if the creature has no inventory space set (which translates to infinite space)
+function Creature:get_free_inventory_space()
+  if not self.inventory_space then return false end
+  
+  return self:get_stat('inventory_space')-self:get_used_inventory_space()
+end
+
 ---Have a creature pick up an item from a tile.
 --@param item Item. The item to pick up
 --@param tileOnly Boolean. Whether to only allow pickups from the tile the creature is standing on. If not set to TRUE, creatures can also pick up from adjacent tiles.
 function Creature:pickup(item,tileOnly)
+  --First check if it fits in your free inventory space
+  local slots = self:get_free_inventory_space()
+  local size = (item.size or 1)
+  if slots and size > 0 and slots < size then
+    local tooBigText = "You are carrying too much to pick that up."
+    if self == player then output:out(tooBigText) end
+    return false,tooBigText
+  end
   local didIt,pickupText = nil,nil
   if possibleItems[item.id].pickup then
     didIt,pickupText = possibleItems[item.id].pickup(item,self)
   end
-  if didIt ~= false then
-    local x,y = self.x,self.y
-    if (tileOnly ~= true and not self:touching(item)) or (tileOnly == true and (item.x ~= x or item.y ~= y)) then return false end
-    if item.owner then
-      if player:can_sense_creature(self) then
-        output:out(pickupText or self:get_name() .. " takes " .. item:get_name() .. " from " .. item.owner:get_name() .. ".")
-      end
-      item.owner:drop_item(item)
-    elseif player:can_sense_creature(self) then
-      output:out(pickupText or self:get_name() .. " picks up " .. item:get_name() .. ".")
-    end
-    currMap.contents[item.x][item.y][item] = nil
-    self:give_item(item)
+  if didIt == false then
+    output:out(pickupText)
+    return false,pickupText
   end
+  local x,y = self.x,self.y
+  if (tileOnly ~= true and not self:touching(item)) or (tileOnly == true and (item.x ~= x or item.y ~= y)) then return false end
+  if item.owner then
+    if player:can_sense_creature(self) then
+      output:out(pickupText or self:get_name() .. " takes " .. item:get_name() .. " from " .. item.owner:get_name() .. ".")
+    end
+    item.owner:drop_item(item)
+  elseif player:can_sense_creature(self) then
+    output:out(pickupText or self:get_name() .. " picks up " .. item:get_name() .. ".")
+  end
+  currMap.contents[item.x][item.y][item] = nil
+  self:give_item(item)
 end
 
 ---Transfer an item to a creature's inventory
@@ -1644,6 +1685,7 @@ function Creature:equip(item)
           equipSlot[i] = item
           equipText = equipText .. (item.equipText or "You equip " .. item:get_name() .. ".")
           self.equipment_list[item] = item
+          item.equipped = true
         end
         return didIt,equipText
       end --end if empty slot if
@@ -1683,6 +1725,7 @@ function Creature:unequip(item)
         self.equipment[equipSlot][i] = nil
         unequipText = unequipText .. (item.unequipText or "You unequip " .. item:get_name() .. ".")
         self.equipment_list[item] = nil
+        item.equipped = nil
         --Slide other items of this equiptype to fill empty slot
         if i ~= self.equipment[equipSlot].slots then
           for i2=i+1,self.equipment[equipSlot].slots,1 do

@@ -24,6 +24,7 @@ function multipickup:enter()
   self.yModPerc = 100
   tween(0.2,self,{yModPerc=0})
   output:sound('stoneslideshort',2)
+  self.startY = 0
 end
 
 function multipickup:refresh_items()
@@ -48,7 +49,6 @@ function multipickup:draw()
   love.graphics.push()
   love.graphics.scale(uiScale,uiScale)
   love.graphics.translate(0,height*(self.yModPerc/100))
-	local line = 3
   local boxW,boxH = self.boxW,self.boxH
   local padX,padY = self.padX,self.padY
   local descY = self.descY
@@ -61,20 +61,35 @@ function multipickup:draw()
   
   love.graphics.printf("Pick Up Items",x+padX,y+padY,boxW-16,"center")
   
+  local printY = y+padY+fontSize
+  
+  if player.inventory_space then
+    local totalspace = player:get_stat('inventory_space')
+    local usedspace = player:get_used_inventory_space()
+    love.graphics.printf("Inventory Space: " .. usedspace .. "/" .. totalspace,x+padX,printY,boxW-16,"center")
+    printY = printY+fontSize+5
+  end
+  
+  local startY = printY
+  self.startY = startY
+  
   --Drawing the text:
   love.graphics.push()
   --Create a "stencil" that stops 
   local function stencilFunc()
-    love.graphics.rectangle("fill",x+padX,y+padY+fontSize,boxW-padX*2,boxH-padY)
+    love.graphics.rectangle("fill",x+padX,startY,boxW-padX*2,boxH-(startY-y)+padY)
   end
   love.graphics.stencil(stencilFunc,"replace",1)
   love.graphics.setStencilTest("greater",0)
   love.graphics.translate(0,-self.scrollY)
-  --Draw the highloght box:
-  if (self.items[self.cursorY] ~= nil) then
-    local printY = y+padY+((self.cursorY+1)*fontSize)
+  local tileSize = output:get_tile_size(true)
+  fontSize = math.max(fontSize,tileSize)
+  --Draw the highlight box:
+  if self.itemLines[self.cursorY] and self.itemLines[self.cursorY].minY and self.itemLines[self.cursorY].maxY then
+    local highlightY = self.itemLines[self.cursorY].minY
+    local highlightH = self.itemLines[self.cursorY].maxY - self.itemLines[self.cursorY].minY
     setColor(100,100,100,255)
-    love.graphics.rectangle("fill",x+padX,printY,boxW-8,fontSize+2)
+    love.graphics.rectangle("fill",x+padX,highlightY,boxW-8,highlightH)
     setColor(255,255,255,255)
 	end
   
@@ -85,7 +100,6 @@ function multipickup:draw()
 		local code = i+96
     local letter = (code > 32 and code <=122 and string.char(code) or nil)
     local name = item:get_name(true)
-    local itemY = y+padY+((line-1)*fontSize)
     
     --Add extra text if needed:
     local extra = nil
@@ -95,29 +109,25 @@ function multipickup:draw()
     if (item.x or item.owner.x) < player.x then direction = direction .. "west"
     elseif (item.x or item.owner.x) > player.x then direction = direction .. "east" end
     if item.owner then extra = " (In " .. item.owner.name .. (direction and ", " .. direction or "") .. ")" end
-    if extra == nil and direction ~= "" then extra = "(" .. ucfirst(direction) .. ")" end
+    if extra == nil and direction ~= "" then extra = " (" .. ucfirst(direction) .. ")" end
     
-		love.graphics.print((letter and letter .. ") " or "") .. name .. (extra or ""),x+padX,itemY)
-		line = line+1
-    self.itemLines[i] = {minY=itemY,maxY=itemY+fontSize+2}
-    bottom = itemY+fontSize+2
+    --Display line:
+    local letterW = fonts.textFont:getWidth((letter and letter .. ") " or ""))
+    local nameX = x+padX+letterW+tileSize
+    local nameText = name .. (extra or "")
+    local nameW = boxW-letterW-tileSize-padX
+    love.graphics.print((letter and letter .. ") " or ""),x+padX,printY+2)
+    output.display_entity(item,x+padX+letterW,printY-2,true,true)
+    love.graphics.printf(nameText,nameX,printY+2,nameW,"left")
+    
+    local _,nlines = fonts.textFont:getWrap(nameText,nameW)
+    local nameHeight = (#nlines)*fontSize
+    self.itemLines[i] = {minY=printY,maxY=printY+nameHeight+2}
+    printY = printY+nameHeight+2
 	end
-  bottom = bottom+fontSize
+  bottom = printY
   
   love.graphics.setStencilTest()
-  
-  --Draw the description:
-  if (self.items[self.cursorY] ~= nil) then
-    local item = self.items[self.cursorY]
-    local desc = item:get_description()
-    local info = item:get_info(true)
-    local oldFont = love.graphics.getFont()
-    love.graphics.setFont(fonts.descFont)
-    local descText = desc .. (info ~= "" and "\n\n" .. info or "")
-    x,y = round((x+boxW/2)),self.itemLines[self.cursorY].minY+round(fontSize)/2
-    output:description_box(ucfirst(descText),x,y)
-    love.graphics.setFont(oldFont)
-  end
   love.graphics.pop()
   
   --Scrollbars
@@ -127,6 +137,21 @@ function multipickup:draw()
     self.scrollPositions = output:scrollbar(self.x+self.boxW-padX,self.y+padY,self.y+self.boxH,scrollAmt,true)
   end
   self.closebutton = output:closebutton(self.x+(prefs['noImages'] and 8 or 20),self.y+(prefs['noImages'] and 8 or 20),nil,true)
+  
+  --Draw the description:
+  if (self.items[self.cursorY] ~= nil) then
+    local item = self.items[self.cursorY]
+    local desc = item:get_description()
+    local info = item:get_info(true)
+    local oldFont = love.graphics.getFont()
+    love.graphics.setFont(fonts.descFont)
+    local descText = desc .. (info ~= "" and "\n\n" .. info or "")
+    x,y = round((x+boxW/2)),self.itemLines[self.cursorY].minY+round((self.itemLines[self.cursorY].maxY-self.itemLines[self.cursorY].minY))/2
+    y = y-self.scrollY
+    output:description_box(ucfirst(descText),x,y)
+    love.graphics.setFont(oldFont)
+  end
+  
   love.graphics.pop()
 end
 
@@ -142,14 +167,14 @@ function multipickup:keypressed(key)
 	elseif (key == "north") then
 		if (self.items[self.cursorY-1] ~= nil) then
 			self.cursorY = self.cursorY - 1
-      if self.itemLines[self.cursorY].minY-self.scrollY-prefs['fontSize'] < self.y+self.padY+prefs['fontSize'] then
+      while self.itemLines[self.cursorY].minY-self.scrollY-prefs['fontSize'] < self.startY+prefs['fontSize'] and self.scrollY > 0 do
         self:scrollUp()
       end
 		end
 	elseif (key == "south") then
 		if (self.items[self.cursorY+1] ~= nil) then
 			self.cursorY = self.cursorY + 1
-      if self.itemLines[self.cursorY].maxY-self.scrollY+prefs['fontSize'] > self.y+prefs['fontSize']+self.boxH then
+      while self.itemLines[self.cursorY].maxY-self.scrollY+prefs['fontSize'] > self.y+prefs['fontSize']+self.boxH and self.scrollY < self.scrollMax do
         self:scrollDown()
       end
 		end

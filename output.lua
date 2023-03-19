@@ -276,9 +276,10 @@ function output:get_map_dimensions()
 end
 
 ---Get the width/height in pixels of a map tile. The game assumes that all pixels are square, so the single number returned is assumed to be used for both.
+--@param ignoreZoom Boolean. If true, ignore zoom
 --@return Number. The size of a map tile.
-function output:get_tile_size()
-  return math.floor((prefs['noImages'] and prefs['asciiSize'] or 32)*(currGame and currGame.zoom or 1))
+function output:get_tile_size(ignoreZoom)
+  return math.floor((prefs['noImages'] and prefs['asciiSize'] or gamesettings.tilesize)*(currGame and not ignoreZoom and currGame.zoom or 1))
 end
 
 ---Load and initialize all UI-related images.

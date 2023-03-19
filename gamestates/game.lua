@@ -1372,6 +1372,12 @@ function game:update(dt)
   elseif #output.potentialTargets > 0 then
     output.potentialTargets = {}
   end
+  
+  --Add overload to player if they're carring too much:
+  local space = player:get_free_inventory_space()
+  if type(space) == "number" and space < 0 then
+    player:give_condition('overloaded',-1)
+  end
   --profiler:stop()
   --print(profiler.report(10))
   --print("update time: " .. os.clock()-utime)

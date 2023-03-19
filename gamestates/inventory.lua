@@ -18,6 +18,8 @@ function inventory:enter(previous,whichFilter,action,creature)
     self.action = nil
     self.creature = creature or player
   end
+  self.inventory_space = (self.creature.inventory_space and self.creature:get_stat('inventory_space') or false)
+  self.free_space = self.creature:get_free_inventory_space()
   self.biggestY=0
   self.action=action or self.action
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
@@ -44,7 +46,8 @@ function inventory:enter(previous,whichFilter,action,creature)
 end
 
 function inventory:sort()
-  local fontSize = prefs['fontSize']
+  local tileSize = output:get_tile_size(true)
+  local fontSize = math.max(prefs['fontSize'],tileSize)
   --First, sort by type:
   local sorted = {}
   for i,item in ipairs(self.creature.inventory) do
@@ -82,45 +85,75 @@ function inventory:sort()
   for _,iType in ipairs(sorted) do
     for i,item in ipairs(iType) do
       if i == 1 then
-        self.inventory[#self.inventory+1] = {item=false,y=itemPrintY,text=ucfirst(iType.text)}
+        self.inventory[#self.inventory+1] = {item=false,y=itemPrintY,text=ucfirst(iType.text),header=true,maxY=itemPrintY+fontSize}
         itemPrintY = itemPrintY+fontSize
       end
-      self.inventory[#self.inventory+1] = {item=item,y=itemPrintY,text=item:get_name(true,nil,true)}
-      itemPrintY = itemPrintY+fontSize+2
+      local size = (self.inventory_space and math.max(item.size or 1,1) or 1)
+      local maxY = itemPrintY+fontSize*size
+      self.inventory[#self.inventory+1] = {item=item,y=itemPrintY,text=item:get_name(true,nil,true),maxY=maxY}
+      itemPrintY = maxY+2
     end --end 
   end --end item type sorting
+  if self.filter == nil or self.filter.id == "all" then
+    if self.free_space and self.free_space > 0 then
+      self.inventory[#self.inventory+1] = {item=false,y=itemPrintY,text="Free Space (" .. self.free_space .. ")",header=true,maxY=itemPrintY+fontSize}
+      itemPrintY = itemPrintY+fontSize
+      for i=1,self.free_space,1 do
+        local maxY = itemPrintY+fontSize
+        self.inventory[#self.inventory+1] = {item=false,y=itemPrintY,text="-",empty=true,maxY=maxY}
+        itemPrintY = maxY+2
+      end
+    end
+  end
   
   local equipOrder = gamesettings.default_equipment_order
   self.equipment = {}
   local equipPrintY = (prefs['noImages'] and 16 or 32)
+  local equipSlotWidth = 0
   for _,s in ipairs(equipOrder) do
     local slot = self.creature.equipment[s]
+    equipSlotWidth = math.max(equipSlotWidth,fonts.textFont:getWidth((slot.name or ucfirst(s)) .. ":"))
     if slot then
-      if #slot == 0 then
-        self.equipment[#self.equipment+1] = {item=false,y=equipPrintY,slotName=(slot.name or ucfirst(s))}
-        equipPrintY=equipPrintY+fontSize
-      else
-        for id,equip in ipairs(slot) do
-          self.equipment[#self.equipment+1] = {item=equip,y=equipPrintY,slotName=(slot.name or ucfirst(s))}
-          equipPrintY=equipPrintY+fontSize
-        end --end equip for
-      end
+      local usedhands = 0
+      for id,equip in ipairs(slot) do
+        local hands = 1
+        if s == "weapon" or s == "offhand" and equip.hands and equip.hands > 1 then
+          hands = equip.hands
+          usedhands = usedhands+equip.hands
+        end
+        local maxY = equipPrintY+(fontSize*hands)
+        self.equipment[#self.equipment+1] = {item=equip,y=equipPrintY,slotName=(slot.name or ucfirst(s)),slotID=s,maxY=maxY}
+        equipPrintY = maxY
+      end --end equip for
+      local usedslots = ((s == "weapon" or s == "offhand") and math.max(usedhands,#slot) or #slot)
+      if slot.slots > usedslots then
+        for i=(usedslots+1),slot.slots,1 do
+          local maxY = equipPrintY+fontSize
+          self.equipment[#self.equipment+1] = {item=false,y=equipPrintY,slotName=(slot.name or ucfirst(s)),text="-",empty=true,slotID=s,maxY=maxY}
+          equipPrintY=maxY
+        end --end empty slot for
+      end --end if empty slots
     end
   end --end equiporder for
 
+  --Do extra slots that are not part of the standard equipment order:
   for slot,eq in pairs(self.creature.equipment) do
-    if not in_table(slot,equipOrder) then
+    if not in_table(slot,equipOrder) and slot ~= "list" then
+      equipSlotWidth = math.max(equipSlotWidth,fonts.textFont:getWidth((self.creature.equipment[slot].name or ucfirst(slot)) .. ":"))
       if #eq == 0 then
-        self.equipment[#self.equipment+1] = {item=false,y=equipPrintY,slotName=(slot.name or ucfirst(slot))}
-        equipPrintY=equipPrintY+fontSize
+        for i=1,slot.slots,1 do
+          self.equipment[#self.equipment+1] = {item=false,y=equipPrintY,slotName=(self.creature.equipment[slot].name or ucfirst(slot)),text="-",empty=true,slotID=slot}
+          equipPrintY=equipPrintY+fontSize
+        end
       else
         for id,equip in ipairs(eq) do
-          self.equipment[#self.equipment+1] = {item=equip,y=equipPrintY,slotName=(slot.name or ucfirst(slot))}
+          self.equipment[#self.equipment+1] = {item=equip,y=equipPrintY,slotName=(self.creature.equipment[slot].name or ucfirst(slot)),slotID=slot}
           equipPrintY=equipPrintY+fontSize
         end --end equip for
       end --end if count > 0
     end --end slot for
   end --end if not in_table slot,equiporder
+  self.equipSlotWidth = equipSlotWidth
 end --end inventory:sort()
 
 function inventory:draw()
@@ -135,7 +168,8 @@ function inventory:draw()
   local x,y=self.x,self.y
   local mouseX,mouseY = love.mouse.getPosition()
   mouseX,mouseY = round(mouseX/uiScale),round(mouseY/uiScale)
-  local fontSize = prefs['fontSize']
+  local tileSize = output:get_tile_size(true)
+  local fontSize = math.max(prefs['fontSize'],tileSize)
 	
   self.screenMax = round(height/(fontSize+2)/2)
   local padding = self.padding
@@ -148,10 +182,18 @@ function inventory:draw()
   elseif self.action == "drop" then topText = "Select items to drop"
   elseif self.action == "throw" then topText = "Select items to throw"
   elseif self.action == "equip" then topText = "Select items to equip" end
-  love.graphics.printf(topText .. "\nYou have: " .. get_money_name(self.creature.money),padding,round(padding*.75),sidebarX-padding*2,"center")
-  
+
+  local spaceText = ""
+  if self.inventory_space then
+    spaceText = "\nUsed Space: " .. (self.inventory_space-self.free_space) .. " / " .. self.inventory_space
+    if self.free_space < 0 then spaceText = spaceText .. " (Overloaded!)" end
+  end
+  topText = topText .. "\nYou have: " .. get_money_name(self.creature.money) .. spaceText
+  love.graphics.printf(topText,padding,round(padding*.75),sidebarX-padding*2,"center")
+  local _,ttlines = fonts.textFont:getWrap(topText, sidebarX-padding*2)
+    
   local printX = (prefs['noImages'] and 14 or 32)
-  local printY = fontSize*4
+  local printY = (#ttlines+1)*fontSize
   
   if self.text then
     love.graphics.printf(self.text,padding,printY,sidebarX-padding*2,"center")
@@ -251,30 +293,56 @@ function inventory:draw()
   love.graphics.stencil(stencilFunc,"replace",1)
   love.graphics.setStencilTest("greater",0)
   love.graphics.translate(0,-self.scroll)
+  local slotCount = 0
 	for i, line in ipairs(self.inventory) do
     local printY = printY+line.y
+    local slots = (line.item and math.max(1,(line.item.size or 1)) or 1)
+    local itemHeight=line.maxY-line.y
+    local numberText = ""
+    local numberPad = 0
+    if (line.item or line.empty) and not line.header and (self.filter == nil or self.filter.id == 'all') and self.inventory_space then
+      if not line.item or not line.item.size or line.item.size > 0 then
+        slotCount = slotCount + 1
+        numberText = slotCount .. ") "
+      else
+        numberText = "-)"
+      end
+      numberPad = fonts.textFont:getWidth("999)")
+    end
     --[[if line.item == self.selectedItem then
       setColor(100,100,100,255)
       love.graphics.rectangle("fill",printX-8,printY,sidebarX-printX-padding,fontSize+4)
       setColor(255,255,255,255)
     else]]
-    if line.item and ((self.cursorY == i and self.cursorX == 1) or (Gamestate.current() == inventory and mouseX > printX and mouseX < sidebarX and mouseY+self.scroll > printY and mouseY+self.scroll < printY+fontSize)) then
+    if ((self.cursorY == i and self.cursorX == 1) or (Gamestate.current() == inventory and mouseX > printX and mouseX < sidebarX and mouseY+self.scroll > printY and mouseY+self.scroll < printY+itemHeight)) and not line.header then
       setColor(100,100,100,125)
-      love.graphics.rectangle("fill",printX-8,printY,sidebarX-printX-padding,fontSize+4)
+      love.graphics.rectangle("fill",printX-8,printY,sidebarX-printX-padding,itemHeight)
       setColor(255,255,255,255)
     end
-    if line.item == false then
-     love.graphics.printf(line.text,printX,printY,sidebarX-padding,"center")
+    if line.header == true then
+     love.graphics.printf(line.text,printX,printY+5,sidebarX-padding,"center")
     else
-      love.graphics.print(line.text,printX,printY)
+      love.graphics.print(numberText,printX,printY+5)
+      if line.item then output.display_entity(line.item,printX+numberPad,printY-2,true,true) end
+      if line.empty then setColor(150,150,150,255) end
+      love.graphics.print(line.text,printX+tileSize+numberPad,printY+5)
     end
-    self.biggestY = printY
+    if slots > 1 and self.inventory_space then
+      for i=2,slots,1 do
+        slotCount = slotCount+1
+        setColor(150,150,150,255)
+        love.graphics.print(slotCount .. ") ",printX,printY+5+fontSize*(i-1))
+        love.graphics.print(line.text,printX+tileSize+numberPad,printY+5+fontSize*(i-1))
+      end
+    end
+    setColor(255,255,255,255)
+    self.biggestY = printY+itemHeight
 	end
   love.graphics.setStencilTest()
   love.graphics.pop()
   
   if self.biggestY > height then
-    self.scrollMax = self.biggestY-self.itemStartY
+    self.scrollMax = self.biggestY-(height-padding*2)
     local scrollAmt = self.scroll/self.scrollMax
     self.scrollPositions = output:scrollbar(sidebarX-padX*2,self.itemStartY,math.floor(height)-(prefs['noImages'] and 24 or 16),scrollAmt,true)
   end
@@ -284,23 +352,34 @@ function inventory:draw()
   local equipPrintY = padding
   local equipPrintX = sidebarX+padX
   local doneEquips = {}
+  local slotWidth = self.equipSlotWidth
   for i,equip in ipairs(self.equipment) do
-    local slotWidth = fonts.textFont:getWidth(equip.slotName .. ":")
     if not doneEquips[equip.slotName] then
       love.graphics.print(equip.slotName .. ":",equipPrintX,equip.y)
       doneEquips[equip.slotName] = true
     end
+    local equipH = equip.maxY-equip.y
     --[[if equip.item == self.selectedItem then
       setColor(100,100,100,255)
       love.graphics.rectangle("fill",equipPrintX+slotWidth+3,equip.y,width-equipPrintX-padding,16)
       setColor(255,255,255,255)
     else]]
-    if (self.cursorY == i and self.cursorX == 2) or (Gamestate.current() == inventory and equip.item and mouseX > equipPrintX+3 and mouseX < width-padding and mouseY > equip.y and mouseY < equip.y+16) then
+    if (self.cursorY == i and self.cursorX == 2) or (Gamestate.current() == inventory and mouseX > equipPrintX+3 and mouseX < width-padding and mouseY > equip.y and mouseY < equip.maxY) then
       setColor(100,100,100,125)
-      love.graphics.rectangle("fill",equipPrintX+slotWidth+3,equip.y,width-equipPrintX-padding,16)
+      love.graphics.rectangle("fill",equipPrintX+slotWidth,equip.y,width-equipPrintX-padding,equipH)
       setColor(255,255,255,255)
     end
-    love.graphics.print((equip.item and equip.item:get_name(true,nil,true) or ""),equipPrintX+slotWidth+3,equip.y)
+    if equip.item then output.display_entity(equip.item,equipPrintX+slotWidth,equip.y-4,true,true) end
+    if equip.empty then setColor(150,150,150,255) end
+    love.graphics.print((equip.item and equip.item:get_name(true,nil,true) or equip.text or ""),equipPrintX+slotWidth+tileSize,equip.y+2)
+    local slots = (equip.item and equip.item.hands and math.max(1,equip.item.hands) or 1)
+    if slots > 1 then
+      for i=2,slots,1 do
+        setColor(150,150,150,255)
+        love.graphics.print(equip.item:get_name(true,nil,true),equipPrintX+slotWidth+tileSize,equip.y+2+fontSize*(i-1))
+      end
+    end
+    setColor(255,255,255,255)
   end
   
   --[[love.graphics.line(sidebarX,equipCutoff,width,equipCutoff)
@@ -386,12 +465,7 @@ function inventory:keypressed(key)
   key = input:parse_key(key)
   local padding = self.padding
 	if (key == "escape") then
-    --[[if self.selectedItem then
-      self.selectedItem = nil
-      self.cursorX = self.xHold
-    else --]]
-      self:switchBack()
-    --end
+    self:switchBack()
 	elseif (key == "enter") or key == "wait" then
     if self.cursorY == 0 then --sorting buttons
       if self.filterButtons[self.cursorX] then
@@ -423,6 +497,9 @@ function inventory:keypressed(key)
           --[[self.selectedItem = self.equipment[self.cursorY].item
           self.xHold = self.cursorX
           self.cursorX = 3]]
+        else --selecting an empty slot
+          self.filter = {filter="equippable",itemType=self.equipment[self.cursorY].slotID,appliedFromEquipment=true} --Filter for items that fit in this slot
+          self:sort()
         end
       --[[else --buttons for manipulating items
         if self.buttons.xValues[self.cursorX] == "use" then
@@ -443,11 +520,11 @@ function inventory:keypressed(key)
       self.cursorX = 1
       self.cursorY = 0
 		elseif self.cursorX == 1 and self.cursorY > 1 then
-			if self.inventory[self.cursorY-1] and self.inventory[self.cursorY-1].item then
+			if self.inventory[self.cursorY-1] and not self.inventory[self.cursorY-1].header then
         self.cursorY = self.cursorY-1
       else
         for i = self.cursorY-1,1,-1 do
-          if self.inventory[i] and self.inventory[i].item then
+          if self.inventory[i] and not self.inventory[i].header then
             self.cursorY = i
             break
           elseif i == 1 then
@@ -463,10 +540,10 @@ function inventory:keypressed(key)
         self.cursorY = self.cursorY-1
       else
         for i = self.cursorY-1,1,-1 do
-          if self.equipment[i] and self.equipment[i].item then
+          if self.equipment[i] then
             self.cursorY = i
             break
-          end --end if item exists here if
+          end --end if slot exists here if
         end --end equipment for
       end --end if item exists at next slot if
 		end
@@ -475,11 +552,11 @@ function inventory:keypressed(key)
       self.cursorX = 1
     end
 		if self.cursorX == 1 and (self.inventory[self.cursorY+1] ~= nil) then
-			if self.inventory[self.cursorY+1].item then
+			if not self.inventory[self.cursorY+1].header then
         self.cursorY = self.cursorY+1
       else
         for i = self.cursorY+1,#self.inventory,1 do
-          if self.inventory[i].item then
+          if not self.inventory[i].header then
             self.cursorY = i
             break
           end --end if item exists here if
@@ -489,16 +566,9 @@ function inventory:keypressed(key)
         self:scrollDown()
       end
     elseif self.cursorX == 2 and self.cursorY < #self.equipment then
-      if self.equipment[self.cursorY+1].item then
+      if self.equipment[self.cursorY+1] then
         self.cursorY = self.cursorY+1
-      else
-        for i = self.cursorY+1,#self.equipment,1 do
-          if self.equipment[i].item then
-            self.cursorY = i
-            break
-          end --end if item exists here if
-        end --end equipment for
-      end --end if item exists at next slot if
+      end --end next slot exists if
 		end --end which cursorX if
   elseif key == "west" then
     if self.cursorY == 0 then
@@ -517,10 +587,10 @@ function inventory:keypressed(key)
     elseif self.cursorY == 0 or self.cursorX == 1 then
       self.cursorX = 2
       self.cursorY,self.yHold = self.yHold,self.cursorY
-      if not self.equipment[self.cursorY] or not self.equipment[self.cursorY].item then
+      if not self.equipment[self.cursorY] or not self.equipment[self.cursorY] then
         local done = false
         for i=1,#self.equipment,1 do
-          if self.equipment[i].item then
+          if self.equipment[i] then
             self.cursorY = i
             done = true
             break
@@ -627,33 +697,41 @@ function inventory:mousepressed(x,y,button)
   width,height=round(width/uiScale),round(height/uiScale)
   local sidebarX = self.sidebarX
   local equipPrintX = sidebarX+self.padX
-  local fontSize = prefs['fontSize']
+  local tileSize = output:get_tile_size(true)
+  local fontSize = math.max(prefs['fontSize'],tileSize)
   
   if x > padding and x < sidebarX-(self.scrollPositions and padding or 0) then
     for i,item in ipairs(self.inventory) do
-      if item.item and y+self.scroll > item.y+self.itemStartY and y+self.scroll < item.y+self.itemStartY+fontSize then
+      if (item.item or item.empty) and not item.header and y+self.scroll > item.y+self.itemStartY and y+self.scroll < self.itemStartY+item.maxY then
         self.cursorY = i
         self.cursorX = 1
-        if self.action == "drop" then
-          return self:dropItem(item.item)
-        elseif self.action == "equip" then
-          return self:equipItem(item.item)
-        elseif self.action == "use" then
-          return self:useItem(item.item)
-        elseif self.action == "throw" then
-          return self:throwItem(item.item)
-        else
-          Gamestate.switch(examine_item,item.item)
+        if item.item then
+          if self.action == "drop" then
+            return self:dropItem(item.item)
+          elseif self.action == "equip" then
+            return self:equipItem(item.item)
+          elseif self.action == "use" then
+            return self:useItem(item.item)
+          elseif self.action == "throw" then
+            return self:throwItem(item.item)
+          else
+            Gamestate.switch(examine_item,item.item)
+          end
+          return
         end
-        return
       end
     end --end inventory for
   elseif x > equipPrintX and x < width-padding then
     for i,item in ipairs(self.equipment) do
-      if item.item and y > item.y and y < item.y+fontSize then
+      if y > item.y and y < item.maxY then
         self.cursorY = i
         self.cursorX = 2
-        Gamestate.switch(examine_item,item.item)
+        if item.item then
+          Gamestate.switch(examine_item,item.item)
+        else
+          self.filter = {filter="equippable",itemType=item.slotID,appliedFromEquipment=true} --Filter for items that fit in this slot
+          self:sort()
+        end
         return
       end
     end --end inventory for
