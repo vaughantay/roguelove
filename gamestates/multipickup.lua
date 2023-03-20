@@ -7,7 +7,6 @@ function multipickup:enter()
   local uiScale = (prefs['uiScale'] or 1)
   local boxW,boxH = 450,300
   local padX,padY = 0,0
-  local descY = 0
   local fontSize = prefs['fontSize']
   local x,y=math.floor(width/2/uiScale-boxW/2),math.floor(height/2/uiScale-boxH/2)
   self.x,self.y,self.boxW,self.boxH=x,y,boxW,boxH
@@ -18,16 +17,16 @@ function multipickup:enter()
   end
   self.itemLines = {}
   self:refresh_items()
-  descY = y+padY+(count(self.items)+2)*(fontSize+2)
-  self.descY = descY
   self.padX,self.padY = padX,padY
   self.yModPerc = 100
   tween(0.2,self,{yModPerc=0})
   output:sound('stoneslideshort',2)
   self.startY = 0
+  self.scrollPositions=nil
 end
 
 function multipickup:refresh_items()
+  self.scrollPositions=nil
   self.items = currMap:get_tile_items(player.x,player.y,true)
   if count(self.items) == 0 then
     self:switchBack()
@@ -51,7 +50,6 @@ function multipickup:draw()
   love.graphics.translate(0,height*(self.yModPerc/100))
   local boxW,boxH = self.boxW,self.boxH
   local padX,padY = self.padX,self.padY
-  local descY = self.descY
   local x,y=self.x,self.y
   local fontSize = prefs['fontSize']
 	
@@ -75,21 +73,21 @@ function multipickup:draw()
   
   --Drawing the text:
   love.graphics.push()
+  local scrollMod = (self.scrollPositions and padX or 0)
   --Create a "stencil" that stops 
   local function stencilFunc()
-    love.graphics.rectangle("fill",x+padX,startY,boxW-padX*2,boxH-(startY-y)+padY)
+    love.graphics.rectangle("fill",x+padX,startY,boxW-padX-scrollMod,boxH-(startY-y)+padY)
   end
   love.graphics.stencil(stencilFunc,"replace",1)
   love.graphics.setStencilTest("greater",0)
   love.graphics.translate(0,-self.scrollY)
   local tileSize = output:get_tile_size(true)
-  fontSize = math.max(fontSize,tileSize)
   --Draw the highlight box:
   if self.itemLines[self.cursorY] and self.itemLines[self.cursorY].minY and self.itemLines[self.cursorY].maxY then
     local highlightY = self.itemLines[self.cursorY].minY
     local highlightH = self.itemLines[self.cursorY].maxY - self.itemLines[self.cursorY].minY
     setColor(100,100,100,255)
-    love.graphics.rectangle("fill",x+padX,highlightY,boxW-8,highlightH)
+    love.graphics.rectangle("fill",x+padX,highlightY,boxW-padX-scrollMod,highlightH)
     setColor(255,255,255,255)
 	end
   
@@ -115,13 +113,13 @@ function multipickup:draw()
     local letterW = fonts.textFont:getWidth((letter and letter .. ") " or ""))
     local nameX = x+padX+letterW+tileSize
     local nameText = name .. (extra or "")
-    local nameW = boxW-letterW-tileSize-padX
+    local nameW = boxW-letterW-tileSize-padX-scrollMod
     love.graphics.print((letter and letter .. ") " or ""),x+padX,printY+2)
     output.display_entity(item,x+padX+letterW,printY-2,true,true)
     love.graphics.printf(nameText,nameX,printY+2,nameW,"left")
     
     local _,nlines = fonts.textFont:getWrap(nameText,nameW)
-    local nameHeight = (#nlines)*fontSize
+    local nameHeight = math.max((#nlines)*fontSize,tileSize)
     self.itemLines[i] = {minY=printY,maxY=printY+nameHeight+2}
     printY = printY+nameHeight+2
 	end
@@ -189,7 +187,7 @@ end
 
 function multipickup:mousepressed(x,y,button)
   local uiScale = (prefs['uiScale'] or 1)
-	if (x/uiScale > self.x and x/uiScale < self.x+self.boxW and y/uiScale > self.y and y/uiScale < self.descY) then
+	if (x/uiScale > self.x and x/uiScale < self.x+self.boxW and y/uiScale > self.y and y/uiScale < self.y+self.boxH) then
     if button == 2 or (x/uiScale > self.closebutton.minX and x/uiScale < self.closebutton.maxX and y/uiScale > self.closebutton.minY and y/uiScale < self.closebutton.maxY) then self:switchBack() end
 		if (self.items[self.cursorY] ~= nil) and (not self.scrollPositions or x/uiScale < self.x+self.boxW-self.padX) then
       self:pickup(self.items[self.cursorY])
@@ -236,7 +234,7 @@ function multipickup:update(dt)
   x,y = x/uiScale, y/uiScale
 	if (x ~= output.mouseX or y ~= output.mouseY) then -- only do this if the mouse has moved
     output.mouseX,output.mouseY = x,y
-		if (x > self.x and x < self.x+self.boxW-(not self.scrollPositions and 0 or self.padX) and y > self.y+prefs['fontSize']+self.padY and y < self.descY) then --if inside item box
+		if (x > self.x and x < self.x+self.boxW-(not self.scrollPositions and 0 or self.padX) and y > self.y+prefs['fontSize']+self.padY and y < self.y+self.boxH) then --if inside item box
       for i,coords in ipairs(self.itemLines) do
         if y > coords.minY-self.scrollY and y < coords.maxY-self.scrollY then
           self.cursorY = i

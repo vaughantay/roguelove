@@ -11,6 +11,7 @@ function multiselect:enter(previous,list,title,closeAfter,advanceAfter,descripti
   self.advanceAfter = advanceAfter
   self.cursorY = 0
   self.scrollY = 0
+  self.scrollPositions=nil
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
   local uiScale = (prefs['uiScale'] or 1)
   local boxW,boxH = 450,300
@@ -34,12 +35,18 @@ function multiselect:enter(previous,list,title,closeAfter,advanceAfter,descripti
     local _,descLines = fonts.textFont:getWrap(self.description,boxW-padX)
     startY = startY+(#descLines*fontSize)
   end
+  local tileSize = output:get_tile_size(true)
+  local scrollMod = (self.scrollPositions and padX or 0)
   for i,item in ipairs(self.list) do
     local code = i+96
 		local letter = (code > 32 and code <=122 and string.char(code) or nil)
-    local _,textLines = fonts.textFont:getWrap((letter and letter .. ") " or "") .. item.text,boxW-padX)
+    local letterText = letter and letter .. ") " or ""
+    local letterW = fonts.textFont:getWidth(letterText)
+    local imageW = (item.image and images[item.image] and tileSize or 0)
+    local imageH = (item.image and images[item.image] and tileSize or 0)
+    local _,textLines = fonts.textFont:getWrap((letter and letter .. ") " or "") .. item.text,boxW-padX-letterW-imageW-scrollMod)
     item.y = (i == 1 and startY or self.list[i-1].maxY)
-    item.height = #textLines*fontSize
+    item.height = math.max(imageH,#textLines*fontSize)+2
     item.maxY = item.y+item.height
   end
 end
@@ -79,29 +86,52 @@ function multiselect:draw()
   end
   
   love.graphics.push()
+  local scrollMod = (self.scrollPositions and padX or 0)
   --Create a "stencil" that stops 
   local function stencilFunc()
-    love.graphics.rectangle("fill",x+padX,printY,boxW-padX*2,boxH-padY)
+    love.graphics.rectangle("fill",x+padX,printY,boxW-padX-scrollMod,boxH-padY)
   end
   love.graphics.stencil(stencilFunc,"replace",1)
   love.graphics.setStencilTest("greater",0)
   love.graphics.translate(0,-self.scrollY)
+  local tileSize = output:get_tile_size(true)
   --Draw the highlight box:
   if (self.list[self.cursorY] ~= nil) then
     local printY = self.list[self.cursorY].y
     setColor(100,100,100,255)
-    love.graphics.rectangle("fill",x+padX,printY,boxW-8,self.list[self.cursorY].height)
+    love.graphics.rectangle("fill",x+padX,printY,boxW-padX-scrollMod,self.list[self.cursorY].height)
     setColor(255,255,255,255)
 	end
   
 	for i, item in ipairs(self.list) do
-    if item.disabled then setColor(150,150,150,255) end
     local code = i+96
 		local letter = (code > 32 and code <=122 and string.char(code) or nil)
-		love.graphics.printf((letter and letter .. ") " or "") .. item.text,x+padX,item.y,boxW-padX)
-    if item.disabled then setColor(255,255,255,255) end
+    local letterText = letter and letter .. ") " or ""
+    local letterW = fonts.textFont:getWidth(letterText)
+    love.graphics.print(letterText,x+padX,item.y+2)
+    
+    local imageW = 0
+    if item.image and images[item.image] then
+      if item.image_color or item.color then
+        local color = item.image_color or item.color
+        setColor(color.r,color.g,color.b,color.a)
+      end
+      love.graphics.draw(images[item.image],x+padX+letterW,item.y-2)
+      imageW = tileSize
+      setColor(255,255,255,255)
+    end
+		
+    if item.text_color or item.color then
+      local mod = (item.disabled and 2 or 1)
+      local color = item.text_color or item.color
+      setColor(round(color.r/mod),round(color.g/mod),round(color.b/mod),color.a)
+    elseif item.disabled then
+      setColor(150,150,150,255)
+    end
+    love.graphics.printf(item.text,x+padX+imageW+letterW+2,item.y+2,boxW-padX-imageW-letterW-scrollMod)
+    setColor(255,255,255,255)
 	end
-  local bottom = self.list[#self.list].maxY+fontSize
+  local bottom = self.list[#self.list].maxY+2
   
   love.graphics.setStencilTest()
   
@@ -140,14 +170,14 @@ function multiselect:keypressed(key)
 	elseif (key == "north") then
 		if (self.list[self.cursorY-1] ~= nil) then
 			self.cursorY = self.cursorY - 1
-      if self.list[self.cursorY].y-self.scrollY-prefs['fontSize'] < self.y+self.padY+prefs['fontSize'] then
+      while self.list[self.cursorY].y-self.scrollY-prefs['fontSize'] < self.y+self.padY+prefs['fontSize'] and self.scrollY > 0 do
         self:scrollUp()
       end
 		end
 	elseif (key == "south") then
 		if (self.list[self.cursorY+1] ~= nil) then
 			self.cursorY = self.cursorY + 1
-      if self.list[self.cursorY].maxY-self.scrollY+prefs['fontSize'] > self.y+prefs['fontSize']+self.boxH then
+      while self.list[self.cursorY].maxY-self.scrollY+prefs['fontSize'] > self.y+prefs['fontSize']+self.boxH and self.scrollY < self.scrollMax do
         self:scrollDown()
       end
 		end

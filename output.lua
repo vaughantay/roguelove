@@ -88,6 +88,7 @@ function output.display_entity(entity,x,y, seen,ignoreDistMods,scale)
         end --end if feat.walkedonimage
       end --end feature for
     end --end creature if
+    setColor(255,255,255,255)
     return true
   else --load image, then display it
     --output:load_image((entity.image_name or entity.id),(entity.imageType or entity.baseType))

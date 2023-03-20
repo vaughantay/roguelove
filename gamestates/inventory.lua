@@ -47,7 +47,7 @@ end
 
 function inventory:sort()
   local tileSize = output:get_tile_size(true)
-  local fontSize = math.max(prefs['fontSize'],tileSize)
+  local fontSize = prefs['fontSize']
   --First, sort by type:
   local sorted = {}
   for i,item in ipairs(self.creature.inventory) do
@@ -82,25 +82,31 @@ function inventory:sort()
   --Then, sort for the page:
   self.inventory = {}
   local itemPrintY = 0
+  local numberPad = fonts.textFont:getWidth("999)")
+  local lineSize = math.max(fontSize,tileSize)
   for _,iType in ipairs(sorted) do
     for i,item in ipairs(iType) do
       if i == 1 then
-        self.inventory[#self.inventory+1] = {item=false,y=itemPrintY,text=ucfirst(iType.text),header=true,maxY=itemPrintY+fontSize}
-        itemPrintY = itemPrintY+fontSize
+        self.inventory[#self.inventory+1] = {item=false,y=itemPrintY,text=ucfirst(iType.text),header=true,maxY=itemPrintY+lineSize,height=lineSize,lineHeight=lineSize}
+        itemPrintY = itemPrintY+lineSize
       end
+      local name = item:get_name(true,nil,true)
+      local _,nlines = fonts.textFont:getWrap(name,self.sidebarX-self.padding*2-numberPad-tileSize)
       local size = (self.inventory_space and math.max(item.size or 1,1) or 1)
-      local maxY = itemPrintY+fontSize*size
-      self.inventory[#self.inventory+1] = {item=item,y=itemPrintY,text=item:get_name(true,nil,true),maxY=maxY}
+      local lineHeight = math.max(tileSize,round(fontSize*(#nlines+0.5))+2)
+      local height = lineHeight*size+(2*size)
+      local maxY = itemPrintY+height
+      self.inventory[#self.inventory+1] = {item=item,y=itemPrintY,text=name,maxY=maxY,height=height,lineHeight=lineHeight,nlines=#nlines}
       itemPrintY = maxY+2
     end --end 
   end --end item type sorting
   if self.filter == nil or self.filter.id == "all" then
     if self.free_space and self.free_space > 0 then
-      self.inventory[#self.inventory+1] = {item=false,y=itemPrintY,text="Free Space (" .. self.free_space .. ")",header=true,maxY=itemPrintY+fontSize}
-      itemPrintY = itemPrintY+fontSize
+      self.inventory[#self.inventory+1] = {item=false,y=itemPrintY,text="Free Space (" .. self.free_space .. ")",header=true,maxY=itemPrintY+lineSize,height=lineSize,lineHeight=lineSize}
+      itemPrintY = itemPrintY+lineSize
       for i=1,self.free_space,1 do
-        local maxY = itemPrintY+fontSize
-        self.inventory[#self.inventory+1] = {item=false,y=itemPrintY,text="-",empty=true,maxY=maxY}
+        local maxY = itemPrintY+lineSize
+        self.inventory[#self.inventory+1] = {item=false,y=itemPrintY,text="-",empty=true,maxY=maxY,height=lineSize,lineHeight=lineSize}
         itemPrintY = maxY+2
       end
     end
@@ -140,24 +146,24 @@ function inventory:sort()
   for slot,eq in pairs(self.creature.equipment) do
     if not in_table(slot,equipOrder) and slot ~= "list" then
       equipSlotWidth = math.max(equipSlotWidth,fonts.textFont:getWidth((self.creature.equipment[slot].name or ucfirst(slot)) .. ":"))
-      if #eq == 0 then
-        for i=1,slot.slots,1 do
-          self.equipment[#self.equipment+1] = {item=false,y=equipPrintY,slotName=(self.creature.equipment[slot].name or ucfirst(slot)),text="-",empty=true,slotID=slot}
-          equipPrintY=equipPrintY+fontSize
-        end
-      else
-        for id,equip in ipairs(eq) do
-          self.equipment[#self.equipment+1] = {item=equip,y=equipPrintY,slotName=(self.creature.equipment[slot].name or ucfirst(slot)),slotID=slot}
-          equipPrintY=equipPrintY+fontSize
-        end --end equip for
-      end --end if count > 0
+      for id,equip in ipairs(eq) do
+        self.equipment[#self.equipment+1] = {item=equip,y=equipPrintY,slotName=(self.creature.equipment[slot].name or ucfirst(slot)),slotID=slot}
+        equipPrintY=equipPrintY+fontSize
+      end --end equip for
+      for i=#slot,slot.slots,1 do
+        self.equipment[#self.equipment+1] = {item=false,y=equipPrintY,slotName=(self.creature.equipment[slot].name or ucfirst(slot)),text="-",empty=true,slotID=slot}
+        equipPrintY=equipPrintY+fontSize
+      end
     end --end slot for
   end --end if not in_table slot,equiporder
   self.equipSlotWidth = equipSlotWidth
+  self.inventory_space = (self.creature.inventory_space and self.creature:get_stat('inventory_space') or false)
+  self.free_space = self.creature:get_free_inventory_space()
 end --end inventory:sort()
 
 function inventory:draw()
   local uiScale = (prefs['uiScale'] or 1)
+  local fontSize = prefs['fontSize']
   game:draw()
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
   width,height = round(width/uiScale),round(height/uiScale)
@@ -169,7 +175,6 @@ function inventory:draw()
   local mouseX,mouseY = love.mouse.getPosition()
   mouseX,mouseY = round(mouseX/uiScale),round(mouseY/uiScale)
   local tileSize = output:get_tile_size(true)
-  local fontSize = math.max(prefs['fontSize'],tileSize)
 	
   self.screenMax = round(height/(fontSize+2)/2)
   local padding = self.padding
@@ -193,13 +198,14 @@ function inventory:draw()
   local _,ttlines = fonts.textFont:getWrap(topText, sidebarX-padding*2)
     
   local printX = (prefs['noImages'] and 14 or 32)
-  local printY = (#ttlines+1)*fontSize
+  local printY = (#ttlines+3)*fontSize
   
   if self.text then
     love.graphics.printf(self.text,padding,printY,sidebarX-padding*2,"center")
     local _,olines = fonts.textFont:getWrap(self.text, sidebarX-padding*2)
     printY=printY+(#olines+1)*fontSize
   end
+  printY=printY+8
   
   --Filter buttons:
   local boxpadding = (prefs['noImages'] and fontSize or 32)
@@ -283,8 +289,9 @@ function inventory:draw()
   end
   
   --Item list:
-  love.graphics.line(padding,printY+fontSize+14,sidebarX-padding,printY+fontSize+14)
-  printY = printY+fontSize*2+14
+  fontSize = math.max(prefs['fontSize'],tileSize)
+  love.graphics.line(padding,printY+fontSize,sidebarX-padding,printY+fontSize)
+  printY = printY+fontSize+14
   self.itemStartY = printY
   love.graphics.push()
   local function stencilFunc()
@@ -295,9 +302,10 @@ function inventory:draw()
   love.graphics.translate(0,-self.scroll)
   local slotCount = 0
 	for i, line in ipairs(self.inventory) do
-    local printY = printY+line.y
+    local printY = self.itemStartY+line.y
     local slots = (line.item and math.max(1,(line.item.size or 1)) or 1)
-    local itemHeight=line.maxY-line.y
+    local itemHeight=line.height
+    local lineHeight = line.lineHeight
     local numberText = ""
     local numberPad = 0
     if (line.item or line.empty) and not line.header and (self.filter == nil or self.filter.id == 'all') and self.inventory_space then
@@ -316,23 +324,23 @@ function inventory:draw()
     else]]
     if ((self.cursorY == i and self.cursorX == 1) or (Gamestate.current() == inventory and mouseX > printX and mouseX < sidebarX and mouseY+self.scroll > printY and mouseY+self.scroll < printY+itemHeight)) and not line.header then
       setColor(100,100,100,125)
-      love.graphics.rectangle("fill",printX-8,printY,sidebarX-printX-padding,itemHeight)
+      love.graphics.rectangle("fill",printX-8,printY,sidebarX-printX-padding+8,itemHeight)
       setColor(255,255,255,255)
     end
     if line.header == true then
      love.graphics.printf(line.text,printX,printY+5,sidebarX-padding,"center")
     else
-      love.graphics.print(numberText,printX,printY+5)
+      love.graphics.print(numberText,printX,printY)
       if line.item then output.display_entity(line.item,printX+numberPad,printY-2,true,true) end
       if line.empty then setColor(150,150,150,255) end
-      love.graphics.print(line.text,printX+tileSize+numberPad,printY+5)
+      love.graphics.printf(line.text,printX+tileSize+numberPad,printY,sidebarX-padding*2-numberPad-tileSize)
     end
     if slots > 1 and self.inventory_space then
       for i=2,slots,1 do
         slotCount = slotCount+1
         setColor(150,150,150,255)
-        love.graphics.print(slotCount .. ") ",printX,printY+5+fontSize*(i-1))
-        love.graphics.print(line.text,printX+tileSize+numberPad,printY+5+fontSize*(i-1))
+        love.graphics.print(slotCount .. ") ",printX,printY+lineHeight*(i-1)+2)
+        love.graphics.printf(line.text,printX+tileSize+numberPad,printY+lineHeight*(i-1)+2,sidebarX-padding*2-numberPad-tileSize)
       end
     end
     setColor(255,255,255,255)
@@ -788,6 +796,7 @@ function inventory:dropItem(item)
     end
     self.text = "You drop " .. item:get_name() .. "."
     advance_turn()
+    self:sort()
   end
 end
 
