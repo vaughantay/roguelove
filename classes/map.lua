@@ -1168,6 +1168,8 @@ function Map:populate_items(itemTotal,forceGeneric)
       if tries ~= 100 then 
         newItems[#newItems+1] = self:add_item(ni,ix,iy)
       end --end tries if
+      ni.origin_map = self.id
+      ni.origin_branch = self.branch
     end
     return newItems
 	end --end if not noItems

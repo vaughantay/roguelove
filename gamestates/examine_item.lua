@@ -200,11 +200,13 @@ function examine_item:draw()
       buttonX = buttonStartX
       buttonY = buttonY+40
     end
-    self.buttons.drop = output:button(buttonX,buttonY,buttonWidth,false,(self.cursorX == buttonCursorX and self.cursorY == buttonCursorY and "hover" or nil),dropText,true)
-    self.buttons.values[buttonCursorY][buttonCursorX] = "drop"
-    printY=buttonY+40
-    love.graphics.line(self.x+padding,printY,self.x+padding+self.width,printY)
-    printY=printY+padding
+    if not item.undroppable then
+      self.buttons.drop = output:button(buttonX,buttonY,buttonWidth,false,(self.cursorX == buttonCursorX and self.cursorY == buttonCursorY and "hover" or nil),dropText,true)
+      self.buttons.values[buttonCursorY][buttonCursorX] = "drop"
+      printY=buttonY+40
+      love.graphics.line(self.x+padding,printY,self.x+padding+self.width,printY)
+      printY=printY+padding
+    end
   end --end if has_item
   love.graphics.printf(desc,self.x+padding,printY,self.width,"center")
   printY=printY+descH

@@ -1124,7 +1124,7 @@ function game:display_minimap(map)
   for x=1,map.width,1 do
     for y=1,map.width,1 do
       local seen = seeTiles[x][y]
-      if map.seenMap[x][y] == true then
+      if seen or map.seenMap[x][y] == true then
         if prefs['noImages'] == true then
           local printX,printY=baseX+x*6,baseY+y*6
           
@@ -1805,7 +1805,7 @@ function game:keypressed(key,scancode,isRepeat)
         elseif entity.y > player.y then direction = direction .. "south" end
         if entity.x < player.x then direction = direction .. "west"
         elseif entity.x > player.x then direction = direction .. "east" end
-        list[#list+1] = {text=action.text .. " (" .. ucfirst(direction) .. ")",description=action.description,selectFunction=entity.action,selectArgs={entity,player,action.id}}
+        list[#list+1] = {text=action.text .. " (" .. ucfirst(direction) .. ")",description=action.description,selectFunction=entity.action,selectArgs={entity,player,action.id},image=(action.image or 'feature' .. (entity.image_name or entity.id)),image_color=(action.image_color or (entity.use_color_with_tiles or (gamesettings.always_use_color_with_tiles and entity.use_color_with_tiles ~= false) and entity.color) or nil)}
       end
       Gamestate.switch(multiselect,list,"Select an Action",true,true)
     end
