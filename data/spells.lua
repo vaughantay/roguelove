@@ -118,6 +118,8 @@ scrawny = {
 	description = "Your arms are basically noodles, and they're not al dente. You can never deal more than 1 damage in melee.",
 	target_type = "passive",
   tags={'physical','negative'},
+  freeSlot=true,
+  forgettable=false,
   calc_damage = function(self,possessor,target,damage)
     return 1
   end
@@ -911,6 +913,8 @@ vampirism = {
 	description = "You regain some health when you damage an enemy.",
 	target_type = "passive",
   unlearnable = true, --If true, this spell will not show up in spell books or factions to be learned unless explicitly put there
+  forgettable=false,
+  freeSlot=true,
   tags={'unholy','physical'},
 	damages = function(self,possessor,target,damage)
     if (random(1,2) == 1 and not target:is_type('bloodless')) or target:has_condition('bleeding') then
