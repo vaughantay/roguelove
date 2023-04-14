@@ -28,7 +28,7 @@ ai['basic'] = function(self,args)
   args = args or {}
   
   --If you're not close to the player, just move randomly:
-  if args.forceWander or (not self.guard_point and not self.patrol_points and not self.target and not self:has_ai_flag('playerstalker')) then
+  if args.forceWander or (not self.guard_point and not self.patrol_points and not self.target and not self:has_ai_flag('playerstalker') and calc_distance(self.x,self.y,player.x,player.y) > player.perception*2) then
     return ai.wander(self,args)
   end
   

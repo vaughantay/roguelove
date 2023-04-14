@@ -404,6 +404,14 @@ function Map:add_creature(creature,x,y,ignoreFunc)
   if not ignoreFunc and possibleMonsters[creature.id].placed then possibleMonsters[creature.id].placed(creature,self) end
   if creature.castsLight then self.lights[creature] = creature end
   self.creature_cache[x .. "," .. y] = creature
+  if not creature.origin_map then
+    creature.origin_map = self.id
+    creature.origin_branch = self.branch
+    for _,item in pairs(creature:get_inventory()) do
+      item.origin_map = self.id
+      item.origin_mbranch = self.branch
+    end
+  end
   return creature
 end
 
@@ -462,6 +470,11 @@ function Map:add_item(item,x,y,ignoreFunc)
 	self.contents[x][y][item] = item
   if not ignoreFunc and possibleItems[item.id].placed then possibleItems[item.id].placed(item,self) end
   if item.castsLight then self.lights[item] = item end
+  
+  if not item.origin_map then
+    item.origin_map = self.id
+    item.origin_branch = self.branch
+  end
   
   --Check for stacking:
   if item.stacks then
@@ -1168,8 +1181,6 @@ function Map:populate_items(itemTotal,forceGeneric)
       if tries ~= 100 then 
         newItems[#newItems+1] = self:add_item(ni,ix,iy)
       end --end tries if
-      ni.origin_map = self.id
-      ni.origin_branch = self.branch
     end
     return newItems
 	end --end if not noItems

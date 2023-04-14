@@ -186,17 +186,18 @@ function calc_attack(attacker,target,forceHit,item)
 	return result,dmg
 end
 
----Advances the turn, causing NPCs to move, effects and projectiles to advance, the map's lighting to recalculate, creature conditions to do their thing, and the output buffer to clear.
+---Sets the game to advance a turn. The turn itself will not actually advance until the next update cycle there is nothing with stopsInput set
 function advance_turn()
+  game.turns_to_advance = game.turns_to_advance + 1
+end
+
+---Actually advances the turn, causing NPCs to move, effects and projectiles to advance, the map's lighting to recalculate, creature conditions to do their thing, and the output buffer to clear.
+function turn_logic()
   local pTime = os.clock()
   --profiler.reset()
   --profiler.start()
   game.canvas=nil
-  if game.moveBlocked == true then
-    game.waitingToAdvance = true
-  end
-  output.buffering = true
-    
+  
   --Update stats:
   update_stat('turns')
   update_stat('turns_as_creature',player.id)
@@ -264,7 +265,6 @@ function advance_turn()
     end
     output.toDisp[1] = output.buffer
     output.buffer = {}
-    output.buffering = false
     player.sees = nil
     player.sees = player:get_seen_creatures()
   end
@@ -384,7 +384,7 @@ function goToMap(depth,branch,force)
     currMap.creatures[player] = player
     target = nil
     if currGame.cheats.fullMap == true then currMap:reveal() end
-    game:show_map_description()
+    if not currMap.noDesc and not gamesettings.no_map_descriptions then game:show_map_description() end
     output:set_camera(player.x,player.y,true)
     --Handle music:
     output:play_playlist(currMap.playlist)

@@ -29,7 +29,7 @@ function Projectile:init(projectile_type,source,target,info)
 	self.x,self.y = source.x,source.y
   self.xMod,self.yMod=0,0
   self.target = target
-  self.timer = self.time_per_tile
+  self.timer = 0
   self.path = nil
   self.stopsInput = (self.stopsInput == nil and true or self.stopsInput)
 	currMap.projectiles[self] = self
@@ -43,6 +43,7 @@ function Projectile:init(projectile_type,source,target,info)
     self.angle = calc_angle(source.x,source.y,target.x,target.y)
   end
   self.color = copy_table(self.color)
+  self:refresh_path()
 	return self
 end
 
@@ -57,27 +58,28 @@ function Projectile:delete()
 	currMap.projectiles[self] = nil
 end
 
----This code runs every turn a projectile is active. You shouldn't call it explicitly, it's called by the advance_turn() code
+---Refresh or create the projectile's path
+function Projectile:refresh_path()
+  if (self.projectile == true) then
+    self.path = currMap:get_line(self.x,self.y,self.target.x,self.target.y)
+  else --if it passes through obstacles
+    self.path = currMap:get_line(self.x,self.y,self.target.x,self.target.y,true)
+  end --end projectile if
+end
+
+---This code runs every turn a projectile is active. Called by the advance_turn() code
 function Projectile:advance()
-  if (self.path == nil) then --first made?
-    if (self.projectile == true) then
-      self.path = currMap:get_line(self.x,self.y,self.target.x,self.target.y)
-    else --if it passes through obstacles
-      self.path = currMap:get_line(self.x,self.y,self.target.x,self.target.y,true)
-    end --end projectile if
-  else --not the first turn
+  if (self.path == nil) then --no path?
+    self:refresh_path()
+  else --has a path
     --Refresh the path in case the target moved
-    if (self.projectile == true) then
-      self.path = currMap:get_line(self.x,self.y,self.target.x,self.target.y)
-    else --if it passes through obstacles
-      self.path = currMap:get_line(self.x,self.y,self.target.x,self.target.y,true)
-    end --end projectile if
+    self:refresh_path()
     --Travel along the whole path instantly
     if not self.neverInstant then
       for id, path in ipairs(self.path) do
         local x,y = path[1],path[2]
         if id == #self.path or (self.passThrough ~= true and currMap:isClear(x,y,'flyer') == false) then
-          local creat = currMap:get_tile_creature(x,y)
+          local creat = currMap:get_tile_creature(x,y,true)
           if creat and creat ~= self.source then self:hits(creat)
           else self:hits({x=x,y=y}) end
         end
@@ -124,7 +126,7 @@ function Projectile:update(dt,force_generic)
         end
       end
     else --reached the end of the line
-      local creat = currMap:get_tile_creature(self.x,self.y)
+      local creat = currMap:get_tile_creature(self.x,self.y,true)
       if creat and creat ~= self.source then
         local dmg = self:hits(creat)
         for ench,_ in pairs(self:get_enchantments()) do

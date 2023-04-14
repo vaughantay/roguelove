@@ -65,6 +65,7 @@ function mapgen:generate_map(branchID, depth,force)
   build.noFactions = whichMap.noFactions or branch.noFactions
   build.noExits = whichMap.noExits
   build.noBoss = whichMap.noBoss or branch.noBosses
+  build.noDesc = whichMap.noDesc or branch.noDesc
   build.generate_boss_on_entry = whichMap.generate_boss_on_entry or branch.generate_boss_on_entry
   build.event_chance = whichMap.event_chance or branch.event_chance
   build.event_cooldown = whichMap.event_cooldown or branch.event_cooldown
@@ -1087,6 +1088,7 @@ function mapgen:populate_creatures_in_room(room,map,decID)
         if tries ~= 100 then 
           if random(1,4) == 1 then nc:give_condition('asleep',random(10,100)) end
           local creat = map:add_creature(nc,cx,cy)
+          creat.origin_room = room
           placed = creat
           creats_spawned = creats_spawned+1
         end --end tries if
@@ -1108,6 +1110,7 @@ function mapgen:populate_creatures_in_room(room,map,decID)
             if tries2 <= 10 then
               local creat = mapgen:generate_creature(min_level,max_level,{nc.id})
               map:add_creature(creat,cx,cy)
+              nc.origin_room = room
               creats_spawned = creats_spawned+0.5 --a group spawned creature only counts as half a creature for the purposes of creature totals, so group spawns won't eat up all the creature slots but also won't overwhelm the map
             end
           end
@@ -1189,6 +1192,7 @@ function mapgen:populate_items_in_room(room,map,decID)
         --Place the actual item:
         if tries ~= 100 then 
           map:add_item(ni,ix,iy)
+          ni.origin_room = room
         end --end tries if
       end
     end

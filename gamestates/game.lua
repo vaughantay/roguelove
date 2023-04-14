@@ -1,4 +1,4 @@
-game = {spellButtons={},sidebarCreats={},hoveringCreat=nil,hp=0,playerID=nil,eventualHP=0,targetHP=0,targetEventualHP=0,targetID=nil,batches={},batchesDark={}}
+game = {spellButtons={},sidebarCreats={},hoveringCreat=nil,hp=0,playerID=nil,eventualHP=0,targetHP=0,targetEventualHP=0,targetID=nil,batches={},batchesDark={},turns_to_advance=0}
 
 function game:enter()
   love.graphics.setFont(fonts.mapFontWithImages)
@@ -1289,19 +1289,45 @@ function game:update(dt)
   --Run effects,creatures and projectiles
 	for _, e in pairs(currMap.effects) do --run effects code:
 		e:update(dt)
-    if e.stopsInput and player:can_see_tile(e.x,e.y) then self.moveBlocked = true end
+    if e.stopsInput and player:can_see_tile(e.x,e.y) then
+      if (self.blockTime or 0) > 2 then
+        print(e.name .. " blocking movement too long, cancelling block")
+        e.stopsInput = false
+      else
+        self.moveBlocked = true
+      end
+    end
 	end
   for _, p in pairs(currMap.projectiles) do
     p:update(dt)
-    if p.stopsInput and player:can_see_tile(p.x,p.y) then self.moveBlocked = true end
+    if p.stopsInput and player:can_see_tile(p.x,p.y) then
+      if (self.blockTime or 0) > 2 then
+        print(p.name .. " blocking movement too long, cancelling block")
+        p.stopsInput = false
+      else
+        self.moveBlocked = true
+      end
+    end
   end
   for _, c in pairs(currMap.creatures) do
     c:update(dt)
-    if c.stopsInput and player:can_see_tile(c.x,c.y) then self.moveBlocked = true end
+    if c.stopsInput and player:can_see_tile(c.x,c.y) then
+      if (self.blockTime or 0) > 2 then
+        print(c.name .. " blocking movement too long, cancelling block")
+        c.stopsInput = false
+      else
+        self.moveBlocked = true
+      end
+    end
   end
-  if self.moveBlocked == false and self.waitingToAdvance == true then
-    self.waitingToAdvance = false
-    advance_turn()
+  if self.moveBlocked == false and self.turns_to_advance > 0 then
+    turn_logic()
+    self.turns_to_advance = self.turns_to_advance - 1
+  end
+  if self.moveBlocked == true then
+    self.blockTime = (self.blockTime or 0)+dt
+  else
+    self.blockTime = nil
   end
   --[[if count(currMap.lights) > 0 then
     currMap:refresh_lightMap(true)

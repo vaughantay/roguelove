@@ -25,7 +25,8 @@ function Creature:init(creatureType,level,noItems,noTweak,info,ignoreNewFunc)
 		possibleMonsters[creatureType].new(self,(info or nil))
 	end
   if self.gender == "either" then
-    self.gender = (random(0,1) == 1 and 'male' or 'female')
+    local genders={"male","female","other"}
+    self.gender = get_random_element(genders)
   elseif not self.gender then
     self.gender = "neuter"
   end
@@ -654,52 +655,55 @@ end
 
 ---Get the extended description of a creature, including information like its health info, friendliness to the player, etc.
 --@return String. The description of the creature.
-function Creature:get_description()
+--@param noInfo Boolean. If true, only show the description, not extra info.
+function Creature:get_description(noInfo)
 	local desc = self:get_name(true) .. "\n" .. self.description
-	desc = desc .. "\n" .. self:get_health_text(true)
-  if self.master and self.master ~= player then desc = desc .. "\n" .. ucfirst(self:get_pronoun('n')) .. " is under the command of " .. self.master:get_name(false,true) .. "." end
-  if (self.isPlayer ~= true) then
-    if (self.playerAlly == true) then desc = desc .. "\n" .. ucfirst(self:get_pronoun('n')) .. " is under your command."
-    elseif self.notices[player] and self.ignoring[player] then desc = desc .. "\n" .. ucfirst(self:get_pronoun('n')) .. " is ignoring you."
-    elseif self.notices[player] and not self.shitlist[player] then desc = desc .. "\n" .. ucfirst(self:get_pronoun('n')) .. (self:is_friend(player) and " is friendly towards you." or " is watching you suspiciously.")
-    elseif (self.notices[player] and self.shitlist[player]) then desc = desc .. "\n" .. ucfirst(self:get_pronoun('n')) .. " is hostile towards you."
-    else desc = desc .. "\n" .. ucfirst(self:get_pronoun('n')) .. " has not noticed you." end
-    if self:get_fear() > self:get_bravery() then desc = desc .. "\n" .. ucfirst(self:get_pronoun('n')) .. " is afraid, and will try to run from enemies if possible." end
-  if action == "targeting" and actionResult then
-    local dist = calc_distance(player.x,player.y,self.x,self.y)
-    if actionResult.range and dist > actionResult.range then
-      desc = desc .. "\nIt is too far away to be targeted."
-    elseif actionResult.minRange and dist < actionResult.minRange then
-      desc = desc .. "\nIt is too close to be targeted."
-    elseif actionResult.projectile and not player:can_shoot_tile(self.x,self.y) then
-      desc = desc .. "\nYou can't hit it from here."
-    elseif actionResult.calc_hit_chance then
-      desc = desc .. "\n" .. actionResult.name .. " hit chance: " .. actionResult:calc_hit_chance(player,self,actionItem) .. "%"
+  if not noInfo then
+    desc = desc .. "\n" .. self:get_health_text(true)
+    if self.master and self.master ~= player then desc = desc .. "\n" .. ucfirst(self:get_pronoun('n')) .. " is under the command of " .. self.master:get_name(false,true) .. "." end
+    if (self.isPlayer ~= true) then
+      if (self.playerAlly == true) then desc = desc .. "\n" .. ucfirst(self:get_pronoun('n')) .. " is under your command."
+      elseif self.notices[player] and self.ignoring[player] then desc = desc .. "\n" .. ucfirst(self:get_pronoun('n')) .. " is ignoring you."
+      elseif self.notices[player] and not self.shitlist[player] then desc = desc .. "\n" .. ucfirst(self:get_pronoun('n')) .. (self:is_friend(player) and " is friendly towards you." or " is watching you suspiciously.")
+      elseif (self.notices[player] and self.shitlist[player]) then desc = desc .. "\n" .. ucfirst(self:get_pronoun('n')) .. " is hostile towards you."
+      else desc = desc .. "\n" .. ucfirst(self:get_pronoun('n')) .. " has not noticed you." end
+      if self:get_fear() > self:get_bravery() then desc = desc .. "\n" .. ucfirst(self:get_pronoun('n')) .. " is afraid, and will try to run from enemies if possible." end
+    if action == "targeting" and actionResult then
+      local dist = calc_distance(player.x,player.y,self.x,self.y)
+      if actionResult.range and dist > actionResult.range then
+        desc = desc .. "\nIt is too far away to be targeted."
+      elseif actionResult.minRange and dist < actionResult.minRange then
+        desc = desc .. "\nIt is too close to be targeted."
+      elseif actionResult.projectile and not player:can_shoot_tile(self.x,self.y) then
+        desc = desc .. "\nYou can't hit it from here."
+      elseif actionResult.calc_hit_chance then
+        desc = desc .. "\n" .. actionResult.name .. " hit chance: " .. actionResult:calc_hit_chance(player,self,actionItem) .. "%"
+      end
     end
-  end
-    --Debug stuff:
-    if debugMode then
-      desc = desc .. "\nFear: " .. self:get_fear() .. "/" .. self:get_bravery()
-      if self.target then
-        if self.target.baseType == "creature" then desc = desc .. "\nTarget: " .. self.target:get_name()
-        else desc = desc .. "\nTarget: " .. self.target.x .. ", " .. self.target.y end
-      end --end if self.target
-      if self.equipment then
-        if self.equipment.weapon then
-          desc = desc .. "\nWeapons : "
-          for _,item in ipairs(self.equipment.weapon) do
+      --Debug stuff:
+      if debugMode then
+        desc = desc .. "\nFear: " .. self:get_fear() .. "/" .. self:get_bravery()
+        if self.target then
+          if self.target.baseType == "creature" then desc = desc .. "\nTarget: " .. self.target:get_name()
+          else desc = desc .. "\nTarget: " .. self.target.x .. ", " .. self.target.y end
+        end --end if self.target
+        if self.equipment then
+          if self.equipment.weapon then
+            desc = desc .. "\nWeapons : "
+            for _,item in ipairs(self.equipment.weapon) do
+              desc = desc .. item:get_name(true) .. ", "
+            end
+          end
+        end --end self.equipment if
+        if self.inventory then
+          desc = desc .. "\nInventory : "
+          for _,item in ipairs(self.inventory) do
             desc = desc .. item:get_name(true) .. ", "
           end
         end
-      end --end self.equipment if
-      if self.inventory then
-        desc = desc .. "\nInventory : "
-        for _,item in ipairs(self.inventory) do
-          desc = desc .. item:get_name(true) .. ", "
-        end
-      end
-    end --end debugmode if
-  end --end isPlayer
+      end --end debugmode if
+    end --end isPlayer
+  end
 	
 	return desc
 end
@@ -1499,10 +1503,11 @@ end
 
 ---Have a creature drop an item on the tile they're on
 --@param item Item. The item to drop
-function Creature:drop_item(item)
+--@param silent Boolean. If true, don't display drop text
+function Creature:drop_item(item,silent)
 	local id = in_table(item,self.inventory)
 	if (id) then
-    if player:can_sense_creature(self) then output:out(self:get_name() .. " dropped " .. item:get_name() .. ".") end
+    if not silent and player:can_sense_creature(self) then output:out(self:get_name() .. " dropped " .. item:get_name() .. ".") end
     currMap:add_item(item,self.x,self.y,true)
 		table.remove(self.inventory,id)
     if self:is_equipped(item) then
@@ -1919,7 +1924,7 @@ function Creature:is_enemy(target,dontSend)
   else --if we're not a player ally
     if self:is_faction_enemy(target) or self:is_enemy_type(target) then
       return true --if the target is an enemy of your faction, or a creature type you consider an enemy then they're you're enemy too
-    elseif not self.factions and target.playerAlly == true and not self:is_friendly_type(target) then
+    elseif (not self.factions or count(self.factions) == 0) and (target.playerAlly == true or target == player) and not self:is_friendly_type(target) then
       return true --default behavior for non-faction enemies is to treat player and their allies as enemies unless they're a creature type they like
     end
   end --end playerally or not check

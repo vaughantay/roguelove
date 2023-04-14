@@ -2,7 +2,7 @@ inventory = {}
 --TODO: Scrolling for equipment
 --TODO: Test for non-player inventory
 
-function inventory:enter(previous,whichFilter,action,creature)
+function inventory:enter(previous,whichFilter,action,entity)
   if previous == game then
     self.cursorY = 0
     self.cursorX = 1
@@ -16,10 +16,10 @@ function inventory:enter(previous,whichFilter,action,creature)
     self.filter = nil
     self.filterButtons = nil
     self.action = nil
-    self.creature = creature or player
+    self.entity = entity or player
   end
-  self.inventory_space = (self.creature.inventory_space and self.creature:get_stat('inventory_space') or false)
-  self.free_space = self.creature:get_free_inventory_space()
+  self.inventory_space = (self.entity.inventory_space and self.entity:get_stat('inventory_space') or false)
+  self.free_space = self.entity:get_free_inventory_space()
   self.biggestY=0
   self.action=action or self.action
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
@@ -50,8 +50,8 @@ function inventory:sort()
   local fontSize = prefs['fontSize']
   --First, sort by type:
   local sorted = {}
-  for i,item in ipairs(self.creature.inventory) do
-    if not self.creature:is_equipped(item) then
+  for i,item in ipairs(self.entity.inventory) do
+    if not self.entity:is_equipped(item) then
       local filter_info = self.filter
       if (filter_info == nil) or ((not filter_info.filter or item[filter_info.filter] == true) and (not filter_info.itemType or item.itemType == filter_info.itemType) and (not filter_info.subType or item.subType == filter_info.subType)) then
         local iType = item.itemType or "other"
@@ -117,7 +117,7 @@ function inventory:sort()
   local equipPrintY = (prefs['noImages'] and 16 or 32)
   local equipSlotWidth = 0
   for _,s in ipairs(equipOrder) do
-    local slot = self.creature.equipment[s]
+    local slot = self.entity.equipment[s]
     equipSlotWidth = math.max(equipSlotWidth,fonts.textFont:getWidth((slot.name or ucfirst(s)) .. ":"))
     if slot then
       local usedhands = 0
@@ -143,22 +143,22 @@ function inventory:sort()
   end --end equiporder for
 
   --Do extra slots that are not part of the standard equipment order:
-  for slot,eq in pairs(self.creature.equipment) do
+  for slot,eq in pairs(self.entity.equipment) do
     if not in_table(slot,equipOrder) and slot ~= "list" then
-      equipSlotWidth = math.max(equipSlotWidth,fonts.textFont:getWidth((self.creature.equipment[slot].name or ucfirst(slot)) .. ":"))
+      equipSlotWidth = math.max(equipSlotWidth,fonts.textFont:getWidth((self.entity.equipment[slot].name or ucfirst(slot)) .. ":"))
       for id,equip in ipairs(eq) do
-        self.equipment[#self.equipment+1] = {item=equip,y=equipPrintY,slotName=(self.creature.equipment[slot].name or ucfirst(slot)),slotID=slot}
+        self.equipment[#self.equipment+1] = {item=equip,y=equipPrintY,slotName=(self.entity.equipment[slot].name or ucfirst(slot)),slotID=slot}
         equipPrintY=equipPrintY+fontSize
       end --end equip for
       for i=#slot,slot.slots,1 do
-        self.equipment[#self.equipment+1] = {item=false,y=equipPrintY,slotName=(self.creature.equipment[slot].name or ucfirst(slot)),text="-",empty=true,slotID=slot}
+        self.equipment[#self.equipment+1] = {item=false,y=equipPrintY,slotName=(self.entity.equipment[slot].name or ucfirst(slot)),text="-",empty=true,slotID=slot}
         equipPrintY=equipPrintY+fontSize
       end
     end --end slot for
   end --end if not in_table slot,equiporder
   self.equipSlotWidth = equipSlotWidth
-  self.inventory_space = (self.creature.inventory_space and self.creature:get_stat('inventory_space') or false)
-  self.free_space = self.creature:get_free_inventory_space()
+  self.inventory_space = (self.entity.inventory_space and self.entity:get_stat('inventory_space') or false)
+  self.free_space = self.entity:get_free_inventory_space()
 end --end inventory:sort()
 
 function inventory:draw()
@@ -193,7 +193,7 @@ function inventory:draw()
     spaceText = "\nUsed Space: " .. (self.inventory_space-self.free_space) .. " / " .. self.inventory_space
     if self.free_space < 0 then spaceText = spaceText .. " (Overloaded!)" end
   end
-  topText = topText .. "\nYou have: " .. get_money_name(self.creature.money) .. spaceText
+  topText = topText .. (self.entity == player and "\nYou have: " or "\n" .. self.entity:get_name() " has: ") .. get_money_name(self.entity.money) .. spaceText
   love.graphics.printf(topText,padding,round(padding*.75),sidebarX-padding*2,"center")
   local _,ttlines = fonts.textFont:getWrap(topText, sidebarX-padding*2)
     
@@ -438,7 +438,7 @@ function inventory:draw()
       buttonCursorX = buttonCursorX+1
     end
     if item.equippable==true then
-      local equipped = self.creature:is_equipped(item)
+      local equipped = self.entity:is_equipped(item)
       local useText = (equipped and "Unequip" or "Equip") .. " (" .. keybindings.equip[1] .. ")"
       local buttonWidth = fonts.buttonFont:getWidth(useText)+25
       self.buttons.equip = output:button(buttonX,buttonY,buttonWidth,false,(self.cursorX == buttonCursorX and "hover" or nil),useText)
@@ -749,17 +749,17 @@ end
 function inventory:useItem(item)
   item = item or self.selectedItem
   if item then
-    local canUse,text = self.creature:can_use_item(item,item.useVerb)
+    local canUse,text = self.entity:can_use_item(item,item.useVerb)
     if canUse then
       if item.target_type == "self" or not item.target_type then --if a self-targeting item, then just use it and be done
-        local used,response = item:use(nil,self.creature)
+        local used,response = item:use(nil,self.entity)
         self.text=response
         if used ~= false then
           self:switchBack()
           if action ~= "targeting" then advance_turn() end
         end
       elseif (item.target_type == "creature" or item.target_type == "tile") and (not item.charges or item.charges > 0) then --if not self-use, target
-        item:target(self.creature.target,self.creature)
+        item:target(self.entity.target,self.entity)
         self:switchBack()
       end
     else --if canUse == false
@@ -772,11 +772,11 @@ end
 function inventory:equipItem(item)
   item = item or self.selectedItem
   if item then
-    if self.creature:is_equipped(item) then
-      local use,response = self.creature:unequip(item)
+    if self.entity:is_equipped(item) then
+      local use,response = self.entity:unequip(item)
       self.text=response
     else
-      local use,response = self.creature:equip(item)
+      local use,response = self.entity:equip(item)
       self.text=response
       if use ~= false then advance_turn() end
     end --end if it's equipped or not
@@ -786,7 +786,7 @@ end
 
 function inventory:dropItem(item)
   item = item or self.selectedItem
-  local drop,response = self.creature:drop_item(item)
+  local drop,response = self.entity:drop_item(item)
   --self.selectedItem = nil
   if drop ~= false then
     self.cursorX=1
@@ -803,7 +803,7 @@ end
 function inventory:throwItem(item)
   item = item or self.selectedItem
   if item and item.throwable then
-    item:target(self.creature.target,self.creature)
+    item:target(self.entity.target,self.entity)
     self:switchBack()
   end
 end
@@ -811,7 +811,7 @@ end
 function inventory:reloadItem(item)
   item = item or self.selectedItem
   if item and item.charges and (not item.max_charges or item.max_charges > 0) then
-    local recharge,text = item:reload(self.creature)
+    local recharge,text = item:reload(self.entity)
     self.text = text
     if recharge ~= false then
       advance_turn()
@@ -830,7 +830,7 @@ function inventory:splitStack(item,amount)
     newItem.amount = amount
     item.owner,newItem.owner = oldOwner
     newItem.stacks = false
-    self.creature:give_item(newItem)
+    self.entity:give_item(newItem)
     newItem.stacks = true
   end
 end

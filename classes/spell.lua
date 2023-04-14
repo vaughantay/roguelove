@@ -7,8 +7,8 @@ Spell = Class{}
 function Spell:init(spellID)
   local data = possibleSpells[spellID]
   if not data then
-    output:out("Error: Tried to create non-existent spell " .. spellID)
-    print("Error: Tried to create non-existent spell " .. spellID)
+    output:out("Error: Tried to create non-existent spell " .. tostring(spellID))
+    print("Error: Tried to create non-existent spell " .. tostring(spellID))
     return false
   end
 	for key, val in pairs(data) do

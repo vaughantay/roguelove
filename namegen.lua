@@ -783,18 +783,18 @@ function namegen:generate_weapon_name(item)
     end
 end
 
-function namegen:generate_book_name()
+function namegen:generate_book_name(args)
   local booknames = self.lists.bookNames
-  local concepts = self.lists.concepts
+  local concepts = (args and args.concepts or self.lists.concepts)
   local magic = {"Spells","Enchantments","Charms","Hexes","Witchcraft","Wizardry","Curses","Blessings","Conjurations","Illusions","Evocations","Magic","Sorcery","Sorceries","Magick","Majick","Magic Tricks","Powers","Power","Party Tricks","Illusioncraft","Spiritualism"}
-  local adjectives = self.lists.adjectives
+  local adjectives = (args and args.adjectives or self.lists.adjectives)
     
   local titleType = random(1,2)
     
   if (titleType == 1) then
-    return booknames[random(#booknames)] .. " of " .. concepts[random(#concepts)]
+    return booknames[random(#booknames)] .. " of " .. ucfirst(concepts[random(#concepts)])
   else
-    return booknames[random(#booknames)] .. " of " .. adjectives[random(#adjectives)] .. " " .. magic[random(#magic)]
+    return booknames[random(#booknames)] .. " of " .. ucfirst(adjectives[random(#adjectives)]) .. " " .. ucfirst(magic[random(#magic)])
   end
 end
 

@@ -17,6 +17,7 @@ gamesettings = {
   player_tombstones=true, --If true, tombstones will be created on levels where players were previous killed listing their date and cause of death
   default_map_width=60,
   default_map_height=60,
+  no_map_descriptions=false, --If true, do not display map description popups when entering a new map
   creature_density=3,
   item_density=1,
   enchantment_chance=50,
