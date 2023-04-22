@@ -258,6 +258,7 @@ function scroll:target(target,user)
   actionResult=self
   actionItem=self
   actionIgnoreCooldown = true
+  game.targets = {}
 end
 function scroll:use(target,user)
   if possibleSpells[self.spell].target_type == "self" then
@@ -282,6 +283,7 @@ function scroll:use(target,user)
     actionResult=self
     actionItem=self
     actionIgnoreCooldown = true
+    game.targets = {}
   end
 end
 possibleItems['scroll'] = scroll

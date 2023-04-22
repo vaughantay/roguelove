@@ -81,6 +81,7 @@ function Spell:target(target,caster, ignoreCooldowns, ignoreMP)
 	else
 		action = "targeting"
 		actionResult = self
+    game.targets = {}
 		if (target) then
 			output:setCursor(target.x,target.y,true)
 		end

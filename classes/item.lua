@@ -199,6 +199,7 @@ function Item:target(target,user,skip,ignoreCooldowns)
 		action = "targeting"
 		actionResult = (self.throwable and rangedAttacks[self.ranged_attack] or self)
     actionItem = self
+    game.targets = {}
 		if (target) then
 			output:setCursor(target.x,target.y,true)
 		end

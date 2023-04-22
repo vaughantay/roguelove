@@ -1,4 +1,4 @@
-game = {spellButtons={},sidebarCreats={},hoveringCreat=nil,hp=0,playerID=nil,eventualHP=0,targetHP=0,targetEventualHP=0,targetID=nil,batches={},batchesDark={},turns_to_advance=0}
+game = {spellButtons={},sidebarCreats={},hoveringCreat=nil,hp=0,playerID=nil,eventualHP=0,targetHP=0,targetEventualHP=0,targetID=nil,batches={},batchesDark={},turns_to_advance=0,targets={}}
 
 function game:enter()
   love.graphics.setFont(fonts.mapFontWithImages)
@@ -44,7 +44,8 @@ function game:draw()
   if action == "targeting" then
     local text = "Select Target"
     if actionResult and actionResult.name then
-      text = text .. " for " .. actionResult.name
+      local max_targets = actionResult.max_targets or 1
+      text = text ..  (max_targets > 1 and "s for " or " for ") .. actionResult.name .. (max_targets > 1 and ": " .. #game.targets .. "/" .. max_targets or "")
     end
     text = text .. "\nPress Escape to Cancel"
     --local w = fonts.textFont:getWidth(text)
@@ -120,7 +121,7 @@ function game:print_cursor_game()
         local pX = mapWidth/2-((output.camera.x-output.targetLine[#output.targetLine].x)*tileSize)
         if pX ~= printX and pY ~= printY then
           if prefs['noImages'] == true then
-            setColor(255,255,0,255)
+            setColor(255,255,0,125)
             love.graphics.rectangle("line",pX-2,pY+2,tileSize,tileSize)
           else
             setColor(255,0,0,125)
@@ -1047,11 +1048,11 @@ function game:display_map(map)
       if prefs['noImages'] == true then
         setColor(100,50,100,150)
         love.graphics.rectangle("fill",printX-2,printY+2,tileSize,tileSize)
-        setColor(255,255,255,255)
       else
         setColor(100,50,100,125)
         love.graphics.draw(images.uicrosshair,printX+16*(currGame.zoom or 1),printY+16*(currGame.zoom or 1),0,(currGame.zoom or 1),(currGame.zoom or 1),16,16)
       end
+      setColor(255,255,255,255)
     end --end for
     for _,tile in pairs(output.potentialTargets) do
       local creat = currMap:get_tile_creature(tile.x,tile.y)
@@ -1061,13 +1062,25 @@ function game:display_map(map)
         if prefs['noImages'] == true then
           setColor(100,100,100,255)
           love.graphics.rectangle("line",printX-2,printY+2,tileSize,tileSize)
-          setColor(255,255,255,255)
         else
           setColor(255,255,0,75)
           love.graphics.draw(images.uicrosshair,printX+16*(currGame.zoom or 1),printY+16*(currGame.zoom or 1),0,(currGame.zoom or 1),(currGame.zoom or 1),16,16)
         end
+        setColor(255,255,255,255)
       end --end notice if
     end --end for
+    for _,tile in ipairs(game.targets) do
+      local printX,printY = output:tile_to_coordinates(tile.x,tile.y)
+      local tileSize = output:get_tile_size() --tileSize is 14 without images, 32 with
+      if prefs['noImages'] == true then
+        setColor(255,0,0,255)
+        love.graphics.rectangle("line",printX-2,printY+2,tileSize,tileSize)
+      else
+        setColor(255,0,0,255)
+        love.graphics.draw(images.uicrosshair,printX+16*(currGame.zoom or 1),printY+16*(currGame.zoom or 1),0,(currGame.zoom or 1),(currGame.zoom or 1),16,16)
+      end
+      setColor(255,255,255,255)
+    end
   end --end not dying display
 end --end display map function
 
@@ -1636,6 +1649,7 @@ function game:keypressed(key,scancode,isRepeat)
 		if action=="targeting" then
       action="moving"
       actionResult = nil
+      game.targets = {}
 			output.cursorX = 0
 			output.cursorY = 0
     else
@@ -1649,6 +1663,7 @@ function game:keypressed(key,scancode,isRepeat)
     elseif action == "targeting" then
       action="attacking"
       actionResult = nil
+      game.targets = {}
 			output.cursorX = 0
 			output.cursorY = 0
     end
@@ -1730,6 +1745,7 @@ function game:keypressed(key,scancode,isRepeat)
       allAttacks.min_range,allAttacks.max_range = min_range,range
       allAttacks.target_type="creature"
       actionResult=allAttacks
+      game.targets = {}
       if (output.cursorX == 0 or output.cursorY == 0) and target then
         output:setCursor(target.x,target.y,true)
       else
@@ -1770,6 +1786,7 @@ function game:keypressed(key,scancode,isRepeat)
 		elseif (action=="targeting") then
 			action="moving"
 			actionResult = nil
+      game.targets = {}
 			output.cursorX = 0
 			output.cursorY = 0
     elseif action == "attacking" then
@@ -1862,6 +1879,7 @@ function game:keypressed(key,scancode,isRepeat)
       action="targeting"
       actionResult=rangedAttacks[hotkeyItem.ranged_attack]
       actionItem=hotkeyItem
+      game.targets = {}
     elseif hotkeyItem.equippable then
       if not player:is_equipped(hotkeyItem) then
         local use,response = player:equip(hotkeyItem)
@@ -2127,6 +2145,7 @@ function ContextualMenu:click(x,y)
         allAttacks.min_range,allAttacks.max_range = min_range,range
         allAttacks.target_type="creature"
         actionResult=allAttacks
+        game.targets = {}
         setTarget(self.target.x,self.target.y)
       else --no attacks available, try to recharge if possible
         local recharge = false

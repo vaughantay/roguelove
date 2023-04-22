@@ -3,12 +3,12 @@ possibleSpells = {
 blast = {
 	name = "Psychic Blast",
 	description = "Attack a target...with your mind!",
-	cooldown = 5,
 	target_type = "creature",
 	flags = {aggressive=true},
   tags={'psychic','attack'},
   charges=5,
   max_charges=5,
+  max_targets=2,
   stats={
     min_damage={value=8,name="Minimum Damage",stat_type="damage",display_order=1},
     max_damage={value=15,name="Maximum Damage",stat_type="damage",display_order=2},

@@ -43,6 +43,7 @@ function load_game(fileName)
     output:setCursor(0,0)
     action = "moving"
     actionResult = nil
+    game.targets = {}
     target = nil
     output.text = {}
     output.buffer = {}

@@ -40,6 +40,7 @@ function new_game(mapSeed,playTutorial,cheats,branch)
 	output:setCursor(0,0)
 	action = "moving"
 	actionResult = nil
+  game.targets = {}
 	target = nil
   output.text = {}
   output.buffer = {}
@@ -253,6 +254,7 @@ function turn_logic()
   currMap:refresh_lightMap(true) -- refresh the lightmap, forcing it to refresh all lights
   if action ~= "dying" then action = "moving" end
   actionResult = nil
+  game.targets = {}
   
   if action ~= "dying" then
     -- Output stuff:
@@ -688,7 +690,12 @@ end
 function setTarget(x,y)
 	local creat = currMap:get_tile_creature(x,y)
 	if (creat) then target = creat end
+  --Perform an action on the target, if one is available:
 	if (actionResult ~= nil) then
+    local max_targets = (actionResult.max_targets or 1)
+    local targets = game.targets
+    
+    --Check range:
     if actionResult.range and math.floor(calc_distance(player.x,player.y,x,y)) > actionResult.range then
       output:out("That target is too far away.")
       return false
@@ -696,46 +703,62 @@ function setTarget(x,y)
       output:out("That target is too close.")
       return false
     end
+    
+    --Check obstacles in way of projectile:
     if (actionResult.projectile == true and #output.targetLine > 0) then --if it's a projectile-type spell, target the first thing it passes through rather than the "actual" target
       x,y = output.targetLine[#output.targetLine].x,output.targetLine[#output.targetLine].y
       creat = currMap:get_tile_creature(x,y)
     end --end projectile if
+    
+    --Add target to list
+    if actionResult.target_type == "creature" then
+      targets[#targets+1] = creat
+    else
+      targets[#targets+1] = {x=x,y=y}
+    end
+    
+    if #targets >= max_targets then
+      for _,target in ipairs(targets) do
+        perform_target_action(target)
+      end
+      actionResult = nil
+      actionItem = nil
+      actionIgnoreCooldown = nil
+      game.targets = {}
+      advance_turn()
+      action="moving"
+      output:setCursor(0,0)
+    end
+	end --end if actionResult ~= nil
+end --end function
+
+---Performs whatever action is stored up
+--@param target Entity. The target for the action
+function perform_target_action(target,target_list)
+  local success = false
+  if (actionResult ~= nil) then
     local actionArg = (actionResult.baseType == "ranged" and actionItem or actionIgnoreCooldown)
 		if (actionResult.target_type == "tile") then
-			if actionResult:use({x=x,y=y},player,actionArg) ~= false then --TODO: Update this to pass item to ranged attack
+			if actionResult:use({x=target.x,y=target.y},player,actionArg) ~= false then --TODO: Update this to pass item to ranged attack
         if actionItem then
           if actionItem.throwable then
             player:delete_item(actionItem,1)
           end
         end
-        actionResult = nil
-        actionItem = nil
-        actionIgnoreCooldown = nil
-        advance_turn()
-				action="moving"
-        output:setCursor(0,0)
 			end
 		elseif (actionResult.target_type == "creature") then
-			if (creat) then
-				if actionResult:use(creat,player,actionArg) ~= false then --TODO: Update this to pass item to ranged attack
+			if target.baseType == "creature" then
+				if actionResult:use(target,player,actionArg) ~= false then --TODO: Update this to pass item to ranged attack
           if actionItem then
             if actionItem.throwable then
               player:delete_item(actionItem,1)
             end
           end
-					actionResult = nil
-          actionItem = nil
-          actionIgnoreCooldown = nil
-          advance_turn()
-					action="moving"
-          output:setCursor(0,0)
 				end
-			else --if no creature
-				return false
 			end --end if (creat)
 		end --end square vs. creature if
 	end --end main if
-end --end function
+end
 
 ---Called when the player dies. Starts the screen going black, saves a graveyard file, and updates death statistics.
 function player_dies()
