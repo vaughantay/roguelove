@@ -66,7 +66,7 @@ function spellscreen:draw()
   local printY = padding+round(fontSize*1.5)
   local printX = (prefs['noImages'] and 14 or 32)
   local spellPoints = (player.spellPoints or 0)
-  local spellSlots = player:get_spell_slots()
+  local spellSlots = player:get_free_spell_slots()
   if spellPoints > 0 then
     love.graphics.printf(spellPoints .. " ability point" .. (spellPoints == 1 and " available" or "s available"),padding,printY,window1w,"center")
     printY = printY+fontSize

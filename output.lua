@@ -141,7 +141,7 @@ function output:setCursor(x,y,force,allow_current_creature)
   end
   
   --If you're targeting a creature-targeting spell, snap to nearest creature
-  if force ~= true and Gamestate.current() == game and action == "targeting" and actionResult and (actionResult.target_type == "creature" or actionResult.get_potential_targets) then
+  if force ~= true and Gamestate.current() == game and action == "targeting" and actionResult and (actionResult.target_type == "creature" or #output.potentialTargets > 0) then
     local nearest = nil
     local nearestDist = nil
     if actionResult.target_type == "creature" then
@@ -157,8 +157,8 @@ function output:setCursor(x,y,force,allow_current_creature)
           end --end nearest if
         end --end if not player target
       end --end creature for
-    elseif actionResult.target_type and #self.potentialTargets > 0 then
-      for _,tar in pairs(self.potentialTargets) do
+    elseif actionResult.target_type and #output.potentialTargets > 0 then
+      for _,tar in pairs(output.potentialTargets) do
         if tar.x ~= output.cursorX or tar.y ~= output.cursorY or allow_current_creature then
           local dist = calc_distance(x,y,tar.x,tar.y)
           local xModo,yModo = get_unit_vector(output.cursorX,output.cursorY,x,y)

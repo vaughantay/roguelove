@@ -1398,8 +1398,9 @@ function game:update(dt)
   end
   if action == "targeting" and actionResult ~= nil then
     if #output.potentialTargets == 0 then
-      if actionResult.get_potential_targets ~= nil then
-        output.potentialTargets = actionResult:get_potential_targets(player)
+      local ptarg = (actionResult.get_potential_targets and actionResult:get_potential_targets(player,(#game.targets+1)) or {})
+      if ptarg then
+        output.potentialTargets = ptarg
       elseif actionResult.target_type == "creature" then
         for _,creat in pairs(player.sees) do
           if player:does_notice(creat) and (actionResult.range == nil or calc_distance(player.x,player.y,creat.x,creat.y) <= actionResult.range) then

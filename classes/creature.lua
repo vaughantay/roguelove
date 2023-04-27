@@ -1206,11 +1206,8 @@ function Creature:die(killer)
   if killer == nil and self.lastAttacker then
     self.killer = self.lastAttacker
   end
-  if self:callbacks('dies',self.killer) and (not self.killer or (self.killer.callbacks and self.killer:callbacks('kills',self))) then
+  if self:callbacks('dies',self.killer) then
     self.isDead = true
-    if self.killer and self.killer.master and self.killer.master.hp > 0 and self.killer.master.callbacks then
-      self.killer.master:callbacks('ally_kills',self,killer)
-    end
     local seen = player:can_see_tile(self.x,self.y)
     if seen then
       if self.deathSound then output:sound(self.deathSound)
@@ -1252,7 +1249,18 @@ function Creature:die(killer)
       else --killed by a non-player ally
         if player:can_sense_creature(self) then output:out(self.killer:get_name() .. " kills " .. self:get_name() .. "!") end
       end
+      --XP:
       if xp > 0 then self.killer:give_xp(xp) end
+      
+      --Run kills() callbacks
+      if self.killer and self.killer.callbacks then
+        self.killer:callbacks('kills',self)
+      end
+      if self.killer and self.killer.master and self.killer.master.hp > 0 and self.killer.master.callbacks then
+        self.killer.master:callbacks('ally_kills',self,killer)
+      end
+    
+      --Give/Remove Favor:
       local favor = self:get_kill_favor()
       for fac,favor in pairs(favor) do
         local member = self.killer:is_faction_member(fac)

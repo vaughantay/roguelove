@@ -710,54 +710,72 @@ function setTarget(x,y)
       creat = currMap:get_tile_creature(x,y)
     end --end projectile if
     
-    --Add target to list
-    if actionResult.target_type == "creature" then
-      targets[#targets+1] = creat
-    else
-      targets[#targets+1] = {x=x,y=y}
+    --Check if target is already in list, and remove it if so
+    for id,targ in ipairs(targets) do
+      if targ.x == x and targ.y == y then
+        table.remove(targets,id)
+        return false
+      end
     end
     
-    if #targets >= max_targets then
-      for _,target in ipairs(targets) do
-        perform_target_action(target)
+    --Add target to list
+    local potential_target = nil
+    if actionResult.target_type == "creature" then
+      if creat then
+        potential_target = creat
+      else
+        output:out("You must target a creature with this ability.")
+        return false
       end
-      actionResult = nil
-      actionItem = nil
-      actionIgnoreCooldown = nil
-      game.targets = {}
-      advance_turn()
-      action="moving"
-      output:setCursor(0,0)
+    else
+      potential_target = {x=x,y=y}
+    end
+    if actionResult.target_requires then
+      local canTarget, result = actionResult:target_requires(potential_target,player,#game.targets+1)
+      if canTarget ~= false then
+        targets[#targets+1] = potential_target
+        output.potentialTargets = {}
+      else
+        if result then output:out(result) else output:out("That is not a valid target for this ability.") end
+        return false
+      end
+    end
+    
+    --If we've reached the max number of targets, go ahead and perform the action
+    if #targets >= max_targets then
+      if perform_target_action(targets) then
+        actionResult = nil
+        actionItem = nil
+        actionIgnoreCooldown = nil
+        actionIgnoreMP = nil
+        game.targets = {}
+        advance_turn()
+        action="moving"
+        output:setCursor(0,0)
+      end
     end
 	end --end if actionResult ~= nil
 end --end function
 
 ---Performs whatever action is stored up
 --@param target Entity. The target for the action
-function perform_target_action(target,target_list)
-  local success = false
+function perform_target_action(target_list)
+  local result = false
   if (actionResult ~= nil) then
-    local actionArg = (actionResult.baseType == "ranged" and actionItem or actionIgnoreCooldown)
-		if (actionResult.target_type == "tile") then
-			if actionResult:use({x=target.x,y=target.y},player,actionArg) ~= false then --TODO: Update this to pass item to ranged attack
-        if actionItem then
-          if actionItem.throwable then
-            player:delete_item(actionItem,1)
-          end
+    if actionResult.baseType == "spell" then --spells can take multiple targets, so pass it to the spell to decide
+      result = actionResult:use(target_list,player,actionIgnoreCooldown,actionIgnoreMP)
+    else
+      result = actionResult:use(target_list[1],player,actionItem)
+    end
+    if result ~= false then
+      if actionItem then
+        if actionItem.throwable then
+          player:delete_item(actionItem,1)
         end
-			end
-		elseif (actionResult.target_type == "creature") then
-			if target.baseType == "creature" then
-				if actionResult:use(target,player,actionArg) ~= false then --TODO: Update this to pass item to ranged attack
-          if actionItem then
-            if actionItem.throwable then
-              player:delete_item(actionItem,1)
-            end
-          end
-				end
-			end --end if (creat)
-		end --end square vs. creature if
+      end
+    end
 	end --end main if
+  return result
 end
 
 ---Called when the player dies. Starts the screen going black, saves a graveyard file, and updates death statistics.

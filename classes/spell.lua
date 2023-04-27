@@ -45,7 +45,6 @@ end
 --@return Boolean. Whether the spell was successfully able to be cast/targeted or not.
 function Spell:target(target,caster, ignoreCooldowns, ignoreMP)
   if self.active then --If the spell is already active, don't cast it
-    print(self.name)
     if self.no_manual_deactivate then
       output:out("That ability can't be manually deactivated.")
       return false
@@ -56,21 +55,13 @@ function Spell:target(target,caster, ignoreCooldowns, ignoreMP)
     local cd = data.ignoreCooldowns
     return self:finish(t, caster, cd, mp)
   end
-  local req, reqtext = self:requires(caster)
-  if req == false then
-    if (caster == player) then output:out((reqtext or "You can't use that ability right now.")) end
-    return false
-  elseif (not ignoreCooldowns and caster.cooldowns[self.name]) then
-		if (caster == player) then output:out("You can't use that ability again for another " .. caster.cooldowns[self.name] .. " turns.") end
-		return false
-  elseif not ignoreMP and caster.mp and self.cost and self.cost > caster.mp then
-    if (caster == player) then output:out("You don't have enough magic points to use that ability.") end
-		return false
-  elseif not ignoreMP and self.charges and self.charges < 1 then
-    if (caster == player) then output:out("You're out of charges for that ability.") end
-		return false
-  end
-  if not caster:callbacks('casts',target,self,ignoreCooldowns) then --We're hoping the callback itself will provide any necessary feedback
+  
+  --First, check whether we can use the spell:
+  local canUse, result = self:can_use(target,caster,ignoreCooldowns,ignoreMP)
+  if canUse == false then
+    if caster == player and result then
+      output:out(result)
+    end
     return false
   end
   
@@ -108,28 +99,44 @@ function Spell:use(target, caster, ignoreCooldowns, ignoreMP)
     return self:finish(t, caster, cd, mp)
   end
   --First, check all requirements:
-  local req, reqtext = self:requires(caster)
-  if req == false then
-    if (caster == player) then output:out((reqtext or "You can't use that ability right now.")) end
-    return false
-	elseif (not ignoreCooldowns and caster.cooldowns[self.name]) then
-		if (caster == player) then output:out("You can't use that ability again for another " .. caster.cooldowns[self.name] .. " turns.") end
-		return false
-  elseif not ignoreMP and caster.mp and self.cost and self.cost > caster.mp then
-    if (caster == player) then output:out("You don't have enough magic points to use that ability.") end
-		return false
-  elseif not ignoreMP and self.charges and self.charges < 1 then
-    if (caster == player) then output:out("You're out of charges for that ability.") end
-		return false
-	elseif possibleSpells[self.id].cast then
-    local status,r = pcall(possibleSpells[self.id].cast,self,target,caster)
-    if not status then
-      local errtxt = "Error from " .. caster:get_name() .. " casting spell " .. self.name .. ": " .. r
-      output:out(errtxt)
-      print(errtxt)
-      return false
+  local canUse, result = self:can_use(target,caster,ignoreCooldowns,ignoreMP)
+  if canUse == false then
+    if caster == player and result then
+      output:out(result)
     end
-    if r ~= false or r == nil then --if the cast succeeded
+    return false
+  end
+  --Check targeting requirements:
+  if self.min_targets and #target < self.min_targets then
+    if caster == player then output:out("Not enough targets selected. You need at least " .. self.min_targets .. ".") end
+    return false
+  end
+  --Cast the actual spell:
+  if possibleSpells[self.id].cast then
+    if #target == 1 then target = target[1] end --if being passed only a single target, just set that as the target and don't loop
+    local result = nil
+    if not target or #target == 0 or self.cast_accepts_multiple_targets then
+      local status,r = pcall(possibleSpells[self.id].cast,self,target,caster)
+      result = r
+      if not status then
+        local errtxt = "Error from " .. caster:get_name() .. " casting spell " .. self.name .. ": " .. result
+        output:out(errtxt)
+        print(errtxt)
+        return false
+      end
+    else --if there are multiple targets and the spell's cast() function isn't set up to handle them, loop through the targets and cast() on each one
+      for tnum,t in ipairs(target) do
+        local status,r = pcall(possibleSpells[self.id].cast,self,t,caster)
+        if r == false then result = false end --if any cast returns false, we want to know
+        if not status then
+          local errtxt = "Error from " .. caster:get_name() .. " casting spell " .. self.name .. ": " .. tostring(result)
+          output:out(errtxt)
+          print(errtxt)
+          return false
+        end
+      end --end target for
+    end --end #target if
+    if result ~= false or result == nil then --if the cast succeeded
       --Stop active spells that deactivate on cast
       for id,data in pairs(caster.active_spells) do
         if data.spell.deactivate_on_cast or data.spell.deactivate_on_all_actions then
@@ -159,8 +166,33 @@ function Spell:use(target, caster, ignoreCooldowns, ignoreMP)
         self.active = true
       end
     end --end false/nil if
-		return (r == nil and true or r) -- this looks weird, but it's so that spells return false by default if they don't return anything
+		return (result == nil and true or result) -- this looks weird, but it's so that spells return false by default if they don't return anything
 	end
+end
+
+---Checks to see if the spell can be used right now
+--@param target Entity. The target of the spell.
+--@param caster Creature. The caster of the spell.
+--@param ignoreCooldowns Boolean. If set to true, this will ignore whether or not the spell is on a cooldown.
+--@param ignoreMP Boolean. If set to true, this will make the spell not use MP when cast
+--@return Boolean. Whether the spell can be used right now
+function Spell:can_use(target, caster, ignoreCooldowns, ignoreMP)
+  local req, reqtext = self:requires(caster)
+  local targ, targtext = self:target_requires(target,player)
+  if req == false then
+    return false,(reqtext or "You can't use that ability right now.")
+	elseif (not ignoreCooldowns and caster.cooldowns[self.name]) then
+		return false,"You can't use that ability again for another " .. caster.cooldowns[self.name] .. " turns."
+  elseif not ignoreMP and caster.mp and self.cost and self.cost > caster.mp then
+		return false,"You don't have enough magic points to use that ability."
+  elseif not ignoreMP and self.charges and self.charges < 1 then
+		return false,"You're out of charges for that ability."
+  elseif targ == false then
+    return false,targtext or "You've selected an invalid target for this ability."
+  elseif caster:callbacks('casts',target,self,ignoreCooldowns) == false then --We're hoping the callback itself will provide any necessary feedback
+    return false
+  end
+  return true
 end
 
 ---Placeholder for the advance_active() callback, which is called every turn a spell is active
@@ -248,6 +280,26 @@ end
 --@return true
 function Spell:requires(possessor)
   if possibleSpells[self.id].requires then return possibleSpells[self.id].requires(self,possessor) end
+  return true
+end
+
+---Placeholder for the target_requires() callback, used to determine if the attempted target of the spell is acceptable
+--@param target Entity. The attempted target of the spell.
+--@param caster Creature. The creature who's trying to use the spell.
+--@param target_number Number. Which target this is
+--@return true
+function Spell:target_requires(target,caster,target_number)
+  if not target then return true end --If there's no target, then say true because it's either a nontargeted spell or we're just starting to target now
+  if possibleSpells[self.id].target_requires then
+    if #target == 1 then target = target[1] end --if there's only one target, bypass the loop
+    if #target == 0 then
+      return possibleSpells[self.id].target_requires(self,target,caster,(target_number or 1))
+    else
+      for tnum,t in ipairs(target) do
+        return possibleSpells[self.id].target_requires(self,t,caster,tnum)
+      end
+    end --end if #target
+  end --end if target_requires exists
   return true
 end
 
@@ -367,4 +419,25 @@ function Spell:apply_upgrade(upgradeID,force)
     return true
   end
   return false
+end
+
+---Gets potential targets of a spell. Uses the spell's own get_potential_targets() function if it has one, or defaults to seen creatures if it doesn't and it's a creature-spell
+--@param caster Creature. The caster of the spell
+--@param target_number Number. Which target of the spell it is
+function Spell:get_potential_targets(caster,target_number)
+  local targets = {}
+  if possibleSpells[self.id].get_potential_targets then
+    targets = possibleSpells[self.id].get_potential_targets(self,caster,target_number)
+    if not targets then targets = {} end
+    return targets
+  end
+  if self.target_type == "creature" then
+    for _,creat in pairs(caster:get_seen_creatures()) do
+      if caster:does_notice(creat) and (self.range == nil or calc_distance(caster.x,caster.y,creat.x,creat.y) <= self.range) then
+        targets[#targets+1] = {x=creat.x,y=creat.y}
+      end --end range if
+    end --end creature for
+    return targets
+  end --end creature if
+  return {}
 end

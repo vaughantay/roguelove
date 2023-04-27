@@ -1,4 +1,39 @@
 possibleSpells = {
+  
+teleportother = {
+  name = "Teleport Other",
+  description = "Teleport another creature somewhere nearby.",
+  target_type="tile",
+  min_targets=2,
+  max_targets=2,
+  cast_accepts_multiple_targets=true,
+  cast = function(self,target,caster)
+    local creat = currMap:get_tile_creature(target[1].x,target[1].y)
+    creat:moveTo(target[2].x,target[2].y,true,true)
+    creat:give_condition('stunned',1)
+  end,
+  target_requires = function(self,target,caster,target_number)
+    if target_number == 1 then --selecting the creature
+      local creat = currMap:get_tile_creature(target.x,target.y)
+      if not creat then
+        return false,"There's no one there to teleport."
+      end
+    else
+      if not currMap:isClear(target.x,target.y) then
+        return false,"You can't teleport them there."
+      end
+    end
+  end,
+  get_potential_targets = function(self,caster,target_number)
+    if target_number == 1 then
+      local targs = {}
+      for _,t in pairs(caster:get_seen_creatures()) do
+        targs[#targs+1] = t
+      end
+      return targs
+    end
+  end
+},
 
 blast = {
 	name = "Psychic Blast",
@@ -31,7 +66,7 @@ blast = {
     local confusion = (self:get_stat('confusion_chance') or 0)
     local stun = (self:get_stat('stun_chance') or 0)
 		local dmg = target:damage(random(min,max),caster,"magic")
-    local text = caster:get_name() .. " blasts " .. target:get_name() .. " with " .. target:get_pronoun('p') .. " mind, dealing " .. dmg .. " damage."
+    local text = caster:get_name() .. " blasts " .. target:get_name() .. " with " .. caster:get_pronoun('p') .. " mind, dealing " .. dmg .. " damage."
     if random(1,100) <= stun then
       local turns = random(self:get_stat('min_stun'),self:get_stat('max_stun'))
       local s = target:give_condition('stunned',turns)
@@ -141,6 +176,7 @@ smite = {
     projectile=false,
     cost=1,
     cooldown = 5,
+    max_targets=3,
     tags={'holy','attack'},
     stats = {
       damage={value=15,name="Damage"}
@@ -150,10 +186,6 @@ smite = {
       cooldown={{cooldown=-5},name="Remove Cooldown"}
     },
     cast = function(self,target,attacker)
-      if (attacker.mp and attacker.mp == 0) then
-        if attacker == player then output:out("You don't have enough piety to smite your enemies.") end
-        return false
-      end
       if target:is_type('demon') or target:is_type('undead') or target:is_type('abomination') or target == player or target:has_condition('possessed') then
         dmg = target:damage(tweak(self:get_stat('damage')),attacker,"holy")
         if player:can_see_tile(attacker.x,attacker.y) then output:out(attacker:get_name() .. " smites " .. target:get_name() .. " for " .. dmg .. " holy damage.") end
@@ -165,6 +197,13 @@ smite = {
         return false
       end
     end, --end use function
+    target_requires = function(self,target,caster)
+      if target:is_type('demon') or target:is_type('undead') or target:is_type('abomination') or target:has_condition('possessed') then
+        return true
+      else
+        return false,target:get_name() .. " isn't an unholy being and remains unsmote."
+      end
+    end
   },
 
 homecoming = {
