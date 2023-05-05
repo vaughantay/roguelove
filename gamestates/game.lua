@@ -47,7 +47,11 @@ function game:draw()
       local max_targets = actionResult.max_targets or 1
       text = text ..  (max_targets > 1 and "s for " or " for ") .. actionResult.name .. (max_targets > 1 and ": " .. #game.targets .. "/" .. max_targets or "")
     end
-    text = text .. "\nPress Escape to Cancel"
+    text = text .. "\n"
+    if actionResult.min_targets and #game.targets >= actionResult.min_targets then
+      text = text .. "Press " .. ucfirst(keybindings.spell[1]) .. " to use now, "
+    end
+    text = text .. "Press " .. ucfirst(keybindings.escape[1]) .. " to Cancel"
     --local w = fonts.textFont:getWidth(text)
     --setColor(0,0,0,100)
     --love.graphics.rectangle('fill',math.ceil(width/2-w/2)-8,32,w+16,16)
@@ -56,7 +60,7 @@ function game:draw()
     setColor(255,255,255,255)
     love.graphics.printf(text,0,32,width,"center")
   elseif action == "attacking" then
-    local text = "Select Direction to Attack\nPress Escape to Cancel"
+    local text = "Select Direction to Attack\nPress " .. ucfirst(keybindings.escape[1]) .. " to Cancel"
     setColor(0,0,0,255)
     love.graphics.printf(text,2,33,width,"center")
     setColor(255,255,255,255)
@@ -1488,7 +1492,11 @@ function game:mousepressed(x,y,button)
       for spell,coords in pairs(self.spellButtons) do
         if x >= coords.minX and x <= coords.maxX and y >= coords.minY and y <= coords.maxY then
           if spell == "ranged" then
-            self:keypressed(keybindings.ranged[1])
+            if actionResult and actionResult.baseType == "ranged" then
+              cancel_targeting()
+            else
+              self:keypressed(keybindings.ranged[1])
+            end
           elseif spell == "recharge" then
             self:keypressed(keybindings.recharge[1])
           elseif spell == "pickup" then
@@ -1505,7 +1513,11 @@ function game:mousepressed(x,y,button)
             if (hotkeyItem.target_type == "self" or not hotkeyItem.target_type) and hotkeyItem:use(player,player) ~= false then
               advance_turn()
             elseif (hotkeyItem.target_type and hotkeyItem.target_type ~= "self") then
-              hotkeyItem:target(target,player)
+              if actionResult == hotkeyItem or actionItem == hotkeyItem then
+                cancel_targeting()
+              else
+                hotkeyItem:target(target,player)
+              end
             end
           end
           return
@@ -1548,11 +1560,18 @@ function game:mousepressed(x,y,button)
       end
     end
   elseif button == 2 then
+    --If doing multi-target, remove last target
+    if action == "targeting" then
+      self:keypressed(keybindings.escape[1])
+      return
+    end
+    --Check if you right clicked on the sidebar
     for creat,coords in pairs(self.sidebarCreats) do
       if not self.contextualMenu and x >= coords.minX and x <= coords.maxX and y >= coords.minY and y <= coords.maxY then
         self.contextualMenu = ContextualMenu(creat.x,creat.y,x-300,y)
       end
     end
+    --Check if you right clicked on a tile
     local tileX,tileY = output:coordinates_to_tile(x,y)
     local uiScale = (prefs['uiScale'] or 1)
     local sideBarX = (math.ceil(love.graphics:getWidth()/uiScale)-365)*uiScale
@@ -1633,7 +1652,14 @@ function game:keypressed(key,scancode,isRepeat)
 		advance_turn()
     local enter = currMap:enter(player.x,player.y,player,player.x,player.y) --run the "enter" code for a feature, f'rex, lava burning you even if you don't move
 	elseif (key == "spell") then
-		Gamestate.switch(spellscreen)
+    if action == "targeting" then
+      if actionResult and actionResult.min_targets and #game.targets >= actionResult.min_targets then
+        if perform_target_action(game.targets) then
+          return
+        end
+      end
+    end
+    Gamestate.switch(spellscreen)
   elseif (key == "inventory") then
 		Gamestate.switch(inventory)
   elseif (key == "drop") then
@@ -1648,11 +1674,7 @@ function game:keypressed(key,scancode,isRepeat)
 		Gamestate.switch(crafting)
 	elseif (key == "examine") then
 		if action=="targeting" then
-      action="moving"
-      actionResult = nil
-      game.targets = {}
-			output.cursorX = 0
-			output.cursorY = 0
+      cancel_targeting()
     else
       action="targeting"
     end
@@ -1662,11 +1684,8 @@ function game:keypressed(key,scancode,isRepeat)
     elseif action == "attacking" then
       action = "moving"
     elseif action == "targeting" then
+      cancel_targeting()
       action="attacking"
-      actionResult = nil
-      game.targets = {}
-			output.cursorX = 0
-			output.cursorY = 0
     end
   elseif (key == "nextTarget") then
     if action == "targeting" and #output.potentialTargets > 0 then
@@ -1745,6 +1764,7 @@ function game:keypressed(key,scancode,isRepeat)
       allAttacks.use = attackFunction
       allAttacks.min_range,allAttacks.max_range = min_range,range
       allAttacks.target_type="creature"
+      allAttacks.baseType = "ranged"
       actionResult=allAttacks
       game.targets = {}
       if (output.cursorX == 0 or output.cursorY == 0) and target then
@@ -1785,11 +1805,11 @@ function game:keypressed(key,scancode,isRepeat)
     if self.contextualMenu then
       self.contextualMenu = nil
 		elseif (action=="targeting") then
-			action="moving"
-			actionResult = nil
-      game.targets = {}
-			output.cursorX = 0
-			output.cursorY = 0
+      if #self.targets > 0 then
+        table.remove(self.targets,#self.targets)
+      else
+        cancel_targeting()
+      end
     elseif action == "attacking" then
       action="moving"
 		else
@@ -1854,24 +1874,10 @@ function game:keypressed(key,scancode,isRepeat)
       Gamestate.switch(multiselect,list,"Select an Action",true,true)
     end
   elseif player.hotkeys and (player.hotkeys[key] or player.hotkeys[tonumber(key)] or (key == 0 and player.hotkeys[10])) then
-    --[[local spellcount = 1
-    for _,spellID in pairs(player:get_spells()) do
-      local spell = possibleSpells[spellID]
-      if spell.innate ~= true and spell.target_type ~= "passive" then
-        if tonumber(key) == spellcount then
-          if action == "targeting" and actionResult == spell then
-            setTarget(output.cursorX,output.cursorY)
-          elseif spell:target(target,player) and spell.target_type == "self" then
-            advance_turn()
-          end
-        end
-        spellcount = spellcount+1
-      end --end innate/passive
-    end --end spell for]]
     local hotkeyInfo = player.hotkeys[key] or player.hotkeys[tonumber(key)]
     local hotkeyItem = hotkeyInfo.hotkeyItem
     if action == "targeting" and actionResult == hotkeyItem then
-      setTarget(output.cursorX,output.cursorY)
+      cancel_targeting()
     elseif (hotkeyItem.target_type == "self" or not hotkeyItem.target_type) and hotkeyItem:use(player,player) ~= false then
       advance_turn()
     elseif (hotkeyItem.target_type and hotkeyItem.target_type ~= "self") then

@@ -43,6 +43,7 @@ blast = {
   tags={'psychic','attack'},
   charges=5,
   max_charges=5,
+  min_targets=1,
   max_targets=2,
   stats={
     min_damage={value=8,name="Minimum Damage",stat_type="damage",display_order=1},

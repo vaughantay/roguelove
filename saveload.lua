@@ -40,10 +40,7 @@ function load_game(fileName)
     currMap:clear_all_pathfinders()
     if not currGame.cheats then currGame.cheats = {} end --delet this eventually I guess
     currGame.fileName = string.sub(fileName,7,-5) --in case the file's name got changed
-    output:setCursor(0,0)
-    action = "moving"
-    actionResult = nil
-    game.targets = {}
+    cancel_targeting()
     target = nil
     output.text = {}
     output.buffer = {}

@@ -37,10 +37,7 @@ function new_game(mapSeed,playTutorial,cheats,branch)
   end
   maps[currMap.branch] = {}
 	maps[currMap.branch][currMap.depth] = currMap
-	output:setCursor(0,0)
-	action = "moving"
-	actionResult = nil
-  game.targets = {}
+	cancel_targeting()
 	target = nil
   output.text = {}
   output.buffer = {}
@@ -253,8 +250,7 @@ function turn_logic()
   currMap.effect_cache = {}
   currMap:refresh_lightMap(true) -- refresh the lightmap, forcing it to refresh all lights
   if action ~= "dying" then action = "moving" end
-  actionResult = nil
-  game.targets = {}
+  cancel_targeting()
   
   if action ~= "dying" then
     -- Output stuff:
@@ -744,14 +740,7 @@ function setTarget(x,y)
     --If we've reached the max number of targets, go ahead and perform the action
     if #targets >= max_targets then
       if perform_target_action(targets) then
-        actionResult = nil
-        actionItem = nil
-        actionIgnoreCooldown = nil
-        actionIgnoreMP = nil
-        game.targets = {}
         advance_turn()
-        action="moving"
-        output:setCursor(0,0)
       end
     end
 	end --end if actionResult ~= nil
@@ -760,6 +749,7 @@ end --end function
 ---Performs whatever action is stored up
 --@param target Entity. The target for the action
 function perform_target_action(target_list)
+  target_list = target_list or game.targets
   local result = false
   if (actionResult ~= nil) then
     if actionResult.baseType == "spell" then --spells can take multiple targets, so pass it to the spell to decide
@@ -775,7 +765,21 @@ function perform_target_action(target_list)
       end
     end
 	end --end main if
+  if result ~= false then
+    cancel_targeting()
+  end
   return result
+end
+
+--Cancels targeting and unsets all target-related variables
+function cancel_targeting()
+  actionResult = nil
+  actionItem = nil
+  actionIgnoreCooldown = nil
+  actionIgnoreMP = nil
+  game.targets = {}
+  action="moving"
+  output:setCursor(0,0)
 end
 
 ---Called when the player dies. Starts the screen going black, saves a graveyard file, and updates death statistics.
