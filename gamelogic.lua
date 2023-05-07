@@ -357,6 +357,8 @@ function goToMap(depth,branch,force)
 		end
 		currMap.contents[player.x][player.y][player] = nil
 		currMap=maps[branch][depth]
+    
+    --Place the player:
     local playerX,playerY = nil,nil
     for _,exit in pairs(currMap.exits) do
       exit.most_recent = false
@@ -828,7 +830,6 @@ function downtime()
     faction:restock()
   end
 end
-
 
 ---Refreshes the player's sightmap. Called every turn, may need to be called if something changes visibility for some reason (new lights or something that blocks sight showing up)
 function refresh_player_sight()

@@ -296,7 +296,7 @@ function Map:get_tile_actions(x,y,user,noAdjacent)
       if entity.actions then
         for id,act in pairs(entity.actions) do
           if not act.requires or act.requires(entity,user) then
-            actions[#actions+1] = {id=id,entity=entity,text=act.text,description=act.description}
+            actions[#actions+1] = {id=id,entity=entity,text=act.text,description=act.description,order=act.order}
           end --end requires if
         end --end action for
       end --end if
@@ -308,7 +308,7 @@ function Map:get_tile_actions(x,y,user,noAdjacent)
           if entity.actions then
             for id,act in pairs(entity.actions) do
               if not act.requires or act.requires(entity,user) then
-                actions[#actions+1] = {id=id,entity=entity,text=act.text,description=act.description}
+                actions[#actions+1] = {id=id,entity=entity,text=act.text,description=act.description,order=act.order}
               end --end requires if
             end --end action for
           end --end if

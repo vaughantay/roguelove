@@ -48,7 +48,7 @@ function game:draw()
       text = text ..  (max_targets > 1 and "s for " or " for ") .. actionResult.name .. (max_targets > 1 and ": " .. #game.targets .. "/" .. max_targets or "")
     end
     text = text .. "\n"
-    if actionResult.min_targets and #game.targets >= actionResult.min_targets then
+    if actionResult and actionResult.min_targets and #game.targets >= actionResult.min_targets then
       text = text .. "Press " .. ucfirst(keybindings.spell[1]) .. " to use now, "
     end
     text = text .. "Press " .. ucfirst(keybindings.escape[1]) .. " to Cancel"
@@ -1869,7 +1869,7 @@ function game:keypressed(key,scancode,isRepeat)
         elseif entity.y > player.y then direction = direction .. "south" end
         if entity.x < player.x then direction = direction .. "west"
         elseif entity.x > player.x then direction = direction .. "east" end
-        list[#list+1] = {text=action.text .. " (" .. ucfirst(direction) .. ")",description=action.description,selectFunction=entity.action,selectArgs={entity,player,action.id},image=(action.image or 'feature' .. (entity.image_name or entity.id)),image_color=(action.image_color or (entity.use_color_with_tiles or (gamesettings.always_use_color_with_tiles and entity.use_color_with_tiles ~= false) and entity.color) or nil)}
+        list[#list+1] = {text=action.text .. " (" .. ucfirst(direction) .. ")",description=action.description,selectFunction=entity.action,selectArgs={entity,player,action.id},image=(action.image or 'feature' .. (entity.image_name or entity.id)),image_color=(action.image_color or (entity.use_color_with_tiles or (gamesettings.always_use_color_with_tiles and entity.use_color_with_tiles ~= false) and entity.color) or nil),order=action.order}
       end
       Gamestate.switch(multiselect,list,"Select an Action",true,true)
     end
