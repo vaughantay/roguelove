@@ -2021,7 +2021,7 @@ function animation:new(anim_name,frames,target,color,ascii,use_color_with_tiles,
   self.color = color or {r=255,g=255,b=255,a=255}
   self.target = target
   self.ascii = ascii or true
-  self.use_color_with_tiles = use_color_with_tiles or false
+  self.use_color_with_tiles = use_color_with_tiles
   self.repetitions = repetitions or 0
 
   self.image_frame = (backwards and frames or 1)

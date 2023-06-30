@@ -38,6 +38,10 @@ function multiselect:enter(previous,list,title,closeAfter,advanceAfter,descripti
   local tileSize = output:get_tile_size(true)
   local scrollMod = (self.scrollPositions and padX or 0)
   for i,item in ipairs(self.list) do
+    if not item.order then item.order = 10000 end
+  end
+  sort_table(self.list,'order')
+  for i,item in ipairs(self.list) do
     local code = i+96
 		local letter = (code > 32 and code <=122 and string.char(code) or nil)
     local letterText = letter and letter .. ") " or ""

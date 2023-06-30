@@ -71,7 +71,7 @@ function spellscreen:draw()
     love.graphics.printf(spellPoints .. " ability point" .. (spellPoints == 1 and " available" or "s available"),padding,printY,window1w,"center")
     printY = printY+fontSize
   end
-  if spellSlots > 0 then
+  if spellSlots and spellSlots > 0 then
     love.graphics.printf(spellSlots .. " open spell slot" .. (spellSlots == 1 and "" or "s"),padding,printY,window1w,"center")
     printY = printY+round(fontSize*1.5)
   end

@@ -117,6 +117,10 @@ namegen.lists.colorModifiers = {"bright","dark","faded","flourescent","glossy","
 
 namegen.lists.liquidAdjectives = {"bubbly","fizzy","roiling","thick","thin","viscous","watery"}
 
+namegen.lists.magicSynonyms = {"Arts","Blessings","Bewitchment","Charms","Conjuring","Conjuration","Conjurations","Conjury","Curses","Enchantment","Enchantments","Equations","Evocations","Hermetics","Hexes","Hocus Pocus","Incantations","Legerdemain","Magic","Magics","Magic Tricks","Magick","Magicks","Majick","Majicks","Metaphysics","Miracles","Mysteries","Occultism","Party Tricks","Power","Powers","Prestidigitation","Secrets","Spells","Sorcery","Sorceries","Sortilege","Thaumaturgy","Tricks","Witchcraft","Witchery","Wizardry","Wizardcraft"}
+
+namegen.lists.magicAdjectives = {"Arcane","Hidden","Magical","Miraculous","Mysterious","Mystic","Mystical","Mythic","Mythological","Numinous","Obscure","Occult","Secret","Sorcerous","Supernatural","Thaumaturgic","Transcendental","Unknown"}
+
 --Metafunctions start here:
 function namegen:get_from_list(list)
   if self.lists[list] then
