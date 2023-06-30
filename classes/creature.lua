@@ -2958,8 +2958,9 @@ function Creature:has_tag(tag)
     return true
   end
   if self.types and #self.types > 0 then
-    for _,ctype in pairs(self.types) do
-      if ctype.tags and in_table(tag,ctype.tags) then
+    for _,ctID in pairs(self.types) do
+      local ctype = creatureTypes[ctID]
+      if ctype and ctype.tags and in_table(tag,ctype.tags) then
         return true
       end
     end
