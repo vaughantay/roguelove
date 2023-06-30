@@ -2594,10 +2594,31 @@ function Creature:level_up(force)
           self.spellPoints = (self.spellPoints or 0)+1 --Increase spell points by 1 per point of magic
         end
       end
+      self.skillPoints = self.skillPoints-1
     end
-    for i=1,self.spellPoints,1 do
-      --TODO:Auto-upgrading spells
-    end
+    --Auto-upgrading spells
+    if self.spellPoints > 0 then
+      local upgradable_spells = {}
+      for id,spell in ipairs(self:get_spells(true)) do
+        local upgrades = spell:get_possible_upgrades(true)
+        if count(upgrades) > 0 then
+          upgradable_spells[#upgradable_spells+1] = spell
+        end
+      end
+      if #upgradable_spells > 0 then
+        local tries = 0
+        while tries < 100 and self.spellPoints > 0 do
+          tries = tries + 1
+          local spell = get_random_element(upgradable_spells)
+          local upgrades = spell:get_possible_upgrades(true)
+          if count(upgrades) > 0 then --upgrades may no longer be possible because we applied some already
+            local up_id = get_random_key(upgrades)
+            local up_level = upgrades[up_id]
+            spell:apply_upgrade(up_id,up_level)
+          end -- end #upgrades > 0
+        end --end spellpoints do
+      end --end upgradable_spells if
+    end --end self.spellpoints > 0 if
   end
   --Increase extra stats that are part of this creature
   if self.extra_stats then
@@ -2935,6 +2956,13 @@ end
 function Creature:has_tag(tag)
   if self.tags and in_table(tag,self.tags) then
     return true
+  end
+  if self.types and #self.types > 0 then
+    for _,ctype in pairs(self.types) do
+      if ctype.tags and in_table(tag,ctype.tags) then
+        return true
+      end
+    end
   end
   return false
 end

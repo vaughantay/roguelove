@@ -21,6 +21,7 @@ function Spell:init(spellID)
   self.flags = self.flags or {}
   self.applied_upgrades = {}
   self.level = self.level or 1
+  self.uses = 0
 	return self
 end
 
@@ -148,6 +149,7 @@ function Spell:use(target, caster, ignoreCooldowns, ignoreMP)
       end
       if self.sound and player:can_see_tile(caster.x,caster.y) then output:sound(self.sound) end
       if caster == player then update_stat('ability_used',self.name) end
+      self.uses = self.uses+1
       --Add cooldown
       if ((self.cooldown and self.cooldown > 0) or (caster ~= player and self.AIcooldown and self.AIcooldown > 0)) and not ignoreCooldowns and not self.toggled then --Don't add cooldown to a toggled spell, add it when the spell is finished
         caster.cooldowns[self.name] = (caster ~= player and self.AIcooldown or self.cooldown)
@@ -346,14 +348,15 @@ function Spell:get_stat(stat)
 end
 
 ---Gets the possible upgrades for a spell
+--@param use_requirements. If true, only return upgrades that you meet the requirements for, otherwise return all upgrades that aren't maxed out
 --@return Table. A table of the possible upgrades, with the format {upgradeID=upgradeLevel}
-function Spell:get_possible_upgrades()
+function Spell:get_possible_upgrades(use_requirements)
   local upgrades = {}
   if not self.possible_upgrades then return upgrades end
   for id,details in pairs(self.possible_upgrades) do
     local current_upgrade_level = self.applied_upgrades[id] or 0
     local max_upgrade_level = #details
-    if current_upgrade_level < max_upgrade_level and (self.possessor == player or not details.playerOnly) then
+    if current_upgrade_level < max_upgrade_level and (self.possessor == player or not details.playerOnly) and (not use_requirements or self:can_upgrade(id,current_upgrade_level+1)) then
       local level = current_upgrade_level + 1
       upgrades[id] = level
     end
