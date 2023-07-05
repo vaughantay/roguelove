@@ -593,7 +593,7 @@ end
 --@param permanent Boolean. Whether the enchantment has to qualify as a permanent enchantment (optional)
 --@return Table. A list of all enchantment IDs
 function Item:get_possible_enchantments(permanent)
-  if self.noEnchantments then return {} end
+  if not self.enchantable then return {} end
   local possibles = {}
   for eid,ench in pairs(enchantments) do
     if not ench.specialOnly and self:qualifies_for_enchantment(eid,permanent) then

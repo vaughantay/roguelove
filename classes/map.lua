@@ -812,6 +812,7 @@ function Map:get_creature_list(force,allowAll)
   local cTypes = nil
   local cFactions = nil
   local cTags = whichMap.creatureTags or whichMap.contentTags
+  local fTags = self:get_content_tags('forbidden')
   
   --Look at specific creatures first:
   if whichMap.creatures then
@@ -881,6 +882,15 @@ function Map:get_creature_list(force,allowAll)
         if done == true then break end
       end --end cFac for
     end --end faction if
+    --Check for forbidden tags:
+    if done and #fTags > 0 then
+      for _,fTag in pairs(fTags) do
+        if Creature.has_tag(creat,fTag) then
+          done = false
+          break
+        end --end has_tag if
+      end --end ftag for
+    end --end if #ftag
     if done then
       if not specialCreats then specialCreats = {} end
       specialCreats[#specialCreats+1] = cid
@@ -903,6 +913,7 @@ function Map:get_item_list(force,allowAll)
   local branch = currWorld.branches[self.branch]
   local specialItems = nil
   local iTags = whichMap.itemTags or whichMap.contentTags
+  local fTags = self:get_content_tags('forbidden')
   
   --Look at specific items first:
   if whichMap.items then
@@ -936,6 +947,15 @@ function Map:get_item_list(force,allowAll)
         if done == true then break end
       end --end cFac for
     end --end tags if
+    --Check for forbidden tags:
+    if done and #fTags > 0 then
+      for _,fTag in pairs(fTags) do
+        if Item.has_tag(item,fTag,true) then
+          done = false
+          break
+        end --end has_tag if
+      end --end ftag for
+    end --end if #ftag
     if done then
       if not specialItems then specialItems = {} end
       specialItems[#specialItems+1] = iid
@@ -957,6 +977,7 @@ function Map:get_store_list(force)
   local whichMap = mapTypes[self.mapType]
   local branch = currWorld.branches[self.branch]
   local sTags = whichMap.storeTags or whichMap.contentTags
+  local fTags = self:get_content_tags('forbidden')
   
   --Look at tags next:
   if sTags then
@@ -972,14 +993,23 @@ function Map:get_store_list(force)
     local done = false
     if not sTags then done = true end --If the map doesn't have a list of store tags set, any store are eligible to spawn there
     if sTags and not done then
-      for _,sTags in pairs(sTags) do
-        if store.tags and in_table(sTags,store.tags) then
+      for _,sTag in pairs(sTags) do
+        if store.tags and in_table(sTag,store.tags) then
           done = true
           break
         end
         if done == true then break end
       end --end cFac for
     end --end tags if
+    --Check for forbidden tags:
+    if done and store.tags and #fTags > 0 then
+      for _,fTag in pairs(fTags) do
+        if in_table(fTag,store.tags) then
+          done = false
+          break
+        end --end has_tag if
+      end --end ftag for
+    end --end if #ftag
     if done then
       if not store_list then store_list = {} end
       if not in_table(sid,store_list) then store_list[#store_list+1] = sid end
@@ -1001,6 +1031,7 @@ function Map:get_faction_list(force)
   local branch = currWorld.branches[self.branch]
   local faction_list = nil
   local fTags = whichMap.factionTags or whichMap.contentTags
+  local forbiddenTags = self:get_content_tags('forbidden')
   
   --Look at faction tags next:
   if fTags then
@@ -1025,6 +1056,15 @@ function Map:get_faction_list(force)
           if done == true then break end
         end --end cFac for
       end --end tags if
+      --Check for forbidden tags:
+    if done and store.tags and #forbiddenTags > 0 then
+      for _,forbTag in pairs(forbiddenTags) do
+        if in_table(forbTag,faction.tags) then
+          done = false
+          break
+        end --end has_tag if
+      end --end ftag for
+    end --end if #ftag
       if done then
         if not faction_list then faction_list = {} end
         faction_list[#faction_list+1] = fid
@@ -1315,7 +1355,7 @@ function Map:get_content_tags(tagType,noBranch)
   local tags = (self[tagLabel] or (tagLabel ~= "passedTags" and self.contentTags) or {})
   if not noBranch then
     local branch = currWorld.branches[self.branch]
-    local bTags = branch[tagLabel] or (tagLabel ~= "passedTags" and branch.contentTags)
+    local bTags = branch[tagLabel] or (tagLabel ~= "passedTags" and tagLabel ~= "forbiddenTags" and branch.contentTags)
     if bTags then
       tags = merge_tables(tags,bTags)
     end

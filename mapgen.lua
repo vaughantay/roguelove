@@ -76,6 +76,7 @@ function mapgen:generate_map(branchID, depth,force)
   build.factionTags = whichMap.factionTags or {}
   build.storeTags = whichMap.storeTags or {}
   build.passedTags = whichMap.passedTags or {}
+  build.forbiddenTags = whichMap.forbiddenTags or {}
   build.forbid_faction_events = whichMap.forbid_faction_events or branch.forbid_faction_events
   --Generate the map itself:
   local success = true

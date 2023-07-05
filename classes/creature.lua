@@ -143,19 +143,25 @@ function Creature:init(creatureType,level,noItems,noTweak,info,ignoreNewFunc)
   end
   --Weaknesses and resistances from your creature types:
   if self.types then
+    local baseWeak = copy_table(self.weaknesses or {})
+    local baseResist = copy_table(self.resistances or {})
     for _,ctype in ipairs(self.types) do
       local typ = creatureTypes[ctype]
       if typ then
         if typ.weaknesses then
           if not self.weaknesses then self.weaknesses = {} end
           for dtype,amt in pairs(typ.weaknesses) do
-            self.weaknesses[dtype] = (self.weaknesses[dtype] or 0) + amt
+            if not baseWeak[dtype] then
+              self.weaknesses[dtype] = math.max(self.weaknesses[dtype] or 0,amt)
+            end
           end
         end --end if weaknesses
         if typ.resistances then
           if not self.resistances then self.resistances = {} end
           for dtype,amt in pairs(typ.resistances) do
-            self.resistances[dtype] = (self.resistances[dtype] or 0) + amt
+            if not baseResist[dtype] then
+              self.resistances[dtype] = math.max(self.resistances[dtype] or 0,amt)
+            end
           end
         end --end if resistances
       end --end if type is defined
