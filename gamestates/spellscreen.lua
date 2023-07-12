@@ -291,7 +291,7 @@ function spellscreen:draw()
       end
       for i,stat in pairs(stats) do
         if stat.value ~= false and (stat.value ~= 0 or stat.hide_when_zero ~= true) and stat.hide ~= true then
-          statText = statText .. "\n" .. stat.name .. (type(stat.value) ~= "boolean" and ": " .. stat.value or "") .. (stat.description and " (" .. stat.description .. ")" or "")
+          statText = statText .. "\n" .. stat.name .. (type(stat.value) ~= "boolean" and ": " .. stat.value .. (stat.is_percentage and "%" or "") or "") .. (stat.description and " (" .. stat.description .. ")" or "")
         end
       end
     end
@@ -337,7 +337,7 @@ function spellscreen:draw()
             if type(amt) ~= "boolean" and type(amt) ~= "table" and stat ~= "point_cost" then
               local statName = (spell.stats and spell.stats[stat] and spell.stats[stat].name or ucfirst(stat))
               statName = string.gsub(statName,'_',' ')
-              statText = statText .. "\n\t" .. statName .. (type(amt) == "number" and (amt < 0 and " " or " +") or ": ") .. amt
+              statText = statText .. "\n\t" .. statName .. (type(amt) == "number" and (amt < 0 and " " or " +") or ": ") .. amt .. (spell.stats and spell.stats.is_percentage and "%" or "")
             end
           end --end stat for
           local costText = ""

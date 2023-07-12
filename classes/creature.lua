@@ -11,6 +11,7 @@ Creature = Class{}
 --@return Creature. The creature itself.
 function Creature:init(creatureType,level,noItems,noTweak,info,ignoreNewFunc)
   local data = possibleMonsters[creatureType]
+  noTweak = (noTweak == nil and data.noTweak or noTweak)
   if not data then
     output:out("Error: Tried to create non-existent creature " .. creatureType)
     print("Error: Tried to create non-existent creature " .. creatureType)
@@ -95,7 +96,7 @@ function Creature:init(creatureType,level,noItems,noTweak,info,ignoreNewFunc)
   self.types = self.types or {}
   self.speed = (noTweak and (self.speed or 100) or tweak(self.speed or 100))
   self.energy = self.speed
-  self.color = copy_table(self.color)
+  self.color = (self.noTweakColor and copy_table(self.color) or {r=tweak(self.color.r),g=tweak(self.color.g),b=tweak(self.color.b),a=self.color.a})
   self.color.a = self.color.a or 255
   if self.animated and self.spritesheet then
     self.image_frame=1
@@ -562,7 +563,7 @@ end
 --@return Boolean. Whether the condition was applied
 function Creature:give_condition(name,turns,applier,force)
   local ap = ap
-	if force or conditions[name]:apply(self,applier,turns) ~= false then
+	if conditions[name] and (force or conditions[name]:apply(self,applier,turns) ~= false) then
     self.conditions[name]=(type(ap) == "number" and ap or turns)
     return true
   end
@@ -992,7 +993,7 @@ function Creature:advance(skip_conditions)
     --Recharge ranged attack:
     if self.ranged_attack then
       local attack = rangedAttacks[self.ranged_attack]
-      if attack.max_charges and attack.active_recharge ~= true then
+      if attack and attack.max_charges and attack.active_recharge ~= true then
         attack:recharge(self)
       end --end max_charges if
     end --end ranged_attack if
@@ -2017,7 +2018,7 @@ end
 function Creature:is_faction_enemy(target)
   if not self.factions then return false end
   for _,f in pairs(self.factions) do
-    if currWorld.factions[f]:is_enemy(target) then return true end
+    if currWorld.factions[f] and currWorld.factions[f]:is_enemy(target) then return true end
   end
   return false
 end --end function
@@ -2028,7 +2029,7 @@ end --end function
 function Creature:is_faction_friend(target)
   if not self.factions then return false end
   for _,f in pairs(self.factions) do
-    if currWorld.factions[f]:is_friend(target) then return true end
+    if currWorld.factions[f] and currWorld.factions[f]:is_friend(target) then return true end
   end
   return false
 end --end function
@@ -2832,9 +2833,10 @@ end
 --@param spellName String. The name of the spell
 --@param noEquip Boolean. If true, ignore spells granted by equipment
 --@return Number or Boolean. Either the index of the spell in the caster's "spellbook," or false if they don't know it
+--@return Spell or nil. The spell itself
 function Creature:has_spell(spellID,noEquip)
   for index,spell in ipairs(self:get_spells(noEquip)) do
-    if spell.id == spellID then return index end
+    if spell.id == spellID then return index,spell end
   end
   return false
 end
