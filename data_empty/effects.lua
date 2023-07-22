@@ -452,6 +452,94 @@ function featuremaker:update(dt)
 end --end function
 effects['featuremaker'] = featuremaker
 
+local projectileemitter = {
+  name = "Projectile Emitter",
+  noDesc = true,
+  noDisp = true,
+  color={r=0,g=0,b=0,a=0},
+  symbol = "",
+  description = "Emits projectiles randomly in the area around itself.",
+  turns=5,
+  countdown=5,
+  range=3
+}
+function projectileemitter:new(info)
+  self.projectileID = info.projectileID
+  self.turns = info.turns or 5
+  self.range = info.range or 3
+  self.tweakCountdown = info.tweakCountdown
+  self.countdown = (self.tweakCountdown and tweak(self.turns) or self.turns)
+  self.feature = info.feature --the feature, if any, this projectileemitter is attached to. The emitter will delete itself if this feature stops existing
+  self.tiles = info.tiles --a table of x and y values for potential targets. Defaults to selecting them randomly
+  self.sequence = info.sequence --if true, the tiles listed will be targeted in order
+  self.current_tile = info.current_tile or 1 --if sequence is true, this is the number in the sequence to start with
+  self.reverse = info.reverse --if true, and sequence is also true, then at the end of the tile list
+  self.reversing = info.reversing or false --if true, and sequence is also true, go through the tile list backwards. If reverse is true, upon reaching the end of the list the direction will flip
+  self.shots = info.shots or 1
+end
+function projectileemitter:advance()
+  if self.feature and not currMap:tile_has_feature(self.feature.x,self.feature.y,self.feature.id) then
+    self:delete()
+    return
+  end
+  self.countdown = self.countdown - 1
+  if self.countdown < 1 then
+    local selectedTiles = {}
+    for i=1,self.shots,1 do
+      local tile={}
+      if self.tiles then
+        if self.sequence then --If tiles are set to display in a sequence
+          if not selectedTiles[self.current_tile] then tile = self.tiles[self.current_tile] end
+          selectedTiles[self.current_tile] = true
+          local tries = 0
+          while tries < 10 and selectedTiles[self.current_tile] do
+            self.current_tile = self.current_tile + (self.reversing and -1 or 1)
+            if self.current_tile > #self.tiles then --if we've reached the end
+              self.current_tile = (self.reverse and #self.tiles-1 or 1)
+              if self.reverse then self.reversing = not self.reversing end
+            elseif self.current_tile < 1 then --if we've reached the beginning, this will only happen if we're counting down (ie reversing is set to TRUE)
+              self.current_tile = (self.reverse and 2 or #self.tiles)
+              if self.reverse then self.reversing = not self.reversing end
+            end
+            tries = tries+1
+          end
+        else --pick a random tile
+          local tileK = get_random_key(self.tiles)
+          local tries = 0
+          while selectedTiles[tileK] and tries < 10 do
+            tileK = get_random_key(self.tiles)
+            tries = tries + 1
+          end
+          if tries >= 10 then
+            tile = false
+          else
+            tile = self.tiles[tileK]
+            selectedTiles[tileK] = true
+          end
+        end
+      else --no preset tiles, pick a random spot in range
+        local x,y = random(self.x-self.range,self.x+self.range),random(self.y-self.range,self.y+self.range)
+        local tries = 0
+        local dist = calc_distance(self.x,self.y,x,y)
+        while (dist > self.range or selectedTiles[x .. ',' .. y] == true) and tries < 10 do
+          local x,y = random(self.x-self.range,self.x+self.range),random(self.y-self.range,self.y+self.range)
+          dist = calc_distance(self.x,self.y,x,y)
+          tries = tries + 1
+        end
+        if tries >= 10 then
+          tile = false
+        else
+          tile.x,tile.y = x,y
+          selectedTiles[x .. ',' .. y] = true
+        end
+      end
+      if tile then Projectile(self.projectileID,(self.feature or self),tile) print('tile ' .. i,tile.x,tile.y) end
+    end
+    self.countdown = (self.tweakCountdown and tweak(self.turns) or self.turns)
+  end
+end
+effects['projectileemitter'] = projectileemitter
+
 local conditionanimation = {
   name = "Condition Animation",
   noDesc = true,

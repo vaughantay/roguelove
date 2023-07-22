@@ -930,8 +930,7 @@ end
 --@param room Room. A table with, at least, minX,maxX,minY, and maxY values
 --@param map Map. The map on which this room exists
 --@param decID String or table. Either the ID of a specific room decorator, or a table of room decorator IDs. Optional
---@param noContent Boolean. If true, don't generate items and creatures in the room, otherwise, do
-function mapgen:decorate_room(room,map,decID,noContent)
+function mapgen:decorate_room(room,map,decID)
   decID = decID or room.decorator
   local branch = currWorld.branches[map.branch]
   local decorators = decID or map.roomDecorators or branch.roomDecorators or nil
@@ -991,13 +990,14 @@ function mapgen:decorate_room(room,map,decID,noContent)
       branch.decorator_count[decID] = (branch.decorator_count[decID] or 0)+1
     end
     --Add content:
+    --[[(I've blocked this out because content is added in map:populate_items/creatures instead now. But if you want it to populate BEFORE that happens for some reason, uncomment and it shouldn't break anything)
     if not noContent then
       --Add creatures:
       mapgen:populate_creatures_in_room(room,map,decID)
       
       --Add items:
       mapgen:populate_items_in_room(room,map,decID)
-    end
+    end]]
   end
 end
 
@@ -1005,7 +1005,7 @@ end
 --@param room Room. A table with, at least, minX,maxX,minY, and maxY values
 --@param map Map. The map on which this room exists
 --@param decID String. The ID of a specific room decorator
-function mapgen:populate_creatures_in_room(room,map,decID)
+function mapgen:populate_creatures_in_room(room,map,decID) --TODO: Check current creature density before spawning more
   decID = decID or room.decorator
   local dec = roomDecorators[decID]
   local creature_list = {}
@@ -1125,7 +1125,7 @@ end
 --@param room Room. A table with, at least, minX,maxX,minY, and maxY values
 --@param map Map. The map on which this room exists
 --@param decID String. The ID of a specific room decorator
-function mapgen:populate_items_in_room(room,map,decID)
+function mapgen:populate_items_in_room(room,map,decID) --TODO: Check current item density before spawning more
   decID = decID or room.decorator
   local dec = roomDecorators[decID]
   local item_list = {}

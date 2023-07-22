@@ -85,7 +85,7 @@ function Item:get_info()
 		if self.accuracy then uses = uses .. "\nAccuracy Modifier: " .. self.accuracy .. "%" end
 		if self.critical then uses = uses .. "\nCritical Hit Chance: " .. self.critical .. "%" end
   end
-  if self.ranged_attack then
+  if self.ranged_attack and rangedAttacks[self.ranged_attack] then
     local attack = rangedAttacks[self.ranged_attack]
     uses = uses .. "\nRanged Attack: " .. attack:get_name() .. " (" .. attack:get_description() .. ")"
     uses = uses .. "\nRanged Accuracy: " .. (attack.accuracy + self:get_ranged_accuracy_modifier()) .. "%"
@@ -95,7 +95,7 @@ function Item:get_info()
   if self.kills then
     uses = uses .. "\nKills: " .. self.kills
   end
-  local projectile_id = self.usingAmmo or self.projectile_name or (self.ranged_attack and rangedAttacks[self.ranged_attack].projectile_name)
+  local projectile_id = self.usingAmmo or self.projectile_name or (self.ranged_attack and rangedAttacks[self.ranged_attack] and rangedAttacks[self.ranged_attack].projectile_name)
   if projectile_id and projectiles[projectile_id] then
     local projectile = projectiles[projectile_id]
     uses = uses .. "\n\nProjectile: " .. ucfirst(projectile.name) .. " (" .. projectile.description .. ")"

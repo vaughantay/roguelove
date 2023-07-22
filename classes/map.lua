@@ -1057,7 +1057,7 @@ function Map:get_faction_list(force)
         end --end cFac for
       end --end tags if
       --Check for forbidden tags:
-    if done and store.tags and #forbiddenTags > 0 then
+    if done and faction.tags and #forbiddenTags > 0 then
       for _,forbTag in pairs(forbiddenTags) do
         if in_table(forbTag,faction.tags) then
           done = false
@@ -1088,6 +1088,19 @@ function Map:populate_creatures(creatTotal,forceGeneric)
     local creatMax = math.ceil((self.width*self.height)*(density/100))
     creatTotal = creatMax-count(self.creatures)
   end
+  
+  --Populate based on rooms:
+  if self.rooms then
+    for roomID,room in pairs(self.rooms) do
+      local decID = room.decorator
+      if decID then
+        local dec = roomDecorators[decID]
+        if dec and not dec.noContent and not dec.noCreatures then
+          mapgen:populate_creatures_in_room(room,self,decID)
+        end --end dec nocontent if
+      end --end if room.decotrator
+    end --end room for
+  end --end if self.rooms
   
   --Do special code if the mapType has it:
   if mapType.populate_creatures and not forceGeneric then
@@ -1186,6 +1199,19 @@ function Map:populate_items(itemTotal,forceGeneric)
     local itemMax = math.ceil((self.width*self.height)*(density/100))
     itemTotal = tweak(itemMax)
   end
+  
+  --Populate based on rooms:
+  if self.rooms then
+    for roomID,room in pairs(self.rooms) do
+      local decID = room.decorator
+      if decID then
+        local dec = roomDecorators[decID]
+        if dec and not dec.noContent and not dec.noCreatures then
+          mapgen:populate_items_in_room(room,self,decID)
+        end --end dec nocontent if
+      end --end if room.decotrator
+    end --end room for
+  end --end if self.rooms
   
   --Do special code if the mapType has it:
   if mapType.populate_items and not forceGeneric then
