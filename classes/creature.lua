@@ -780,7 +780,7 @@ function Creature:get_bonus(bonusType)
       end
     end --end bonuses if
     --Get bonuses from equipment enchantment:
-    if whichSlot ~= "weapon" then --Don't apply any enchantment bonuses from weapons. We have to assume those bonuses are intended only for attacks done with the weapon
+    if equip.equipSlot ~= "weapon" then --Don't apply any enchantment bonuses from weapons. We have to assume those bonuses are intended only for attacks done with the weapon
       local b = equip:get_enchantment_bonus(bonusType)
       if b ~= 0 then
         bonus = bonus + b
@@ -788,7 +788,6 @@ function Creature:get_bonus(bonusType)
       end
     end
   end --end equipment for
-  if average and bcount > 0 then bonus = math.ceil(bonus/bcount) end
   self.bonus_cache[bonusType] = bonus
 	return bonus
 end

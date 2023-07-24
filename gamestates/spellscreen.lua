@@ -290,8 +290,9 @@ function spellscreen:draw()
         end
       end
       for i,stat in pairs(stats) do
-        if stat.value ~= false and (stat.value ~= 0 or stat.hide_when_zero ~= true) and stat.hide ~= true then
-          statText = statText .. "\n" .. stat.name .. (type(stat.value) ~= "boolean" and ": " .. stat.value .. (stat.is_percentage and "%" or "") or "") .. (stat.description and " (" .. stat.description .. ")" or "")
+        local value = spell:get_stat(stat.id)
+        if value ~= false and stat.hide ~= true and (value ~= 0 or stat.hide_when_zero ~= true) then
+          statText = statText .. "\n" .. stat.name .. (type(value) ~= "boolean" and ": " .. value .. (stat.is_percentage and "%" or "") or "") .. (stat.description and " (" .. stat.description .. ")" or "")
         end
       end
     end

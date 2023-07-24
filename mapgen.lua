@@ -1005,10 +1005,19 @@ end
 --@param room Room. A table with, at least, minX,maxX,minY, and maxY values
 --@param map Map. The map on which this room exists
 --@param decID String. The ID of a specific room decorator
-function mapgen:populate_creatures_in_room(room,map,decID) --TODO: Check current creature density before spawning more
+function mapgen:populate_creatures_in_room(room,map,decID)
   decID = decID or room.decorator
   local dec = roomDecorators[decID]
   local creature_list = {}
+  
+  if dec and (dec.creature_repopulate_limit or dec.repopulate_limit) then
+    local spawns = (room.creature_populated_count or 0)
+    if spawns > (dec.creature_repopulate_limit or dec.repopulate_limit) then
+      return
+    end
+    room.creature_populated_count = (room.creature_populated_count or 0) + 1
+  end
+  
   if not decID or not dec then
     creature_list = map:get_creature_list()
   else
@@ -1125,10 +1134,19 @@ end
 --@param room Room. A table with, at least, minX,maxX,minY, and maxY values
 --@param map Map. The map on which this room exists
 --@param decID String. The ID of a specific room decorator
-function mapgen:populate_items_in_room(room,map,decID) --TODO: Check current item density before spawning more
+function mapgen:populate_items_in_room(room,map,decID)
   decID = decID or room.decorator
   local dec = roomDecorators[decID]
   local item_list = {}
+  
+  if dec and (dec.item_repopulate_limit or dec.repopulate_limit) then
+    local spawns = (room.item_populated_count or 0)
+    if spawns > (dec.item_repopulate_limit or dec.repopulate_limit) then
+      return
+    end
+    room.item_populated_count = (room.item_populated_count or 0) + 1
+  end
+  
   if not decID or not dec then
     item_list = map:get_item_list()
   else

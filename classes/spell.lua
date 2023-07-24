@@ -335,15 +335,35 @@ end
 
 ---Get the stat for a spell
 --@param stat String. The stat to return
+--@param possessor Creature. The creature to look at when determine the spell's stats
 --@return Anything. Whatever the stat's value is (or false if not set)
-function Spell:get_stat(stat)
+function Spell:get_stat(stat,possessor)
+  possessor = possessor or self.possessor
   local value = false
   if self[stat] then 
     value = self[stat]
   elseif self.stats and self.stats[stat] then
     value = self.stats[stat].value
+  else
+    return false
   end
-  --TODO: Modifiers?
+  
+  --Modifiers from having other abilities:
+  if self.spell_bonuses and possessor and possessor.baseType == "creature" then
+    for spellID,bonuses in pairs(self.spell_bonuses) do
+      if bonuses[stat] and possessor:has_spell(spellID) then
+        value = value + bonuses[stat]
+      end
+    end --end spell for
+  end --end spell bonuses
+  
+  --Modifiers from get_bonus()
+  if self.stats[stat] and self.stats[stat].stat_type and possessor and possessor.baseType == "creature" then
+    value = value + possessor:get_bonus('spell_' .. self.stats[stat].stat_type)
+  end
+  
+  --TODO: Modifiers from attributes?
+  
   return value
 end
 

@@ -677,6 +677,9 @@ lifedrain = {
     turns={{max_active_turns=2},{max_active_turns=5},name="Max Active Turns"},
     deactivate_chance={{deactivate_on_damage_chance=-25},{deactivate_on_damage_chance=-25},name="Deactivation Chance"}
   },
+  spell_bonuses={
+    vampirism={damage=5}
+  },
   cast = function(self,target,caster)
     if target:is_type('undead') or target:is_type('construct') then
       if caster == player then output:out("You can't drain the life out of something that's not alive.") end
