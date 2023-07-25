@@ -139,7 +139,7 @@ end
 function Store:add_item(item,info)
   local makeNew = true
   info = info or {}
-  info.cost = info.cost or item:get_value()*(self.markup or 1)
+  info.cost = info.cost or math.max(math.ceil((item:get_value()*(self.sell_markup or 1))/(self.currency_item and (self.money_per_currency_item or 10) or 1)),1)
   local index = self:get_inventory_index(item)
   if index then
     if self.inventory[index].item.amount ~= -1 then --dont "increase" the amount if the amount is supposed to be infinite
@@ -192,7 +192,7 @@ function Store:get_buy_list(creat)
     elseif self.buys_tags and item.value then
       for _,tag in ipairs(self.buys_tags) do
         if item:has_tag(tag) or item.itemType == tag then
-          buying[#buying+1]={item=item,cost=item:get_value()}
+          buying[#buying+1]={item=item,cost=math.max(math.floor((item:get_value()*(self.buy_markup or 1))/(self.currency_item and (self.money_per_currency_item or 10) or 1)),1)}
           break
         end
       end
@@ -364,7 +364,7 @@ function Store:get_possible_random_items()
       end --end sells_Items for
       if not alreadySells then
         for _,tag in ipairs(self.sells_tags) do --check tags
-          if (item.tags and in_table(tag,item.tags) or item.itemType == tag) then
+          if item.value and not item.neverSpawn and ((item.tags and in_table(tag,item.tags)) or item.itemType == tag) then
             possibles[#possibles+1] = id
             break
           end --end tags if

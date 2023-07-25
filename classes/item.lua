@@ -99,7 +99,7 @@ function Item:get_info()
   if projectile_id and projectiles[projectile_id] then
     local projectile = projectiles[projectile_id]
     uses = uses .. "\n\nProjectile: " .. ucfirst(projectile.name) .. " (" .. projectile.description .. ")"
-    local damage = projectile.damage
+    local damage = projectile.damage or 0
     if projectile.extra_damage_per_level and self.level then
       damage = damage+(projectile.extra_damage_per_level*self.level)
     end

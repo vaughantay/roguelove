@@ -26,14 +26,15 @@ possibleFactions['lightchurch'] = {
   sells_items = {{item="holywater",favorCost=5,moneyCost=50,amount=10,restock_amount=2,restock_to=5}, {item="dagger",favorCost=250,amount=1,membersOnly=true,artifact=true},{item="dagger",favorCost=10,amount=5,enchantments={"blessed"}},{item="scroll",favorCost=1,moneyCost=5,amount=5,restock_amount=1}}, --pre-defined items that this faction sells to friendly players
   sells_tags = {"holy"}, --Tags for randomly-generated items that will be sold by the shop
   passedTags = {"holy"}, --These tags will be given priority for enchantments applied to items, and passed to items to do with what they will (ex: scrolls, to put preference on spells with these tags)
-  markup=2, --Randomly-selected items' values will be multiplied by this number to determine how much this shop will sell the items for
+  buy_markup=2, --Randomly-selected items' values will be multiplied by this number to determine how much this shop will sell the items for
   random_item_amount=5, --How many random items to fill the shop with
   random_item_restock_amount=1, --How many random items to restock each restock cycle
   random_item_restock_to=3, --Don't restock random items if the random item count is above this amount
   buys_items = {demonblood={favorCost=2}}, --pre-defined items that this faction buys in return for favor or money
   buys_tags = {"magic","holy","unholy","demon"}, --Tags for non-predefined items that will be bought by the faction
-  money_per_favor = 10, --When buying non-predefined items, divide the item's value by this number to get the favor paid (rounded down)
-  only_pays_favor = true, --When buying non-predefined items, don't pay money for them, just favor
+  money_per_favor = 10, --When buying/selling non-predefined items, divide the item's value by this number to get the favor paid (rounded down for buying, up for selling), defaults to 10
+  only_buys_favor = true, --When buying non-predefined items, don't pay money for them, just favor
+  only_sells_favor = true, --When selling non-predefined items, don't charge money for them, just favor
   teaches_spells = {{spell="demondamager",favorCost=100,moneyCost = 100}, {spell="summonangel",favorCost=100,membersOnly=true}}, --spells that this faction teaches to friendly players
   offers_services = {{service="healing_church"},{service="blessing",favorCost=10,moneyCost=10,membersOnly=true},{service="exorcism"}}, --services that this faction offers to friendly players
   offers_missions = {{mission='killdemons'},{mission='findtreasure',membersOnly=true}}, --missions that this faction offers to friendly players

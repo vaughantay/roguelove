@@ -32,8 +32,8 @@ playerClasses = {
   beefcake = {
     name="Beefcake",
     description="A super-tough warrior.",
-    items={{item="healthpotionminor"},{item="dagger",amount=100},{item="breastplate"},{item="helmet"},{item="weaponpoison"}}, --These items will be granted on game start
-    equipment={{item="greatsword"}}, --These items will be equipped on game start
+    items={{item="healthpotionminor",amount=3}}, --These items will be granted on game start
+    equipment={{item="greatsword"},{item="breastplate"},{item="helmet"}}, --These items will be equipped on game start
     learns_spells={}, --These spells will be automatically granted once a certain level is reached
     spell_purchases={}, --These spells will show up as options to learn (requiring spending points on them)
     spell_choices={}, --These spells will show up as options when you reach their level, and you can choose one of them

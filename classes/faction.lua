@@ -322,7 +322,10 @@ end
 function Faction:add_item(item,info)
   local makeNew = true
   info = info or {}
-  info.cost = info.cost or item:get_value()*(self.markup or 1)
+  if not info.moneyCost and not info.favorCost then
+    info.moneyCost = (not self.only_sells_favor and math.max(item:get_value()*(self.sell_markup or 1),1) or nil)
+    info.favorCost = math.max(math.ceil((item:get_value()*(self.buy_markup or 1))/(self.money_per_favor or 10)),1)
+  end
   local index = self:get_inventory_index(item)
   if index then
     self.inventory[index].item.amount = self.inventory[index].item.amount+item.amount
@@ -373,7 +376,7 @@ function Faction:get_buy_list(creat)
     elseif self.buys_tags and item.value then
       for _,tag in ipairs(self.buys_tags) do
         if item:has_tag(tag) or item.itemType == tag then
-          buying[#buying+1]={item=item,favorCost=math.floor(item:get_value()/(self.money_per_favor or 10)),moneyCost=(not self.only_pays_favor and item:get_value() or nil)}
+          buying[#buying+1]={item=item,favorCost=math.max(math.floor((item:get_value()*(self.buy_markup or 1))/(self.money_per_favor or 10)),1),moneyCost=(not self.only_buys_favor and math.max(item:get_value()*(self.buy_markup or 1),1) or nil)}
         end
       end
     end
@@ -443,7 +446,7 @@ function Faction:creature_buys_item(item,moneyCost,favorCost,amt,creature)
   else
     canBuy = (creature.money >= totalCost)
   end --end currency checks
-  if canBuy and creature.favor[self.id] >= totalFavorCost then
+  if canBuy and (creature.favor[self.id] or 0) >= totalFavorCost then
     if amt == totalAmt then
       if item.stacks or totalAmt == 1 then
         creature:give_item(item)
@@ -510,7 +513,7 @@ function Faction:get_possible_random_items()
   for id,item in pairs(possibleItems) do
       local done = false
       for _,tag in ipairs(self.sells_tags) do
-        if item.value and not item.neverSpawn and (in_table(tag,item) or item.itemType == tag) then
+        if item.value and not item.neverSpawn and ((item.tags and in_table(tag,item.tags)) or item.itemType == tag) then
           possibles[#possibles+1] = id
           done = true
           break

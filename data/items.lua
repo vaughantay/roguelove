@@ -12,7 +12,7 @@ local healthPotionMinor = {
   useVerb="drink",
   consumed=true,
   tags={'liquid','healing'},
-  value=5,
+  value=50,
   size=0
 }
 function healthPotionMinor:use(user)

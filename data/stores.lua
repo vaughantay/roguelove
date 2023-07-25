@@ -11,7 +11,6 @@ local healthstore = {
   offers_services = {{service="healing"}}, --Services that this store offers
   teaches_spells = {{spell="heal_other",cost = 100}}, --spells that this store teaches
   tags={"organized"}, --Tags to be used to determine if a store can spawn in a map
-  currency_item = nil, --The item to use as currency, instead of money
   multiple_locations=true --If this is set to true, this store can spawn in multiple locations, each with separate inventory. If not set, the store can only spawn once per game
 }
 function healthstore:generate_items()
@@ -31,7 +30,8 @@ local weaponstore = {
   map_description = "A ramshackle booth, filled with dangerous implements.", --Description that will show on the Feature tile used to enter the store
   sells_tags = {"weapon"}, --Tags for items that will be sold by the shop
   buys_tags = {"weapon"},
-  markup=2, --Randomly-selected items' values will be multiplied by this number to determine how much this shop will sell the items for
+  sell_markup=2, --Randomly-selected items' values will be multiplied by this number to determine how much this shop will sell the items for
+  buy_markup=0.5, --Items' values will be multiplied by this to determine how much the store will pay for them
   random_item_amount=10, --How many random items to fill the shop with
   random_item_restock_amount=1, --How many random items to restock each restock cycle
   random_item_restock_to=5, --Only restock random items to this amount
@@ -48,7 +48,7 @@ local alchemystore = {
   sells_items = {{item="alcahest",cost=10},{item="bloodextractor",cost=250,amount=1}},
   sells_tags = {"ingredient","alchemy"}, --Tags for items that will be sold by the shop
   buys_tags = {"ingredient","alchemy","magic","bodypart"},
-  markup=2, --Randomly-selected items' values will be multiplied by this number to determine how much this shop will sell the items for
+  sell_markup=2, --Randomly-selected items' values will be multiplied by this number to determine how much this shop will sell the items for
   random_item_amount=10, --How many random items to fill the shop with
   random_item_restock_amount=5,
   random_item_restock_to=5 --Only restock random items to this amount
