@@ -62,6 +62,13 @@ blast = {
     stun={{stun_chance=10,min_stun=2,max_stun=3},{stun_chance=15,min_stun=1,max_stun=2},name="Stunning"},
     amnesia={{amnesia=true},name="Amnesia",description="Causes the target to forget they ever saw you.",playerOnly=true}, --Value set to true will just display the name and description
   },
+  stat_bonuses_from_stats={
+    max_damage={magic={[10]=5}}
+  },
+  stat_bonuses_per_x_stats={
+    min_damage={magic={[5]=1}},
+    max_damage={magic={[5]=1}}
+  },
 	cast = function(self,target,caster)
     local min,max = self:get_stat('min_damage'),self:get_stat('max_damage')
     local confusion = (self:get_stat('confusion_chance') or 0)
@@ -677,8 +684,8 @@ lifedrain = {
     turns={{max_active_turns=2},{max_active_turns=5},name="Max Active Turns"},
     deactivate_chance={{deactivate_on_damage_chance=-25},{deactivate_on_damage_chance=-25},name="Deactivation Chance"}
   },
-  spell_bonuses={
-    vampirism={damage=5}
+  stat_bonuses_from_spells={
+    damage={vampirism=5}
   },
   cast = function(self,target,caster)
     if target:is_type('undead') or target:is_type('construct') then

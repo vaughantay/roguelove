@@ -265,7 +265,7 @@ function Item:get_damage(target,wielder)
   local bonus = .01*self:get_enchantment_bonus('damage_percent')
   dmg = dmg * math.ceil(bonus > 0 and bonus or 1)
   
-  return dmg + self:get_enchantment_bonus('damage') + (wielder:get_stat('strength'))
+  return dmg + self:get_enchantment_bonus('damage') + (wielder:get_stat('strength')) + wielder:get_bonus('damage')
 end
 
 ---Find out how much extra damage an item will deal due to enchantments

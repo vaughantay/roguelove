@@ -349,10 +349,13 @@ function Spell:get_stat(stat,possessor)
   end
   
   --Modifiers from having other abilities:
-  if self.spell_bonuses and possessor and possessor.baseType == "creature" then
-    for spellID,bonuses in pairs(self.spell_bonuses) do
-      if bonuses[stat] and possessor:has_spell(spellID) then
-        value = value + bonuses[stat]
+  local spellBonuses = self.stat_bonuses_from_spells and self.stat_bonuses_from_spells[stat]
+  if spellBonuses and possessor and possessor.baseType == "creature" then
+    if spellBonuses then
+      for spellID,amt in pairs(spellBonuses) do
+        if possessor:has_spell(spellID) then
+          value = value + amt
+        end
       end
     end --end spell for
   end --end spell bonuses
@@ -362,8 +365,30 @@ function Spell:get_stat(stat,possessor)
     value = value + possessor:get_bonus('spell_' .. self.stats[stat].stat_type)
   end
   
-  --TODO: Modifiers from attributes?
+  --Modifiers from creature stats
+  local statBonuses = self.stat_bonuses_from_creature_stats and self.stat_bonuses_from_creature_stats[stat]
+  if statBonuses and possessor and possessor.baseType == "creature" then
+    for stat,bonuses in pairs(statBonuses) do
+      local possessorStat = possessor:get_stat(stat)
+      for statValue,bonus in pairs(bonuses) do
+        if possessorStat >= statValue then
+          value = value + bonus
+        end
+      end --end for statValue
+    end --end statBonus for
+  end --end if statBonuses
   
+  --Modifiers from "every X" creature stats
+  local perStatBonuses = self.stat_bonuses_per_x_creature_stats and self.stat_bonuses_per_x_creature_stats[stat]
+  if perStatBonuses and possessor and possessor.baseType == "creature" then
+    for stat,bonuses in pairs(perStatBonuses) do
+      local possessorStat = possessor:get_stat(stat)
+      for interval,bonus in pairs(bonuses) do
+        local intervalCount = math.floor(possessorStat / interval)
+        value = value + bonus*intervalCount
+      end --end for statValue
+    end --end statBonus for
+  end --end if statBonuses
   return value
 end
 
@@ -424,6 +449,11 @@ function Spell:apply_upgrade(upgradeID,force)
         self[stat] = (type(value) == "number" and self[stat] + value or value)
       elseif self.stats and self.stats[stat] then
         self.stats[stat].value = (type(value) == "number" and self.stats[stat].value + value or value)
+        local bonusName = self.stats[stat].apply_to_bonus
+        if bonusName then
+          self.bonuses = self.bonuses or {}
+          self.bonuses[bonusName] = self.stats[stat].value
+        end
       end
     end
     self.applied_upgrades[upgradeID] = level
