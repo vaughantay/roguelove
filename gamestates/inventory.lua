@@ -120,21 +120,21 @@ function inventory:sort()
     local slot = self.entity.equipment[s]
     equipSlotWidth = math.max(equipSlotWidth,fonts.textFont:getWidth((slot.name or ucfirst(s)) .. ":"))
     if slot then
-      local usedhands = 0
+      local usedSlots = 0
       for id,equip in ipairs(slot) do
-        local hands = 1
-        if s == "weapon" or s == "offhand" and equip.hands and equip.hands > 1 then
-          hands = equip.hands
-          usedhands = usedhands+equip.hands
+        local slots = 1
+        local equipSize = (equip.equipSize or 1)
+        if equipSize > 0 then
+          slots = equipSize
+          usedSlots = usedSlots+equipSize
         end
-        local maxY = equipPrintY+(fontSize*hands)
+        local maxY = equipPrintY+(lineSize*slots)
         self.equipment[#self.equipment+1] = {item=equip,y=equipPrintY,slotName=(slot.name or ucfirst(s)),slotID=s,maxY=maxY}
         equipPrintY = maxY
       end --end equip for
-      local usedslots = ((s == "weapon" or s == "offhand") and math.max(usedhands,#slot) or #slot)
-      if slot.slots > usedslots then
-        for i=(usedslots+1),slot.slots,1 do
-          local maxY = equipPrintY+fontSize
+      if slot.slots > usedSlots then
+        for i=(usedSlots+1),slot.slots,1 do
+          local maxY = equipPrintY+lineSize
           self.equipment[#self.equipment+1] = {item=false,y=equipPrintY,slotName=(slot.name or ucfirst(s)),text="-",empty=true,slotID=s,maxY=maxY}
           equipPrintY=maxY
         end --end empty slot for
@@ -148,11 +148,11 @@ function inventory:sort()
       equipSlotWidth = math.max(equipSlotWidth,fonts.textFont:getWidth((self.entity.equipment[slot].name or ucfirst(slot)) .. ":"))
       for id,equip in ipairs(eq) do
         self.equipment[#self.equipment+1] = {item=equip,y=equipPrintY,slotName=(self.entity.equipment[slot].name or ucfirst(slot)),slotID=slot}
-        equipPrintY=equipPrintY+fontSize
+        equipPrintY=equipPrintY+lineSize
       end --end equip for
       for i=#slot,slot.slots,1 do
         self.equipment[#self.equipment+1] = {item=false,y=equipPrintY,slotName=(self.entity.equipment[slot].name or ucfirst(slot)),text="-",empty=true,slotID=slot}
-        equipPrintY=equipPrintY+fontSize
+        equipPrintY=equipPrintY+lineSize
       end
     end --end slot for
   end --end if not in_table slot,equiporder
@@ -380,7 +380,7 @@ function inventory:draw()
     if equip.item then output.display_entity(equip.item,equipPrintX+slotWidth,equip.y-4,true,true) end
     if equip.empty then setColor(150,150,150,255) end
     love.graphics.print((equip.item and equip.item:get_name(true,nil,true) or equip.text or ""),equipPrintX+slotWidth+tileSize,equip.y+2)
-    local slots = (equip.item and equip.item.hands and math.max(1,equip.item.hands) or 1)
+    local slots = (equip.item and equip.item.equipSize and math.max(1,equip.item.equipSize) or 1)
     if slots > 1 then
       for i=2,slots,1 do
         setColor(150,150,150,255)

@@ -637,14 +637,14 @@ function game:print_target_sidebar()
     love.graphics.printf("Health: " .. math.ceil(hp) .. "/" .. creat:get_mhp(),printX+xPad,printY+fontPadding+2+yBonus,335,"center")
     
     --Melee attack hit chance:
-    local weapons = player:get_equipped_in_slot('weapon')
+    local weapons = player:get_melee_attacks()
     local weapCount = count(weapons)
     printY = printY+fontPadding*3
     if weapCount == 0 then
       love.graphics.print("Hit chance: " .. calc_hit_chance(player,creat) .. "%",printX+xPad,printY)
       printY = printY+fontPadding
     elseif weapCount == 1 then
-      love.graphics.print(weapons[1]:get_name(true) .. " hit chance: " .. calc_hit_chance(player,creat,player.equipment.weapon[1]) .. "%",printX+xPad,printY)
+      love.graphics.print(weapons[1]:get_name(true) .. " hit chance: " .. calc_hit_chance(player,creat,weapons[1]) .. "%",printX+xPad,printY)
       printY = printY+fontPadding
     else
       for _,weap in pairs(weapons) do

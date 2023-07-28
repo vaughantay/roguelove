@@ -432,7 +432,7 @@ firebrand = {
   tags={'fire','buff','magic'},
   toggled=true,
 	cast = function (self,target,caster)
-    local weapons = caster:get_equipped_in_slot('weapon')
+    local weapons = caster:get_equipped_in_slot('wielded')
     if #weapons > 0 then
       local done = false
       for _,weapon in pairs(weapons) do

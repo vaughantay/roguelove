@@ -68,7 +68,6 @@ function Creature:init(creatureType,level,noItems,noTweak,info,ignoreNewFunc)
   self.xp = 0
   self.favor = self.favor or {}
   self.factions = self.factions or {}
-  self.hands = self.hands or (self.noEquip and 0 or 2)
   if self.equipment_slots then
     local slotcount = 1
     for slot,count in pairs(self.equipment_slots) do
@@ -80,11 +79,6 @@ function Creature:init(creatureType,level,noItems,noTweak,info,ignoreNewFunc)
       self.equipment[slot] = {slots=count}
     end
     self.equipment.list = {}
-  end
-  if not self.noEquip and self.hands and self.hands > 0 then
-    self.equipment.weapon = self.equipment.weapon or {slots=self.hands}
-    self.equipment.offhand = self.equipment.offhand or {slots=self.hands}
-    self.equipment.ammo = self.equipment.ammo or {slots=1}
   end
   if data.spells then
     for _,spellID in ipairs(data.spells) do
@@ -213,22 +207,10 @@ function Creature:generate_inventory(source)
     end --end loopthrough possible_inventory
   end --end if possible inventory
   --Equipment:
-  if source.possible_weapon then
-    local weapID = source.possible_weapon[random(#self.possible_weapon)]
-    local hands = self.hands
-    if weapID then
-      local weap1 = self:give_item(Item(weapID))
-      self:equip(weap1)
-      hands = hands - weap1.hands
-    end
-    if self.dual_wielding and hands > 1 then
-      
-    end
-  end
   for slot,info in pairs(self.equipment) do
     for i=1,(info.slots or 1) do
-      if self['possible_' .. slot] and slot ~= "weapon" then
-        local itemID = source['possible_' .. slot][(random(#self['possible_' .. slot]))]
+      if self['possible_' .. slot] then
+        local itemID = source['possible_' .. slot][(random(#source['possible_' .. slot]))]
         if itemID then
           local item = self:give_item(Item(itemID))
           self:equip(item)
@@ -241,7 +223,6 @@ function Creature:generate_inventory(source)
   if source == self then
     self.possible_inventory = nil
     self.possible_death_items = nil
-    self.possible_weapon = nil
     for slot,_ in pairs(self.equipment) do
       self['possible_' .. slot] = nil
     end
@@ -695,9 +676,10 @@ function Creature:get_description(noInfo)
           else desc = desc .. "\nTarget: " .. self.target.x .. ", " .. self.target.y end
         end --end if self.target
         if self.equipment then
-          if self.equipment.weapon then
-            desc = desc .. "\nWeapons : "
-            for _,item in ipairs(self.equipment.weapon) do
+          local attacks = self:get_melee_attacks()
+          if #attacks > 0 then
+            desc = desc .. "\nWeapons: "
+            for _,item in ipairs(attacks) do
               desc = desc .. item:get_name(true) .. ", "
             end
           end
@@ -780,7 +762,7 @@ function Creature:get_bonus(bonusType)
       end
     end --end bonuses if
     --Get bonuses from equipment enchantment:
-    if equip.equipSlot ~= "weapon" then --Don't apply any enchantment bonuses from weapons. We have to assume those bonuses are intended only for attacks done with the weapon
+    if equip.itemType ~= "weapon" then --Don't apply any enchantment bonuses from weapons. We have to assume those bonuses are intended only for attacks done with the weapon
       local b = equip:get_enchantment_bonus(bonusType)
       if b ~= 0 then
         bonus = bonus + b
@@ -844,7 +826,7 @@ function Creature:attack(target,forceHit,ignore_callbacks)
     end
   end
   
-  local weapons = self:get_equipped_in_slot('weapon')
+  local weapons = self:get_melee_attacks()
   if #weapons > 0 then
     local totaldmg = 0
     for _,weapon in pairs(weapons) do
@@ -1664,8 +1646,9 @@ end
 --@return String. Text describing the equipping.
 function Creature:equip(item)
   local slot = item.equipSlot
+  local equipDef = self.equipment[slot]
   local equipText = ""
-  if not slot then return false,"You can't equip this type of item." end
+  if not slot or not equipDef then return false,"You can't equip this type of item." end
   
   --Check for level/stat requirements, etc
   local canEquip,noText = self:can_use_item(item,"equip")
@@ -1673,52 +1656,33 @@ function Creature:equip(item)
     return false,noText
   end
   
-  --For items that require "hands" to equip (presumably weapons and offhand items only)
-  if item.hands then
-    --First, check to make sure we even have the correct number of hands
-    if item.hands > (self.hands or 0) then
-      return false,"You don't have enough hands to equip " .. item:get_name() .. "."
+  --Check to see if an item's equipped size makes sense here
+  local size = item.equipSize or 1
+  local slots = equipDef.slots or 0
+  if size > 0 then
+    --First, check to make sure we even have the correct number of slots available
+    if size > slots then
+      return false, ucfirst(item:get_name() .. " is too big for you to equip.")
     end
-    --Add up all the hands currently being used:
-    local handsUsed = 0
-    for i=1,self.equipment.weapon.slots,1 do
-      local weap = self.equipment.weapon[i]
-      if weap then
-        handsUsed = handsUsed + weap.hands
+    --Add up all the slots currently being used:
+    local slotsUsed = 0
+    for i=1,slots,1 do
+      local eqItem = self.equipment[slot][i]
+      if eqItem then
+        slotsUsed = slotsUsed + (eqItem.equipSize or 1)
       end
     end
-    for i=1,self.equipment.offhand.slots,1 do
-      local off = self.equipment.offhand[i]
-      if off then
-        handsUsed = handsUsed + off.hands
-      end
-    end
-    if handsUsed + item.hands > self.hands then
+    if slotsUsed + size > slots then
       local didIt = false
       --Figure out what items to unequip
       local initialslots = 0
       local unequips = {}
-      --Start with the type you're trying to equip first (so you'll unequip weapons first if equipping a weapon, or offhands if equipping an offhand)
-      for i=1,self.equipment[slot].slots,1 do
-        if self.equipment[slot][i] and self.equipment[slot][i].hands then
-          initialslots = initialslots + self.equipment[slot][i].hands
+      for i=1,slots,1 do
+        if equipDef[i] then
+          initialslots = initialslots + (equipDef[i].equipSize or 1)
         end
-        unequips[#unequips+1] = self.equipment[slot][i]
-        if initialslots >= item.hands then
-          for i=1,#unequips,1 do
-            self:unequip(unequips[i])
-          end
-          return self:equip(item)
-        end
-      end --end equipment slot for
-      
-      local slot2 = (slot == "weapon" and "offhand" or "weapon")
-      for i=1,self.equipment[slot2].slots,1 do
-        if self.equipment[slot2][i] and self.equipment[slot2][i].hands then
-          initialslots = initialslots + self.equipment[slot2][i].hands
-        end
-        unequips[#unequips+1] = self.equipment[slot2][i]
-        if initialslots >= item.hands then
+        unequips[#unequips+1] = equipDef[i]
+        if initialslots >= size then
           for i=1,#unequips,1 do
             self:unequip(unequips[i])
           end
@@ -1800,7 +1764,7 @@ end
 
 ---Determine if a creature can use this item or not
 --@param item Item. The item to check
---@param verb Text. The verb the item uses. Or "equip" if it's equipment we're looking at, which also makes it check hands
+--@param verb Text. The verb the item uses. Or "equip" if it's equipment we're looking at
 --@return Boolean. Whether or not it's equippable
 --@return Text. Why you can't equip it, if applicable. Nil if it is equipable.
 function Creature:can_use_item(item,verb)
@@ -2931,18 +2895,28 @@ function Creature:get_spell_slots()
   return slots+math.floor(magic/5)
 end
 
+---Get all items equipped that can be used for melee attacks
+--@return Table. A list of items that can be used for melee attacks
+function Creature:get_melee_attacks()
+  local melee = {}
+  for _, item in pairs(self.equipment_list) do
+    if item.melee_attack then
+      melee[#melee+1] = item
+    end --end bonuses if
+  end --end equipment for
+  return melee
+end
+
 ---Get all ranged attacks the creature has, including those granted by equipment
 --@return Table. A list of the creature's ranged attacks
 function Creature:get_ranged_attacks()
   local ranged = {}
   if self.ranged_attack then ranged[#ranged+1] = {attack=self.ranged_attack,charges=player.ranged_charges} end
-  if self.equipment.weapon then
-    for _, equip in ipairs(self.equipment.weapon) do
-      if equip.ranged_attack then
-        ranged[#ranged+1] = {attack=equip.ranged_attack,item=equip,charges=equip.charges}
-      end --end bonuses if
-    end --end equipment for
-  end
+  for _, equip in pairs(self.equipment_list) do
+    if equip.ranged_attack then
+      ranged[#ranged+1] = {attack=equip.ranged_attack,item=equip,charges=equip.charges}
+    end --end bonuses if
+  end --end equipment for
   return ranged
 end
 

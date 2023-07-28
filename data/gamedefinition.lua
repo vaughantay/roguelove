@@ -30,9 +30,9 @@ gamesettings = {
   tilesize=32,
   default_spell_slots=1, --if not defined, defaults to infinite. See Creature:get_spell_slots() to customize formula
   default_inventory_space=20, --if not defined, defaults to infinite. See Creature:get_inventory_space() to customize formula
-  default_equipment_slots={head=1,torso=1,hands=1,legs=1,feet=1,accessory=3},
+  default_equipment_slots={wielded=2,head=1,torso=1,hands=1,legs=1,feet=1,accessory=3,ammo=1},
   default_inventory_order={'usable','throwable','weapon','offhand','armorhead','armortorso','armorhands','armorlegs','armorfeet','accessory','ammo','other'},
-  default_equipment_order={'weapon','offhand','head','torso','hands','legs','feet','accessory','ammo'},
+  default_equipment_order={'wielded','head','torso','hands','legs','feet','accessory','ammo'},
   inventory_filters={{filter='usable'},{filter='throwable'},{filter='equippable',itemType="weapon",label="Weapons"},{filter='equippable',itemType="weapon",subType="ranged",label="Ranged Weapons"},{filter='equippable',label="All Equipment"},{itemType="other",label="Miscellaneous"}},
   default_starting_missions={ascend=0},
   stats_per_level={skillPoints=5,spellPoints=1,max_hp=5},
