@@ -762,7 +762,7 @@ function Creature:get_bonus(bonusType)
       end
     end --end bonuses if
     --Get bonuses from equipment enchantment:
-    if equip.itemType ~= "weapon" then --Don't apply any enchantment bonuses from weapons. We have to assume those bonuses are intended only for attacks done with the weapon
+    if equip.melee_attack then --Don't apply any enchantment bonuses from weapons. We have to assume those bonuses are intended only for attacks done with the weapon
       local b = equip:get_enchantment_bonus(bonusType)
       if b ~= 0 then
         bonus = bonus + b

@@ -44,6 +44,7 @@ function Projectile:init(projectile_type,source,target,info)
   end
   self.color = copy_table(self.color)
   self:refresh_path()
+  self.first_turn=true
 	return self
 end
 
@@ -69,11 +70,10 @@ end
 
 ---This code runs every turn a projectile is active. Called by the advance_turn() code
 function Projectile:advance()
-  if (self.path == nil) then --no path?
-    self:refresh_path()
-  else --has a path
-    --Refresh the path in case the target moved
-    self:refresh_path()
+  self:refresh_path() --refresh path in case your target moved
+  if self.first_turn then
+    self.first_turn = false
+  else
     --Travel along the whole path instantly
     if not self.neverInstant then
       for id, path in ipairs(self.path) do
