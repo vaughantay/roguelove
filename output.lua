@@ -631,7 +631,7 @@ function output:closebutton(x,y,hover,useScaling,imageBase)
     love.graphics.rectangle('fill',x,y,fontSize+2,fontSize+2)
     setColor(255,255,255,255)
     love.graphics.rectangle('line',x,y,fontSize+2,fontSize+2)
-    love.graphics.printf("X",x,y,fontSize,"center")
+    love.graphics.printf("<",x,y,fontSize,"center")
     return {minX=x,maxX=(x+fontSize+2),minY=y,maxY=(y+fontSize+2),hover=hover}
   end
 end

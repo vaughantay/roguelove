@@ -338,7 +338,7 @@ function spellscreen:draw()
             if type(amt) ~= "boolean" and type(amt) ~= "table" and stat ~= "point_cost" then
               local statName = (spell.stats and spell.stats[stat] and spell.stats[stat].name or ucfirst(stat))
               statName = string.gsub(statName,'_',' ')
-              statText = statText .. "\n\t" .. statName .. (type(amt) == "number" and (amt < 0 and " " or " +") or ": ") .. amt .. (spell.stats and spell.stats.is_percentage and "%" or "")
+              statText = statText .. "\n\t" .. statName .. (type(amt) == "number" and (amt < 0 and " " or " +") or ": ") .. amt .. (spell.stats and spell.stats[stat] and spell.stats[stat].is_percentage and "%" or "")
             end
           end --end stat for
           local costText = ""
