@@ -291,7 +291,10 @@ function output:load_ui()
   images.largebutton = {image=love.graphics.newImage("images/ui/button.png"),hover=love.graphics.newImage("images/ui/buttonlarge.png"),l=love.graphics.newQuad(0,0,64,64,256,64),middle=love.graphics.newQuad(64,0,64,64,256,64),r=love.graphics.newQuad(128,0,64,64,256,64),small=love.graphics.newQuad(192,0,64,64,256,64)}
   images.closebutton = {image=love.graphics.newImage("images/ui/closebutton.png"),hover=love.graphics.newImage("images/ui/closebuttonhover.png")}
   images.menubutton = {image=love.graphics.newImage("images/ui/menubutton.png"),hover=love.graphics.newImage("images/ui/menubuttonhover.png")}
-  images.cursors = {main = love.mouse.newCursor("images/ui/cursor.png",0,0)}
+
+  if love._os ~= "NX" then
+    images.cursors = {main = love.mouse.newCursor("images/ui/cursor.png",0,0)}
+  end
   --love.mouse.setCursor(images.cursors.main)
 end
 
@@ -321,7 +324,9 @@ function output:load_all_images()
     end --end fileName for
   end
   if images['uicursor'] and not prefs['noImages'] then
-    love.mouse.setCursor(love.mouse.newCursor("images/ui/cursor.png"))
+    if love._os ~= "NX" then
+      love.mouse.setCursor(love.mouse.newCursor("images/ui/cursor.png"))
+    end
   end
 end
 
