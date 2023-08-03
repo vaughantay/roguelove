@@ -120,20 +120,49 @@ function love.textinput(text)
   Gamestate.textinput(text)
 end
 
-function love.mousepressed(x,y,button)
-  Gamestate.mousepressed(x,y,button)
-end
+if love._os == "NX" then
+  local tx, ty = 1, 1
 
-function love.mousemoved(x,y,dx,dy,touch)
-  Gamestate.mousemoved(x,y,dx,dy,touch)
-end
+  function love.touchpressed(id, x, y)
+    tx, ty = x, y
+    --Gamestate.mousepressed(x, y, 1)
+  end
 
-function love.mousereleased(x,y,button)
-  Gamestate.mousereleased(x,y,button)
-end
+  function love.touchmoved(id, x, y, dx, dy)
+    Gamestate.mousemoved(x, y, dx, dy, true)
+  end
 
-function love.wheelmoved(x,y)
-  Gamestate.wheelmoved(x,y)
+  function love.touchreleased(id, x, y)
+    Gamestate.mousereleased(x, y, 1, true)
+  end
+  
+  function love.mouse.getPosition()
+    return tx, ty
+  end
+
+  function love.mouse.getX()
+    return tx
+  end
+
+  function love.mouse.getY()
+    return ty
+  end  
+else
+  function love.mousepressed(x,y,button)
+    Gamestate.mousepressed(x,y,button)
+  end
+  
+  function love.mousemoved(x,y,dx,dy,touch)
+    Gamestate.mousemoved(x,y,dx,dy,touch)
+  end
+  
+  function love.mousereleased(x,y,button)
+    Gamestate.mousereleased(x,y,button)
+  end
+  
+  function love.wheelmoved(x,y)
+    Gamestate.wheelmoved(x,y)
+  end  
 end
 
 function love.gamepadaxis(joystick,axis,value)
