@@ -72,6 +72,6 @@ Highlights:
 
 [Trello board I'm using to keep track of tasks](https://trello.com/b/ByyPFT00/roguelove)
 
-Incomplete documentation of the code is available in the doc/ directory.
+[Incomplete documentation of the code](https://vaughantay.github.io/roguelove/)
 
 Available under the MIT license if you want to use any of the code. If you do use it, please let me know! I'd be interested to see what you make with it.
