@@ -436,11 +436,11 @@ function settings:keypressed(key,scancode,isRepeat,noParse)
           self:make_controls()
         elseif setting.id == "asciiSizeUp" then
           prefs['asciiSize'] = prefs['asciiSize'] + 1
-          fonts.mapFont = love.graphics.newFont("VeraMono.ttf",prefs['asciiSize'])
+          fonts.mapFont = love.graphics.newFont("assets/fonts/VeraMono.ttf",prefs['asciiSize'])
         elseif setting.id == "asciiSizeDown" then
           prefs['asciiSize'] = prefs['asciiSize'] - 1
           if prefs['asciiSize'] < 8 then prefs['asciiSize'] = 8 end
-          fonts.mapFont = love.graphics.newFont("VeraMono.ttf",prefs['asciiSize'])
+          fonts.mapFont = love.graphics.newFont("assets/fonts/VeraMono.ttf",prefs['asciiSize'])
         elseif setting.id == "fontSizeUp" then
           prefs['fontSize'] = prefs['fontSize'] + 1
           fonts.textFont = love.graphics.newFont(prefs['fontSize'])

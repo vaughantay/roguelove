@@ -105,8 +105,8 @@ function modloader:draw()
       end
       local image = mod.image
       if image == nil then
-        if love.filesystem.getInfo("mods/" .. mod.id .. "/images/banner.png") then
-          mod.image = love.graphics.newImage("mods/" .. mod.id .. "/images/banner.png")
+        if love.filesystem.getInfo("mods/" .. mod.id .. "/assets/images/banner.png") then
+          mod.image = love.graphics.newImage("mods/" .. mod.id .. "/assets/images/banner.png")
           image = mod.image
         else
           image = nil

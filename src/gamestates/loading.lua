@@ -31,24 +31,24 @@ end
 function loading:load_all_images()
   local folders = love.filesystem.getDirectoryItems('images')
   for _,folderName in pairs(folders) do
-    if love.filesystem.isDirectory('images/' .. folderName) then
-      local files = love.filesystem.getDirectoryItems('images/' .. folderName)
+    if love.filesystem.isDirectory('assets/images/' .. folderName) then
+      local files = love.filesystem.getDirectoryItems('assets/images/' .. folderName)
       for _,fileName in pairs(files) do
         local extension = string.sub(fileName, -4)
         if extension == ".png" then
           fileName = string.sub(fileName,1,-5)
-          loader.newImage(images, folderName .. fileName,"images/" .. folderName .. "/" .. fileName .. ".png")
+          loader.newImage(images, folderName .. fileName,"assets/images/" .. folderName .. "/" .. fileName .. ".png")
         end --end extension check
       end --end fileName for
     end --end is folder if
   end --end folderName for
-  for _,tileset in pairs(love.filesystem.getDirectoryItems('images/maps')) do
-    local files = love.filesystem.getDirectoryItems('images/maps/' .. tileset)
+  for _,tileset in pairs(love.filesystem.getDirectoryItems('assets/images/maps')) do
+    local files = love.filesystem.getDirectoryItems('assets/images/maps/' .. tileset)
     for _,fileName in pairs(files) do
       local extension = string.sub(fileName, -4)
       if extension == ".png" then
         fileName = string.sub(fileName,1,-5)
-        loader.newImage(images, tileset .. fileName, "images/maps/" .. tileset .. "/" .. fileName .. ".png")
+        loader.newImage(images, tileset .. fileName, "assets/images/maps/" .. tileset .. "/" .. fileName .. ".png")
       end --end extension check
     end --end fileName for
   end
