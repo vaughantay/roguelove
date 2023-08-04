@@ -1,0 +1,1056 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Reference</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>ldoc</h1>
+
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Functions">Functions</a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/data.spells_unused.html">data.spells_unused</a></li>
+  <li><strong>gamelogic</strong></li>
+  <li><a href="../modules/input.html">input</a></li>
+  <li><a href="../modules/jumper.core.bheap.html">jumper.core.bheap</a></li>
+  <li><a href="../modules/jumper.core.heuristics.html">jumper.core.heuristics</a></li>
+  <li><a href="../modules/jumper.core.node.html">jumper.core.node</a></li>
+  <li><a href="../modules/jumper.core.path.html">jumper.core.path</a></li>
+  <li><a href="../modules/jumper.grid.html">jumper.grid</a></li>
+  <li><a href="../modules/jumper.pathfinder.html">jumper.pathfinder</a></li>
+  <li><a href="../modules/lib.serialize.html">lib.serialize</a></li>
+  <li><a href="../modules/mapgen.html">mapgen</a></li>
+  <li><a href="../modules/output.html">output</a></li>
+  <li><a href="../modules/util.html">util</a></li>
+</ul>
+<h2>Scripts</h2>
+<ul class="nowrap">
+  <li><a href="../scripts/jumper.search.astar.html">jumper.search.astar</a></li>
+  <li><a href="../scripts/jumper.search.bfs.html">jumper.search.bfs</a></li>
+  <li><a href="../scripts/jumper.search.dfs.html">jumper.search.dfs</a></li>
+  <li><a href="../scripts/jumper.search.dijkstra.html">jumper.search.dijkstra</a></li>
+  <li><a href="../scripts/jumper.search.jps.html">jumper.search.jps</a></li>
+</ul>
+<h2>Classes</h2>
+<ul class="nowrap">
+  <li><a href="../classes/Condition.html">Condition</a></li>
+  <li><a href="../classes/Creature.html">Creature</a></li>
+  <li><a href="../classes/Effect.html">Effect</a></li>
+  <li><a href="../classes/Faction.html">Faction</a></li>
+  <li><a href="../classes/Feature.html">Feature</a></li>
+  <li><a href="../classes/Item.html">Item</a></li>
+  <li><a href="../classes/Map.html">Map</a></li>
+  <li><a href="../classes/Projectile.html">Projectile</a></li>
+  <li><a href="../classes/ranged_attack.html">ranged_attack</a></li>
+  <li><a href="../classes/Service.html">Service</a></li>
+  <li><a href="../classes/Spell.html">Spell</a></li>
+  <li><a href="../classes/Store.html">Store</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>gamelogic</code></h1>
+<p></p>
+<p></p>
+
+
+<h2><a href="#Functions">Functions</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#new_game">new_game (mapSeed, playTutorial, cheats, branch)</a></td>
+	<td class="summary">Starts a new game, and does all the bookkeeping necessary for that.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#parse_name_for_level">parse_name_for_level (name)</a></td>
+	<td class="summary">Figures out which level to load based on a given string.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#initialize_player">initialize_player (creatureID, class, name, gender, pronouns)</a></td>
+	<td class="summary">Creates the player character entity.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#initialize_game">initialize_game ()</a></td>
+	<td class="summary">Create the currGame object</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#initialize_world">initialize_world ()</a></td>
+	<td class="summary">Generate stores, factions, and dungeon branches</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#calc_hit_chance">calc_hit_chance (attacker, target, item)</a></td>
+	<td class="summary">Calculates the chance of hitting an opponent.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#calc_attack">calc_attack (attacker, target, forceHit, item)</a></td>
+	<td class="summary">Calculates whether an attacker hits a target, whether it was a critical, and how much damage was done.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#advance_turn">advance_turn ()</a></td>
+	<td class="summary">Sets the game to advance a turn.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#turn_logic">turn_logic ()</a></td>
+	<td class="summary">Actually advances the turn, causing NPCs to move, effects and projectiles to advance, the map's lighting to recalculate, creature conditions to do their thing, and the output buffer to clear.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#win">win ()</a></td>
+	<td class="summary">This function is called when you win.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#game_over">game_over ()</a></td>
+	<td class="summary">This function is called when you lose.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#goToMap">goToMap (depth, branch, force)</a></td>
+	<td class="summary">Move to another map</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#regen_map">regen_map ()</a></td>
+	<td class="summary">Regenerates the current map.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#generate_boss">generate_boss (silent)</a></td>
+	<td class="summary">Generates the boss for the map.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#update_stat">update_stat (stat_type, id)</a></td>
+	<td class="summary">Update a game statistic (like turns played, creatures killed, etc.).</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#get_stat">get_stat (stat_type, id)</a></td>
+	<td class="summary">Get the value of a game statistic (like turns played, creatures killed, etc.)</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#perform_move">perform_move (direction)</a></td>
+	<td class="summary">Handle movement keys.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#move_player">move_player (newX, newY, force)</a></td>
+	<td class="summary">Move the player to a new location.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#pathTo">pathTo (x, y, noMsg)</a></td>
+	<td class="summary">Find a path from the player's location to a new location, and start the player moving along it.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#setTarget">setTarget (x, y)</a></td>
+	<td class="summary">Set the player's target, and if targeting an action, apply that action to the target.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#perform_target_action">perform_target_action (target)</a></td>
+	<td class="summary">Performs whatever action is stored up</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#player_dies">player_dies ()</a></td>
+	<td class="summary">Called when the player dies.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#downtime">downtime ()</a></td>
+	<td class="summary">Function that causes things to happen during "downtime." What that means and when that happens is up to you, this is just an example.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#refresh_player_sight">refresh_player_sight ()</a></td>
+	<td class="summary">Refreshes the player's sightmap.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#show_tutorial">show_tutorial (tutorial)</a></td>
+	<td class="summary">Show a tutorial message</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#start_mission">start_mission (missionID, startVal, source, values, skipFunc)</a></td>
+	<td class="summary">Starts a mission at 0 and runs its begin() code</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#get_mission_status">get_mission_status (missionID)</a></td>
+	<td class="summary">Gets the status of a given mission.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#set_mission_status">set_mission_status (missionID, value)</a></td>
+	<td class="summary">Sets a the status value of a mission to a specific value.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#get_mission_data">get_mission_data (missionID, index)</a></td>
+	<td class="summary">Gets the value of an index of a given mission.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#set_mission_data">set_mission_data (missionID, index, value)</a></td>
+	<td class="summary">Sets a particular index of a mission to a specific value.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#update_mission_status">update_mission_status (missionID, amt)</a></td>
+	<td class="summary">Updates a mission's status value by a given number value.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#finish_mission">finish_mission (missionID, endVal, skipFunc)</a></td>
+	<td class="summary">Marks a mission as finished, removing it from the active mission table.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#check_event">check_event (eid)</a></td>
+	<td class="summary">Checks whether an event can fire</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#activate_event">activate_event (eid, force)</a></td>
+	<td class="summary">Cause an event to run its code</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#run_all_events_of_type">run_all_events_of_type (event_type)</a></td>
+	<td class="summary">Loop through the list of events and activate all eligible ones of a given type</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#get_money_name">get_money_name (amount)</a></td>
+	<td class="summary">Returns the name of the money</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "new_game"></a>
+    <strong>new_game (mapSeed, playTutorial, cheats, branch)</strong>
+    </dt>
+    <dd>
+    Starts a new game, and does all the bookkeeping necessary for that.  Generates the first map, and puts the player on it.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">mapSeed</span>
+         Number. The seed to use to generate the world. (optional)
+        </li>
+        <li><span class="parameter">playTutorial</span>
+         Boolean. Whether or not to show tutorial messages this game. (optional)
+        </li>
+        <li><span class="parameter">cheats</span>
+         Table. A table listing all the cheats in use this game. (optional)
+        </li>
+        <li><span class="parameter">branch</span>
+         String. The ID of the branch to start on. (optional)
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "parse_name_for_level"></a>
+    <strong>parse_name_for_level (name)</strong>
+    </dt>
+    <dd>
+    Figures out which level to load based on a given string.  Used for level-skip cheats.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">name</span>
+         String. If it matches a branch ID, start at that branch
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "initialize_player"></a>
+    <strong>initialize_player (creatureID, class, name, gender, pronouns)</strong>
+    </dt>
+    <dd>
+    Creates the player character entity.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">creatureID</span>
+         String. The ID of the creature definition to use to create the player. Optional, defeaults to player_human
+        </li>
+        <li><span class="parameter">class</span>
+         String. The ID of the playerclass to apply to the player entity. Optional
+        </li>
+        <li><span class="parameter">name</span>
+         String. The name of the new player character. Optional, f blank, will be randomized.
+        </li>
+        <li><span class="parameter">gender</span>
+         String. Either "male", "female", "neuter", "other", or "custom". Optional, if blank, will be set to "other" and use they/them pronouns.
+        </li>
+        <li><span class="parameter">pronouns</span>
+         Table. A table of custom pronouns. Optional, only needed if using "custom" gender.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "initialize_game"></a>
+    <strong>initialize_game ()</strong>
+    </dt>
+    <dd>
+    Create the currGame object
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "initialize_world"></a>
+    <strong>initialize_world ()</strong>
+    </dt>
+    <dd>
+    Generate stores, factions, and dungeon branches
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "calc_hit_chance"></a>
+    <strong>calc_hit_chance (attacker, target, item)</strong>
+    </dt>
+    <dd>
+    Calculates the chance of hitting an opponent.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">attacker</span>
+         Creature. The creature doing the attacking.
+        </li>
+        <li><span class="parameter">target</span>
+         Creature. The creature getting potentially hit
+        </li>
+        <li><span class="parameter">item</span>
+         Item. The item the attacker is using.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "calc_attack"></a>
+    <strong>calc_attack (attacker, target, forceHit, item)</strong>
+    </dt>
+    <dd>
+    Calculates whether an attacker hits a target, whether it was a critical, and how much damage was done.  Important to note: This function just *calculates* the damage, it does not apply it!
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">attacker</span>
+         Creature. The creature attacking.
+        </li>
+        <li><span class="parameter">target</span>
+         Creature. The creature getting attacked.
+        </li>
+        <li><span class="parameter">forceHit</span>
+         Boolean. Whether to ignore hit chance and force a hit. (optional)
+        </li>
+        <li><span class="parameter">item</span>
+         Item. The item the attacker is using, if any. (optional)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+        result String. "hit", "miss", or "critical"</li>
+        <li>
+        dmg Number. The damage to do.</li>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "advance_turn"></a>
+    <strong>advance_turn ()</strong>
+    </dt>
+    <dd>
+    Sets the game to advance a turn.  The turn itself will not actually advance until the next update cycle there is nothing with stopsInput set
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "turn_logic"></a>
+    <strong>turn_logic ()</strong>
+    </dt>
+    <dd>
+    Actually advances the turn, causing NPCs to move, effects and projectiles to advance, the map's lighting to recalculate, creature conditions to do their thing, and the output buffer to clear.
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "win"></a>
+    <strong>win ()</strong>
+    </dt>
+    <dd>
+    This function is called when you win.  It saves the win for posterity, and blacks out the screen.
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "game_over"></a>
+    <strong>game_over ()</strong>
+    </dt>
+    <dd>
+    This function is called when you lose.  It clears out the player and current game variables, and switches back to the main menu.
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "goToMap"></a>
+    <strong>goToMap (depth, branch, force)</strong>
+    </dt>
+    <dd>
+    Move to another map
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">depth</span>
+         Number. The depth of the map you're trying to reach
+        </li>
+        <li><span class="parameter">branch</span>
+         Text. Which branch the map is on
+        </li>
+        <li><span class="parameter">force</span>
+         Boolean. Whether to force the game to go to the map, ignoring whether the boss is dead or not. (optional)
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "regen_map"></a>
+    <strong>regen_map ()</strong>
+    </dt>
+    <dd>
+    Regenerates the current map.
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "generate_boss"></a>
+    <strong>generate_boss (silent)</strong>
+    </dt>
+    <dd>
+    Generates the boss for the map.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">silent</span>
+         Boolean. If true, don't display any text when generating the boss
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "update_stat"></a>
+    <strong>update_stat (stat_type, id)</strong>
+    </dt>
+    <dd>
+    Update a game statistic (like turns played, creatures killed, etc.).  Increments the given stat by 1.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">stat_type</span>
+         String. The stat type to return.
+        </li>
+        <li><span class="parameter">id</span>
+         String. The sub-stat type to return (for example, kills of a specific creature type)
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "get_stat"></a>
+    <strong>get_stat (stat_type, id)</strong>
+    </dt>
+    <dd>
+    Get the value of a game statistic (like turns played, creatures killed, etc.)
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">stat_type</span>
+         String. The stat type to return.
+        </li>
+        <li><span class="parameter">id</span>
+         String. The sub-stat type to return (for example, kills of a specific creature type)
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "perform_move"></a>
+    <strong>perform_move (direction)</strong>
+    </dt>
+    <dd>
+    Handle movement keys.  If action is set to "targeting" then it'll move the cursor, otherwise it'll move the player.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">direction</span>
+         String. The keycode of the pressed key.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "move_player"></a>
+    <strong>move_player (newX, newY, force)</strong>
+    </dt>
+    <dd>
+    Move the player to a new location.  Also handles warnings for moving into a dangerous area, and advances the turn if the player moves.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">newX</span>
+         Number. The X-coordinate to move the player to.
+        </li>
+        <li><span class="parameter">newY</span>
+         Number. The Y-coordinate to move the player to.
+        </li>
+        <li><span class="parameter">force</span>
+         Boolean. Whether to ignore warnings and move the player into a potentially dangerous tile. (optional)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether the move was successful or not.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "pathTo"></a>
+    <strong>pathTo (x, y, noMsg)</strong>
+    </dt>
+    <dd>
+    Find a path from the player's location to a new location, and start the player moving along it.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">x</span>
+         Number. The x-coordinate to move to.
+        </li>
+        <li><span class="parameter">y</span>
+         Number. The y-coordinate to move to.
+        </li>
+        <li><span class="parameter">noMsg</span>
+         Boolean. Whether to suppress the "moving to" notification.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "setTarget"></a>
+    <strong>setTarget (x, y)</strong>
+    </dt>
+    <dd>
+    Set the player's target, and if targeting an action, apply that action to the target.  If targeting a tile with a creature, that creature will be the player's target for UI purposes.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">x</span>
+         Number. The x-coordinate of the target.
+        </li>
+        <li><span class="parameter">y</span>
+         Number. The y-coordinate of the target.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "perform_target_action"></a>
+    <strong>perform_target_action (target)</strong>
+    </dt>
+    <dd>
+    Performs whatever action is stored up
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">target</span>
+         Entity. The target for the action
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "player_dies"></a>
+    <strong>player_dies ()</strong>
+    </dt>
+    <dd>
+    Called when the player dies.  Starts the screen going black, saves a graveyard file, and updates death statistics.
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "downtime"></a>
+    <strong>downtime ()</strong>
+    </dt>
+    <dd>
+    Function that causes things to happen during "downtime." What that means and when that happens is up to you, this is just an example.
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "refresh_player_sight"></a>
+    <strong>refresh_player_sight ()</strong>
+    </dt>
+    <dd>
+    Refreshes the player's sightmap.  Called every turn, may need to be called if something changes visibility for some reason (new lights or something that blocks sight showing up)
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "show_tutorial"></a>
+    <strong>show_tutorial (tutorial)</strong>
+    </dt>
+    <dd>
+    Show a tutorial message
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">tutorial</span>
+         String. The ID of the tutorial to show.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "start_mission"></a>
+    <strong>start_mission (missionID, startVal, source, values, skipFunc)</strong>
+    </dt>
+    <dd>
+    Starts a mission at 0 and runs its begin() code
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">missionID</span>
+         String. The ID of the mission. Can either be a pre-defined mission, or you can use any ad-hoc value if you want to use this to track something that's not an actual mission.
+        </li>
+        <li><span class="parameter">startVal</span>
+         Anything. The starting status of the mission (Optional, defaults to 0)
+        </li>
+        <li><span class="parameter">source</span>
+         Object. Where the mission came from (Optional)
+        </li>
+        <li><span class="parameter">values</span>
+         Table. A table of values to store in the mission table in the format {index=value,index2=value2}
+        </li>
+        <li><span class="parameter">skipFunc</span>
+         Boolean. Whether to skip the start() function (assuming the mission actually has one) (Optional)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Anything. Either false if the mission didn't start, the returned value of the start() function if there was one, or true.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "get_mission_status"></a>
+    <strong>get_mission_status (missionID)</strong>
+    </dt>
+    <dd>
+    Gets the status of a given mission.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">missionID</span>
+         String. The ID of the mission. Can either be a pre-defined mission, or you can use any ad-hoc value if you want to use this to track something that's not an actual mission.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Anything. The status of the mission.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "set_mission_status"></a>
+    <strong>set_mission_status (missionID, value)</strong>
+    </dt>
+    <dd>
+    Sets a the status value of a mission to a specific value.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">missionID</span>
+         String. The ID of the mission. Can either be a pre-defined mission, or you can use any ad-hoc value if you want to use this to track something that's not a pre-defined mission.
+        </li>
+        <li><span class="parameter">value</span>
+         Anything. The value you'd like to store.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "get_mission_data"></a>
+    <strong>get_mission_data (missionID, index)</strong>
+    </dt>
+    <dd>
+    Gets the value of an index of a given mission.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">missionID</span>
+         String. The ID of the mission. Can either be a pre-defined mission, or you can use any ad-hoc value if you want to use this to track something that's not a pre-defined mission.
+        </li>
+        <li><span class="parameter">index</span>
+         String. The string that used as the index to search
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Anything. The value stored in the index given
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "set_mission_data"></a>
+    <strong>set_mission_data (missionID, index, value)</strong>
+    </dt>
+    <dd>
+    Sets a particular index of a mission to a specific value.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">missionID</span>
+         String. The ID of the mission. Can either be a pre-defined mission, or you can use any ad-hoc value if you want to use this to track something that's not an actual mission.
+        </li>
+        <li><span class="parameter">index</span>
+         String. The string that will be used as the index to store this value
+        </li>
+        <li><span class="parameter">value</span>
+         Anything. The value you'd like to store.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "update_mission_status"></a>
+    <strong>update_mission_status (missionID, amt)</strong>
+    </dt>
+    <dd>
+    Updates a mission's status value by a given number value.  Generally, you should inly call this function on a mission that's already has number values as it status. If you don't, though, it'll just set the mission status to whatever the number you passed.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">missionID</span>
+         String. The ID of the mission. Can either be a pre-defined mission, or you can use any ad-hoc value if you want to use this to track something that's not an actual mission.
+        </li>
+        <li><span class="parameter">amt</span>
+         Number. The amount to increase the status by. (optional, defaults to 1)
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "finish_mission"></a>
+    <strong>finish_mission (missionID, endVal, skipFunc)</strong>
+    </dt>
+    <dd>
+    Marks a mission as finished, removing it from the active mission table.  Also runs the mission's finish() code if it's a pre-defined mission.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">missionID</span>
+         String. The ID of the mission. Can either be a pre-defined mission, or you can use any ad-hoc value if you want to use this to track something that's not an actual mission.
+        </li>
+        <li><span class="parameter">endVal</span>
+         Anything. A value you want to store in the finished missions table (eg to determine how the mission ended if it has multiple endings). (Optional)
+        </li>
+        <li><span class="parameter">skipFunc</span>
+         Boolean. Whether to skip the finish() function (assuming the mission actually has one) (Optional)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Anything. Either false if the mission didn't end, the returned value of the finish() function if there was one, or true.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "check_event"></a>
+    <strong>check_event (eid)</strong>
+    </dt>
+    <dd>
+    Checks whether an event can fire
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">eid</span>
+         Number. The ID of the event
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether or not the event can fire
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "activate_event"></a>
+    <strong>activate_event (eid, force)</strong>
+    </dt>
+    <dd>
+    Cause an event to run its code
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">eid</span>
+         Number. The event ID
+        </li>
+        <li><span class="parameter">force</span>
+         Boolean. Whether to ignore the requires() code for the event
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "run_all_events_of_type"></a>
+    <strong>run_all_events_of_type (event_type)</strong>
+    </dt>
+    <dd>
+    Loop through the list of events and activate all eligible ones of a given type
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">event_type</span>
+         Text. The type of event. Possible event types: enter_map, enter_map_first_time, random, player_kills, boss_dies
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "get_money_name"></a>
+    <strong>get_money_name (amount)</strong>
+    </dt>
+    <dd>
+    Returns the name of the money
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">amount</span>
+         Number. The amount of money
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Text. The name of the money
+    </ol>
+
+
+
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2023-08-04 10:22:03 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

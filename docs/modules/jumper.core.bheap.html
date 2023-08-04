@@ -1,0 +1,273 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Reference</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>ldoc</h1>
+
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Functions">Functions</a></li>
+<li><a href="#Tables">Tables</a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/data.spells_unused.html">data.spells_unused</a></li>
+  <li><a href="../modules/gamelogic.html">gamelogic</a></li>
+  <li><a href="../modules/input.html">input</a></li>
+  <li><strong>jumper.core.bheap</strong></li>
+  <li><a href="../modules/jumper.core.heuristics.html">jumper.core.heuristics</a></li>
+  <li><a href="../modules/jumper.core.node.html">jumper.core.node</a></li>
+  <li><a href="../modules/jumper.core.path.html">jumper.core.path</a></li>
+  <li><a href="../modules/jumper.grid.html">jumper.grid</a></li>
+  <li><a href="../modules/jumper.pathfinder.html">jumper.pathfinder</a></li>
+  <li><a href="../modules/lib.serialize.html">lib.serialize</a></li>
+  <li><a href="../modules/mapgen.html">mapgen</a></li>
+  <li><a href="../modules/output.html">output</a></li>
+  <li><a href="../modules/util.html">util</a></li>
+</ul>
+<h2>Scripts</h2>
+<ul class="nowrap">
+  <li><a href="../scripts/jumper.search.astar.html">jumper.search.astar</a></li>
+  <li><a href="../scripts/jumper.search.bfs.html">jumper.search.bfs</a></li>
+  <li><a href="../scripts/jumper.search.dfs.html">jumper.search.dfs</a></li>
+  <li><a href="../scripts/jumper.search.dijkstra.html">jumper.search.dijkstra</a></li>
+  <li><a href="../scripts/jumper.search.jps.html">jumper.search.jps</a></li>
+</ul>
+<h2>Classes</h2>
+<ul class="nowrap">
+  <li><a href="../classes/Condition.html">Condition</a></li>
+  <li><a href="../classes/Creature.html">Creature</a></li>
+  <li><a href="../classes/Effect.html">Effect</a></li>
+  <li><a href="../classes/Faction.html">Faction</a></li>
+  <li><a href="../classes/Feature.html">Feature</a></li>
+  <li><a href="../classes/Item.html">Item</a></li>
+  <li><a href="../classes/Map.html">Map</a></li>
+  <li><a href="../classes/Projectile.html">Projectile</a></li>
+  <li><a href="../classes/ranged_attack.html">ranged_attack</a></li>
+  <li><a href="../classes/Service.html">Service</a></li>
+  <li><a href="../classes/Spell.html">Spell</a></li>
+  <li><a href="../classes/Store.html">Store</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>jumper.core.bheap</code></h1>
+<p><strong>A light implementation of `binary heaps`</strong>.</p>
+<p>
+ While running a search, some algorithms have to maintains a list of nodes called __open list__.
+ Finding in this list the lowest cost node from the node being processed can be quite slow,
+ (as it requires to skim through the collection of nodes stored in this list)
+ especially when dozens of nodes are being processed (large maps).
+<p> The current module implements a <a href="http://www.policyalmanac.org/games/binaryHeaps.htm">binary heap</a> data structure,
+ from which the internal open list will be instantiated. As such, looking up for lower-cost
+ node will run faster, and globally makes the search algorithm run faster.
+<p> This module should normally not be used explicitely. The algorithm uses it internally.
+</p>
+    <h3>Info:</h3>
+    <ul>
+        <li><strong>Copyright</strong>: 2012-2013</li>
+        <li><strong>License</strong>: <a href="http://www.opensource.org/licenses/mit-license.php">MIT</a></li>
+        <li><strong>Author</strong>: Roland Yonaba</li>
+    </ul>
+
+
+<h2><a href="#Functions">Functions</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#heap:empty">heap:empty ()</a></td>
+	<td class="summary">Checks if a `heap` is empty</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#heap:clear">heap:clear ()</a></td>
+	<td class="summary">Clears the `heap` (removes all items queued in the heap)</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#heap:push">heap:push (item)</a></td>
+	<td class="summary">Adds a new item in the `heap`</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#heap:pop">heap:pop ()</a></td>
+	<td class="summary">Pops from the `heap`.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#heap:heapify">heap:heapify ([item])</a></td>
+	<td class="summary">Restores the `heap` property.</td>
+	</tr>
+</table>
+<h2><a href="#Tables">Tables</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#heap">heap</a></td>
+	<td class="summary">The `heap` class</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "heap:empty"></a>
+    <strong>heap:empty ()</strong>
+    </dt>
+    <dd>
+    Checks if a `heap` is empty
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">bool</span></span>
+        `true` of no item is queued in the heap, `false` otherwise
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "heap:clear"></a>
+    <strong>heap:clear ()</strong>
+    </dt>
+    <dd>
+    Clears the `heap` (removes all items queued in the heap)
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "heap:push"></a>
+    <strong>heap:push (item)</strong>
+    </dt>
+    <dd>
+    Adds a new item in the `heap`
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">item</span>
+            <span class="types"><span class="type">object</span></span>
+         a new object to be queued in the heap
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "heap:pop"></a>
+    <strong>heap:pop ()</strong>
+    </dt>
+    <dd>
+    Pops from the `heap`.
+ Removes and returns the lowest cost item (with respect to the comparison function used) from the `heap`.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">object</span></span>
+        an object stored in the heap
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "heap:heapify"></a>
+    <strong>heap:heapify ([item])</strong>
+    </dt>
+    <dd>
+    Restores the `heap` property.
+ Reorders the `heap` with respect to the comparison function being used.
+ When given arg `item`, will sort that very item in the `heap`.
+ Otherwise, the whole `heap` will be sorted.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">item</span>
+            <span class="types"><span class="type">object</span></span>
+         the modified object
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+</dl>
+    <h2 class="section-header "><a name="Tables"></a>Tables</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "heap"></a>
+    <strong>heap</strong>
+    </dt>
+    <dd>
+    The `heap` class
+
+
+
+
+
+
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2023-08-04 10:22:03 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

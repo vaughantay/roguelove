@@ -1,0 +1,757 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Reference</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>ldoc</h1>
+
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Functions">Functions</a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/data.spells_unused.html">data.spells_unused</a></li>
+  <li><a href="../modules/gamelogic.html">gamelogic</a></li>
+  <li><a href="../modules/input.html">input</a></li>
+  <li><a href="../modules/jumper.core.bheap.html">jumper.core.bheap</a></li>
+  <li><a href="../modules/jumper.core.heuristics.html">jumper.core.heuristics</a></li>
+  <li><a href="../modules/jumper.core.node.html">jumper.core.node</a></li>
+  <li><a href="../modules/jumper.core.path.html">jumper.core.path</a></li>
+  <li><a href="../modules/jumper.grid.html">jumper.grid</a></li>
+  <li><a href="../modules/jumper.pathfinder.html">jumper.pathfinder</a></li>
+  <li><a href="../modules/lib.serialize.html">lib.serialize</a></li>
+  <li><a href="../modules/mapgen.html">mapgen</a></li>
+  <li><a href="../modules/output.html">output</a></li>
+  <li><strong>util</strong></li>
+</ul>
+<h2>Scripts</h2>
+<ul class="nowrap">
+  <li><a href="../scripts/jumper.search.astar.html">jumper.search.astar</a></li>
+  <li><a href="../scripts/jumper.search.bfs.html">jumper.search.bfs</a></li>
+  <li><a href="../scripts/jumper.search.dfs.html">jumper.search.dfs</a></li>
+  <li><a href="../scripts/jumper.search.dijkstra.html">jumper.search.dijkstra</a></li>
+  <li><a href="../scripts/jumper.search.jps.html">jumper.search.jps</a></li>
+</ul>
+<h2>Classes</h2>
+<ul class="nowrap">
+  <li><a href="../classes/Condition.html">Condition</a></li>
+  <li><a href="../classes/Creature.html">Creature</a></li>
+  <li><a href="../classes/Effect.html">Effect</a></li>
+  <li><a href="../classes/Faction.html">Faction</a></li>
+  <li><a href="../classes/Feature.html">Feature</a></li>
+  <li><a href="../classes/Item.html">Item</a></li>
+  <li><a href="../classes/Map.html">Map</a></li>
+  <li><a href="../classes/Projectile.html">Projectile</a></li>
+  <li><a href="../classes/ranged_attack.html">ranged_attack</a></li>
+  <li><a href="../classes/Service.html">Service</a></li>
+  <li><a href="../classes/Spell.html">Spell</a></li>
+  <li><a href="../classes/Store.html">Store</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>util</code></h1>
+<p>Random utility functions</p>
+<p></p>
+
+
+<h2><a href="#Functions">Functions</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#in_table">in_table (needle, haystack)</a></td>
+	<td class="summary">Checks if "needle" is in "haystack", and returns the key (and value) if so</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#tweak">tweak (val)</a></td>
+	<td class="summary">Returns a number between -25% and +25% of the original number.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#round">round (val)</a></td>
+	<td class="summary">Rounds a number up if >= .5, down if <.5</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#calc_distance">calc_distance (fromX, fromY, toY)</a></td>
+	<td class="summary">Uses the Pythagorean Theorem to calculate the distance between two points.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#calc_distance_squared">calc_distance_squared (fromX, fromY, toY)</a></td>
+	<td class="summary">Adds the squared X and Y distances between points.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ucfirst">ucfirst (string)</a></td>
+	<td class="summary">Convert the first letter of a string to uppercase.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ucfirstall">ucfirstall (s)</a></td>
+	<td class="summary">Convert the first letter of every word in a string to uppercase.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#lcfirst">lcfirst (string)</a></td>
+	<td class="summary">Convert the first letter of a string to lowercase.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#lcfirstall">lcfirstall (s)</a></td>
+	<td class="summary">Convert the first letter of every word in a string to lowercase.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#explode">explode (string, delim, Table.)</a></td>
+	<td class="summary">"Explode" a string into an array</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#vowel">vowel (string)</a></td>
+	<td class="summary">Returns true if the string starts with a vowel, false otherwise</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#get_random_element">get_random_element (t)</a></td>
+	<td class="summary">Gets a random element from a table.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#get_random_key">get_random_key (t)</a></td>
+	<td class="summary">Gets a random key from a table.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#get_largest">get_largest (t)</a></td>
+	<td class="summary">Gets the largest numerical value from a table</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#copy_table">copy_table (t)</a></td>
+	<td class="summary">Copies a table deeply (copies any sub-tables as well).</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#shuffle">shuffle (t)</a></td>
+	<td class="summary">Shuffles the order of table.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#count">count (t)</a></td>
+	<td class="summary">Counts the number of entries in a table (even if not sequentially numbered)</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#merge_tables">merge_tables (Any)</a></td>
+	<td class="summary">Combines multiple tables into one and returns the result.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#sort_table">sort_table (t, key)</a></td>
+	<td class="summary">Sorts a table</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#get_unit_vector">get_unit_vector (fromX, fromY, toY)</a></td>
+	<td class="summary">Determines what directions a set of coordinates is in from an origin point.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#calc_angle">calc_angle (fromX, fromY, toY)</a></td>
+	<td class="summary">Calculate the angle between two points</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "in_table"></a>
+    <strong>in_table (needle, haystack)</strong>
+    </dt>
+    <dd>
+    Checks if "needle" is in "haystack", and returns the key (and value) if so
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">needle</span>
+         Anything. The item to look for.
+        </li>
+        <li><span class="parameter">haystack</span>
+         Table. The table to search through.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+        Anything or False. The index of the value being searched for. If it wasn't found, then FALSE.</li>
+        <li>
+        Anything or nil. The value being searched for. If it wasn't found, then nil.</li>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "tweak"></a>
+    <strong>tweak (val)</strong>
+    </dt>
+    <dd>
+    Returns a number between -25% and +25% of the original number.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">val</span>
+         Number. The number to tweak.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The tweaked number.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "round"></a>
+    <strong>round (val)</strong>
+    </dt>
+    <dd>
+    Rounds a number up if >= .5, down if <.5
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">val</span>
+         number to round.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The rounded number.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "calc_distance"></a>
+    <strong>calc_distance (fromX, fromY, toY)</strong>
+    </dt>
+    <dd>
+    Uses the Pythagorean Theorem to calculate the distance between two points.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">fromX</span>
+         Number. The origin X-coordinate.
+        </li>
+        <li><span class="parameter">fromY</span>
+         Number. The origin Y-coordinate.
+        </li>
+        <li><span class="parameter">toY</span>
+         Number. The destination Y-coordinate.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The distance.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "calc_distance_squared"></a>
+    <strong>calc_distance_squared (fromX, fromY, toY)</strong>
+    </dt>
+    <dd>
+    Adds the squared X and Y distances between points.  Use this if you're just comparing distances to see which is farther rather than needing to know what the distances actually are, since this is faster.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">fromX</span>
+         Number. The origin X-coordinate.
+        </li>
+        <li><span class="parameter">fromY</span>
+         Number. The origin Y-coordinate.
+        </li>
+        <li><span class="parameter">toY</span>
+         Number. The destination Y-coordinate.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The sum of the squared X and Y distances between the points.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ucfirst"></a>
+    <strong>ucfirst (string)</strong>
+    </dt>
+    <dd>
+    Convert the first letter of a string to uppercase.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">string</span>
+         String. The string to process.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        String. The original string, but with the first letter uppercase.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ucfirstall"></a>
+    <strong>ucfirstall (s)</strong>
+    </dt>
+    <dd>
+    Convert the first letter of every word in a string to uppercase.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">s</span>
+         String. The string to process.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        String. The original string, but with the first letter of every word uppercase.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "lcfirst"></a>
+    <strong>lcfirst (string)</strong>
+    </dt>
+    <dd>
+    Convert the first letter of a string to lowercase.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">string</span>
+         String. The string to process.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        String. The original string, but with the first letter lowercase.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "lcfirstall"></a>
+    <strong>lcfirstall (s)</strong>
+    </dt>
+    <dd>
+    Convert the first letter of every word in a string to lowercase.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">s</span>
+         String. The string to process.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        String. The original string, but with the first letter of every word lowercase.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "explode"></a>
+    <strong>explode (string, delim, Table.)</strong>
+    </dt>
+    <dd>
+    "Explode" a string into an array
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">string</span>
+         String. The string to turn into an array.
+        </li>
+        <li><span class="parameter">delim</span>
+         String. The string used to delineate where each entry starts.
+        </li>
+        <li><span class="parameter">Table.</span>
+         A table of strings.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "vowel"></a>
+    <strong>vowel (string)</strong>
+    </dt>
+    <dd>
+    Returns true if the string starts with a vowel, false otherwise
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">string</span>
+         String.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether the string starts with a vowel or not.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "get_random_element"></a>
+    <strong>get_random_element (t)</strong>
+    </dt>
+    <dd>
+    Gets a random element from a table.
+NOTE: This probably will not work properly if a table has both numbered AND associative keys.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">t</span>
+         Table. The table to get an element from.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Anything. A random element from the table.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "get_random_key"></a>
+    <strong>get_random_key (t)</strong>
+    </dt>
+    <dd>
+    Gets a random key from a table.
+NOTE: This probably will not work properly if a table has both numbered AND associative keys.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">t</span>
+         Table. The table to get an element from.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Anything. A random keyfrom the table.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "get_largest"></a>
+    <strong>get_largest (t)</strong>
+    </dt>
+    <dd>
+    Gets the largest numerical value from a table
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">t</span>
+         Table. The table to look through.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+        Number. The largest number.</li>
+        <li>
+        Anything. The key of the largest number.</li>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "copy_table"></a>
+    <strong>copy_table (t)</strong>
+    </dt>
+    <dd>
+    Copies a table deeply (copies any sub-tables as well).
+WARNING: This will probably hang if your table contains a table that contains the original table.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">t</span>
+         Table. The table to copy.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A copy of the original table.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "shuffle"></a>
+    <strong>shuffle (t)</strong>
+    </dt>
+    <dd>
+    Shuffles the order of table.  Does not change the original table, but returns a new one.
+Also useful at turning an associative table into a numbered array
+Note: Only use if you want the resulting table to have sequentially numbered values!
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">t</span>
+         Table. The table to shuffle.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A new version of the shuffled table.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "count"></a>
+    <strong>count (t)</strong>
+    </dt>
+    <dd>
+    Counts the number of entries in a table (even if not sequentially numbered)
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">t</span>
+         Table. The table the count.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The number of entries in the table.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "merge_tables"></a>
+    <strong>merge_tables (Any)</strong>
+    </dt>
+    <dd>
+    Combines multiple tables into one and returns the result.  Does not respect the values of the keys - the resulting table will have sequentially-numbered keys.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">Any</span>
+         number of tables.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A new table with all the other tables merged together.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "sort_table"></a>
+    <strong>sort_table (t, key)</strong>
+    </dt>
+    <dd>
+    Sorts a table
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">t</span>
+         Table. The table to sort
+        </li>
+        <li><span class="parameter">key</span>
+         Anything. The key to use to compare, if the table t contains subtables. Optional, if blank compares the values directly
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "get_unit_vector"></a>
+    <strong>get_unit_vector (fromX, fromY, toY)</strong>
+    </dt>
+    <dd>
+    Determines what directions a set of coordinates is in from an origin point.  Doesn't actually have anything to do with unit vectors.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">fromX</span>
+         Number. The origin X-coordinate.
+        </li>
+        <li><span class="parameter">fromY</span>
+         Number. The origin Y-coordinate.
+        </li>
+        <li><span class="parameter">toY</span>
+         Number. The destination Y-coordinate.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+        Number. -1 if toX is to the left of fromX, +1 if it's to the right, 0 if they're the same.</li>
+        <li>
+        Number. -1 if toY is up from fromY, +1 if it's down, 0 if they're the same.</li>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "calc_angle"></a>
+    <strong>calc_angle (fromX, fromY, toY)</strong>
+    </dt>
+    <dd>
+    Calculate the angle between two points
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">fromX</span>
+         Number. The origin X-coordinate.
+        </li>
+        <li><span class="parameter">fromY</span>
+         Number. The origin Y-coordinate.
+        </li>
+        <li><span class="parameter">toY</span>
+         Number. The destination Y-coordinate.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The angle
+    </ol>
+
+
+
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2023-08-04 10:22:03 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>
