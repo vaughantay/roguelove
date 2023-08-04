@@ -116,6 +116,10 @@ function love.keypressed(key, unicode)
   Gamestate.buttonpressed(key,unicode)
 end
 
+function love.textinput(text)
+  Gamestate.textinput(text)
+end
+
 if love._os == "NX" then
   local tx, ty = 1, 1
 
