@@ -73,7 +73,7 @@ function examine_item:draw()
     self.buttons.values[buttonCursorY]={}
     
     if item.usable==true then
-      local useText = (item.useVerb and ucfirst(item.useVerb) or "Use") .. " (" .. keybindings.use[1] .. ")"
+      local useText = (item.useVerb and ucfirst(item.useVerb) or "Use") .. " (" .. input:get_button_name("use") .. ")"
       local buttonWidth = fonts.buttonFont:getWidth(useText)+25
       if buttonX+buttonWidth >= buttonMaxX then
         buttonCursorX=1
@@ -94,7 +94,7 @@ function examine_item:draw()
       buttonCursorX = buttonCursorX+1
     end
     if item.throwable==true then
-      local useText = "Throw (" .. keybindings.throw[1] .. ")"
+      local useText = "Throw (" .. input:get_button_name("throw") .. ")"
       local buttonWidth = fonts.buttonFont:getWidth(useText)+25
       if buttonX+buttonWidth >= buttonMaxX then
         buttonCursorX=1
@@ -110,7 +110,7 @@ function examine_item:draw()
     end
     if item.equippable==true then
       local equipped = player:is_equipped(item)
-      local useText = (equipped and "Unequip" or "Equip") .. " (" .. keybindings.equip[1] .. ")"
+      local useText = (equipped and "Unequip" or "Equip") .. " (" .. input:get_button_name("equip") .. ")"
       local buttonWidth = fonts.buttonFont:getWidth(useText)+25
       if buttonX+buttonWidth >= buttonMaxX then
         buttonCursorX=1
@@ -125,7 +125,7 @@ function examine_item:draw()
       buttonCursorX = buttonCursorX+1
     end
     if item.charges and (item.max_charges and item.max_charges > 0) then
-      local useText = "Reload/Recharge" .. " (" .. keybindings.recharge[1] .. ")"
+      local useText = "Reload/Recharge" .. " (" .. input:get_button_name("recharge") .. ")"
       local buttonWidth = fonts.buttonFont:getWidth(useText)+25
       if buttonX+buttonWidth >= buttonMaxX then
         buttonCursorX=1
@@ -191,7 +191,7 @@ function examine_item:draw()
       buttonX = buttonX+buttonWidth+25
       buttonCursorX = buttonCursorX+1
     end
-    local dropText = "Drop (" .. keybindings.drop[1] .. ")"
+    local dropText = "Drop (" .. input:get_button_name("drop") .. ")"
     local buttonWidth = fonts.buttonFont:getWidth(dropText)+25
     if buttonX+buttonWidth >= buttonMaxX then
       buttonCursorX=1
@@ -256,7 +256,7 @@ function examine_item:calculate_height()
     local buttonCursorY = 1
     
     if item.usable==true then
-      local useText = (item.useVerb and ucfirst(item.useVerb) or "Use") .. " (" .. keybindings.use[1] .. ")"
+      local useText = (item.useVerb and ucfirst(item.useVerb) or "Use") .. " (" .. input:get_button_name("use") .. ")"
       local buttonWidth = fonts.buttonFont:getWidth(useText)+25
       if buttonX+buttonWidth >= buttonMaxX then
         buttonCursorX=1
@@ -268,7 +268,7 @@ function examine_item:calculate_height()
       buttonCursorX = buttonCursorX+1
     end
     if item.throwable==true then
-      local useText = "Throw (" .. keybindings.throw[1] .. ")"
+      local useText = "Throw (" .. input:get_button_name("throw") .. ")"
       local buttonWidth = fonts.buttonFont:getWidth(useText)+25
       if buttonX+buttonWidth >= buttonMaxX then
         buttonCursorX=1
@@ -281,7 +281,7 @@ function examine_item:calculate_height()
     end
     if item.equippable==true then
       local equipped = player:is_equipped(item)
-      local useText = (equipped and "Unequip" or "Equip") .. " (" .. keybindings.equip[1] .. ")"
+      local useText = (equipped and "Unequip" or "Equip") .. " (" .. input:get_button_name("equip") .. ")"
       local buttonWidth = fonts.buttonFont:getWidth(useText)+25
       if buttonX+buttonWidth >= buttonMaxX then
         buttonCursorX=1
@@ -293,7 +293,7 @@ function examine_item:calculate_height()
       buttonCursorX = buttonCursorX+1
     end
     if item.charges and (not item.max_charges or item.max_charges > 0) then
-      local useText = "Reload" .. " (" .. keybindings.recharge[1] .. ")"
+      local useText = "Reload" .. " (" .. input:get_button_name("recharge") .. ")"
       local buttonWidth = fonts.buttonFont:getWidth(useText)+25
       if buttonX+buttonWidth >= buttonMaxX then
         buttonCursorX=1
@@ -341,7 +341,7 @@ function examine_item:calculate_height()
       buttonX = buttonX+buttonWidth+25
       buttonCursorX = buttonCursorX+1
     end
-    local dropText = "Drop (" .. keybindings.drop[1] .. ")"
+    local dropText = "Drop (" .. input:get_button_name("drop") .. ")"
     local buttonWidth = fonts.buttonFont:getWidth(dropText)+25
     if buttonX+buttonWidth >= buttonMaxX then
       buttonCursorX=1

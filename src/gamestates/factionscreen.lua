@@ -794,6 +794,9 @@ function factionscreen:draw()
 end
 
 function factionscreen:buttonpressed(key)
+  local key_south = input:get_button_name("south")
+  local key_east = input:get_button_name("east")
+
   key = input:parse_key(key)
   if key == "escape" then
     self:switchBack()
@@ -1034,26 +1037,26 @@ function factionscreen:buttonpressed(key)
     list[id].buyAmt = (newAmt or 0)
   elseif key == "nextTarget" then
     if self.cursorY == 1 then
-      self:buttonpressed(keybindings.south[1])
+      self:buttonpressed(key_south)
     elseif self.cursorY == 2 then
       local buttonCount = #self.navButtons
       if self.cursorX == buttonCount then
-        self:buttonpressed(keybindings.south[1])
+        self:buttonpressed(key_south)
         if self.cursorY == 2 then --if going down didn't change anything, loop to beginning
           self.cursorX = 1
         end
       else
-        self:buttonpressed(keybindings.east[1])
+        self:buttonpressed(key_east)
       end
     elseif self.screen == "Items" then
       if self.cursorY == 3 then
         if self.cursorX == 1 then
-          self:buttonpressed(keybindings.east[1])
+          self:buttonpressed(key_east)
         else
-          self:buttonpressed(keybindings.south[1])
+          self:buttonpressed(key_south)
         end
       elseif self.cursorY == 4 then
-        self:buttonpressed(keybindings.south[1])
+        self:buttonpressed(key_south)
       else
         if self.cursorX == 4 then
           local whichList = (self.subScreen == "Buy" and self.selling_list or self.buying_list)
@@ -1062,14 +1065,14 @@ function factionscreen:buttonpressed(key)
           if self.cursorY == max then
             self.cursorY = 4
           else
-            self:buttonpressed(keybindings.south[1])
+            self:buttonpressed(key_south)
           end
         else
           local list = (self.subScreen == "Buy" and self.selling_list or self.buying_list)
           if list[self.cursorY-4].membersOnly and not self.playerMember then
-            self:buttonpressed(keybindings.south[1])
+            self:buttonpressed(key_south)
           else
-            self:buttonpressed(keybindings.east[1])
+            self:buttonpressed(key_east)
           end
         end
       end
@@ -1079,7 +1082,7 @@ function factionscreen:buttonpressed(key)
       if self.cursorY-2 == #whichList then
         self.cursorY = 2
       end
-      self:buttonpressed(keybindings.south[1])
+      self:buttonpressed(key_south)
     end
   end --end key if
 end

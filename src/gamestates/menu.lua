@@ -94,13 +94,6 @@ function menu:buttonpressed(key,scancode,isRepeat,noParse)
 	end
 end
 
-function menu:gamepadaxis(joystick,axis,value)
-  local command = input:parse_gamepadaxis(joystick,axis,value)
-  if math.abs(value) > 0.5 then
-    print(axis,value)
-  end
-end
-
 function menu:gamepadpressed(joystick,button)
   local command = input:parse_gamepadbutton(joystick,button)
   if command == "select" then

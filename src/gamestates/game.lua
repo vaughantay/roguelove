@@ -49,9 +49,9 @@ function game:draw()
     end
     text = text .. "\n"
     if actionResult and actionResult.min_targets and #game.targets >= actionResult.min_targets then
-      text = text .. "Press " .. ucfirst(keybindings.spell[1]) .. " to use now, "
+      text = text .. "Press " .. ucfirst(input:get_button_name("spell")) .. " to use now, "
     end
-    text = text .. "Press " .. ucfirst(keybindings.escape[1]) .. " to Cancel"
+    text = text .. "Press " .. ucfirst(input:get_button_name("escape")) .. " to Cancel"
     --local w = fonts.textFont:getWidth(text)
     --setColor(0,0,0,100)
     --love.graphics.rectangle('fill',math.ceil(width/2-w/2)-8,32,w+16,16)
@@ -60,7 +60,7 @@ function game:draw()
     setColor(255,255,255,255)
     love.graphics.printf(text,0,32,width,"center")
   elseif action == "attacking" then
-    local text = "Select Direction to Attack\nPress " .. ucfirst(keybindings.escape[1]) .. " to Cancel"
+    local text = "Select Direction to Attack\nPress " .. ucfirst(input:get_button_name("escape")) .. " to Cancel"
     setColor(0,0,0,255)
     love.graphics.printf(text,2,33,width,"center")
     setColor(255,255,255,255)
@@ -261,13 +261,14 @@ function game:print_sidebar()
 	love.graphics.printf(player.properName,printX,printY-4+yBonus,335,"center")
   local skillPoints = ""
   if player.skillPoints and player.skillPoints > 0 then skillPoints = " (+)" end
-  local buttonWidth = whichFont:getWidth(keybindings.charScreen[1] .. ") " .. (gamesettings.leveling and " Level " .. player.level .. " " or " ") .. ucfirst(player.name) .. skillPoints)
+  local char_screen_key = input:get_button_name("charScreen")
+  local buttonWidth = whichFont:getWidth(char_screen_key .. ") " .. (gamesettings.leveling and " Level " .. player.level .. " " or " ") .. ucfirst(player.name) .. skillPoints)
 
   local middleX = round(printX+335/2)
   printY=printY+fontPad
   self.characterButton = output:button(round(middleX-buttonWidth/2)-8,printY,buttonWidth+16,smallButtons,nil,nil,true)
 	if skillPoints ~= "" then setColor(255,255,0,255) end
-  love.graphics.printf(keybindings.charScreen[1] .. ")" .. (gamesettings.leveling and " Level " .. player.level .. " " or " ") .. ucfirst(player.name) .. skillPoints,printX,printY+yBonus,335,"center")
+  love.graphics.printf(char_screen_key .. ")" .. (gamesettings.leveling and " Level " .. player.level .. " " or " ") .. ucfirst(player.name) .. skillPoints,printX,printY+yBonus,335,"center")
   setColor(255,255,255,255) 
   if output.shakeTimer > 0 then
     love.graphics.push()
@@ -321,7 +322,7 @@ function game:print_sidebar()
   --Buttons for ranged attacks:
  local ranged_attacks = player:get_ranged_attacks()
   if #ranged_attacks > 0 then
-    local ranged_text = keybindings.ranged[1] .. ") Ranged: "
+    local ranged_text = input:get_button_name("ranged") .. ") Ranged: "
     local ranged_description_box = ""
     for i,attack_instance in ipairs(ranged_attacks) do
       local attack = rangedAttacks[attack_instance.attack]
@@ -368,11 +369,12 @@ function game:print_sidebar()
   end
   --Button for abilities:
   if count(player:get_spells()) > 0 then
-    local buttonWidth = whichFont:getWidth(keybindings.spell[1] .. ") Abilities")
+    local key_spell = input:get_button_name("spell")
+    local buttonWidth = whichFont:getWidth(key_spell .. ") Abilities")
     local minX,minY=printX+xPad-2,printY
     local maxX,maxY=minX+buttonWidth+4,minY+16
     self.allSpellsButton = output:button(minX,minY+2,(maxX-minX),smallButtons,nil,nil,true)
-    love.graphics.print(keybindings.spell[1] .. ") Abilities",printX+xPad,printY-2+yBonus)
+    love.graphics.print(key_spell .. ") Abilities",printX+xPad,printY-2+yBonus)
     if self.allSpellsButton.hover == true then
       descBox = {desc="View and use abilities you have.",x=minX,y=minY}
     end
@@ -380,32 +382,34 @@ function game:print_sidebar()
   end
   --Button for inventory:
   if gamesettings.inventory then
-    local invWidth = whichFont:getWidth(keybindings.inventory[1] .. ") Inventory")
+    local key_inventory = input:get_button_name("inventory")
+    local invWidth = whichFont:getWidth(key_inventory .. ") Inventory")
     local minX,minY=printX+xPad-2,printY
     local maxX,maxY=minX+invWidth+4,minY+(smallButtons and 16 or 32)
     self.spellButtons["inventory"] = output:button(minX,minY+2,(maxX-minX),smallButtons,nil,nil,true)
     if self.spellButtons["inventory"].hover == true then
       descBox = {desc="View and use items and equipment.",x=minX,y=minY}
     end
-    love.graphics.print(keybindings.inventory[1] .. ") Inventory",printX+xPad,printY-2+yBonus)
+    love.graphics.print(key_inventory .. ") Inventory",printX+xPad,printY-2+yBonus)
     printY = printY+buttonPadding
   end
   if gamesettings.crafting and gamesettings.craft_anywhere then
-    local invWidth = whichFont:getWidth(keybindings.crafting[1] .. ") Crafting")
+    local key_crafting = input:get_button_name("crafting")
+    local invWidth = whichFont:getWidth(key_crafting .. ") Crafting")
     local minX,minY=printX+xPad-2,printY
     local maxX,maxY=minX+invWidth+4,minY+16
     self.spellButtons["crafting"] = output:button(minX,minY+2,(maxX-minX),smallButtons,nil,nil,true)
     if self.spellButtons["crafting"].hover == true then
       descBox = {desc="Make new items.",x=minX,y=minY}
     end
-    love.graphics.print(keybindings.crafting[1] .. ") Crafting",printX+xPad,printY-2+yBonus)
+    love.graphics.print(key_crafting .. ") Crafting",printX+xPad,printY-2+yBonus)
     printY = printY+buttonPadding
   end
   
  --Button for feature actions:
   local featureActions = currMap:get_tile_actions(player.x,player.y,true)
   if #featureActions > 0 then
-    local picktext = keybindings.action[1] .. ") " .. (#featureActions > 1 and "Nearby Actions" or featureActions[1].text)
+    local picktext = input:get_button_name("action") .. ") " .. (#featureActions > 1 and "Nearby Actions" or featureActions[1].text)
     local spellwidth = whichFont:getWidth(picktext)
     local minX,minY=printX+xPad-2,printY
     local maxX,maxY=minX+spellwidth+4,minY+16
@@ -418,7 +422,7 @@ function game:print_sidebar()
   end
   local items = currMap:get_tile_items(player.x,player.y,gamesettings.can_pickup_adjacent_items)
   if #items > 0 then
-    local picktext = keybindings.pickup[1] .. ") Pick Up " .. (#items > 1 and "Items" or items[1]:get_name())
+    local picktext = input:get_button_name("pickup") .. ") Pick Up " .. (#items > 1 and "Items" or items[1]:get_name())
     local spellwidth = whichFont:getWidth(picktext)
     local minX,minY=printX+xPad-2,printY
     local maxX,maxY=minX+spellwidth+4,minY+16
@@ -1495,18 +1499,18 @@ function game:mousepressed(x,y,button)
             if actionResult and actionResult.baseType == "ranged" then
               cancel_targeting()
             else
-              self:buttonpressed(keybindings.ranged[1])
+              self:buttonpressed(input:get_button_name("ranged"))
             end
           elseif spell == "recharge" then
-            self:buttonpressed(keybindings.recharge[1])
+            self:buttonpressed(input:get_button_name("recharge"))
           elseif spell == "pickup" then
-            self:buttonpressed(keybindings.pickup[1])
+            self:buttonpressed(input:get_button_name("pickup"))
           elseif spell == "inventory" then
-            self:buttonpressed(keybindings.inventory[1])
+            self:buttonpressed(input:get_button_name("inventory"))
           elseif spell == "crafting" then
-            self:buttonpressed(keybindings.crafting[1])
+            self:buttonpressed(input:get_button_name("crafting"))
           elseif spell == "action" then
-            self:buttonpressed(keybindings.action[1])
+            self:buttonpressed(input:get_button_name("action"))
           else
             local hotkeyInfo = player.hotkeys[spell]
             local hotkeyItem = hotkeyInfo.hotkeyItem
@@ -1562,7 +1566,7 @@ function game:mousepressed(x,y,button)
   elseif button == 2 then
     --If doing multi-target, remove last target
     if action == "targeting" then
-      self:buttonpressed(keybindings.escape[1])
+      self:buttonpressed(input:get_button_name("escape"))
       return
     end
     --Check if you right clicked on the sidebar

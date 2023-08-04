@@ -116,10 +116,6 @@ function love.keypressed(key, unicode)
   Gamestate.buttonpressed(key,unicode)
 end
 
-function love.gamepadpressed(joystick, button)
-  Gamestate.buttonpressed(button)
-end
-
 if love._os == "NX" then
   local tx, ty = 1, 1
 
@@ -166,11 +162,11 @@ else
 end
 
 function love.gamepadaxis(joystick,axis,value)
-  Gamestate.gamepadaxis(joystick,axis,value)
+ -- TODO
 end
 
 function love.gamepadpressed(joystick,button)
-  Gamestate.gamepadpressed(joystick,button)
+  Gamestate.buttonpressed(button)
 end
 
 function love.quit()

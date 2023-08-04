@@ -47,7 +47,7 @@ keybindings = {
 
   south = {
     keyboard = {"kp2","down"},
-    gamepad = {"dpright"},
+    gamepad = {"dpdown"},
 
     description = "South/Down",
     category = "Movement"
@@ -69,7 +69,7 @@ keybindings = {
   },
 
   northwest = {
-    keybaord = {"kp7"},
+    keyboard = {"kp7"},
     
     description = "Northwest",
     category = "Movement"
@@ -97,7 +97,7 @@ keybindings = {
   },
 
   charScreen = {
-    keybaord = {"c"},
+    keyboard = {"c"},
     
     description = "View Character Screen",
     category = "Game Commands"
