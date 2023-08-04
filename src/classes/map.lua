@@ -504,7 +504,7 @@ end
 --@param y Number. The y-coordinate
 --@return Feature or String. The feature added, or the string the tile was turned into.
 function Map:change_tile(feature,x,y,dontRefreshSight)
-  if not feature or type(feature) ~= "table" or feature.baseType ~= "feature" then
+  if not feature or (type(feature) ~= "table" and type(feature) ~= "string") or (type(feature) == "table" and feature.baseType ~= "feature") then
     output:out("Error: Tried to add non-existent feature to map " .. self:get_name())
     print("Tried to add non-existent feature to map " .. self:get_name())
     return false

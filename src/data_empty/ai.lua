@@ -461,6 +461,7 @@ ai['moveAlongPath'] = function(self,args)
         self:attack(creat)
         return true
       else --if the blocking creature is not an enemy, move around them
+        if not self.target then self.target = {x=path[#path].x,y=path[#path].y} end
         local dist = calc_distance(self.x,self.y,self.target.x,self.target.y) --how far you are already
         local xDir,yDir = (random(1,2) == 1 and 1 or -1),(random(1,2) == 1 and 1 or -1) --pick random starting direction, so the creatures don't always start at the upper left or whatever
         local emergX,emergY = nil,nil
