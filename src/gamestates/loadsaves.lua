@@ -206,7 +206,7 @@ function loadsaves:update(dt)
   end
 end
 
-function loadsaves:keypressed(key, isRepeat)
+function loadsaves:buttonpressed(key, isRepeat)
   key = input:parse_key(key)
   if self.deletewarning == false then
     if key == "escape" then

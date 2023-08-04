@@ -65,7 +65,7 @@ Ripple by Andrew Minnich, MIT license.
   setColor(255,255,255,255)
 end
 
-function credits:keypressed(key)
+function credits:buttonpressed(key)
   key = input:parse_key(key)
   if key == "escape" then
     Gamestate.switch(menu)

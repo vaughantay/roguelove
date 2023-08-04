@@ -359,7 +359,7 @@ function examine_item:calculate_height()
   return math.min(height,printY)
 end
 
-function examine_item:keypressed(key)
+function examine_item:buttonpressed(key)
   local letter = key
   key = input:parse_key(key)
 	if (key == "escape") then

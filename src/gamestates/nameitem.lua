@@ -104,7 +104,7 @@ function nameitem:textinput(text)
   end
 end
 
-function nameitem:keypressed(key)
+function nameitem:buttonpressed(key)
   --Text entry
   if key == "backspace" and self.cursorY == 1 then
     self.name = string.sub(self.name,1,#self.name-1)

@@ -131,7 +131,7 @@ function pronoun_entry:switchBack()
   newgame.player.pronouns = self.pronouns
 end
 
-function pronoun_entry:keypressed(key)
+function pronoun_entry:buttonpressed(key)
   local origKey = key
   key = input:parse_key(key)
   if (origKey == "escape") then

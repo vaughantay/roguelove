@@ -298,7 +298,7 @@ function settings:draw()
   love.graphics.pop()
 end --end draw
 
-function settings:keypressed(key,scancode,isRepeat,noParse)
+function settings:buttonpressed(key,scancode,isRepeat,noParse)
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
   local uiScale = (prefs['uiScale'] or 1)
   width,height = round(width/uiScale),round(height/uiScale)
@@ -476,9 +476,9 @@ function settings:mousepressed(x,y,button)
     self.replaceWhich = nil
     self.replaceSetting = nil
     action = "moving"
-    self:keypressed("enter",true)
+    self:buttonpressed("enter",true)
   elseif x > width/4+16 and x < (width/4)*3 then
-    self:keypressed("enter",true)
+    self:buttonpressed("enter",true)
   end
 end
 

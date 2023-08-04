@@ -467,7 +467,7 @@ function inventory:draw()
   love.graphics.pop()
 end
 
-function inventory:keypressed(key)
+function inventory:buttonpressed(key)
   local uiScale = prefs['uiScale']
   local letter = key
   key = input:parse_key(key)

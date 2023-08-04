@@ -623,7 +623,7 @@ function gamestats:draw()
   love.graphics.pop()
 end
 
-function gamestats:keypressed(key)
+function gamestats:buttonpressed(key)
   key = input:parse_key(key)
   if key == "escape" then
     self:switchBack()

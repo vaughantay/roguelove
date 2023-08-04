@@ -113,11 +113,11 @@ function love.update(dt)
 end
 
 function love.keypressed(key, unicode)
-  Gamestate.keypressed(key,unicode)
+  Gamestate.buttonpressed(key,unicode)
 end
 
-function love.textinput(text)
-  Gamestate.textinput(text)
+function love.gamepadpressed(joystick, button)
+  Gamestate.buttonpressed(button)
 end
 
 if love._os == "NX" then

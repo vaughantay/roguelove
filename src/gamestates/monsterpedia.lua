@@ -299,7 +299,7 @@ function monsterpedia:draw()
   love.graphics.pop()
 end
 
-function monsterpedia:keypressed(key)
+function monsterpedia:buttonpressed(key)
   local lineSize = math.max(output:get_tile_size(),prefs['fontSize'],prefs['asciiSize'])
   key = input:parse_key(key)
   if (key == "north") then

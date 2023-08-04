@@ -1495,18 +1495,18 @@ function game:mousepressed(x,y,button)
             if actionResult and actionResult.baseType == "ranged" then
               cancel_targeting()
             else
-              self:keypressed(keybindings.ranged[1])
+              self:buttonpressed(keybindings.ranged[1])
             end
           elseif spell == "recharge" then
-            self:keypressed(keybindings.recharge[1])
+            self:buttonpressed(keybindings.recharge[1])
           elseif spell == "pickup" then
-            self:keypressed(keybindings.pickup[1])
+            self:buttonpressed(keybindings.pickup[1])
           elseif spell == "inventory" then
-            self:keypressed(keybindings.inventory[1])
+            self:buttonpressed(keybindings.inventory[1])
           elseif spell == "crafting" then
-            self:keypressed(keybindings.crafting[1])
+            self:buttonpressed(keybindings.crafting[1])
           elseif spell == "action" then
-            self:keypressed(keybindings.action[1])
+            self:buttonpressed(keybindings.action[1])
           else
             local hotkeyInfo = player.hotkeys[spell]
             local hotkeyItem = hotkeyInfo.hotkeyItem
@@ -1562,7 +1562,7 @@ function game:mousepressed(x,y,button)
   elseif button == 2 then
     --If doing multi-target, remove last target
     if action == "targeting" then
-      self:keypressed(keybindings.escape[1])
+      self:buttonpressed(keybindings.escape[1])
       return
     end
     --Check if you right clicked on the sidebar
@@ -1600,7 +1600,7 @@ function game:wheelmoved(x,y)
   end
 end
 
-function game:keypressed(key,scancode,isRepeat)
+function game:buttonpressed(key,scancode,isRepeat)
   key,scancode,isRepeat = input:parse_key(key,scancode,isRepeat)
   --Pie:keypressed(key)
   if self.popup then

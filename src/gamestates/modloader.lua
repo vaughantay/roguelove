@@ -160,7 +160,7 @@ function modloader:update(dt)
   end
 end
 
-function modloader:keypressed(key, isRepeat)
+function modloader:buttonpressed(key, isRepeat)
   key = input:parse_key(key)
   if key == "escape" then --go to no mods button
     self.cursorX=3
