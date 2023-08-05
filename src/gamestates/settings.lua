@@ -77,10 +77,11 @@ function settings:make_controls()
     for command,info in pairs(kb_category) do
       self.labels.controls[kb] = {}
       --self.labels.controls[kb][1] = Setting('keybindings:' .. command,info.description,leftColumnX,printY,nil,nil,leftW)
-      self.labels.controls[kb][1] = Setting('keybindings:' .. command .. ":1",(info[1] or " "),leftColumnLineX,printY,nil,true,biggestLeft)
+      local firstKey, secondKey = input:get_keys(command)
+      self.labels.controls[kb][1] = Setting('keybindings:' .. command.. ":1",(firstKey and firstKey or ""),leftColumnLineX,printY,nil,true,biggestLeft)
       self.labels.controls[kb][1].x,self.labels.controls[kb][1].width = leftColumnLineX,biggestLeft
       self.labels.controls[kb][1].description = info.description
-      self.labels.controls[kb][2] = Setting('keybindings:' .. command .. ":2",(info[2] or " "),rightColumnLineX,printY,nil,true,biggestLeft)
+      self.labels.controls[kb][2] = Setting('keybindings:' .. command .. ":2",(secondKey and secondKey or ""),rightColumnLineX,printY,nil,true,biggestLeft)
       self.labels.controls[kb][2].x,self.labels.controls[kb][2].width = rightColumnLineX,biggestLeft
       self.labels.controls[kb][2].description = info.description
       printY=printY+controlIncrease
@@ -311,7 +312,7 @@ function settings:buttonpressed(key,scancode,isRepeat,noParse)
           return
         end
        end -- end for loop
-      keybindings[self.replaceKey][self.replaceWhich] = key
+      keybindings[self.replaceKey].keyboard[self.replaceWhich] = key
       self:make_controls() --refresh all the control labels
       self.replaceKey = nil
       self.replaceWhich = nil
