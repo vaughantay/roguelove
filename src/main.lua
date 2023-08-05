@@ -60,13 +60,13 @@ function love.load(arg)
  	load_prefs()
   quads = gen_quads()
   fonts = {
-    graveFontBig = love.graphics.newFont("VeniceClassic.ttf",36),
-    graveFontSmall = love.graphics.newFont("VeniceClassic.ttf",24),
-    buttonFont = love.graphics.newFont("VeniceClassic.ttf",18),
-    miniMapFont = love.graphics.newFont("VeraMono.ttf",8),
-    mapFont = love.graphics.newFont("VeraMono.ttf",prefs['asciiSize']),
+    graveFontBig = love.graphics.newFont("assets/fonts/VeniceClassic.ttf",36),
+    graveFontSmall = love.graphics.newFont("assets/fonts/VeniceClassic.ttf",24),
+    buttonFont = love.graphics.newFont("assets/fonts/VeniceClassic.ttf",18),
+    miniMapFont = love.graphics.newFont("assets/fonts/VeraMono.ttf",8),
+    mapFont = love.graphics.newFont("assets/fonts/VeraMono.ttf",prefs['asciiSize']),
     --mapFontDys = love.graphics.newFont("OpenDyslexic-Regular.otf",prefs['asciiSize']),
-    mapFontWithImages = love.graphics.newFont("VeraMono.ttf",output:get_tile_size()),
+    mapFontWithImages = love.graphics.newFont("assets/fonts/VeraMono.ttf",output:get_tile_size()),
     textFont = love.graphics.newFont(prefs['fontSize']),
     descFont = love.graphics.newFont(prefs['descFontSize']),
     menuFont = love.graphics.newFont(24),

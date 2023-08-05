@@ -95,14 +95,14 @@ function output.display_entity(entity,x,y, seen,ignoreDistMods,scale)
   end
 end
 
----Load an image from the images/ directory
+---Load an image from the assets/images/ directory
 --The resulting image will be loaded into images[image_typename], for example images['creaturezombie']
 --@param name String. The name of the file.
---@param image_type String. The type of Entity the image is for. This determines what subdirectory in images/ to look in, as well as what the final ID of the image will be when loaded into the game.
+--@param image_type String. The type of Entity the image is for. This determines what subdirectory in assets/images/ to look in, as well as what the final ID of the image will be when loaded into the game.
 function output:load_image(name,image_type)
   if images[(image_type or "") .. name] then return true end
-  if love.filesystem.getInfo("images/" .. image_type .. "/" .. name .. ".png",'file') then
-    images[(image_type or "") .. name] = love.graphics.newImage("images/" .. image_type .. "/" .. name .. ".png")
+  if love.filesystem.getInfo("assets/images/" .. image_type .. "/" .. name .. ".png",'file') then
+    images[(image_type or "") .. name] = love.graphics.newImage("assets/images/" .. image_type .. "/" .. name .. ".png")
   else
     images[(image_type or "") .. name] = -1
   end
@@ -285,47 +285,47 @@ end
 
 ---Load and initialize all UI-related images.
 function output:load_ui()
-  images.borders = {borderImg=love.graphics.newImage("images/ui/borders.png"),ul = love.graphics.newQuad(0,0,32,32,96,96),ur = love.graphics.newQuad(64,0,32,32,96,96),ll = love.graphics.newQuad(0,64,32,32,96,96),lr = love.graphics.newQuad(64,64,32,32,96,96),u = love.graphics.newQuad(32,0,32,32,96,96),d = love.graphics.newQuad(32,64,32,32,96,96),l = love.graphics.newQuad(0,32,32,32,96,96),r = love.graphics.newQuad(64,32,32,32,96,96)}
-  images.button = {image=love.graphics.newImage("images/ui/button.png"),hover=love.graphics.newImage("images/ui/buttonhover.png"),l=love.graphics.newQuad(0,0,32,32,128,32),middle=love.graphics.newQuad(32,0,32,32,128,32),r=love.graphics.newQuad(64,0,32,32,128,32),small=love.graphics.newQuad(96,0,32,32,128,32)}
-  images.smallbutton = {image=love.graphics.newImage("images/ui/smallbutton.png"),hover=love.graphics.newImage("images/ui/smallbuttonhover.png"),disabled=love.graphics.newImage("images/ui/smallbuttondisabled.png"),l=love.graphics.newQuad(0,0,32,16,128,16),middle=love.graphics.newQuad(32,0,32,16,128,16),r=love.graphics.newQuad(64,0,32,16,128,16),small=love.graphics.newQuad(96,0,32,16,128,16)}
-  images.largebutton = {image=love.graphics.newImage("images/ui/button.png"),hover=love.graphics.newImage("images/ui/buttonlarge.png"),l=love.graphics.newQuad(0,0,64,64,256,64),middle=love.graphics.newQuad(64,0,64,64,256,64),r=love.graphics.newQuad(128,0,64,64,256,64),small=love.graphics.newQuad(192,0,64,64,256,64)}
-  images.closebutton = {image=love.graphics.newImage("images/ui/closebutton.png"),hover=love.graphics.newImage("images/ui/closebuttonhover.png")}
-  images.menubutton = {image=love.graphics.newImage("images/ui/menubutton.png"),hover=love.graphics.newImage("images/ui/menubuttonhover.png")}
+  images.borders = {borderImg=love.graphics.newImage("assets/images/ui/borders.png"),ul = love.graphics.newQuad(0,0,32,32,96,96),ur = love.graphics.newQuad(64,0,32,32,96,96),ll = love.graphics.newQuad(0,64,32,32,96,96),lr = love.graphics.newQuad(64,64,32,32,96,96),u = love.graphics.newQuad(32,0,32,32,96,96),d = love.graphics.newQuad(32,64,32,32,96,96),l = love.graphics.newQuad(0,32,32,32,96,96),r = love.graphics.newQuad(64,32,32,32,96,96)}
+  images.button = {image=love.graphics.newImage("assets/images/ui/button.png"),hover=love.graphics.newImage("assets/images/ui/buttonhover.png"),l=love.graphics.newQuad(0,0,32,32,128,32),middle=love.graphics.newQuad(32,0,32,32,128,32),r=love.graphics.newQuad(64,0,32,32,128,32),small=love.graphics.newQuad(96,0,32,32,128,32)}
+  images.smallbutton = {image=love.graphics.newImage("assets/images/ui/smallbutton.png"),hover=love.graphics.newImage("assets/images/ui/smallbuttonhover.png"),disabled=love.graphics.newImage("assets/images/ui/smallbuttondisabled.png"),l=love.graphics.newQuad(0,0,32,16,128,16),middle=love.graphics.newQuad(32,0,32,16,128,16),r=love.graphics.newQuad(64,0,32,16,128,16),small=love.graphics.newQuad(96,0,32,16,128,16)}
+  images.largebutton = {image=love.graphics.newImage("assets/images/ui/button.png"),hover=love.graphics.newImage("assets/images/ui/buttonlarge.png"),l=love.graphics.newQuad(0,0,64,64,256,64),middle=love.graphics.newQuad(64,0,64,64,256,64),r=love.graphics.newQuad(128,0,64,64,256,64),small=love.graphics.newQuad(192,0,64,64,256,64)}
+  images.closebutton = {image=love.graphics.newImage("assets/images/ui/closebutton.png"),hover=love.graphics.newImage("assets/images/ui/closebuttonhover.png")}
+  images.menubutton = {image=love.graphics.newImage("assets/images/ui/menubutton.png"),hover=love.graphics.newImage("assets/images/ui/menubuttonhover.png")}
 
   if love._os ~= "NX" then
-    images.cursors = {main = love.mouse.newCursor("images/ui/cursor.png",0,0)}
+    images.cursors = {main = love.mouse.newCursor("assets/images/ui/cursor.png",0,0)}
   end
   --love.mouse.setCursor(images.cursors.main)
 end
 
----Load all images in the images/ directory
+---Load all images in the assets/images/ directory
 function output:load_all_images()
-  local folders = love.filesystem.getDirectoryItems('images')
+  local folders = love.filesystem.getDirectoryItems('assets/images')
   for _,folderName in pairs(folders) do
-    if love.filesystem.getInfo('images/' .. folderName,'directory') then
-      local files = love.filesystem.getDirectoryItems('images/' .. folderName)
+    if love.filesystem.getInfo('assets/images/' .. folderName,'directory') then
+      local files = love.filesystem.getDirectoryItems('assets/images/' .. folderName)
       for _,fileName in pairs(files) do
         local extension = string.sub(fileName, -4)
         if extension == ".png" then
           fileName = string.sub(fileName,1,-5)
-          images[folderName .. fileName] = love.graphics.newImage("images/" .. folderName .. "/" .. fileName .. ".png")
+          images[folderName .. fileName] = love.graphics.newImage("assets/images/" .. folderName .. "/" .. fileName .. ".png")
         end --end extension check
       end --end fileName for
     end --end is folder if
   end --end folderName for
-  for _,tileset in pairs(love.filesystem.getDirectoryItems('images/maps')) do
-    local files = love.filesystem.getDirectoryItems('images/maps/' .. tileset)
+  for _,tileset in pairs(love.filesystem.getDirectoryItems('assets/images/maps')) do
+    local files = love.filesystem.getDirectoryItems('assets/images/maps/' .. tileset)
     for _,fileName in pairs(files) do
       local extension = string.sub(fileName, -4)
       if extension == ".png" then
         fileName = string.sub(fileName,1,-5)
-        images[tileset .. fileName] = love.graphics.newImage("images/maps/" .. tileset .. "/" .. fileName .. ".png")
+        images[tileset .. fileName] = love.graphics.newImage("assets/images/maps/" .. tileset .. "/" .. fileName .. ".png")
       end --end extension check
     end --end fileName for
   end
   if images['uicursor'] and not prefs['noImages'] then
     if love._os ~= "NX" then
-      love.mouse.setCursor(love.mouse.newCursor("images/ui/cursor.png"))
+      love.mouse.setCursor(love.mouse.newCursor("assets/images/ui/cursor.png"))
     end
   end
 end
@@ -351,7 +351,7 @@ function output:draw_health_bar(val,max_val,x,y,width,height,color)
       if px+2 < x+barWidth then love.graphics.draw(images.uihealthbartiny,px,y) end
     end --end for
     love.graphics.draw(images.uihealthbartiny,x+barWidth-2,y)
-  end --end images/noimages if
+  end --end assets/images/noimages if
   setColor(255,255,255,255)
 end
 
