@@ -183,6 +183,11 @@ function load_prefs()
     local ok, loadedprefs = pcall( love.filesystem.load, "prefs.sav" ) -- load the chunk safely
     if ok then
       loadedprefs = loadedprefs()
+      -- Preferences is outdated. Regenerate.
+      if loadedprefs.prefsVersion ~= prefs.prefsVersion then
+        love.filesystem.remove("prefs.sav")
+        return
+      end
       for action,key in pairs(keybindings) do
         if loadedprefs['keys'][action] then
           keybindings[action] = loadedprefs['keys'][action]

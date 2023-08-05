@@ -24,7 +24,8 @@ prefs={
   lastMods={},
   uiScale=1,
   vsync=true,
-  autoLevel=false
+  autoLevel=false,
+  prefsVersion=1
 }
 
 require "keybindings"
