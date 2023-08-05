@@ -1,0 +1,2 @@
+Add music to this directoy as needed. Music files can be MP3, OGG, or WAV files.
+You can also add subdirectories within this directory to act as "playlists."

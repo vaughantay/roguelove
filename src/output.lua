@@ -365,12 +365,12 @@ function output:sound(soundName,pitchDiff)
     
   -- Load sound first
   if not sounds[soundName] then
-    if love.filesystem.getInfo("sounds/" .. soundName ..".ogg",'file') then
-      sounds[soundName] = ripple.newSound({source=love.audio.newSource("sounds/" .. soundName ..".ogg",'static'),tags={soundTags.sfx}})
-      elseif love.filesystem.getInfo("sounds/" .. soundName .. ".wav",'file') then
-      sounds[soundName] = ripple.newSound({source=love.audio.newSource("sounds/" .. soundName ..".wav",'static'),tags={soundTags.sfx}})
-    elseif love.filesystem.getInfo("sounds/" .. soundName .. ".mp3",'file') then
-      sounds[soundName] = ripple.newSound({source=love.audio.newSource("sounds/" .. soundName ..".mp3",'static'),tags={soundTags.sfx}})
+    if love.filesystem.getInfo("assets/sounds/" .. soundName ..".ogg",'file') then
+      sounds[soundName] = ripple.newSound({source=love.audio.newSource("assets/sounds/" .. soundName ..".ogg",'static'),tags={soundTags.sfx}})
+      elseif love.filesystem.getInfo("assets/sounds/" .. soundName .. ".wav",'file') then
+      sounds[soundName] = ripple.newSound({source=love.audio.newSource("assets/sounds/" .. soundName ..".wav",'static'),tags={soundTags.sfx}})
+    elseif love.filesystem.getInfo("assets/sounds/" .. soundName .. ".mp3",'file') then
+      sounds[soundName] = ripple.newSound({source=love.audio.newSource("assets/sounds/" .. soundName ..".mp3",'static'),tags={soundTags.sfx}})
     else
       sounds[soundName] = -1
       return false
@@ -392,20 +392,20 @@ end
 --@return Table. A list of tracks for the playlist
 function output:make_playlist(name)
   --If there is only one track:
-  if love.filesystem.getInfo('music/' .. name .. '.ogg','file') then
-    return {'music/' .. name .. '.ogg'}
-  elseif love.filesystem.getInfo('music/' .. name .. '.mp3','file') then
-    return {'music/' .. name .. '.mp3'}
-  elseif love.filesystem.getInfo('music/' .. name .. '.wav','file') then
-    return {'music/' .. name .. '.wav'}
-  elseif love.filesystem.getInfo('music/' .. name,'directory') then
-    local files = love.filesystem.getDirectoryItems('music/' .. name)
+  if love.filesystem.getInfo('assets/music/' .. name .. '.ogg','file') then
+    return {'assets/music/' .. name .. '.ogg'}
+  elseif love.filesystem.getInfo('assets/music/' .. name .. '.mp3','file') then
+    return {'assets/music/' .. name .. '.mp3'}
+  elseif love.filesystem.getInfo('assets/music/' .. name .. '.wav','file') then
+    return {'assets/music/' .. name .. '.wav'}
+  elseif love.filesystem.getInfo('assets/music/' .. name,'directory') then
+    local files = love.filesystem.getDirectoryItems('assets/music/' .. name)
     local tracks = {}
     for _,fileName in pairs(files) do
       local extension = string.sub(fileName, -4)
       if extension == ".mp3" or extension == ".ogg" or extension == ".wav" then
         tracks[#tracks+1] = name
-        music[name] = ripple.newSound({source=love.audio.newSource('music/' .. name .. '/' .. fileName,'stream'),tags={soundTags.music}})
+        music[name] = ripple.newSound({source=love.audio.newSource('assets/music/' .. name .. '/' .. fileName,'stream'),tags={soundTags.music}})
         music[name]:setLooping(true)
       end
     end

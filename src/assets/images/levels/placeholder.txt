@@ -1,0 +1,2 @@
+Add images here as needed. Images must be PNG files.
+Tiles for a tilemap must be placed in a folder matching the name of the tilemap.

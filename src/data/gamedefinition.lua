@@ -40,6 +40,7 @@ gamesettings = {
   stats_per_x_levels={[3]={spell_slots=1}},
   heal_on_level_up=true, --reset to max HP and MP on a level up
   spells_forgettable_by_default=true, --If true, spells can be "forgotten" from the spell screen, unless the spell's forgettable flag is explicitly set to false. If not set to true, spells can be forgotten if their forgettable flag is true
+  spells_locked_by_default=true, --If true, spells cannot be forgotten/memorized from the spellscreen at will
   can_pickup_adjacent_items=true, --Allows picking up items from adjacent tiles, not just the tile you're standing on
   display_item_levels=true,
   display_creature_levels=true,
