@@ -3,8 +3,7 @@ input = {}
 
 ---Return if gamepad is connected
 function input:is_gamepad()
-  local joysticks = love.joystick.getJoysticks()
-  return next(joysticks) ~= nil
+  return input.gamepad or false
 end
 
 ---Parse keyboard input, and return the proper command
