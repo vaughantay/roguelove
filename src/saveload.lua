@@ -188,9 +188,12 @@ function load_prefs()
         love.filesystem.remove("prefs.sav")
         return
       end
-      for action,key in pairs(keybindings) do
-        if loadedprefs['keys'][action] then
-          keybindings[action] = loadedprefs['keys'][action]
+      for action, info in pairs(keybindings) do
+        if loadedprefs['keys'][action].keyboard then
+          keybindings[action].keyboard = loadedprefs['keys'][action].keyboard
+        end
+        if loadedprefs['keys'][action].gamepad then
+          keybindings[action].gamepad = loadedprefs['keys'][action].gamepad
         end
       end
       for pref,val in pairs (prefs) do
