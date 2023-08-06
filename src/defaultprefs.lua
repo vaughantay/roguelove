@@ -25,7 +25,7 @@ prefs={
   uiScale=1,
   vsync=true,
   autoLevel=false,
-  prefsVersion=1
+  prefsVersion=1 --Changing this value will cause all preferences to be deleted on next launch, defaulting everything to default. Only use this if absolutely necessary, and warn users in your update notes if you do. You can add new preferences and keybindings and they will automatically be added to the user's prefs file without changing this value.
 }
 
 require "keybindings"

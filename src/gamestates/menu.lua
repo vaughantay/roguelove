@@ -94,13 +94,6 @@ function menu:buttonpressed(key,scancode,isRepeat,noParse)
 	end
 end
 
-function menu:gamepadpressed(joystick,button)
-  local command = input:parse_gamepadbutton(joystick,button)
-  if command == "select" then
-    self:buttonpressed("enter",true)
-  end
-end
-
 function menu:update(dt)
   local uiScale = (prefs['uiScale'] or 1)
 	local x,y = love.mouse.getPosition()
