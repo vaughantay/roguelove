@@ -74,7 +74,7 @@ function help:update(dt)
   end
 end
 
-function help:keypressed(key)
+function help:buttonpressed(key)
   key = input:parse_key(key)
   if key == "escape" or key == "enter" or key == "wait" then
     self:switchBack()

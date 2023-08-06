@@ -162,7 +162,7 @@ function multiselect:draw()
   love.graphics.pop()
 end
 
-function multiselect:keypressed(key)
+function multiselect:buttonpressed(key)
   local typed = key
   key = input:parse_key(key)
 	if (key == "escape") then

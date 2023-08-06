@@ -306,7 +306,7 @@ function characterscreen:draw()
   love.graphics.pop()
 end
 
-function characterscreen:keypressed(key)
+function characterscreen:buttonpressed(key)
   local height = love.graphics.getHeight()
   local uiScale = prefs['uiScale'] or 1
   height = round(height/uiScale)

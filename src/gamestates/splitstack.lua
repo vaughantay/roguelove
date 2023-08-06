@@ -127,7 +127,7 @@ function splitstack:switchBack()
   Timer.after(0.2,function() self.switchNow=true end)
 end
 
-function splitstack:keypressed(key)
+function splitstack:buttonpressed(key)
   --First, look at number keys and backspace, to manipulate the number amount directly
   local stackAmt = tostring(self.stackAmt)
   if tonumber(key) then

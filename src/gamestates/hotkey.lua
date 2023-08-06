@@ -57,7 +57,7 @@ function hotkey:switchBack()
   Timer.after(0.2,function() self.switchNow=true end)
 end
 
-function hotkey:keypressed(key)
+function hotkey:buttonpressed(key)
   local hotkeyItem = self.hotkeyItem
   local origKey = key
   key = input:parse_key(key)

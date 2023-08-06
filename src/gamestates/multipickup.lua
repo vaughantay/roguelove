@@ -153,7 +153,7 @@ function multipickup:draw()
   love.graphics.pop()
 end
 
-function multipickup:keypressed(key)
+function multipickup:buttonpressed(key)
   local typed = key
   key = input:parse_key(key)
 	if (key == "escape") then

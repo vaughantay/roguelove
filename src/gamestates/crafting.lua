@@ -423,7 +423,7 @@ function crafting:draw()
   love.graphics.pop()
 end
 
-function crafting:keypressed(key)
+function crafting:buttonpressed(key)
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
   local uiScale = (prefs['uiScale'] or 1)
   width,height = round(width/uiScale),round(height/uiScale)

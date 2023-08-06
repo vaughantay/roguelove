@@ -692,7 +692,7 @@ function newgame:draw()
   setColor(255,255,255,255)
 end
 
-function newgame:keypressed(key)
+function newgame:buttonpressed(key)
   local origKey = key
   key = input:parse_key(key)
   local screen = self:getScreen()

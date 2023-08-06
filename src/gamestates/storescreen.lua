@@ -537,7 +537,10 @@ function storescreen:draw()
   love.graphics.pop()
 end
 
-function storescreen:keypressed(key)
+function storescreen:buttonpressed(key)
+  local key_south = input:get_button_name("south")
+  local key_east = input:get_button_name("east")
+
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
   local uiScale = (prefs['uiScale'] or 1)
   local typed = key
@@ -710,16 +713,16 @@ function storescreen:keypressed(key)
     if self.cursorY == 1 then
       local buttonCount = #self.navButtons
       if self.cursorX == buttonCount then
-        self:keypressed(keybindings.south[1])
+        self:buttonpressed(key_south)
         if self.cursorY == 2 then --if going down didn't change anything, loop to beginning
           self.cursorX = 1
         end
       else
-        self:keypressed(keybindings.east[1])
+        self:buttonpressed(key_east)
       end
     elseif self.screen == "Buy" or self.screen == "Sell" then
       if self.cursorY == 2 then
-        self:keypressed(keybindings.south[1])
+        self:buttonpressed(key_south)
       else
         if self.cursorX == 4 then
           local whichList = (self.screen == "Buy" and self.selling_list or self.buying_list)
@@ -728,10 +731,10 @@ function storescreen:keypressed(key)
           if self.cursorY == max then
             self.cursorY = 2
           else
-            self:keypressed(keybindings.south[1])
+            self:buttonpressed(key_south)
           end
         else
-          self:keypressed(keybindings.east[1])
+          self:buttonpressed(key_east)
         end
       end
     else --services, missions, or spells
@@ -739,7 +742,7 @@ function storescreen:keypressed(key)
       if self.cursorY-1 == #whichList then
         self.cursorY = 1
       end
-      self:keypressed(keybindings.south[1])
+      self:buttonpressed(key_south)
     end
   end --end key if
 end

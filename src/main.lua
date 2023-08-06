@@ -104,6 +104,7 @@ function love.draw()
 	Gamestate.draw()
   if output.popup then output.popup:draw() end
   if debugMode then love.graphics.print("FPS: "..tostring(love.timer.getFPS( )), 10, 10) end
+  if debugMode then love.graphics.print("Gamepad: "..tostring(input:is_gamepad()), 10, 25) end
 end
 
 function love.update(dt)
@@ -113,7 +114,7 @@ function love.update(dt)
 end
 
 function love.keypressed(key, unicode)
-  Gamestate.keypressed(key,unicode)
+  Gamestate.buttonpressed(key,unicode)
 end
 
 function love.textinput(text)
@@ -166,11 +167,19 @@ else
 end
 
 function love.gamepadaxis(joystick,axis,value)
-  Gamestate.gamepadaxis(joystick,axis,value)
+ -- TODO
 end
 
 function love.gamepadpressed(joystick,button)
-  Gamestate.gamepadpressed(joystick,button)
+  Gamestate.buttonpressed(button)
+end
+
+function love.joystickadded()
+  input.gamepad = true
+end
+
+function love.joystickremoved()
+  input.gamepad = nil
 end
 
 function love.quit()

@@ -394,7 +394,7 @@ function spellscreen:draw()
   love.graphics.pop()
 end
 
-function spellscreen:keypressed(key)
+function spellscreen:buttonpressed(key)
   local uiScale = prefs['uiScale']
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
   width,height = round(width/uiScale),round(height/uiScale)
