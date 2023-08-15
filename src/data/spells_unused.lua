@@ -1590,9 +1590,9 @@ heal = Spell({
     flags={friendly=true},
     cast = function(self,target,caster)
       if target == caster then output:out("You can't use this ability to heal yourself. That's too selfish for an orc.") return false end
-      if target.hp < target:get_mhp() then
+      if target.hp < target:get_max_hp() then
         if caster:touching(target) then
-          local amt = math.max(5,math.ceil(target:get_mhp() *.05))
+          local amt = math.max(5,math.ceil(target:get_max_hp() *.05))
           if player:can_see_tile(caster.x,caster.y) then
             output:out(caster:get_name() .. " heals " .. target:get_name() .. " for amt damage.")
             output:sound('heal_other')
@@ -1622,7 +1622,7 @@ heal = Spell({
       if creats then
         for _,creat in pairs(creats) do
           if caster:is_enemy(creat) == false and creat ~= caster then
-            local dmg = (creat:get_mhp()-creat.hp)
+            local dmg = (creat:get_max_hp()-creat.hp)
             if (mostDmg == nil or dmg > mostDmg) and dmg > 0 then
               mostDmg,dmgedCreat = dmg,creat
             end --end damage if
@@ -1812,7 +1812,7 @@ hypnotize = Spell({
       end
     end,
     decide = function(self,caster,target)
-      if caster.hypno and caster.hypno.hp >= caster.hypno:get_mhp()/2 then return false end --if you have a hypnotized creature that's still relatively healthy, don't hypnotize anyone else
+      if caster.hypno and caster.hypno.hp >= caster.hypno:get_max_hp()/2 then return false end --if you have a hypnotized creature that's still relatively healthy, don't hypnotize anyone else
       local creats = caster:get_seen_creatures()
       local highestHP = 0
       local highestCreat = nil

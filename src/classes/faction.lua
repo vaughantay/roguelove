@@ -21,6 +21,7 @@ function Faction:init(fid)
   self.inventory = {}
   self.offers_services = self.offers_services or {}
   self.teaches_spells = self.teaches_spells or {}
+  self.teaches_skills = self.teaches_skills or {}
   self:generate_items()
   if data.generateName then
     self.name = data.generateName(self)

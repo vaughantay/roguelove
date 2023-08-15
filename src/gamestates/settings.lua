@@ -121,21 +121,20 @@ function settings:make_controls()
   self.labels.graphics[7] = Setting('minimap',"Mini-map",startX,startY+increase*5,prefs['minimap'],true,startX)
   self.labels.graphics[8] = Setting('noSmoothCamera',"Disable Smooth Camera",startX,startY+increase*6,prefs['noSmoothCamera'],true,startX)
   self.labels.graphics[9] = Setting('noSmoothMovement',"Disable Smooth Movement",startX,startY+increase*7,prefs['noSmoothMovement'],true,startX)
-  self.labels.graphics[10] = Setting('statsOnSidebar',"Show Attributes on Sidebar",startX,startY+increase*8,prefs['statsOnSidebar'],true,startX)
-  self.labels.graphics[11] = Setting('plainFonts',"Plain Fonts on Sidebar",startX,startY+increase*9,prefs['plainFonts'],true,startX)
-  self.labels.graphics[12] = Setting('bigButtons',"Larger Buttons on Sidebar",startX,startY+increase*10,prefs['bigButtons'],true,startX)
-  self.labels.graphics[13] = Setting('healthbars',"Show Health Bars on Map",startX,startY+increase*11,prefs['healthbars'],true,startX)
-  self.labels.graphics[14] = Setting('fullscreen',"Fullscreen",startX,startY+increase*12,prefs['fullscreen'],true,startX)
-  self.labels.graphics[15] = Setting('vsync',"Vsync",startX,startY+increase*13,prefs['vsync'],true,startX)
-  self.labels.graphics[16] = Setting('noImages',"ASCII Mode",startX,startY+increase*14,prefs['noImages'],true,startX)
+  self.labels.graphics[10] = Setting('plainFonts',"Plain Fonts on Sidebar",startX,startY+increase*9,prefs['plainFonts'],true,startX)
+  self.labels.graphics[11] = Setting('bigButtons',"Larger Buttons on Sidebar",startX,startY+increase*10,prefs['bigButtons'],true,startX)
+  self.labels.graphics[12] = Setting('healthbars',"Show Health Bars on Map",startX,startY+increase*11,prefs['healthbars'],true,startX)
+  self.labels.graphics[13] = Setting('fullscreen',"Fullscreen",startX,startY+increase*12,prefs['fullscreen'],true,startX)
+  self.labels.graphics[14] = Setting('vsync',"Vsync",startX,startY+increase*13,prefs['vsync'],true,startX)
+  self.labels.graphics[15] = Setting('noImages',"ASCII Mode",startX,startY+increase*14,prefs['noImages'],true,startX)
   if prefs['noImages'] then
     local asciiW = math.ceil(fonts.textFont:getWidth("ASCII Font Size: " .. prefs['asciiSize'])/2)+16
-    self.labels.graphics[17] = {}
-    self.labels.graphics[17][1] = Setting('asciiSizeDown',"-",width/2-asciiW,startY+increase*15)
-    self.labels.graphics[17][2] = Setting('asciiSizeUp',"+",width/2+asciiW,startY+increase*15)
+    self.labels.graphics[16] = {}
+    self.labels.graphics[16][1] = Setting('asciiSizeDown',"-",width/2-asciiW,startY+increase*15)
+    self.labels.graphics[16][2] = Setting('asciiSizeUp',"+",width/2+asciiW,startY+increase*15)
   else
-    self.labels.graphics[17] = Setting('creatureShadows',"Creature Shadows",startX,startY+increase*15,prefs['creatureShadows'],true,startX)
-    self.labels.graphics[18] = Setting('creatureAnimations',"Creature Animations",startX,startY+increase*16,prefs['creatureAnimations'],true,startX)
+    self.labels.graphics[16] = Setting('creatureShadows',"Creature Shadows",startX,startY+increase*15,prefs['creatureShadows'],true,startX)
+    self.labels.graphics[17] = Setting('creatureAnimations',"Creature Animations",startX,startY+increase*16,prefs['creatureAnimations'],true,startX)
   end
   local lastGraphic = self.labels.graphics[#self.labels.graphics]
   self.graphicsMaxY = (lastGraphic.maxY or lastGraphic[1].maxY)

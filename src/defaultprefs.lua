@@ -16,7 +16,6 @@ prefs={
   autosaveTurns=false,
   noSmoothMovement=false,
   noSmoothCamera=false,
-  statsOnSidebar=false,
   plainFonts=false,
   bigButtons=false,
   healthbars=true,

@@ -390,7 +390,7 @@ local healthsyringe = {
 function healthsyringe:hits(target)
   if target.baseType == "creature" then
     local caster = self.source
-    local amt = math.max(5,math.ceil(target:get_mhp() *.05))
+    local amt = math.max(5,math.ceil(target:get_max_hp() *.05))
     if player:can_see_tile(caster.x,caster.y) then
       output:out(caster:get_name() .. " heals " .. target:get_name() .. " for " .. amt .. " damage.")
       output:sound('heal_other')

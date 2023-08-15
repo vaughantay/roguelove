@@ -291,8 +291,11 @@ function Projectile:get_damage()
   if self.extra_damage_per_level and level then
     damage = damage + math.floor(self.extra_damage_per_level*level)
   end
+  if self.source and self.source.get_ranged_damage and (not self.source_item or not self.source_item.no_creature_damage) then
+    damage = damage + self.source:get_ranged_damage((self.source_item and self.source_item.ranged_damage_stats) or self.ranged_damage_stats or (self.source_attack and self.source_attack.ranged_damage_stats))
+  end
   if self.source_item then
-    damage = damage + self.source_item:get_ranged_damage_modifier()
+    damage = damage + self.source_item:get_ranged_damage()
   end
   local bonus = .01*self:get_enchantment_bonus('damage_percent')
   damage = damage * math.ceil(bonus > 0 and bonus or 1)

@@ -117,7 +117,7 @@ function Spell:use(target, caster, ignoreCooldowns, ignoreMP)
     if #target == 1 then target = target[1] end --if being passed only a single target, just set that as the target and don't loop
     local result = nil
     if not target or #target == 0 or self.cast_accepts_multiple_targets then
-      local status,r = pcall(possibleSpells[self.id].cast,self,target,caster)
+      local status, r = pcall(possibleSpells[self.id].cast,self,target,caster)
       result = r
       if not status then
         local errtxt = "Error from " .. caster:get_name() .. " casting spell " .. self.name .. ": " .. result
@@ -127,7 +127,7 @@ function Spell:use(target, caster, ignoreCooldowns, ignoreMP)
       end
     else --if there are multiple targets and the spell's cast() function isn't set up to handle them, loop through the targets and cast() on each one
       for tnum,t in ipairs(target) do
-        local status,r = pcall(possibleSpells[self.id].cast,self,t,caster)
+        local status, r = pcall(possibleSpells[self.id].cast,self,t,caster)
         if r == false then result = false end --if any cast returns false, we want to know
         if not status then
           local errtxt = "Error from " .. caster:get_name() .. " casting spell " .. self.name .. ": " .. tostring(result)
@@ -348,6 +348,10 @@ function Spell:get_stat(stat,possessor)
     return false
   end
   
+  if type(value) ~= "number" then
+    return value
+  end
+  
   --Modifiers from having other abilities:
   local spellBonuses = self.stat_bonuses_from_spells and self.stat_bonuses_from_spells[stat]
   if spellBonuses and possessor and possessor.baseType == "creature" then
@@ -368,8 +372,8 @@ function Spell:get_stat(stat,possessor)
   --Modifiers from creature stats
   local statBonuses = self.stat_bonuses_from_creature_stats and self.stat_bonuses_from_creature_stats[stat]
   if statBonuses and possessor and possessor.baseType == "creature" then
-    for stat,bonuses in pairs(statBonuses) do
-      local possessorStat = possessor:get_stat(stat)
+    for cstat,bonuses in pairs(statBonuses) do
+      local possessorStat = possessor:get_stat(cstat)
       for statValue,bonus in pairs(bonuses) do
         if possessorStat >= statValue then
           value = value + bonus
@@ -381,15 +385,40 @@ function Spell:get_stat(stat,possessor)
   --Modifiers from "every X" creature stats
   local perStatBonuses = self.stat_bonuses_per_x_creature_stats and self.stat_bonuses_per_x_creature_stats[stat]
   if perStatBonuses and possessor and possessor.baseType == "creature" then
-    for stat,bonuses in pairs(perStatBonuses) do
-      local possessorStat = possessor:get_stat(stat)
+    for cstat,bonuses in pairs(perStatBonuses) do
+      local possessorStat = possessor:get_stat(cstat)
       for interval,bonus in pairs(bonuses) do
         local intervalCount = math.floor(possessorStat / interval)
         value = value + bonus*intervalCount
       end --end for statValue
     end --end statBonus for
   end --end if statBonuses
-  return value
+  
+  --Modifiers from creature skills
+  local skillBonuses = self.stat_bonuses_from_skills and self.stat_bonuses_from_skills[stat]
+  if skillBonuses and possessor and possessor.baseType == "creature" then
+    for skill,bonuses in pairs(skillBonuses) do
+      local possessorSkill = possessor:get_skill(skill)
+      for statValue,bonus in pairs(bonuses) do
+        if possessorSkill >= statValue then
+          value = value + bonus
+        end
+      end --end for statValue
+    end --end statBonus for
+  end --end if statBonuses
+  
+  --Modifiers from "every X" creature stats
+  local perSkillBonuses = self.stat_bonuses_per_x_skills and self.stat_bonuses_per_x_skills[stat]
+  if perSkillBonuses and possessor and possessor.baseType == "creature" then
+    for skill,bonuses in pairs(perSkillBonuses) do
+      local possessorSkill = possessor:get_skill(skill)
+      for interval,bonus in pairs(bonuses) do
+        local intervalCount = math.floor(possessorSkill / interval)
+        value = value + bonus*intervalCount
+      end --end for statValue
+    end --end statBonus for
+  end --end if statBonuses
+  return round(value)
 end
 
 ---Gets the possible upgrades for a spell

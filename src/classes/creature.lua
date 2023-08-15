@@ -9,7 +9,7 @@ Creature = Class{}
 --@param info Anything. Passed to the new() function
 --@param ignorenewFunc Boolean. Whether to ignore the new() function
 --@return Creature. The creature itself.
-function Creature:init(creatureType,level,noItems,noTweak,info,ignoreNewFunc)
+function Creature:init(creatureType,level,noItems,noTweak,info,ignoreNewFunc) --TODO: apply creature.items to creature
   local data = possibleMonsters[creatureType]
   noTweak = (noTweak == nil and data.noTweak or noTweak)
   if not data then
@@ -17,14 +17,21 @@ function Creature:init(creatureType,level,noItems,noTweak,info,ignoreNewFunc)
     print("Error: Tried to create non-existent creature " .. creatureType)
     return false
   end
+  --Copy over all info from the creature definition:
 	for key, val in pairs(data) do
-    if type(val) ~= "function" then
+    local vt = type(val)
+    if vt == "table" then
+      self[key] = copy_table(data[key])
+    elseif vt ~= "function" then
       self[key] = data[key]
     end
 	end
+  --Run new() function
   if not ignoreNewFunc and (possibleMonsters[creatureType].new ~= nil) then
 		possibleMonsters[creatureType].new(self,(info or nil))
 	end
+  
+  --Basic stuff:
   if self.gender == "either" then
     local genders={"male","female","other"}
     self.gender = get_random_element(genders)
@@ -32,42 +39,79 @@ function Creature:init(creatureType,level,noItems,noTweak,info,ignoreNewFunc)
     self.gender = "neuter"
   end
   self.id = creatureType
+  self.baseType = "creature"
+  self.xp = 0
   self.level = self.level or 0
-  self.max_hp = (noTweak and self.max_hp or tweak(self.max_hp))
+  
+  --Stats and skills:
+  self.max_hp = (noTweak and self.max_hp or tweak(self.max_hp or 0))
+  self.hp = self.max_hp
   self.max_mp = (noTweak and self.max_mp or tweak(self.max_mp or 0))
-	self.hp = self.max_hp
   self.mp = self.max_mp
-  self.melee = (noTweak and self.melee or tweak(self.melee or 0))
-  self.dodging = (noTweak and self.dodging or tweak(self.dodging or 0))
-  self.ranged = (noTweak and self.ranged or tweak(self.ranged or 0))
-  self.strength = (noTweak and self.strength or tweak(self.strength or 0))
-  self.magic = (noTweak and self.magic or tweak(self.magic or 0))
+  if gamesettings.default_stats then
+    for _,stat in ipairs(gamesettings.default_stats) do
+      if not self[stat] then
+        self[stat] = 0
+      elseif not noTweak then
+        self[stat] = tweak(self[stat])
+      end
+    end
+  end
+  self.extra_stats = self.extra_stats or {}
+  self.skills = {}
+  if gamesettings.default_skills then
+    for _,skill in ipairs(gamesettings.default_skills) do
+      self.skills[skill] = 0
+    end
+  end
+  if data.skills then
+    for skill,level in pairs(data.skills) do
+      if level == false then
+        self.skills[skill] = false
+      else
+        self:update_skill(skill,level,true)
+      end
+    end
+  end
   self.inventory_space = self.inventory_space or gamesettings.default_inventory_space
   self.spell_slots = self.spell_slots or gamesettings.default_spell_slots
+  self.money = (noTweak and (self.money or 0) or tweak(self.money or 0))
+  self.speed = (noTweak and (self.speed or 100) or tweak(self.speed or 100))
+  self.energy = self.speed
+  
+  --Holding slots for various things:
 	self.conditions = {}
 	self.spells = {}
   self.active_spells = {}
 	self.cooldowns = {}
   self.thralls = {}
-  self.checked = {}
-  self.seen_tile_cache = {}
-  self.sensed_creatures = {}
   self.inventory = {}
   self.equipment = {}
   self.equipment_list = {}
+  self.known_recipes = self.known_recipes or {}
+  self.forbidden_spell_tags = self.forbidden_spell_tags or self.forbidden_tags or {}
+  self.forbidden_item_tags = self.forbidden_item_tags or self.forbidden_tags or {}
+  self.favor = self.favor or {}
+  self.factions = self.factions or {}
+  self.types = self.types or {}
+  self.path = nil
+  
+  --Caches:
+  self.checked = {}
+  self.seen_tile_cache = {}
+  self.sensed_creatures = {}
   self.bonus_cache = {}
   self.can_move_cache = {}
-  self.extra_stats = self.extra_stats or {}
+  
+  --Level up stuff:
   self.stats_per_level = self.stats_per_level or {}
   self.stats_at_level = self.stats_at_level or {}
   self.stats_per_x_levels = self.stats_per_x_levels or {}
-  self.forbidden_spell_tags = self.forbidden_spell_tags or self.forbidden_tags or {}
-  self.forbidden_item_tags = self.forbidden_item_tags or self.forbidden_tags or {}
-  self.known_recipes = self.known_recipes or {}
-  self.money = (noTweak and (self.money or 0) or tweak(self.money or 0))
-  self.xp = 0
-  self.favor = self.favor or {}
-  self.factions = self.factions or {}
+  self.skills_per_level = self.stats_per_level or {}
+  self.skills_at_level = self.stats_at_level or {}
+  self.skills_per_x_levels = self.stats_per_x_levels or {}
+
+  --Add equipment, spells, and ranged attacks:
   if self.equipment_slots then
     local slotcount = 1
     for slot,count in pairs(self.equipment_slots) do
@@ -85,12 +129,15 @@ function Creature:init(creatureType,level,noItems,noTweak,info,ignoreNewFunc)
       self:learn_spell(spellID,true)
     end
   end
-	self.path = nil
-	self.baseType = "creature"
-  self.types = self.types or {}
-  self.speed = (noTweak and (self.speed or 100) or tweak(self.speed or 100))
-  self.energy = self.speed
-  self.color = (self.noTweakColor and copy_table(self.color) or {r=tweak(self.color.r),g=tweak(self.color.g),b=tweak(self.color.b),a=self.color.a})
+  if (self.ranged_attack) then
+    local ranged = rangedAttacks[self.ranged_attack]
+    if ranged and ranged.max_charges then
+      self.ranged_charges = ranged.max_charges
+    end
+  end --end ranged attack if
+  
+	--Display stuff:
+  self.color = (self.noTweakColor and self.color or {r=tweak(self.color.r),g=tweak(self.color.g),b=tweak(self.color.b),a=self.color.a})
   self.color.a = self.color.a or 255
   if self.animated and self.spritesheet then
     self.image_frame=1
@@ -104,12 +151,8 @@ function Creature:init(creatureType,level,noItems,noTweak,info,ignoreNewFunc)
     end
   end
   self.xMod,self.yMod = 0,0
-  if (self.ranged_attack) then
-    local ranged = rangedAttacks[self.ranged_attack]
-    if ranged and ranged.max_charges then
-      self.ranged_charges = ranged.max_charges
-    end
-  end --end ranged attack if
+  
+  --AI stats:
   self.fear = 0
   self.alert = 0 -- used by NPCs only, alertness countdown
   self.target=nil
@@ -119,8 +162,11 @@ function Creature:init(creatureType,level,noItems,noTweak,info,ignoreNewFunc)
   self.lastSawPlayer = {x=nil,y=nil}
   self.aggression = self.aggression or 100 -- used by NPCs only, chance they'll be hostile when seeing player
   self.memory = self.memory or 10 --turns they remember seeing an enemy
+  
+  --Generate Name:
   if possibleMonsters[self.id].nameGen then self.properName = possibleMonsters[self.id].nameGen(self)
   elseif self.nameType then self.properName = namegen:generate_name(self.nameType,self) end
+  
   --Inventory:
   if not noItems then
     self:generate_inventory() --generate inventory based on the creature definition's pre-set inventory chances
@@ -136,10 +182,11 @@ function Creature:init(creatureType,level,noItems,noTweak,info,ignoreNewFunc)
       end
     end
   end
+  
   --Weaknesses and resistances from your creature types:
   if self.types then
-    local baseWeak = copy_table(self.weaknesses or {})
-    local baseResist = copy_table(self.resistances or {})
+    local baseWeak = self.weaknesses or {}
+    local baseResist = self.resistances or {}
     for _,ctype in ipairs(self.types) do
       local typ = creatureTypes[ctype]
       if typ then
@@ -162,6 +209,7 @@ function Creature:init(creatureType,level,noItems,noTweak,info,ignoreNewFunc)
       end --end if type is defined
     end --end ctype for
   end --end if self.types
+  
   --Level up if necessary:
   if level and level > self.level then
     if self.max_level and level > self.max_level then
@@ -171,6 +219,8 @@ function Creature:init(creatureType,level,noItems,noTweak,info,ignoreNewFunc)
       self:level_up(true)
     end
 	end
+  self.hp = self:get_max_hp()
+  self.mp = self:get_max_mp()
 	return self
 end
 
@@ -293,13 +343,23 @@ function Creature:apply_class(classID)
       self:equip(it)
     end
   end--end if equipment
+  --Add skills and stats:
+  if class.skills then
+    for skill,mod in pairs(class.skills) do
+      if mod == false then
+        self.skills[skill] = false
+      else
+        self:update_skill(skill,mod,true)
+      end
+    end
+  end
   if class.stat_modifiers then
     for stat,mod in pairs(class.stat_modifiers) do
-      self[stat] = (self[stat] or 0) + mod
+      self[stat] = math.max((self[stat] or 0) + mod,0)
     end
-    self.hp = self.max_hp
-    self.mp = self.max_mp
   end --end if stat_modifiers
+  self.hp = self:get_max_hp()
+  self.mp = self:get_max_mp()
   if class.stats_per_level then
     self.stats_per_level = (self.stats_per_level or {})
     for stat,mod in pairs(class.stats_per_level) do
@@ -324,6 +384,30 @@ function Creature:apply_class(classID)
       end
     end
   end --end if stats_at_level
+  if class.skills_per_level then
+    self.skills_per_level = (self.skills_per_level or {})
+    for stat,mod in pairs(class.skills_per_level) do
+      self.skills_per_level[stat] = (self.skills_per_level[stat] or 0) + mod
+    end
+  end --end if skills_per_level
+  if class.skills_at_level then
+    self.skills_at_level = (self.skills_at_level or {})
+    for level,skills in pairs(class.skills_at_level) do
+      self.skills_at_level[level] = (self.skills_at_level[level] or {})
+      for stat,amt in pairs(skills) do
+        self.skills_at_level[level][stat] = (self.skills_at_level[level][stat] or 0) + amt
+      end
+    end
+  end --end if skills_at_level
+  if class.skills_per_x_levels then
+    self.skills_per_x_levels = (self.skills_per_x_levels or {})
+    for level,skills in pairs(class.skills_per_x_levels) do
+      self.skills_per_x_levels[level] = (self.skills_per_x_levels[level] or {})
+      for stat,amt in pairs(skills) do
+        self.skills_per_x_levels[level][stat] = (self.skills_per_x_levels[level][stat] or 0) + amt
+      end
+    end
+  end --end if skills_at_level
   if class.extra_stats then
     for id,stat in pairs(class.extra_stats) do
       self.extra_stats[id] = copy_table(stat)
@@ -403,9 +487,9 @@ function Creature:get_pronoun(ptype)
   return "" --return an empty string if something went wrong, so there won't be a "concating nil" error
 end
 
----Get the max HP of a creature
---@return Number. the max HP
-function Creature:get_mhp()
+---Get the max HP of a creature *MAY WANT TO CHANGE FOR YOUR OWN GAME*
+--@return Number. The max HP
+function Creature:get_max_hp()
 	return self.max_hp+self:get_bonus('max_hp')
 end
 
@@ -421,8 +505,8 @@ function Creature:updateHP(amt)
   local alreadyDead = false
   if self.hp < 1 then alreadyDead = true end
 	self.hp = self.hp + amt
-	if (self.hp > self:get_mhp()) then
-		self.hp = self:get_mhp()
+	if (self.hp > self:get_max_hp()) then
+		self.hp = self:get_max_hp()
 	end
   if not alreadyDead then
     local p = Effect('dmgpopup',self.x,self.y)
@@ -478,7 +562,7 @@ function Creature:damage(amt,attacker,damage_type,armor_piercing,noSound,item)
       amt = math.ceil(amt/4)
     end --if you're far away from the player
 		self:updateHP(-amt)
-    self.fear = self.fear + math.ceil(100*(amt/self:get_mhp())) --increase fear by % of MHP you just got damaged by
+    self.fear = self.fear + math.ceil(100*(amt/self:get_max_hp())) --increase fear by % of MHP you just got damaged by
     self.alert = self.memory
     if attacker then
       if attacker.baseType == "creature" and self:does_notice(attacker) == false then 
@@ -607,6 +691,17 @@ function Creature:callbacks(callback_type,...)
       if r ~= nil and type(r) ~= "boolean" then table.insert(ret,r) end
 		end
 	end
+  for skillID,rank in pairs(self.skills) do
+    local skill = possibleSkills[skillID]
+    if skill and type(skill[callback_type]) == "function" then
+      local status,r = pcall(skill[callback_type],skill,self,unpack({...}))
+      if status == false then
+        output:out("Error in skill " .. skill.name .. " callback \"" .. callback_type .. "\": " .. r)
+      end
+			if (r == false) then return false end
+      if r ~= nil and type(r) ~= "boolean" then table.insert(ret,r) end
+    end
+  end
   for _, equip in pairs(self.equipment_list) do
     if type(possibleItems[equip.id][callback_type]) == "function" then
       local status,r = pcall(possibleItems[equip.id][callback_type],equip,self,unpack({...}))
@@ -701,7 +796,7 @@ end
 --@param full Boolean. Whether to return a full sentence or just a short description (optional)
 --@return String. The health text
 function Creature:get_health_text(full)
-	local health = self.hp/self:get_mhp()
+	local health = self.hp/self:get_max_hp()
 	if (health >= 1) then
 		if (full == true) then return ucfirst(self:get_pronoun('n')) .. " is completely healthy."
 		else return "healthy" end
@@ -762,7 +857,7 @@ function Creature:get_bonus(bonusType)
       end
     end --end bonuses if
     --Get bonuses from equipment enchantment:
-    if equip.melee_attack then --Don't apply any enchantment bonuses from weapons. We have to assume those bonuses are intended only for attacks done with the weapon
+    if not equip.melee_attack then --Don't apply any enchantment bonuses from weapons. We have to assume those bonuses are intended only for attacks done with the weapon
       local b = equip:get_enchantment_bonus(bonusType)
       if b ~= 0 then
         bonus = bonus + b
@@ -770,6 +865,40 @@ function Creature:get_bonus(bonusType)
       end
     end
   end --end equipment for
+  for skillID,_ in pairs(self.skills) do
+    local skill = possibleSkills[skillID]
+    if skill then
+      local skillB = false
+      if skill.bonuses and skill.bonuses[bonusType] then
+        bonus = bonus + skill.bonuses[bonusType]
+        skillB = true
+      end
+      if skill.bonuses_per_level and skill.bonuses_per_level[bonusType] then
+        bonus = bonus + skill.bonuses_per_level[bonusType] * self.skills[skillID]
+        skillB = true
+      end
+      if skill.bonuses_at_level then
+        for i = self.skills[skillID],1,-1 do
+          if skill.bonuses_at_level[i] and skill.bonuses_at_level[i][bonusType] then
+            bonus = bonus + skill.bonuses_at_level[i][bonusType]
+            skillB = true
+            break
+          end
+        end
+      end
+      if skill.bonuses_per_x_levels then
+        for lvl,bonuses in pairs(skill.bonuses_per_x_levels) do
+          if bonuses[bonusType] and player.skills[skillID] % lvl == 0 then
+            bonus = bonus + bonuses[bonusType]
+            skillB = true
+          end
+        end
+      end --end bonuses_per_x_levels
+      if skillB then
+        bcount = bcount + 1
+      end
+    end --end skill if
+  end --end skill for
   self.bonus_cache[bonusType] = bonus
 	return bonus
 end
@@ -1427,9 +1556,11 @@ function Creature:get_free_inventory_space()
   return self:get_inventory_space()-self:get_used_inventory_space()
 end
 
----Gets the total inventory space the creature has
+---Gets the total inventory space the creature has *MAY WANT TO CHANGE FOR YOUR OWN GAME*
 function Creature:get_inventory_space()
-  return self:get_stat('inventory_space')+math.floor(self:get_stat('strength')/10)
+  if not self.inventory_space then return false end
+  
+  return self:get_stat('inventory_space')
 end
 
 ---Have a creature pick up an item from a tile.
@@ -1779,6 +1910,13 @@ function Creature:can_use_item(item,verb)
       end
     end
   end
+  if item.skill_requirements then
+    for skill,requirement in pairs(item.skill_requirements) do
+      if self:get_skill(skill,true) < requirement then
+        return false,"Your " .. possibleSkills[skill].name .. " skill is too low to " .. verb .. " "  .. item:get_name() .. "."
+      end
+    end
+  end
   if self.forbidden_item_tags and count(self.forbidden_item_tags) > 0 then
     for _,tag in ipairs(self.forbidden_item_tags) do
       if item:has_tag(tag) then
@@ -2022,7 +2160,7 @@ function Creature:get_kill_favor()
       else favorMin[faction] = score end
     end
   end --end if self.kill_favor
-  --Next, loop through all the factions in the game to look at their kill_favor skills
+  --Next, loop through all the factions in the game to look at their kill_favor stats
   for fid,faction in pairs(currWorld.factions) do
     favorMax[fid] = favorMax[fid] or 0
     favorMin[fid] = favorMin[fid] or 0
@@ -2355,7 +2493,7 @@ function Creature:update(dt) --for charging, and other special effects
 		if (conditions[condition].update ~= nil) then conditions[condition]:update(self,dt) end
   end -- end for
   
-  if self.animated and prefs['creatureAnimations'] and (self.animateSleep or not self:has_condition('asleep')) and player:does_notice(self) and player:can_sense_creature(self) then
+  if self.animated and prefs['creatureAnimations'] and not prefs['noImages'] and (self.animateSleep or not self:has_condition('asleep')) and player:does_notice(self) and player:can_sense_creature(self) then
     self.animCountdown = (self.animCountdown or 0) - dt
     if self.animCountdown < 0 then
       local imageNum = nil
@@ -2521,16 +2659,21 @@ function Creature:give_xp(xp)
   end
 end
 
----How much XP do you need to level up? TODO: Replace with better formula
+---How much XP do you need to level up? *MAY WANT TO CHANGE FOR YOUR OWN GAME*
 --@return Number. The XP required to level up
 function Creature:get_level_up_cost()
   return self.level*10
 end
 
----Level Up, granting skill points (for players), or randomly increasing skills (for NPCs)
+---Level Up, granting stat points (for players), or randomly increasing stats (for NPCs)
 --@param force Boolean. Whether or not to ignore XP costs
-function Creature:level_up(force)
+--@param ignore_callback Boolean. Whether to ignore level_up callbacks
+function Creature:level_up(force,ignore_callback)
   local cost = self:get_level_up_cost()
+  if not ignore_callback then
+    local leveled = self:callbacks('level_up')
+    if leveled == false then return false end
+  end
   if not force then 
     if self.xp < cost then return false end
     self.xp = self.xp - cost
@@ -2546,27 +2689,37 @@ function Creature:level_up(force)
       self.mp = self.mp+value
     end
   end
+  local skill_increases = self:get_skill_increases_for_level(self.level)
+  for skill_id,value in pairs(skill_increases) do
+    self:update_skill(skill_id,value,true)
+  end
   --If an NPC, or the player has autoleveling turned on, then apply stats randomly:
   if self ~= player or prefs.autoLevel then
-    local stats = {'max_hp','strength','dodging','melee'}
-    if self.magic and self.magic > 0 then stats[#stats+1]='magic' end
-    if self.ranged and self.ranged > 0 then stats[#stats+1]='ranged' end
-    if self.stealth and self.stealth > 0 then stats[#stats+1]='stealth' end
-    if self.max_mp and self.max_mp > 0 then stats[#stats+1]='max_mp' end
-    for i=1,self.skillPoints,1 do
-      local skill = get_random_element(stats)
-      if skill == "max_hp" or skill == "max_mp" then
-        self[skill] = self[skill]+2
-        self[(skill == "max_hp" and "hp" or "mp")] = self[(skill == "max_hp" and "hp" or "mp")]+2
-      else
-        self[skill] = self[skill]+1
-        if skill == "magic" then
-          self.spellPoints = (self.spellPoints or 0)+1 --Increase spell points by 1 per point of magic
-        end
-      end
-      self.skillPoints = self.skillPoints-1
-    end
-    --Auto-upgrading spells
+    --Upgrade skills:
+    local upgradable_skills_by_upgrade_stat = self:get_upgradable_skills(true)
+    local tries = 0
+    while count(upgradable_skills_by_upgrade_stat) > 0 and tries < 10 do
+      tries = tries+1
+      for pointID,skillList in pairs(upgradable_skills_by_upgrade_stat) do
+        local points = self[pointID] or 0
+        local tries2 = 0
+        while points > 0 and tries2 < 10 do
+          tries2=tries2+1
+          local skillID = get_random_element(skillList)
+          if self:can_upgrade_skill(skillID) then
+            print('leveling ',skillID)
+            self:update_skill(skillID)
+            self[pointID] = points - 1
+            points = points - 1
+          end --end upgradable if
+        end --end points for
+      end --end pointID for
+      upgradable_skills_by_upgrade_stat = self:get_upgradable_skills(true)
+      print('ending',tries)
+      for i,v in pairs(upgradable_skills_by_upgrade_stat) do print(i) for q,t in pairs(v) do print(q,t) end end
+    end --end while
+    
+    --Upgrade spells:
     if self.spellPoints > 0 then
       local upgradable_spells = {}
       for id,spell in ipairs(self:get_spells(true)) do
@@ -2594,7 +2747,11 @@ function Creature:level_up(force)
   if self.extra_stats then
     for stat_id,stat in pairs(self.extra_stats) do
       if stat.increase_per_level then
-        stat.max = stat.max+stat.increase_per_level
+        if stat.max then
+          stat.max = stat.max+stat.increase_per_level
+        else
+          stat = stat+stat.increase_per_level
+        end
       end
     end
   end
@@ -2615,12 +2772,12 @@ function Creature:level_up(force)
   end
   --Heal, if heal on level up is set
   if gamesettings.heal_on_level_up then
-    self.hp = self:get_mhp()
+    self.hp = self:get_max_hp()
     self.mp = self:get_max_mp()
   end
 end
 
----Get a list of what the stat inscrease will be for a given level
+---Get a list of what the stat increase will be for a given level
 --@param level Number. The level to look at the stat increases for
 --@return Table. A list of stats and increases in the format {stat=1}
 function Creature:get_stat_increases_for_level(level)
@@ -2664,6 +2821,52 @@ function Creature:get_stat_increases_for_level(level)
     end
   end --end if gamesettings stats_per_x_levels
   return statInc
+end
+
+---Get a list of what the skill increase will be for a given level
+--@param level Number. The level to look at the stat increases for
+--@return Table. A list of stats and increases in the format {stat=1}
+function Creature:get_skill_increases_for_level(level)
+  local skillInc = {}
+  if self.skills_per_level then
+    for skill_id,value in pairs(self.skills_per_level) do
+      skillInc[skill_id] = (skillInc[skill_id] or 0)+value
+    end
+  end --end skills_per_level
+  if gamesettings.skills_per_level then
+    for skill_id,value in pairs(gamesettings.skills_per_level) do
+      skillInc[skill_id] = (skillInc[skill_id] or 0)+value
+    end
+  end --end gamesettings skills_per_level
+  if self.skills_at_level and self.skills_at_level[self.level] then
+    for skill_id,value in pairs(self.skills_at_level[self.level]) do
+      skillInc[skill_id] = (skillInc[skill_id] or 0)+value
+    end
+  end --end skills_at_level
+  if gamesettings.skills_at_level and gamesettings.skills_at_level[self.level] then
+    for skill_id,value in pairs(gamesettings.skills_at_level[self.level]) do
+      skillInc[skill_id] = (skillInc[skill_id] or 0)+value
+    end
+  end --end gamesettings skills_at_level
+  if self.skills_per_x_levels then
+    for lvl,skills in pairs(self.skills_per_x_levels) do
+      if level % lvl == 0 then
+        for skill_id,value in pairs(skills) do
+          skillInc[skill_id] = (skillInc[skill_id] or 0)+value
+        end
+      end
+    end
+  end --end if skills_per_x_levels
+  if gamesettings.skills_per_x_levels then
+    for lvl,skills in pairs(gamesettings.skills_per_x_levels) do
+      if level % lvl == 0 then
+        for skill_id,value in pairs(skills) do
+          skillInc[skill_id] = (skillInc[skill_id] or 0)+value
+        end
+      end
+    end
+  end --end if gamesettings skills_per_x_levels
+  return skillInc
 end
 
 ---Find out how afraid the creature is
@@ -2717,9 +2920,73 @@ function Creature:get_stealth()
 end
 
 ---Gets the creature's damage value, including bonuses
+--@param damage_stats Table. A table of stats and skills that increase damage in the format stat=amt_per_level
 --@return Number. The damage value
-function Creature:get_damage()
-  return self:get_stat('strength') + self:get_bonus('damage')
+function Creature:get_damage(damage_stats)
+  local stats = damage_stats or self.melee_damage_stats or gamesettings.default_melee_damage_stats
+  local dmg = 0
+  if stats then
+    for stat,mod in pairs(stats) do
+      dmg = dmg + mod*(self:get_stat(stat))
+    end --end stat for
+  end --end if stats
+  return dmg + self:get_bonus('damage')
+end
+
+---Gets the total of a creature's melee accuracy stats, including bonuses
+--@param damage_stats Table. A table of stats and skills that increase damage in the format stat=amt_per_level
+--@return Number. The damage value
+function Creature:get_melee_accuracy(accuracy_stats)
+  local stats = accuracy_stats or self.melee_accuracy_stats or gamesettings.default_melee_accuracy_stats
+  local hit_mod = 0
+  if stats then
+    for stat,mod in pairs(stats) do
+      hit_mod = hit_mod + mod*(self:get_stat(stat))
+    end --end stat for
+  end --end if stats
+  return hit_mod
+end
+
+---Gets the creature's damage value, including bonuses
+--@param damage_stats Table. A table of stats and skills that increase damage in the format stat=amt_per_level
+--@return Number. The damage value
+function Creature:get_ranged_damage(damage_stats)
+  local stats = damage_stats or self.ranged_damage_stats or gamesettings.default_ranged_damage_stats
+  local dmg = 0
+  if stats then
+    for stat,mod in pairs(stats) do
+      dmg = dmg + mod*(self:get_stat(stat))
+    end --end stat for
+  end --end if stats
+  return dmg + self:get_bonus('ranged_damage')
+end
+
+---Gets the total of a creature's melee accuracy stats, including bonuses
+--@param damage_stats Table. A table of stats and skills that increase damage in the format stat=amt_per_level
+--@return Number. The damage value
+function Creature:get_ranged_accuracy(accuracy_stats)
+  local stats = accuracy_stats or self.ranged_accuracy_stats or gamesettings.default_ranged_accuracy_stats
+  local hit_mod = 0
+  if stats then
+    for stat,mod in pairs(stats) do
+      hit_mod = hit_mod + mod*(self:get_stat(stat))
+    end --end stat for
+  end --end if stats
+  return hit_mod
+end
+
+---Gets the creature's dodge stat values, including bonuses
+--@param damage_stats Table. A table of stats and skills that increase dodge in the format stat=amt_per_level
+--@return Number. The damage value
+function Creature:get_dodging(dodge_stats)
+  local stats = dodge_stats or self.dodge_stats or gamesettings.default_dodge_stats
+  local dodge = 0
+  if stats then
+    for stat,mod in pairs(stats) do
+      dodge = dodge + mod*(self:get_stat(stat))
+    end --end stat for
+  end --end if stats
+  return dodge + self:get_bonus('dodge_chance')
 end
 
 ---Gets the creature's armor piercing value, including bonuses
@@ -2734,12 +3001,167 @@ function Creature:get_critical_chance()
   return (self.critical_chance or 1)+self:get_bonus('critical_chance')
 end
 
----A generic function for getting a stat and its bonus
+---A generic function for getting a stat and its bonus. Looks at base stats first, then extra_stats, then skills
 --@param stat Text. The stat to get
 --@param noBonus Boolean. If true, don't add the bonus to the stat
 --@return Number. The stat value
 function Creature:get_stat(stat,noBonus)
-  return (self[stat] or 0)+(not noBonus and self:get_bonus(stat) or 0)
+  local base = self[stat] or (self.extra_stats[stat] and self.extra_stats[stat].value)
+  if not base and self.skills[stat] then return self:get_skill(stat,noBonus) end
+  return (base or 0)+(not noBonus and self:get_bonus(stat) or 0)
+end
+
+---Returns a list of all the skills a creature has
+--@param noBonus
+--@return Table. A list of all skills in the format skillID=value
+function Creature:get_skills(noBonus)
+  if noBonus then return self.skills end
+  local skills ={}
+  for skillID, val in pairs(self.skills) do
+    skills[skillID] = self:get_skill(skillID)
+  end
+  return skills
+end
+
+---Returns a list of all upgradable skills a creature has, and the points required
+--@param sorted_by_stat Boolean. If true, the table will return in the format {upgrade_stat1={skill1,skill2},upgradestat2={skill3,skill4}}. If false, it will just return a flat list of skills
+--@return Table. A list of all skills in the format skillID=upgrade_stat
+function Creature:get_upgradable_skills(sorted_by_stat)
+  local skills = {}
+  local sorted = {}
+  for skillID,val in pairs(self.skills) do
+    if val ~= false then
+      if self:can_upgrade_skill(skillID) then
+        local skill = possibleSkills[skillID]
+        local sType = skill.skill_type or "skill"
+        local typeDef = possibleSkillTypes[sType]
+        local pointID = skill.upgrade_stat or (typeDef and typeDef.upgrade_stat) or "upgrade_points_" .. sType
+        local points = player[pointID] or 0
+        if points > 0 then
+          skills[#skills+1] = skillID
+          if sorted_by_stat then
+            if not sorted[pointID] then sorted[pointID] = {} end
+            sorted[pointID][#sorted[pointID]+1] = skillID
+          end --end sorted by stat if
+        end --end if points > 0
+      end --end only_unmaxed if
+    end --end not false if
+  end --end skill for
+  if sorted_by_stat then return sorted else return skills end
+end
+
+---A generic function for getting a skill and its bonus
+--@param stat Text. The skill to get
+--@param noBonus Boolean. If true, don't add the bonus to the stat
+--@return Number. The stat value
+function Creature:get_skill(skill,noBonus)
+  if not self.skills[skill] then return 0 end
+  local val = self.skills[skill]+(not noBonus and self:get_bonus(skill) or 0)
+  local skillDef = possibleSkills[skill]
+  if skillDef and skillDef.max and val > skillDef.max then val = skillDef.max end
+  return val
+end
+
+---Returns whether or not the creature has enough points to upgrade the skill
+--@param skill Text. The ID of the skill
+--@param val Number. The amount to change the skill by, defaults to 1
+--@return Boolean. Whether the skill is upgradable or not
+function Creature:can_upgrade_skill(skillID,val)
+  val = val or 1
+  local skill = possibleSkills[skillID]
+  if skill.max and self.skills[skillID] and self.skills[skillID]+val > skill.max then
+    return false
+  end
+  local sType = skill.skill_type or "skill"
+  local typeDef = possibleSkillTypes[sType]
+  local pointID = skill.upgrade_stat or (typeDef and typeDef.upgrade_stat) or "upgrade_points_" .. sType
+  local points = player[pointID] or 0
+  local cost = (val > 0 and val or 0)
+  
+  if cost ~= 0 and (not self[pointID] or self[pointID] < cost) then
+    return false
+  end
+  return true
+end
+
+---Changes the skill value
+--@param skill Text. The ID of the skill
+--@param val Number. The amount to change the skill by, defaults to 1
+--@param ignore_cost Boolean. If true, don't pay the cost of the upgrade
+function Creature:update_skill(skill,val,ignore_cost)
+  val = val or 1
+  local skillDef = possibleSkills[skill]
+  local sType = skillDef.skill_type or "skill"
+  local typeDef = possibleSkillTypes[sType]
+  if not ignore_cost then
+    if not self:can_upgrade_skill(skill,val) then
+      return false
+    end
+    local pointID = skillDef.upgrade_stat or (typeDef and typeDef.upgrade_stat) or "upgrade_points_" .. sType
+    local points = player[pointID] or 0
+    local cost = (val > 0 and val or 0)
+    self[pointID] = self[pointID] - cost
+  end
+  
+  local origValue = self.skills[skill]
+  if origValue == false then
+    return
+  elseif not origValue then
+    origValue = 0
+  end
+  val = val*(skill.increase_per_point or 1)
+  local newValue = origValue + val
+  if newValue < 0 then newValue = 0 end
+  if origValue == newValue then return end
+  local mod = (val > 0 and 1 or -1)
+  if skillDef and (not skillDef.max or origValue < skillDef.max) and val ~= 0 then
+    --Custom level up code:
+    if skillDef.update then
+      local result = skillDef:update(self,val)
+      if result == false then return false end
+    end
+    --Do the skill increase:
+    self.skills[skill] = newValue
+    if skillDef.max and self.skills[skill] > skillDef.max then self.skills[skill] = skillDef.max end
+    --Grant spells:
+    if skillDef.learns_spells then
+      for _,info in pairs(skillDef.learns_spells) do
+        if (not info.level or (info.level > origValue and info.level <= newValue) or (info.level < origValue and info.level >= newValue)) and self:can_learn_spell(info.spell) then
+          self:learn_spell(info.spell)
+        end
+      end
+    end --end if learns_spells
+    --Grant stat changes
+    local statInc = {}
+    if skillDef.stats_per_level then
+      for stat_id,value in pairs(skillDef.stats_per_level) do
+        statInc[stat_id] = (statInc[stat_id] or 0)+(value*val)
+      end
+    end
+    local checkStart = origValue+(mod > 0 and 1 or 0) --if going negative, you want to check the level you're at and unapply it
+    local checkEnd = newValue+(mod > 0 and 0 or 1) --if going negative, you don't want to check the level you're ending at
+    for level = checkStart,checkEnd,mod do
+      if skillDef.stats_at_level and skillDef.stats_at_level[level] then
+        for stat_id,value in pairs(skillDef.stats_at_level[level]) do
+          statInc[stat_id] = (statInc[stat_id] or 0)+(val > 0 and value or -value)
+        end
+      end --end stats_at_level
+      if skillDef.stats_per_x_levels then
+        for lvl,stats in pairs(skillDef.stats_per_x_levels) do
+          if level % lvl == 0 then
+            for stat_id,value in pairs(stats) do
+              statInc[stat_id] = (statInc[stat_id] or 0)+(val > 0 and value or -value)
+            end
+          end
+        end
+      end --end if stats_per_x_levels
+    end
+    for stat,mod in pairs(statInc) do
+      self[stat] = (self[stat] or 0) + mod
+    end
+    return true
+  end
+  return false
 end
 
 ---A generic function for getting an extra stat and its bonuses
@@ -2850,6 +3272,14 @@ function Creature:can_learn_spell(spellID)
       end
     end
   end
+  --Check skills:
+  if spell.skill_requirements then
+    for skill,requirement in pairs(spell.skill_requirements) do
+      if self:get_skill(skill,true) < requirement then
+        return false,"Your " .. stat .. " skill is too low to learn this ability."
+      end
+    end
+  end
   --Check spell tags:
   if self.forbidden_spell_tags and count(self.forbidden_spell_tags) > 0 then
     for _,tag in ipairs(self.forbidden_spell_tags) do
@@ -2886,14 +3316,46 @@ function Creature:get_free_spell_slots()
   return self:get_spell_slots()-used_slots
 end
 
----Gets the number of total spell slots the creature has
+---Gets the number of total spell slots the creature has *MAY WANT TO CHANGE FOR YOUR OWN GAME*
 function Creature:get_spell_slots()
+  if not self.spell_slots then return false end
   local slots = self:get_stat('spell_slots')
-  local magic = self:get_stat('magic')
-  if magic == 0 then return 0 end
   if not slots then return false end
-  return slots+math.floor(magic/5)
+  return slots
 end
+
+---Gets a list of all the spells a creature can currently learn from its definition, class, or skills
+function Creature:get_purchasable_spells()
+  local spell_purchases = {}
+  if self.class and playerClasses[self.class].spell_purchases then
+    for _,info in ipairs(playerClasses[self.class].spell_purchases) do
+      if (not info.level or info.level <= self.level) and self:can_learn_spell(info.spell) then
+        spell_purchases[#spell_purchases+1] = info
+      end --end level check if
+    end --end spell purchase list for
+  end --end if player class has spell purchases
+  if possibleMonsters[self.id].spell_purchases then
+    for _,info in ipairs(possibleMonsters[self.id].spell_purchases) do
+      if (not info.level or info.level <= self.level) and self:can_learn_spell(info.spell) then
+        spell_purchases[#spell_purchases+1] = info
+      end --end level check if
+    end --end spell purchase list for
+  end --end if player definition has spell purchases
+  for skill,skillRank in pairs(self.skills) do
+    print(skill,skillRank)
+    local skillDef = possibleSkills[skill]
+    if skillDef and skillDef.spell_purchases then
+      for _,info in pairs(skillDef.spell_purchases) do
+        for i,v in pairs(info) do print(i,v) end
+        if (not info.level or info.level <= skillRank) and self:can_learn_spell(info.spell) then
+          spell_purchases[#spell_purchases+1] = info
+        end
+      end --end spell_purchases for
+    end --end skilldef if
+  end --end skill for
+  return spell_purchases
+end
+
 
 ---Get all items equipped that can be used for melee attacks
 --@return Table. A list of items that can be used for melee attacks
@@ -3015,9 +3477,14 @@ function Creature:can_craft_recipe(recipeID)
   if recipe.required_level and player.level < recipe.required_level then
     return false
   end
+  if recipe.skill_requirements then
+    for skill,rank in pairs(recipe.skill_requirements) do
+      if self:get_skill(skill) < rank then return false end
+    end
+  end
   if recipe.stat_requirements then
     for stat,requirement in pairs(recipe.stat_requirements) do
-      if self:get_stat(stat,true) < requirement and self:get_bonus_stat(stat,true) < requirement then
+      if self:get_stat(stat) < requirement and self:get_bonus_stat(stat) < requirement then
         return false
       end
     end

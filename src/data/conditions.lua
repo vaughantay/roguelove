@@ -35,7 +35,7 @@ regenerating=Condition({
     bonuses={fear=-10},
 		advance = function(self,possessor)
 			if (random(1,3) == 1) then 
-        possessor:updateHP(math.floor(possessor:get_mhp()/20))
+        possessor:updateHP(math.floor(possessor:get_max_hp()/20))
       end
 		end
 	}),

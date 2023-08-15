@@ -127,86 +127,7 @@ function newgame:draw()
       whichSpecies = whichSpecies or self.player.species
       if whichSpecies then
         local creature = possibleMonsters[whichSpecies]
-        
-        local desc = ""
-        desc = desc .. "Base HP: " .. creature.max_hp .. "\n"
-        desc = desc .. "Base MP: " .. (creature.max_mp or 0).. "\n"
-        desc = desc .. "Strength: " .. (creature.strength or 0) .. "\n"
-        desc = desc .. "Melee Skill: " .. (creature.melee or 0) .. "\n"
-        desc = desc .. "Ranged Skill: " .. (creature.ranged or 0) .. "\n"
-        desc = desc .. "Magic Skill: " .. (creature.magic or 0) .. "\n"
-        desc = desc .. "Dodging Skill: " .. (creature.dodging or 0) .. "\n"
-        desc = desc .. "Sight Radius: " .. creature.perception .. "\n"
-        if creature.stealth then desc = desc .. "Stealth Modifier: " .. creature.stealth .. "\n" end
-        if creature.armor then desc = desc .. "Damage Absorbtion: " .. creature.armor .. "\n" end
-        if creature.weaknesses and count(creature.weaknesses) > 0 then
-          desc = desc .. "Weaknesses: "
-          local i = 1
-          for stat,amt in pairs(creature.weaknesses) do
-            if i ~= 1 then desc = desc .. ", "  end
-            desc = desc .. ucfirst(stat) .. " " .. amt .. "%"
-            i = i + 1
-          end
-          desc = desc .. "\n"
-        end
-        if creature.resistances and count(creature.resistances) > 0 then
-          desc = desc .. "Resistances: "
-          local i = 1
-          for stat,amt in pairs(creature.resistances) do
-            if i ~= 1 then desc = desc .. ", "  end
-            desc = desc .. ucfirst(stat) .. " " .. amt .. "%"
-            i = i + 1
-          end
-          desc = desc .. "\n"
-        end
-        if creature.spells and #creature.spells > 0 then
-          desc = desc .. "Abilities: "
-          for i,spell in ipairs(creature.spells) do
-            if i ~= 1 then desc = desc .. ", " end
-            desc = desc .. possibleSpells[spell].name
-          end
-          desc = desc .. "\n"
-        end
-        if (creature.items and #creature.items > 0) or (creature.equipment and #creature.equipment > 0) then
-          desc = desc .. "Items: "
-          local hasItems = false
-          if (creature.items and #creature.items > 0) then
-            for i,item in ipairs(creature.items) do
-              if i ~= 1 then desc = desc .. ", " end
-              local amount = item.amount or 1
-              desc = desc .. (amount > 1 and amount .. " " or "") .. ucfirst(item.displayName or (amount > 1 and possibleItems[item.item].pluralName or possibleItems[item.item].name))
-              hasItems = true
-            end
-          end
-          if (creature.equipment and #creature.equipment > 0) then
-            for i,item in ipairs(creature.equipment) do
-              if i ~= 1 or hasItems then desc = desc .. ", " end
-              desc = desc .. ucfirst(item.displayName or possibleItems[item.item].name)
-            end
-          end
-          desc = desc .. "\n"
-        end
-        if creature.money then
-          desc = desc .. "Money: " .. get_money_name(creature.money) .. "\n"
-        end
-        if creature.factions and #creature.factions > 0 then
-          desc = desc .. "Faction Membership: "
-          for i,fac in ipairs(creature.factions) do
-            if i ~= 1 then desc = desc .. ", " end
-            desc = desc .. possibleFactions[fac].name
-          end
-          desc = desc .. "\n"
-        end
-        if creature.favor and count(creature.favor) > 0 then
-          desc = desc .. "Favor: "
-          local i = 1
-          for id,fav in pairs(creature.favor) do
-            if i ~= 1 then desc = desc .. ", "  end
-            desc = desc .. currWorld.factions[id].name .. " " .. fav
-            i = i + 1
-          end
-          desc = desc .. "\n"
-        end
+        local desc = self:get_stat_text(whichSpecies)
         
         love.graphics.setFont(fonts.textFont)
         local _, tlines = fonts.textFont:getWrap(creature.name .. "\n" .. creature.description,descBoxW)
@@ -292,141 +213,10 @@ function newgame:draw()
       end
       whichClass = whichClass or self.player.class
       if whichClass then
-        local class = playerClasses[whichClass]
-        
-        local desc = ""
         local whichSpecies = self.player.species
-        local creature = possibleMonsters[whichSpecies]
-
-        desc = desc .. "Base HP: " .. creature.max_hp + (class.stat_modifiers and class.stat_modifiers.max_hp or 0) .. "\n"
-        desc = desc .. "Base MP: " .. (creature.max_mp or 0) + (class.stat_modifiers and class.stat_modifiers.max_mp or 0) .. "\n"
-        desc = desc .. "Strength: " .. (creature.strength or 0) + (class.stat_modifiers and class.stat_modifiers.strength or 0) .. "\n"
-        desc = desc .. "Melee Skill: " .. (creature.melee or 0) + (class.stat_modifiers and class.stat_modifiers.melee or 0) .. "\n"
-        desc = desc .. "Ranged Skill: " .. (creature.ranged or 0) + (class.stat_modifiers and class.stat_modifiers.ranged or 0) .. "\n"
-        desc = desc .. "Magic Skill: " .. (creature.magic or 0) + (class.stat_modifiers and class.stat_modifiers.magic or 0) .. "\n"
-        desc = desc .. "Dodging Skill: " .. (creature.dodging or 0) + (class.stat_modifiers and class.stat_modifiers.dodging or 0) .. "\n"
-        desc = desc .. "Sight Radius: " .. creature.perception + (class.stat_modifiers and class.stat_modifiers.perception or 0) .. "\n"
-        if creature.stealth or (class.stat_modifiers and class.stat_modifiers.stealth) then desc = desc .. "Stealth Modifier: " .. (creature.stealth or 0) + (class.stat_modifiers and class.stat_modifiers.stealth or 0) .. "\n" end
-        if creature.armor or (class.stat_modifiers and class.stat_modifiers.armor) then desc = desc .. "Damage Absorbtion: " .. (creature.armor or 0) + (class.stat_modifiers and class.stat_modifiers.armor or 0) .. "\n" end
-        if (class.weaknesses and count(class.weaknesses) > 0) or (creature.weaknesses and count(creature.weaknesses) > 0)then
-          desc = desc .. "Weaknesses: "
-          local i = 1
-          for stat,amt in pairs(creature.weaknesses or {}) do
-            if i ~= 1 then desc = desc .. ", "  end
-            desc = desc .. ucfirst(stat) .. " " .. amt .. "%"
-            i = i + 1
-          end
-          for stat,amt in pairs(class.weaknesses or {}) do
-            if i ~= 1 then desc = desc .. ", "  end
-            desc = desc .. ucfirst(stat) .. " " .. amt .. "%"
-            i = i + 1
-          end
-          desc = desc .. "\n"
-        end
-        if (class.resistances and count(class.resistances) > 0) or (creature.resistances and count(creature.resistances) > 0) then
-          desc = desc .. "Resistances: "
-          local i = 1
-          for stat,amt in pairs(creature.resistances or {}) do
-            if i ~= 1 then desc = desc .. ", "  end
-            desc = desc .. ucfirst(stat) .. " " .. amt .. "%"
-            i = i + 1
-          end
-          for stat,amt in pairs(class.resistances or {}) do
-            if i ~= 1 then desc = desc .. ", "  end
-            desc = desc .. ucfirst(stat) .. " " .. amt .. "%"
-            i = i + 1
-          end
-          desc = desc .. "\n"
-        end
-        if (class.spells and count(class.spells) > 0) or (creature.spells and count(creature.spells) > 0) then
-          desc = desc .. "Abilities: "
-          local count = 1
-          for i,spell in ipairs(creature.spells or {}) do
-            if count ~= 1 then desc = desc .. ", " end
-            desc = desc .. possibleSpells[spell].name
-            count = count+1
-          end
-          for i,spell in ipairs(class.spells or {}) do
-            if count ~= 1 then desc = desc .. ", " end
-            desc = desc .. possibleSpells[spell].name
-            count = count+1
-          end
-          desc = desc .. "\n"
-        end
-        if (class.items and #class.items > 0) or (class.equipment and #class.equipment > 0) or (creature.items and #creature.items > 0) or (creature.equipment and #creature.equipment > 0) then
-          desc = desc .. "Items: "
-          local hasItems = false
-          local i = 1
-          if (creature.items and #creature.items > 0) then
-            for _,item in ipairs(creature.items) do
-              if i ~= 1 then desc = desc .. ", " end
-              local amount = item.amount or 1
-              desc = desc .. (amount > 1 and amount .. " " or "") .. ucfirst(item.displayName or (amount > 1 and possibleItems[item.item].pluralName or possibleItems[item.item].name))
-              hasItems = true
-              i = i + 1
-            end
-          end
-          if (creature.equipment and #creature.equipment > 0) then
-            for _,item in ipairs(class.equipment) do
-              if i ~= 1 or hasItems then desc = desc .. ", " end
-              desc = desc .. ucfirst(item.displayName or possibleItems[item.item].name)
-              hasItems=true
-              i = i + 1
-            end
-          end
-          if (class.items and #class.items > 0) then
-            for _,item in ipairs(class.items) do
-              if i ~= 1 or hasItems then desc = desc .. ", " end
-              local amount = item.amount or 1
-              desc = desc .. (amount > 1 and amount .. " " or "") .. ucfirst(item.displayName or (amount > 1 and possibleItems[item.item].pluralName or possibleItems[item.item].name))
-              hasItems = true
-              i = i + 1
-            end
-          end
-          if (class.equipment and #class.equipment > 0) then
-            for _,item in ipairs(class.equipment) do
-              if i ~= 1 or hasItems then desc = desc .. ", " end
-              desc = desc .. ucfirst(item.displayName or possibleItems[item.item].name)
-              i = i + 1
-            end
-          end
-          desc = desc .. "\n"
-        end
-        if class.money or creature.money then
-          desc = desc .. "Money: " .. get_money_name((class.money or 0)+(creature.money or 0)) .. "\n"
-        end
-        if (class.factions and #class.factions > 0) or (creature.factions and #creature.factions > 0) then
-          desc = desc .. "Faction Membership: "
-          local i = 1
-          for _,fac in ipairs(creature.factions or {}) do
-            if i ~= 1 then desc = desc .. ", " end
-            desc = desc .. currWorld.factions[fac].name
-            i = i + 1
-          end
-          for _,fac in ipairs(class.factions or {}) do
-            if i ~= 1 then desc = desc .. ", " end
-            desc = desc .. currWorld.factions[fac].name
-            i = i + 1
-          end
-          desc = desc .. "\n"
-        end
-        if (class.favor and count(class.favor) > 0) or (creature.favor and count(creature.favor) > 0 )then
-          desc = desc .. "Favor: "
-          local i = 1
-          local favs = {}
-          for id,fav in pairs(creature.favor or {}) do
-            favs[id] = fav
-          end
-          for id,fav in pairs(class.favor or {}) do
-            favs[id] = (favs[id] or 0)+fav
-          end
-          for id,fav in pairs(favs) do
-            if i ~= 1 then desc = desc .. ", "  end
-            desc = desc .. currWorld.factions[id].name .. " " .. fav
-            i = i + 1
-          end
-          desc = desc .. "\n"
-        end
+        local class = playerClasses[whichClass]
+        local desc = self:get_stat_text(whichSpecies,whichClass)
+        
         love.graphics.setStencilTest()
         love.graphics.pop()
         if #self.classes > self.maxClassLines then
@@ -1090,4 +880,199 @@ function newgame:refresh_class_list()
     end
   end
   sort_table(self.classes,"name")
+end
+
+function newgame:get_stat_text(whichSpecies,whichClass)
+  whichSpecies = whichSpecies or self.player.species or gamesettings.default_player
+  whichClass = whichClass or self.player.class
+  local class = (whichClass and playerClasses[whichClass] or {})
+  
+  local desc = ""
+  local creature = possibleMonsters[whichSpecies]
+  
+  --Basic Stats:
+  desc = desc .. "Base HP: " .. creature.max_hp + (class.stat_modifiers and class.stat_modifiers.max_hp or 0) .. "\n"
+  desc = desc .. "Base MP: " .. (creature.max_mp or 0) + (class.stat_modifiers and class.stat_modifiers.max_mp or 0) .. "\n"
+  desc = desc .. "Sight Radius: " .. creature.perception + (class.stat_modifiers and class.stat_modifiers.perception or 0) .. "\n"
+  if creature.stealth or (class.stat_modifiers and class.stat_modifiers.stealth) then desc = desc .. "Stealth Modifier: " .. (creature.stealth or 0) + (class.stat_modifiers and class.stat_modifiers.stealth or 0) .. "\n" end
+  if creature.armor or (class.stat_modifiers and class.stat_modifiers.armor) then desc = desc .. "Damage Absorbtion: " .. (creature.armor or 0) + (class.stat_modifiers and class.stat_modifiers.armor or 0) .. "\n" end
+  
+  --Other stats:
+  if creature.extra_stats or class.extra_stats then
+    if creature.extra_stats then
+      for stat_id,stat in pairs(creature.extra_stats) do
+        desc = desc .. stat.name .. ": " .. stat.value .. (stat.max and " (" .. stat.max .. " max)") .. "\n"
+      end
+    end
+    if class.extra_stats then
+      for stat_id,stat in pairs(class.extra_stats) do
+        desc = desc .. stat.name .. ": " .. stat.value .. (stat.max and " (" .. stat.max .. " max)") .. "\n"
+      end
+    end
+  end
+  
+  --Skills:
+  if gamesettings.default_skills or creature.skills or class.skills then
+    local skillVals = {}
+    for _,skillID in ipairs(gamesettings.default_skills or {}) do
+      skillVals[skillID] = 0
+    end
+    for skillID, value in pairs(creature.skills or {}) do
+      if value == false then
+        skillVals[skillID] = false
+      elseif skillVals[skillID] ~= false then
+        skillVals[skillID] = (skillVals[skillID] or 0) + value
+      end
+    end
+    for skillID, value in pairs(class.skills or {}) do
+      if value == false then
+        skillVals[skillID] = false
+      elseif skillVals[skillID] ~= false then
+        skillVals[skillID] = (skillVals[skillID] or 0) + value
+      end
+    end
+    
+    local skill_lists = {}
+    for skillID,value in pairs(skillVals) do
+      local skill = possibleSkills[skillID]
+      if skill then
+        local sType = skill.skill_type or "skill"
+        if not skill_lists[sType] then
+          skill_lists[sType] = {}
+        end
+        skill_lists[sType][#skill_lists[sType]+1] = {skillID=skillID,value=value,name=skill.name}
+      end
+    end
+    
+    local ordered_list = {}
+    if gamesettings.skill_type_order then
+      for i,skillType in pairs(gamesettings.skill_type_order) do
+        ordered_list[#ordered_list+1] = skillType
+      end
+    end
+    local unordered = {} --sort unordered skill lists alphabetically so at least there's consistency
+    for skillType,_ in pairs(skill_lists) do
+      if not in_table(skillType,ordered_list) then
+        unordered[#unordered+1] = skillType
+      end
+    end
+    sort_table(unordered) --sort alphabetically
+    for _,skillType in ipairs(unordered) do
+      ordered_list[#ordered_list+1] = skillType
+    end
+    
+    for _,sType in pairs(ordered_list) do
+      local list = skill_lists[sType]
+      if list then
+        sort_table(list,'name')
+        local typeDef = possibleSkillTypes[sType]
+        desc = desc .. "\n" .. (typeDef and typeDef.name .. ":" or ucfirst(sType) .. ":") .. "\n"
+        for _,skillInfo in pairs(list) do
+          local skillID,value = skillInfo.skillID, skillInfo.value
+          local skill = possibleSkills[skillID]
+          if value then
+            desc = desc .. "\t" .. skill.name .. (skill.max ~= 1 and ": " .. value or "") .. " - " .. skill.description .. "\n"
+          end
+        end --end for skillInfo
+      end --end if list
+    end --end ordered list for
+  end
+  
+  --Weaknesses and resistances
+  if (class.weaknesses and count(class.weaknesses) > 0) or (creature.weaknesses and count(creature.weaknesses) > 0) then
+    local weak = {}
+    desc = desc .. "\nWeaknesses:\n"
+    for stat,amt in pairs(creature.weaknesses or {}) do
+      weak[stat] = amt
+    end
+    for stat,amt in pairs(class.weaknesses or {}) do
+      weak[stat] = (weak[stat] or 0) + amt
+    end
+    for stat,amt in pairs(weak) do
+      desc = desc .. "\t" .. ucfirst(stat) .. " " .. amt .. "%" .. "\n"
+    end
+  end
+  if (class.resistances and count(class.resistances) > 0) or (creature.resistances and count(creature.resistances) > 0) then
+    local resist = {}
+    desc = desc .. "\nResistances:\n"
+    for stat,amt in pairs(creature.resistances or {}) do
+      resist[stat] = amt
+    end
+    for stat,amt in pairs(class.resistances or {}) do
+      resist[stat] = (resist[stat] or 0) + amt
+    end
+    for stat,amt in pairs(resist) do
+      desc = desc .. "\t" .. ucfirst(stat) .. " " .. amt .. "%" .. "\n"
+    end
+  end
+  
+  --Abilities:
+  if (class.spells and count(class.spells) > 0) or (creature.spells and count(creature.spells) > 0) then
+    desc = desc .. "\nAbilities:\n"
+    for i,spell in ipairs(creature.spells or {}) do
+      desc = desc .. "\t" .. possibleSpells[spell].name .. " - " .. possibleSpells[spell].description .. "\n"
+    end
+    for i,spell in ipairs(class.spells or {}) do
+      desc = desc .. "\t" .. possibleSpells[spell].name .. " - " .. possibleSpells[spell].description .. "\n"
+    end
+  end
+  
+  --Items:
+  if (class.items and #class.items > 0) or (class.equipment and #class.equipment > 0) or (creature.items and #creature.items > 0) or (creature.equipment and #creature.equipment > 0) or (creature.money and creature.money > 0) or (class.money and class.money > 0) then
+    desc = desc .. "\nItems:\n"
+    local hasItems = false
+    if (creature.items and #creature.items > 0) then
+      for _,item in ipairs(creature.items) do
+        local amount = item.amount or 1
+        desc = desc .. "\t" .. (amount > 1 and amount .. " " or "") .. ucfirst(item.displayName or (amount > 1 and possibleItems[item.item].pluralName or possibleItems[item.item].name)) .. "\n"
+        hasItems = true
+      end
+    end
+    if (creature.equipment and #creature.equipment > 0) then
+      for _,item in ipairs(class.equipment) do
+        desc = desc .. "\t" .. ucfirst(item.displayName or possibleItems[item.item].name) .. "\n"
+        hasItems=true
+      end
+    end
+    if (class.items and #class.items > 0) then
+      for _,item in ipairs(class.items) do
+        local amount = item.amount or 1
+        desc = desc .. "\t" .. (amount > 1 and amount .. " " or "") .. ucfirst(item.displayName or (amount > 1 and possibleItems[item.item].pluralName or possibleItems[item.item].name)) .. "\n"
+        hasItems = true
+      end
+    end
+    if (class.equipment and #class.equipment > 0) then
+      for _,item in ipairs(class.equipment) do
+        desc = desc .. "\t" .. ucfirst(item.displayName or possibleItems[item.item].name)  .. "\n"
+      end
+    end
+  end
+  if class.money or creature.money then
+    desc = desc .."\t" .. get_money_name((class.money or 0)+(creature.money or 0)) .. "\n"
+  end
+  
+  --Faction stuff:
+  if (class.factions and #class.factions > 0) or (creature.factions and #creature.factions > 0) then
+    desc = desc .. "\nFaction Membership:\n"
+    for _,fac in ipairs(creature.factions or {}) do
+      desc = desc .. "\t" .. currWorld.factions[fac].name .. currWorld.factions[fac].description  .. "\n"
+    end
+    for _,fac in ipairs(class.factions or {}) do
+      desc = desc .. "\t" .. currWorld.factions[fac].name .. " - " .. currWorld.factions[fac].description  .. "\n"
+    end
+  end
+  if (class.favor and count(class.favor) > 0) or (creature.favor and count(creature.favor) > 0 )then
+    desc = desc .. "\nFaction Favor:\n"
+    local favs = {}
+    for id,fav in pairs(creature.favor or {}) do
+      favs[id] = fav
+    end
+    for id,fav in pairs(class.favor or {}) do
+      favs[id] = (favs[id] or 0)+fav
+    end
+    for id,fav in pairs(favs) do
+      desc = desc .. "\t" .. currWorld.factions[id].name .. ": " .. fav .. " - " .. currWorld.factions[id].description .. "\n"
+    end
+  end
+  return desc
 end

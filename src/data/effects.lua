@@ -214,7 +214,7 @@ function graspingdead:advance()
       local hit = false
       local sees = player:can_see_tile(self.x,self.y)
       if random(1,2) == 1 then
-        local dmg = creat:damage(tweak(creat:get_mhp()/10),self.owner)
+        local dmg = creat:damage(tweak(creat:get_max_hp()/10),self.owner)
         if sees then output:out("The grasping hands of the dead deal " .. dmg .. " damage to " .. creat:get_name() .. "!") end
         hit = true
       end
@@ -615,7 +615,7 @@ local ratswarm = {
 function ratswarm:advance()
 	local creat = currMap:get_tile_creature(self.x,self.y)
 	if creat and not creat:is_type('rat') and not creat:is_type('ratling') then
-		local dmg = creat:damage(tweak(creat:get_mhp()/10),self.caster)
+		local dmg = creat:damage(tweak(creat:get_max_hp()/10),self.caster)
     if (dmg > 0 and player:can_see_tile(self.x,self.y)) then
       output:out("The rat swarm bites " .. creat:get_name() .. " for " .. dmg .. " damage.") self.strength = self.strength-1
       output:sound('ratswarm_damage')

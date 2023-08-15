@@ -1,20 +1,27 @@
 gamesettings = {
+  --Basic game definition:
   name = "Roguelove Example Game",
   id="rogueloveexample",
   author = "Weirdfellows",
   version_text = "In Development Version",
   copyright_text="Copyright 2023 Weirdfellows",
   url="http://weirdfellows.com",
-  default_starting_branch="town",
-  bosses=true,
-  inventory=true,
-  crafting=true,
-  craft_anywhere=true,
-  auto_learn_possible_crafts=true, --If true, then when you have the ability and ingredients required for a recipe, it'll be shown on the crafting page even if you haven't explictly learned it yet. UNLESS the recipe has the no_auto_learn flag set
-  xp=true,
-  leveling=true,
-  events=true,
+  
+  --Display:
+  always_use_color_with_tiles=true,
+  tilesize=32, --Change the image tile size. But be warned: a lot of parts of the engine still will assume 32 for images
+  
+  --Game features:
+  xp=true, --If true, this game awards XP on kills and uses it for leveling
+  leveling=true, --If true, this game features leveling
+  events=true, --If true, events can be fired
+  default_starting_branch="town", --What branch to start the player in
+  bosses=true, --If true, bosses will spawn when trying to go to a new level
   player_tombstones=true, --If true, tombstones will be created on levels where players were previous killed listing their date and cause of death
+  heal_on_level_up=true, --reset to max HP and MP on a level up
+  display_creature_levels=true, --If true, creature levels will be displayed. Otherwise they won't (but can still be used behind the scenes)
+  
+  --Map and world generation:
   default_map_width=60,
   default_map_height=60,
   no_map_descriptions=false, --If true, do not display map description popups when entering a new map
@@ -24,29 +31,50 @@ gamesettings = {
   artifact_chance=10,
   default_event_cooldown=20,
   default_event_chance=50,
-  player_species=true,
-  player_classes=true,
+  
+  --Player definition:
+  player_species=true, --If true, there is species selection on the main screen
+  player_classes=true, --If true, there is class selection on the main screen
   default_player="player_human", --This is the ID of the creature definition in possibleMonsters that will be used for the player character
-  tilesize=32,
-  default_spell_slots=1, --if not defined, defaults to infinite. See Creature:get_spell_slots() to customize formula
+  default_starting_missions={ascend=0}, --Default missions players are given, in format missionID=missionStatus
+  
+  --Stats and skills:
+  --default_stats={}, --The stats the game will give every creature at a 0 by default
+  default_skills={'strength','agility','toughness','melee','ranged'}, --The skills the game will give every creature at a 0 by default
+  skill_type_order={'attribute','skill'},
+  stats_per_level={upgrade_points_attribute=1,spellPoints=1,upgrade_points_skill=3,max_hp=5},
+  stats_at_level={[5]={upgrade_points_attribute=3,upgrade_points_skill=10}},
+  stats_per_x_levels={[3]={upgrade_points_attribute=1}},
+  --skills_per_level={},
+  --skills_at_level={[5]={}},
+  --skills_per_x_levels={[3]={},
+  --Default stats and skills to use in attacks. Can be overridden by creatures or items
+  default_melee_damage_stats={strength=1,level=1}, --will apply extra damage of the stat/skill * its value
+  default_melee_accuracy_stats={melee=1,level=1}, -- will apply % chance to hit of the stat/skill * its value
+  default_ranged_damage_stats={level=1}, -- will apply extra damage of the stat/skill * its value
+  default_ranged_accuracy_stats={ranged=1,level=1}, -- will apply % chance to hit of the stat/skill * its value
+  default_dodge_stats={agility=5,level=1}, --will apply % chance to dodge of the stat/skill * its value
+  
+  --Inventory and equipment:
+  inventory=true,
+  crafting=true,
+  craft_anywhere=true,
+  auto_learn_possible_crafts=true, --If true, then when you have the ability and ingredients required for a recipe, it'll be shown on the crafting page even if you haven't explictly learned it yet. UNLESS the recipe has the no_auto_learn flag set
   default_inventory_space=20, --if not defined, defaults to infinite. See Creature:get_inventory_space() to customize formula
   default_equipment_slots={wielded=2,head=1,torso=1,hands=1,legs=1,feet=1,accessory=3,ammo=1},
   default_inventory_order={'usable','throwable','weapon','offhand','armorhead','armortorso','armorhands','armorlegs','armorfeet','accessory','ammo','other'},
   default_equipment_order={'wielded','head','torso','hands','legs','feet','accessory','ammo'},
   inventory_filters={{filter='usable'},{filter='throwable'},{filter='equippable',itemType="weapon",label="Weapons"},{filter='equippable',itemType="weapon",subType="ranged",label="Ranged Weapons"},{filter='equippable',label="All Equipment"},{itemType="other",label="Miscellaneous"}},
-  default_starting_missions={ascend=0},
-  stats_per_level={skillPoints=5,spellPoints=1,max_hp=5},
-  stats_at_level={[5]={skillPoints=10}},
-  stats_per_x_levels={[3]={spell_slots=1}},
-  heal_on_level_up=true, --reset to max HP and MP on a level up
-  spells_forgettable_by_default=true, --If true, spells can be "forgotten" from the spell screen, unless the spell's forgettable flag is explicitly set to false. If not set to true, spells can be forgotten if their forgettable flag is true
-  spells_locked_by_default=true, --If true, spells cannot be forgotten/memorized from the spellscreen at will
   can_pickup_adjacent_items=true, --Allows picking up items from adjacent tiles, not just the tile you're standing on
-  display_item_levels=true,
-  display_creature_levels=true,
+  display_item_levels=true, --If true, the levels of items will be displayed. Otherwise they won't (but can still be used behind the scenes)
   money_prefix = nil,
   money_suffix = nil,
   money_name = "coins",
   money_name_single = "coin",
-  always_use_color_with_tiles=true
+
+  --Spells:
+  default_spell_slots=0, --if not defined, defaults to infinite. See Creature:get_spell_slots() to customize formula
+  mp=true, --If true, uses MP
+  spells_forgettable_by_default=true, --If true, spells can be "forgotten" from the spell screen, unless the spell's forgettable flag is explicitly set to false. If not set to true, spells can be forgotten if their forgettable flag is true
+  spells_locked_by_default=true --If true, spells cannot be forgotten/memorized from the spellscreen at will
 }

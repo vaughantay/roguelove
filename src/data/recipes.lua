@@ -50,7 +50,8 @@ possibleRecipes['weaponfireoil'] = {
   results={weaponfireoil=1},
   ingredients={dragonflyheart=1,weaponoil=1},
   result_text="You mix the dragonfly heart into your weapon oil. You can now apply it to a weapon to have it deal extra fire damage.",
-  tags={"alchemy","fire"}
+  tags={"alchemy","fire"},
+  skill_requirements={alchemy=1,magic=100}
 }
 
 possibleRecipes['reallybigclub'] = {
@@ -71,6 +72,7 @@ possibleRecipes['reallybigclub'] = {
     requires_class="",
     requires_faction="",
     requires_spells={},
+    skill_requirements={skill1=2}
     stat_requirements={strength=100}
     required_level=0,
     no_auto_learn=true

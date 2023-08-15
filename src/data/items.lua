@@ -18,7 +18,7 @@ local healthPotionMinor = {
 function healthPotionMinor:use(user)
 	user = user or player
 	local healPerc = tweak(20)
-  local heal = math.max(5,math.ceil(user:get_mhp()*(healPerc/100)))
+  local heal = math.max(5,math.ceil(user:get_max_hp()*(healPerc/100)))
 	output:out(user.name .. " drinks a Potion of Minor Healing and regains " .. heal .. " HP!")
 	user:updateHP(heal)
 end
@@ -41,7 +41,7 @@ local healthPotionModerate = {
 function healthPotionModerate:use(user)
 	user = user or player
 	local healPerc = tweak(34)
-  local heal = math.max(10,math.ceil(user:get_mhp()*(healPerc/100)))
+  local heal = math.max(10,math.ceil(user:get_max_hp()*(healPerc/100)))
 	output:out(user.name .. " drinks a Potion of Moderate Healing and regains " .. heal .. " HP!")
 	user:updateHP(heal)
 end
@@ -606,6 +606,7 @@ local dart = {
   throwable=true,
   target_type="creature",
 	color={r=200,g=200,b=200,a=255},
+  ranged_damage_stats={strength=1},
 	ranged_attack="dart",
   stacks=true,
   max_stack=10,
@@ -653,7 +654,7 @@ local soul = {
 function soul:use(user)
   if user:is_type('demon') then
     output:out(user.name .. " consumes a soul and regains all their HP and MP!")
-    user:updateHP(user:get_mhp())
+    user:updateHP(user:get_max_hp())
     user:delete_item(self)
   else
     if user == player then output:out("You're not a demon. You can't consume souls.") end
@@ -889,12 +890,12 @@ local crossbow = {
   max_charges=1,
   level=1,
   ranged_attack="crossbow",
-  ranged_accuracy_modifier=5,
+  ranged_accuracy=5,
   charge_name="bolts",
   usesAmmo="bolt",
   color={r=150,g=150,b=150,a=255},
   tags={'wooden','ranged'},
-  stats_per_level={ranged_accuracy_modifier=1,ranged_damage_modifier=1},
+  stats_per_level={ranged_accuracy=1,ranged_damage=1},
   value=10
 }
 possibleItems['crossbow'] = crossbow
@@ -1089,7 +1090,7 @@ local bone = {
   itemType="throwable",
   color={r=255,g=255,b=255,a=255},
   tags={'death','bodypart','ingredient','necromancy'},
-  ranged_accuracy_modifier=-15,
+  ranged_accuracy=-15,
   value=1,
   stacks=true,
   neverSpawn=true

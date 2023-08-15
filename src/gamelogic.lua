@@ -143,13 +143,14 @@ function initialize_world()
   end --end branch for
 end
 
----Calculates the chance of hitting an opponent.
+---Calculates the chance of hitting an opponent. *MAY WANT TO CHANGE FOR YOUR OWN GAME*
 --@param attacker Creature. The creature doing the attacking.
 --@param target Creature. The creature getting potentially hit
 --@param item Item. The item the attacker is using.
 function calc_hit_chance(attacker,target,item)
-  local hitMod = attacker:get_stat('melee') - (target.get_stat and target:get_stat('dodging') or 0)
-  return math.min(math.max(70 + (hitMod > 0 and hitMod*2 or hitMod) + attacker:get_bonus('hit_chance') - (target.get_bonus and target:get_bonus('dodge_chance') or 0) + (item and item:get_accuracy() or 0),25),95)
+  local base = attacker:get_melee_accuracy((item and item.melee_accuracy_stats)) - (target.get_dodging and target:get_dodging() or 0) --These are on a seperate line because you may want to have a more complicated equation here
+  local mod = (item and item:get_accuracy() or 0) + attacker:get_bonus('hit_chance') - (target.get_bonus and target:get_bonus('dodge_chance') or 0) --The values on this line are applied straight to the %
+  return math.min(math.max(70 + base + mod,25),95) --capped between 25% and 95%
 end
 
 ---Calculates whether an attacker hits a target, whether it was a critical, and how much damage was done. Important to note: This function just *calculates* the damage, it does not apply it!
@@ -737,6 +738,9 @@ function setTarget(x,y)
         if result then output:out(result) else output:out("That is not a valid target for this ability.") end
         return false
       end
+    else
+      targets[#targets+1] = potential_target
+      output.potentialTargets = {}
     end
     
     --If we've reached the max number of targets, go ahead and perform the action
@@ -757,7 +761,7 @@ function perform_target_action(target_list)
     if actionResult.baseType == "spell" then --spells can take multiple targets, so pass it to the spell to decide
       result = actionResult:use(target_list,player,actionIgnoreCooldown,actionIgnoreMP)
     else
-      result = actionResult:use(target_list[1],player,actionItem)
+      result = actionResult:use(target_list[1],player,actionItem) --TODO: make ranged attacks accept multiple targets?
     end
     if result ~= false then
       if actionItem then

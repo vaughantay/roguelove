@@ -40,7 +40,7 @@ function crafting:refresh_craft_list()
       craftData.is_class = (player.class == recipe.requires_class)
       if not craftData.is_class then craftData.craftable=false end
     end
-    --Class check:
+    --Faction check:
     if recipe.requires_faction then
       craftData.requires_faction = currWorld.factions[recipe.requires_faction]
       craftData.is_faction_member = player:is_faction_member(recipe.requires_faction)
@@ -92,9 +92,21 @@ function crafting:refresh_craft_list()
     if recipe.stat_requirements then
       craftData.stat_requirements = {}
       for stat,requirement in pairs(recipe.stat_requirements) do
-        local player_stat = (player:get_stat(stat,true) or player:get_bonus_stat(stat,true)) or 0
+        local player_stat = (player:get_stat(stat) or player:get_bonus_stat(stat)) or 0
         local meets_requirement = (player_stat >= requirement)
         craftData.stat_requirements[stat] = {requirement=requirement,player_stat=player_stat,meets_requirement=meets_requirement}
+        if not meets_requirement  then
+          craftData.craftable = false
+        end
+      end
+    end
+    
+    if recipe.skill_requirements then
+      craftData.skill_requirements = {}
+      for skill,requirement in pairs(recipe.skill_requirements) do
+        local player_skill = player:get_skill(skill)
+        local meets_requirement = (player_skill >= requirement)
+        craftData.skill_requirements[skill] = {requirement=requirement,player_stat=player_skill,meets_requirement=meets_requirement}
         if not meets_requirement  then
           craftData.craftable = false
         end
@@ -378,6 +390,25 @@ function crafting:draw()
       descY = descY+prefs['fontSize']
       for stat,info in pairs(craftInfo.stat_requirements) do
         local statText = "\t*" .. ucfirst(stat) .. ": " .. info.requirement .. " (You have " .. info.player_stat .. ")"
+        if not info.meets_requirement then
+          setColor(200,0,0,255)
+        end
+        love.graphics.printf(statText,sidebarX+padX,descY,window2w,"left")
+        local _, dlines = fonts.textFont:getWrap(statText,window2w)
+        descY = descY+prefs['fontSize']*#dlines
+        if not info.meets_requirement then
+          setColor(255,255,255,255)
+        end
+      end
+      descY = descY+prefs['fontSize']
+    end
+    
+    if craftInfo.skill_requirements then
+      love.graphics.printf("Skill Requirements:",sidebarX+padX,descY,window2w,"left")
+      descY = descY+prefs['fontSize']
+      for skill,info in pairs(craftInfo.skill_requirements) do
+        local skillInfo = possibleSkills[skill]
+        local statText = "\t*" .. skillInfo.name .. (skillInfo.max == 1 and "" or ": " .. info.requirement .. " (You have " .. info.player_stat .. ")")
         if not info.meets_requirement then
           setColor(200,0,0,255)
         end

@@ -187,11 +187,21 @@ function monsterpedia:draw()
     local statStart = (start+fontSize*2)+((#tlines+2)*fontSize)
     local text = "Max HP: " .. creat.max_hp
     if creat.max_mp then text = text .. "\nMax MP: " .. creat.max_mp end
-    text = text .. "\nDamage: " .. creat.strength .. " (" .. (creat.critical_damage and (creat.strength+creat.critical_damage) or math.ceil(creat.strength * 1.5)) .. " damage on critical hit, " .. (creat.critical_chance or 1) .. "% chance)"
-    text = text .. "\nMelee Skill: " .. creat.melee .. " (" .. math.ceil(math.min(math.max(70 + (creat.melee - creat.level*5-5),25),95)) .. "% chance to hit average level " .. creat.level .. " creature)"
-    if creat.ranged then text = text .. "\nRanged Skill: " .. creat.ranged end
-    if creat.magic then text = text .. "\nMagic Skill: " .. creat.magic end
-    text = text .. "\nDodge Skill: " .. creat.dodging .. " (" .. math.ceil(math.min(math.max(70 + (5+creat.level*5 - creat.dodging),25),95)) .. "% chance to be hit by average level " .. creat.level .. " creature)"
+    if gamesettings.default_stats then
+      text = text .. "\nStats:"
+      for _,stat in ipairs(gamesettings.default_stats) do
+        text = text .. "\n\t" .. ucfirst(stat) .. ": " .. (creat[stat]or 0)
+      end
+    end
+    if creat.skills then
+      text = text .. "\nSkills:"
+      for skillID,val in pairs(creat.skills) do
+        local skill = possibleSkills[skillID]
+        if skill then
+          text = text .. "\n\t" .. skill.name .. ": " .. val
+        end
+      end
+    end
     if creat.armor then text = text .. "\nDamage Absorption: " .. creat.armor end
     text = text .. "\nSight Radius: " .. creat.perception
     if creat.ranged_attack then text = text .. "\nRanged Attack: " .. rangedAttacks[creat.ranged_attack].name end

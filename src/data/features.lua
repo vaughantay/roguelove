@@ -1140,11 +1140,11 @@ local fountain = {
     if self.image_base == "fountainempty" or entity ~= player then
       return false
     elseif self.image_base == "fountainred" then
-      local hp = tweak(entity:get_mhp()/4)
+      local hp = tweak(entity:get_max_hp()/4)
       entity:updateHP(hp)
       text = text ..  ucfirst(entity:get_pronoun('n')) .. " regains " .. hp .. " HP!"
     elseif self.image_base == "fountaingreen" then
-      entity:give_condition('regenerating',tweak(entity:get_mhp()/2))
+      entity:give_condition('regenerating',tweak(entity:get_max_hp()/2))
       text = text ..  ucfirst(entity:get_pronoun('n')) .. " starts regenerating HP!"
     elseif self.image_base == "fountainblue" then
       text = text .. "A magical shield forms into being around " .. entity:get_pronoun('o') .. "!"

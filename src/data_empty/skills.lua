@@ -1,0 +1,2 @@
+possibleSkills = {}
+possibleSkillTypes = {}

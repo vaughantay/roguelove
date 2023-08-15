@@ -18,7 +18,7 @@ function inventory:enter(previous,whichFilter,action,entity)
     self.action = nil
     self.entity = entity or player
   end
-  self.inventory_space = (self.entity.inventory_space and self.entity:get_stat('inventory_space') or false)
+  self.inventory_space = (self.entity.inventory_space and self.entity.get_inventory_space and self.entity:get_inventory_space() or self.entity.inventory_space or false)
   self.free_space = self.entity:get_free_inventory_space()
   self.biggestY=0
   self.action=action or self.action

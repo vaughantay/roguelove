@@ -62,10 +62,10 @@ blast = {
     stun={{stun_chance=10,min_stun=2,max_stun=3},{stun_chance=15,min_stun=1,max_stun=2},name="Stunning"},
     amnesia={{amnesia=true},name="Amnesia",description="Causes the target to forget they ever saw you.",playerOnly=true}, --Value set to true will just display the name and description
   },
-  stat_bonuses_from_stats={
+  stat_bonuses_from_skills={
     max_damage={magic={[10]=5}}
   },
-  stat_bonuses_per_x_stats={
+  stat_bonuses_per_x_skills={
     min_damage={magic={[5]=1}},
     max_damage={magic={[5]=1}}
   },
@@ -1074,7 +1074,7 @@ passiverage = {
     target_type="passive",
     tags={'physical'},
     damaged = function(self,possessor, attacker,amt,dtype)
-      local perc = math.ceil((amt/possessor:get_mhp())*100)*2
+      local perc = math.ceil((amt/possessor:get_max_hp())*100)*2
       if possessor.extra_stats.fury then
         local newVal = possessor:update_extra_stat('fury',perc)
         if newVal >= possessor.extra_stats.fury.max then
@@ -1180,9 +1180,9 @@ heal_other = {
     flags={friendly=true},
     cast = function(self,target,caster)
       if target == caster then output:out("You can't use this ability to heal yourself. That's too selfish for an orc.") return false end
-      if target.hp < target:get_mhp() then
+      if target.hp < target:get_max_hp() then
         if caster:touching(target) then
-          local amt = math.max(5,math.ceil(target:get_mhp() *.05))
+          local amt = math.max(5,math.ceil(target:get_max_hp() *.05))
           if player:can_see_tile(caster.x,caster.y) then
             output:out(caster:get_name() .. " heals " .. target:get_name() .. " for amt damage.")
             output:sound('heal_other')
@@ -1212,7 +1212,7 @@ heal_other = {
       if creats then
         for _,creat in pairs(creats) do
           if caster:is_enemy(creat) == false and creat ~= caster then
-            local dmg = (creat:get_mhp()-creat.hp)
+            local dmg = (creat:get_max_hp()-creat.hp)
             if (mostDmg == nil or dmg > mostDmg) and dmg > 0 then
               mostDmg,dmgedCreat = dmg,creat
             end --end damage if

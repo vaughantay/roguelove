@@ -4,6 +4,7 @@ function characterscreen:enter()
   self.yModPerc = 100
   tween(0.2,self,{yModPerc=0})
   output:sound('stoneslideshort',2)
+  self.statButtons = {}
   self.skillButtons = {}
   self.learnButtons = {}
   self.cursorY = 0
@@ -17,9 +18,9 @@ function characterscreen:draw()
   game:draw()
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
   local uiScale = (prefs['uiScale'] or 1)
-  local skillPoints = (player.skillPoints or 0)
   local spellPoints = (player.spellPoints or 0)
   local stat_increases = (gamesettings.leveling and player:get_stat_increases_for_level(player.level+1) or {})
+  local skill_increases = (gamesettings.leveling and player:get_skill_increases_for_level(player.level+1) or {})
   local buttonY = 1
   local mouseX,mouseY = love.mouse.getPosition()
   mouseX,mouseY = round(mouseX/uiScale),round(mouseY/uiScale)
@@ -28,7 +29,8 @@ function characterscreen:draw()
   love.graphics.translate(0,height*(self.yModPerc/100))
   local padding = (prefs['noImages'] and 16 or 32)
   local fontSize = prefs['fontSize']+2
-  local printX = padding+(skillPoints > 0 and 32 or 0)
+  local printX = padding
+  local printXbuttoned = printX+32
   output:draw_window(1,1,math.floor(width/uiScale-padding),math.floor(height/uiScale-padding))
   love.graphics.setFont(fonts.textFont)
   local printY = padding
@@ -61,81 +63,158 @@ function characterscreen:draw()
   love.graphics.push()
   --Create a "stencil" that stops 
   local function stencilFunc()
-    love.graphics.rectangle("fill",padding,screenStartY,width-padding,height-screenStartY)
+    love.graphics.rectangle("fill",padding-4,screenStartY,width-padding,height-screenStartY)
   end
   love.graphics.stencil(stencilFunc,"replace",1)
   love.graphics.setStencilTest("greater",0)
   love.graphics.translate(0,-self.scrollY)
   if self.screen == "character" then
-    if skillPoints > 0 then love.graphics.printf(skillPoints .. " skill point" .. (skillPoints > 1 and "s available" or " available"),padding,printY,math.floor(width/uiScale)-44,"center") end
-    printY = printY + fontSize
-    if spellPoints > 0 then love.graphics.printf(spellPoints .. " ability point"  .. (spellPoints > 1 and "s available" or " available"),padding,printY,math.floor(width/uiScale)-44,"center") end
-    printY = printY + fontSize
     love.graphics.print("Max HP: " .. player.max_hp .. (stat_increases['max_hp'] and " (" .. (stat_increases['max_hp'] >= 1 and "+" or "") .. stat_increases['max_hp'] .. " next level)" or ""),printX,printY)
-    if skillPoints > 0 then
-      self.skillButtons[buttonY] = output:tinybutton(printX-32,printY,true,(self.cursorY==buttonY or nil),"+",true)
-      self.skillButtons[buttonY].skill = "max_hp"
-      buttonY = buttonY+1
-    end
     printY = printY + fontSize
-    love.graphics.print("Max MP: " .. player.max_mp .. (stat_increases['max_mp'] and " (" .. (stat_increases['max_mp'] >= 1 and "+" or "") .. stat_increases['max_mp'] .. " next level)" or ""),printX,printY)
-    if skillPoints > 0 then
-      self.skillButtons[buttonY] = output:tinybutton(printX-32,printY,true,(self.cursorY==buttonY or nil),"+",true)
-      self.skillButtons[buttonY].skill = "max_mp"
-      buttonY = buttonY+1
-    end
-    printY = printY + fontSize
-    love.graphics.print("Strength: " .. player.strength .. (stat_increases['strength'] and " (" .. (stat_increases['strength'] >= 1 and "+" or "") .. stat_increases['strength'] .. " next level)" or ""),printX,printY)
-    if skillPoints > 0 then
-      self.skillButtons[buttonY] = output:tinybutton(printX-32,printY,true,(self.cursorY==buttonY or nil),"+",true)
-      self.skillButtons[buttonY].skill = "strength"
-      buttonY = buttonY+1
-    end
-    printY = printY + fontSize
-    love.graphics.print("Melee Skill: " .. player.melee .. (stat_increases['melee'] and " (" .. (stat_increases['melee'] >= 1 and "+" or "") .. stat_increases['melee'] .. " next level)" or ""),printX,printY)
-    if skillPoints > 0 then
-      self.skillButtons[buttonY] = output:tinybutton(printX-32,printY,true,(self.cursorY==buttonY or nil),"+",true)
-      self.skillButtons[buttonY].skill = "melee"
-      buttonY = buttonY+1
-    end
-    printY = printY + fontSize
-    love.graphics.print("Ranged Skill: " .. player.ranged .. (stat_increases['ranged'] and " (" .. (stat_increases['ranged'] >= 1 and "+" or "") .. stat_increases['ranged'] .. " next level)" or ""),printX,printY)
-    if skillPoints > 0 then
-      self.skillButtons[buttonY] = output:tinybutton(printX-32,printY,true,(self.cursorY==buttonY or nil),"+",true)
-      self.skillButtons[buttonY].skill = "ranged"
-      buttonY = buttonY+1
-    end
-    printY = printY + fontSize
-    love.graphics.print("Magic Skill: " .. player.magic .. (stat_increases['magic'] and " (" .. (stat_increases['magic'] >= 1 and "+" or "") .. stat_increases['magic'] .. " next level)" or ""),printX,printY)
-    if skillPoints > 0 then
-      self.skillButtons[buttonY] = output:tinybutton(printX-32,printY,true,(self.cursorY==buttonY or nil),"+",true)
-      self.skillButtons[buttonY].skill = "magic"
-      buttonY = buttonY+1
-    end
-    printY = printY + fontSize
-    love.graphics.print("Dodge Skill: " .. player.dodging .. (stat_increases['dodging'] and " (" .. (stat_increases['dodging'] >= 1 and "+" or "") .. stat_increases['dodging'] .. " next level)" or ""),printX,printY)
-    if skillPoints > 0 then
-      self.skillButtons[buttonY] = output:tinybutton(printX-32,printY,true,(self.cursorY==buttonY or nil),"+",true)
-      self.skillButtons[buttonY].skill = "dodging"
-      buttonY = buttonY+1
-    end
-    printY = printY + fontSize
-    if player.extra_stats then
-      for stat_id,stat in pairs(player.extra_stats) do
-        if stat.can_increase_with_points and skillPoints > 0 then
-          self.skillButtons[buttonY] = output:tinybutton(printX-32,printY,true,(self.cursorY==buttonY or nil),"+",true)
-          self.skillButtons[buttonY].skill = stat_id
-          buttonY = buttonY+1
-        end
-        love.graphics.print("Max " .. stat.name .. ": " .. stat.max,printX,printY)
-        printY=printY+fontSize
-      end
+    if gamesettings.mp then
+      love.graphics.print("Max MP: " .. player.max_mp .. (stat_increases['max_mp'] and " (" .. (stat_increases['max_mp'] >= 1 and "+" or "") .. stat_increases['max_mp'] .. " next level)" or ""),printX,printY)
+      printY = printY + fontSize
     end
     if player.armor then
       love.graphics.print("Damage Absorption: " .. player.armor,padding,printY)
       printY = printY+fontSize
     end
-  
+    if player.stealth then
+      love.graphics.print("Stealth Modifier: " .. player.stealth .. "%",padding,printY)
+      printY = printY+fontSize
+    end
+    --Extra stats:
+    if count(player.extra_stats) > 0 then
+      for stat_id,stat in pairs(player.extra_stats) do
+        love.graphics.print(stat.name .. ": " .. stat.value .. (stat.max and "/" .. stat.max or "") .. (stat.description and " - " .. stat.description or ""),printX,printY)
+        printY=printY+fontSize
+      end
+    end
+    
+    --Skills:
+    local skill_lists = {}
+    
+    for skillID,value in pairs(player:get_skills()) do
+      local skill = possibleSkills[skillID]
+      if skill then
+        local sType = skill.skill_type or "skill"
+        if not skill_lists[sType] then
+          skill_lists[sType] = {}
+        end
+        skill_lists[sType][#skill_lists[sType]+1] = {skillID=skillID,value=value,name=skill.name}
+      end
+    end
+    
+    if count(skill_lists) > 0 then
+      printY=printY+fontSize
+      local ordered_list = {}
+      if gamesettings.skill_type_order then
+        for i,skillType in pairs(gamesettings.skill_type_order) do
+          ordered_list[#ordered_list+1] = skillType
+        end
+      end
+      local unordered = {} --sort unordered skill lists alphabetically so at least there's consistency
+      for skillType,_ in pairs(skill_lists) do
+        if not in_table(skillType,ordered_list) then
+          unordered[#unordered+1] = skillType
+        end
+      end
+      sort_table(unordered) --sort alphabetically
+      for _,skillType in ipairs(unordered) do
+        ordered_list[#ordered_list+1] = skillType
+      end
+      
+      --Now go through the lists and display the actual skills
+      for _,sType in pairs(ordered_list) do
+        local list = skill_lists[sType]
+        if list then
+          sort_table(list,'name')
+          local typeDef = possibleSkillTypes[sType]
+          love.graphics.printf((typeDef and typeDef.name .. ":" or ucfirst(sType) .. ":"),padding,printY,math.floor(width/uiScale)-padding,"center")
+          printY=printY+fontSize
+          local pointID = typeDef and typeDef.upgrade_stat or "upgrade_points_" .. sType
+          local pointName = typeDef and typeDef.upgrade_stat_name or (ucfirst(sType) .. " Points")
+          local points = player[pointID] or 0
+          if points > 0 then
+            love.graphics.printf("You have " .. points .. " " .. pointName .. " available.",padding,printY,math.floor(width/uiScale)-padding,"center")
+            printY=printY+fontSize
+          end
+          for _,skillInfo in pairs(list) do
+            local skillID,skillLvl = skillInfo.skillID, skillInfo.value
+            local skill = possibleSkills[skillID]
+            if skill and skillLvl ~= false then
+              local maxed = skill.max and (skillLvl >= skill.max)
+              local skillText = skill.name .. (skill.max == 1 and "" or ": " .. skillLvl .. (skill_increases[skillID] and " (" .. (skill_increases[skillID] >= 0 and "+" or "-") .. skill_increases[skillID] .. " next level)" or "")) .. (skill.description and " - " .. skill.description or "")
+              love.graphics.printf(skillText,(not maxed and points > 0 and printXbuttoned or printX),printY,width-padding,"left")
+              if points > 0 and not maxed then
+                self.skillButtons[buttonY] = output:tinybutton(printX,printY,true,(self.cursorY==buttonY or nil),"+",true)
+                self.skillButtons[buttonY].skill = skillID
+                buttonY = buttonY+1
+              end
+              local _, wrappedtext = fonts.textFont:getWrap(skillText, math.floor(width/uiScale))
+              printY=printY+#wrappedtext*fontSize
+            end --end skill exists
+          end --end skill for
+        end --end list if
+        printY=printY+fontSize
+      end --end ordered_list for
+    end --if skill lists exist
+    
+    --[[printY = printY + 50
+    love.graphics.printf("Special Abilities:",padding,printY,math.floor(width/uiScale)-padding,"center")
+    printY=printY+fontSize*2
+    local abilities = ""
+    local i = 1
+    for id, ability in pairs(player:get_spells(true)) do
+      if (i > 1) then abilities = abilities .. "\n" end
+      abilities = abilities .. ability.name .. (ability.target_type == "passive" and " (Passive)" or "") .. " - " .. ability.description
+      i = i + 1
+    end
+    love.graphics.printf(abilities,padding,printY,math.floor(width/uiScale)-padding,"left")
+    local _, wrappedtext = fonts.textFont:getWrap(abilities, math.floor(width/uiScale))
+    printY=printY+#wrappedtext*fontSize]]
+    
+    --Purchasable spells:
+    --TODO: Add "choose-between" abilities:
+    if #self.spell_purchases > 0 then
+      printY = printY + 50
+      love.graphics.printf("\nAbilities Available to Learn:",padding,printY,math.floor(width/uiScale)-padding,"center")
+      printY = printY+fontSize
+      love.graphics.printf((player.spellPoints or 0) .. " Ability Points Available",padding,printY,math.floor(width/uiScale)-padding,"center")
+      printY = printY+fontSize*2
+      for _,info in ipairs(self.spell_purchases) do
+        local spell = possibleSpells[info.spell]
+        local canLearn,noLearnText = player:can_learn_spell(info.spell)
+        if not player:has_spell(info.spell,true,true) then
+          local spCost = (info.spell_point_cost and info.spell_point_cost .. " Ability Points" or "")
+          local costText = spCost
+          local text = spell.name .. (spell.target_type == "passive" and " (Passive)" or "") .. " - " .. spell.description .. costText
+          local buttonMouse = false
+          if self.learnButtons[buttonY] and mouseX > self.learnButtons[buttonY].minX and mouseX < self.learnButtons[buttonY].maxX and mouseY > self.learnButtons[buttonY].minY-self.scrollY and mouseY < self.learnButtons[buttonY].maxY-self.scrollY then
+            buttonMouse = true
+          end
+          if not canLearn or spellPoints < (info.spell_point_cost or 0) then
+            setColor(100,100,100,255)
+          end
+          self.learnButtons[buttonY] = output:button(padding,printY,60,false,((buttonMouse or self.cursorY == buttonY) and "hover" or false),"Learn",true)
+          self.learnButtons[buttonY].info = info
+          if not canLearn or spellPoints < (info.spell_point_cost or 0) then
+            setColor(255,255,255,255)
+          end
+          if noLearnText then
+            text = text .. "\n" .. noLearnText
+          elseif spellPoints < (info.spell_point_cost or 0) then
+            text = text .. "\nYou don't have enough ability points to learn this ability."
+          end
+          love.graphics.printf(text,padding+65,printY,math.floor(width/uiScale)-padding-65-32,"left")
+          local _, wrappedtext = fonts.textFont:getWrap(text, math.floor(width/uiScale)-padding-65-32)
+          printY=printY+math.ceil(#wrappedtext*fontSize*1.25)
+          buttonY = buttonY+1
+        end --end player having spell
+      end --end if 
+    end --end if spell.purchases
+    
+    --Weaknesses/resistances
     if player.weaknesses then
       local weakstring = "Weaknesses: "
       local first = true
@@ -156,60 +235,6 @@ function characterscreen:draw()
       love.graphics.print(resiststring,padding,printY)
       printY = printY + fontSize
     end --end resistances
-    
-    --[[printY = printY + 50
-    love.graphics.printf("Special Abilities:",padding,printY,math.floor(width/uiScale)-padding,"center")
-    printY=printY+fontSize*2
-    local abilities = ""
-    local i = 1
-    for id, ability in pairs(player:get_spells(true)) do
-      if (i > 1) then abilities = abilities .. "\n" end
-      abilities = abilities .. ability.name .. (ability.target_type == "passive" and " (Passive)" or "") .. " - " .. ability.description
-      i = i + 1
-    end
-    love.graphics.printf(abilities,padding,printY,math.floor(width/uiScale)-padding,"left")
-    local _, wrappedtext = fonts.textFont:getWrap(abilities, math.floor(width/uiScale))
-    printY=printY+#wrappedtext*fontSize]]
-    
-    --TODO: Add "choose-between" abilities:
-    if #self.spell_purchases > 0 then
-      printY = printY + 50
-      love.graphics.printf("Abilities Available to Learn:",padding,printY,math.floor(width/uiScale)-padding,"center")
-      printY = printY+fontSize*2
-      for _,info in ipairs(self.spell_purchases) do
-        local spell = possibleSpells[info.spell]
-        local canLearn,noLearnText = player:can_learn_spell(info.spell)
-        if not player:has_spell(info.spell) then
-          local skCost = (info.skill_point_cost and info.skill_point_cost .. " Skill Points" or false)
-          local spCost = (info.spell_point_cost and info.spell_point_cost .. " Ability Points" or false)
-          local costText = ((skCost or spCost) and " (" or "") .. (skCost or "") .. ((spCost and skCost) and ", " or "") .. (spCost or "") .. ((skCost or spCost) and ")" or "")
-          local text = spell.name .. (spell.target_type == "passive" and " (Passive)" or "") .. " - " .. spell.description .. costText
-          local buttonMouse = false
-          if self.learnButtons[buttonY] and mouseX > self.learnButtons[buttonY].minX and mouseX < self.learnButtons[buttonY].maxX and mouseY > self.learnButtons[buttonY].minY-self.scrollY and mouseY < self.learnButtons[buttonY].maxY-self.scrollY then
-            buttonMouse = true
-          end
-          if not canLearn or skillPoints < (info.skill_point_cost or 0) or spellPoints < (info.spell_point_cost or 0) then
-            setColor(100,100,100,255)
-          end
-          self.learnButtons[buttonY] = output:button(padding,printY,60,false,((buttonMouse or self.cursorY == buttonY) and "hover" or false),"Learn",true)
-          self.learnButtons[buttonY].info = info
-          if not canLearn or skillPoints < (info.skill_point_cost or 0) or spellPoints < (info.spell_point_cost or 0) then
-            setColor(255,255,255,255)
-          end
-          if noLearnText then
-            text = text .. "\n" .. noLearnText
-          elseif skillPoints < (info.skill_point_cost or 0) then
-            text = text .. "\nYou don't have enough skill points to learn this ability."
-          elseif spellPoints < (info.spell_point_cost or 0) then
-            text = text .. "\nYou don't have enough ability points to learn this ability."
-          end
-          love.graphics.printf(text,padding+65,printY,math.floor(width/uiScale)-padding-65-32,"left")
-          local _, wrappedtext = fonts.textFont:getWrap(text, math.floor(width/uiScale)-padding-65-32)
-          printY=printY+math.ceil(#wrappedtext*fontSize*1.25)
-          buttonY = buttonY+1
-        end --end player having spell
-      end --end if 
-    end --end if spell.purchases
     
     if player.hit_conditions then
       printY = printY + 50
@@ -313,7 +338,7 @@ function characterscreen:buttonpressed(key)
   key = input:parse_key(key)
   if key == "north" then
     if self.screen == "character" then
-      local whichButton = self.learnButtons[self.cursorY-1] or (self.cursorY-1 <= #self.skillButtons and self.skillButtons[self.cursorY-1]) or nil
+      local whichButton = self.learnButtons[self.cursorY-1] or self.skillButtons[self.cursorY-1] or self.statButtons[self.cursorY-1] or nil
       if whichButton and whichButton.minY > self.screenStartY+self.scrollY then
         self.cursorY = self.cursorY-1
       elseif self.scrollY > 0 then
@@ -326,7 +351,7 @@ function characterscreen:buttonpressed(key)
     end
   elseif key == "south" then
     if self.screen == "character" then
-      local whichButton = self.skillButtons[self.cursorY+1] or (self.cursorY+1 > #self.skillButtons and self.learnButtons[self.cursorY+1]) or nil
+      local whichButton = self.statButtons[self.cursorY+1] or (self.cursorY+1 > #self.statButtons and self.skillButtons[self.cursorY+1] or (self.cursorY+1 > #self.skillButtons and self.learnButtons[self.cursorY+1])) or nil
       if whichButton and whichButton.maxY < height+self.scrollY then
         self.cursorY = self.cursorY+1
       else
@@ -347,6 +372,8 @@ function characterscreen:buttonpressed(key)
         self.screen = "missions"
         self.scrollY=0
       end
+    elseif self.statButtons[self.cursorY] then
+      self:use_statButton(self.statButtons[self.cursorY].stat)
     elseif self.skillButtons[self.cursorY] then
       self:use_skillButton(self.skillButtons[self.cursorY].skill)
     elseif self.learnButtons[self.cursorY] then
@@ -367,7 +394,12 @@ function characterscreen:mousepressed(x,y,button)
   if button == 2 or (x > self.closebutton.minX and x < self.closebutton.maxX and y > self.closebutton.minY and y < self.closebutton.maxY) then
     return self:switchBack()
   end
-  for id,button in ipairs(self.skillButtons) do
+  for id,button in ipairs(self.statButtons) do
+    if x > button.minX and x < button.maxX and y > button.minY and y < button.maxY then
+      return self:use_statButton(button.stat)
+    end
+  end
+  for id,button in pairs(self.skillButtons) do
     if x > button.minX and x < button.maxX and y > button.minY and y < button.maxY then
       return self:use_skillButton(button.skill)
     end
@@ -392,51 +424,37 @@ function characterscreen:mousepressed(x,y,button)
   end
 end
 
-function characterscreen:use_skillButton(skill)
-  player.skillPoints = player.skillPoints - 1
-  if skill == "max_hp" or skill == "max_mp" then
-    player[skill] = player[skill]+2
-  elseif player[skill] then
-    player[skill] = player[skill]+1
-    if skill == "magic" then
-      player.spellPoints = (player.spellPoints or 0)+1 --Increase spell points by 1
-      if player.max_mp == 0 then --If putting points into magic, get some free MP. Presumably this would only be happening if the player is putting their first skill point into magic
-        player.max_mp = 10
-      end
+function characterscreen:use_statButton(stat)
+  player.upgrade_points_attribute = player.upgrade_points_attribute - 1
+  if player[stat] then
+    player[stat] = player[stat]+1
+  elseif player.extra_stats[stat] then
+    local estat = player.extra_stats[stat]
+    if estat.max then
+      estat.max = estat.max+(estat.increase_per_point or 1)
+    else
+      estat.value = estat.value+(estat.increase_per_point or 1)
     end
-  elseif player.extra_stats[skill] then
-    local eskill = player.extra_stats[skill]
-    eskill.max = eskill.max+(eskill.increase_per_point or 1)
   end
-  if player.skillPoints < 1 then
-    self.skillButtons = {}
+  if player.upgrade_points_attribute < 1 then
+    self.statButtons = {}
   end
 end
 
+function characterscreen:use_skillButton(skillID)
+  player:update_skill(skillID)
+  self.skillButtons = {}
+end
+
 function characterscreen:use_learnButton(info)
-  if (not info.spell_point_cost or (player.spellPoints and player.spellPoints >= info.spell_point_cost)) and (not info.skill_point_cost or (player.skillPoints and player.skillPoints >= info.skill_point_cost)) then
+  if (not info.spell_point_cost or (player.spellPoints and player.spellPoints >= info.spell_point_cost)) and (not info.stat_point_cost or (player.upgrade_points_attribute and player.upgrade_points_attribute >= info.stat_point_cost)) then
     player:learn_spell(info.spell)
-    if info.skill_point_cost then player.skillPoints = player.skillPoints - info.skill_point_cost end
     if info.spell_point_cost then player.spellPoints = player.spellPoints - info.spell_point_cost end
   end
 end
 
 function characterscreen:refresh_spell_purchase_list()
-  self.spell_purchases = {}
-  if player.class and playerClasses[player.class].spell_purchases then
-    for _,info in ipairs(playerClasses[player.class].spell_purchases) do
-      if not info.level or info.level <= player.level then
-        self.spell_purchases[#self.spell_purchases+1] = info
-      end --end level check if
-    end --end spell purchase list for
-  end --end if player class has spell purchases
-  if possibleMonsters[player.id].spell_purchases then
-    for _,info in ipairs(possibleMonsters[player.id].spell_purchases) do
-      if not info.level or info.level <= player.level then
-        self.spell_purchases[#self.spell_purchases+1] = info
-      end --end level check if
-    end --end spell purchase list for
-  end --end if player definition has spell purchases
+  self.spell_purchases = player:get_purchasable_spells()
 end
 
 function characterscreen:update(dt)

@@ -293,6 +293,7 @@ function load_data()
   require "data.rooms"
   require "data.room_decorators"
   require "data.services"
+  require "data.skills"
   require "data.spells"
   require "data.stores"
   require "data.tilesets"

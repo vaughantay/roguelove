@@ -259,62 +259,56 @@ function game:print_sidebar()
     love.graphics.rectangle("line",printX-7,printY-7,maxX-printX+32,height-48) -- sidebar
   end
 	love.graphics.printf(player.properName,printX,printY-4+yBonus,335,"center")
-  local skillPoints = ""
-  if player.skillPoints and player.skillPoints > 0 then skillPoints = " (+)" end
+  local upgrade_points_skill = ""
+  if (player.upgrade_points_skill and player.upgrade_points_skill > 0) or (player.upgrade_points_attribute and player.upgrade_points_attribute > 0) then upgrade_points_skill = " (+)" end
   local char_screen_key = input:get_button_name("charScreen")
-  local buttonWidth = whichFont:getWidth(char_screen_key .. ") " .. (gamesettings.leveling and " Level " .. player.level .. " " or " ") .. ucfirst(player.name) .. skillPoints)
+  local buttonWidth = whichFont:getWidth(char_screen_key .. ") " .. (gamesettings.leveling and " Level " .. player.level .. " " or " ") .. ucfirst(player.name) .. upgrade_points_skill)
 
   local middleX = round(printX+335/2)
   printY=printY+fontPad
   self.characterButton = output:button(round(middleX-buttonWidth/2)-8,printY,buttonWidth+16,smallButtons,nil,nil,true)
-	if skillPoints ~= "" then setColor(255,255,0,255) end
-  love.graphics.printf(char_screen_key .. ")" .. (gamesettings.leveling and " Level " .. player.level .. " " or " ") .. ucfirst(player.name) .. skillPoints,printX,printY+yBonus,335,"center")
+	if upgrade_points_skill ~= "" then setColor(255,255,0,255) end
+  love.graphics.printf(char_screen_key .. ")" .. (gamesettings.leveling and " Level " .. player.level .. " " or " ") .. ucfirst(player.name) .. upgrade_points_skill,printX,printY+yBonus,335,"center")
   setColor(255,255,255,255) 
   if output.shakeTimer > 0 then
     love.graphics.push()
     local shakeDist = output.shakeDist*output.shakeTimer*2
     love.graphics.translate(random(-shakeDist,shakeDist),random(-shakeDist,shakeDist))
   end
-  local ratio = self.hp/player:get_mhp()
+  local ratio = self.hp/player:get_max_hp()
   local hpR = 200-(200*ratio)
   local hpG = 200*ratio
   printY=printY+math.max(math.floor(fontPad*1.5),24)
-	output:draw_health_bar(self.hp,player:get_mhp(),printX+xPad,printY,325,math.max(fontPad,16),{r=hpR,g=hpG,b=0,a=255})
- love.graphics.printf("Health: " .. math.ceil(self.hp) .. "/" .. player:get_mhp(),printX,printY+yBonus,332,"center")
+	output:draw_health_bar(self.hp,player:get_max_hp(),printX+xPad,printY,325,math.max(fontPad,16),{r=hpR,g=hpG,b=0,a=255})
+ love.graphics.printf("Health: " .. math.ceil(self.hp) .. "/" .. player:get_max_hp(),printX,printY+yBonus,332,"center")
   if output.shakeTimer > 0 then
     love.graphics.pop()
   end
   
-  printY=printY+math.max(math.floor(fontPad*1.5),24)
-  local mhp = player:get_max_mp()
-  if (mhp > 0) then
-    output:draw_health_bar(player.mp,player:get_max_mp(),printX+xPad,printY,325,math.max(fontPad,16),{r=100,g=0,b=100,a=255})
-    love.graphics.printf("Magic: " .. player.mp .. "/" .. mhp,printX+xPad,printY+yBonus,332,"center")
-    printY = printY+fontPad*2
+  if gamesettings.mp then
+    local mhp = player:get_max_mp()
+    if (mhp > 0) then
+      printY=printY+math.max(math.floor(fontPad*1.5),24)
+      output:draw_health_bar(player.mp,player:get_max_mp(),printX+xPad,printY,325,math.max(fontPad,16),{r=100,g=0,b=100,a=255})
+      love.graphics.printf("Magic: " .. player.mp .. "/" .. mhp,printX+xPad,printY+yBonus,332,"center")
+    end
   end
   
   if player.extra_stats then
     for stat_id,stat in pairs(player.extra_stats) do
       if stat.max and stat.bar_color then
+        printY=printY+math.max(math.floor(fontPad*1.5),24)
         output:draw_health_bar(stat.value,stat.max,printX+xPad,printY,325,math.max(fontPad,16),stat.bar_color)
         love.graphics.printf(stat.name .. ": " .. stat.value .. "/" .. stat.max,printX+xPad,printY+yBonus,332,"center")
-        printY = printY+fontPad*2
       else
-        love.graphics.print(stat.name .. ": " .. stat.value,printX+xPad,printY)
         printY=printY+fontPad*2
+        love.graphics.print(stat.name .. ": " .. stat.value .. (stat.max and "/" .. stat.max or ""),printX+xPad,printY)
       end
     end
   end
+  printY = printY+fontPad*2
   
   setColor(255,255,255,255)
-  if prefs.statsOnSidebar then
-    love.graphics.print("Base Damage: " .. player.strength,printX+xPad,printY)
-    love.graphics.print("Melee Skill: " .. player.melee,printX+xPad,printY+fontPad)
-    love.graphics.print("Ranged Skill: " .. player.melee,printX+xPad,printY+fontPad*2)
-    love.graphics.print("Dodge Skill: " .. player.dodging,printX+xPad,printY+fontPad*3)
-    love.graphics.print("Magic Skill: " .. player.melee,printX+xPad,printY+fontPad*4)
-    printY = printY+fontPad*5
-  end
  
   self.spellButtons = {}
   local descBox = false
@@ -637,8 +631,8 @@ function game:print_target_sidebar()
       love.graphics.printf("Master: " .. creat.master:get_name(false,true),printX,printY,335,"center")
     end
     local hp = (creat == target and self.targetHP or creat.hp)
-    output:draw_health_bar(hp,creat:get_mhp(),printX+xPad,printY+fontPadding+5,325,16)
-    love.graphics.printf("Health: " .. math.ceil(hp) .. "/" .. creat:get_mhp(),printX+xPad,printY+fontPadding+2+yBonus,335,"center")
+    output:draw_health_bar(hp,creat:get_max_hp(),printX+xPad,printY+fontPadding+5,325,16)
+    love.graphics.printf("Health: " .. math.ceil(hp) .. "/" .. creat:get_max_hp(),printX+xPad,printY+fontPadding+2+yBonus,335,"center")
     
     --Melee attack hit chance:
     local weapons = player:get_melee_attacks()
@@ -983,7 +977,7 @@ function game:display_map(map)
   --pClock:flag('feature display')
   for creat,args in pairs(creaturesToDisplay) do
     output.display_entity(creat,args[1],args[2],args[3],nil,(currGame.zoom or 1))
-    local mhp = creat:get_mhp()
+    local mhp = creat:get_max_hp()
     if prefs['healthbars'] and creat.hp < mhp then
       local tileSize = output:get_tile_size()
       local barHeight = 8

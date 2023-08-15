@@ -122,7 +122,7 @@ function factionscreen:draw()
     local padX = 8
     local infobuttonW = fonts.buttonFont:getWidth("Information")+padding
     local shopbuttonW = fonts.buttonFont:getWidth("Items")+padding
-    local spellbuttonW = fonts.buttonFont:getWidth("Abilities")+padding
+    local spellbuttonW = fonts.buttonFont:getWidth("Skills/Abilities")+padding
     local servicebuttonW = fonts.buttonFont:getWidth("Services")+padding
     local missionbuttonW = fonts.buttonFont:getWidth("Missions")+padding
     local biggestButton = math.max(infobuttonW,shopbuttonW,servicebuttonW,spellbuttonW,missionbuttonW)
@@ -139,7 +139,7 @@ function factionscreen:draw()
     self.navButtons[#self.navButtons+1] = self.shopButton
     if self.screen == "Items" then setColor(255,255,255,255) end
     if self.screen == "Spells" then setColor(150,150,150,255) end
-    self.spellsButton = output:button(startX+infobuttonW+shopbuttonW+padX*3,printY,spellbuttonW,false,((self.cursorX == 3 and self.cursorY == 2) and "hover" or nil),"Abilities",true)
+    self.spellsButton = output:button(startX+infobuttonW+shopbuttonW+padX*3,printY,spellbuttonW,false,((self.cursorX == 3 and self.cursorY == 2) and "hover" or nil),"Skills/Abilities",true)
     self.navButtons[#self.navButtons+1] = self.spellsButton
     if self.screen == "Spells" then setColor(255,255,255,255) end
     if self.screen == "Services" then setColor(150,150,150,255) end
@@ -538,6 +538,61 @@ function factionscreen:draw()
     love.graphics.stencil(stencilFunc,"replace",1)
     love.graphics.setStencilTest("greater",0)
     love.graphics.translate(0,-self.scrollY)
+    
+    for i,skillDef in ipairs(faction.teaches_skills or {}) do
+      if not player.skills[skillDef.skill] then
+        spellCount = spellCount + 1
+        local skill = possibleSkills[skillDef.skill]
+        local costText = nil
+        if skillDef.moneyCost then
+          costText = " (Cost: " .. get_money_name(skillDef.moneyCost+round(skillDef.moneyCost*(self.costMod/100)))
+        end
+        if skillDef.favorCost then
+          if costText == nil then
+            costText = " (Cost: "
+          else
+            costText = costText .. ", "
+          end
+          costText = costText .. skillDef.favorCost .. " Favor"
+        end
+        if costText then costText = costText .. ")" end
+        local spellText = skill.name .. (costText or "") .. "\n" .. skill.description
+        local canLearn = true
+        local reasonText = nil
+        
+        if skillDef.membersOnly and not self.playerMember then
+          reasonText = "This skill is only taught to members."
+          canLearn = false
+        elseif skillDef.favorCost and favor < skillDef.favorCost then
+          reasonText = "You don't have enough favor to learn this skill."
+          canLearn = false
+        elseif skillDef.moneyCost and player.money < skillDef.moneyCost+round(skillDef.moneyCost*(self.costMod/100)) then
+          reasonText = "You don't have enough money to learn this skill."
+          canLearn = false
+        end
+        if reasonText then
+          spellText = spellText .. "\n" .. reasonText
+        end
+        local __, wrappedtext = fonts.textFont:getWrap(spellText, maxX)
+        love.graphics.printf(spellText,printX,printY,maxX,"center")
+        printY=printY+(#wrappedtext+1)*fontSize
+        
+        if canLearn then
+          local spellW = fonts.buttonFont:getWidth("Learn " .. skill.name)+padding
+          local buttonX = math.floor(midX-spellW/2+padding/2)
+          local buttonHi = false
+          if mouseX > buttonX and mouseX < buttonX+spellW and mouseY > printY-self.scrollY and mouseY < printY+32-self.scrollY then
+            buttonHi = true
+          end
+          local button = output:button(buttonX,printY,spellW,false,((buttonHi or self.cursorY == 2+#self.spellButtons+1) and "hover" or false),"Learn " .. skill.name)
+          button.skillID = skillDef.skill
+          self.spellButtons[#self.spellButtons+1] = button 
+          printY=printY+32
+        end
+        printY=printY+fontSize
+        lastY = printY
+      end
+    end
     for i,spellDef in ipairs(faction.teaches_spells or {}) do
       if not player:has_spell(spellDef.spell) then
         spellCount = spellCount + 1
@@ -599,7 +654,7 @@ function factionscreen:draw()
       end
     end
     if spellCount == 0 then
-      love.graphics.printf("There are currently no spells available to learn.",windowX,printY,windowWidth,"center")
+      love.graphics.printf("There are currently no skills or abilities available to learn.",windowX,printY,windowWidth,"center")
     end
     love.graphics.setStencilTest()
     love.graphics.pop()
@@ -846,9 +901,17 @@ function factionscreen:buttonpressed(key)
       elseif self.screen == "Spells" then
         if self.cursorY > 2 and self.spellButtons[self.cursorY-2] then
           local spellID = self.spellButtons[self.cursorY-2].spellID
+          local skillID = self.spellButtons[self.cursorY-2].skillID
           local spell = possibleSpells[spellID]
-          if self.faction:teach_spell(spellID,player) ~= false then
-            self.outText = "You learn " .. spell.name .. "."
+          local skill = possibleSkills[skillID]
+          if spellID and spell then
+            if self.faction:teach_spell(spellID,player) ~= false then
+              self.outText = "You learn " .. spell.name .. "."
+            end
+          elseif skillID and skill then
+            if player:update_skill(skillID,1,true) then
+              self.outText = "You are trained in " .. skill.name .. "."
+            end
           end
         end
       elseif self.screen == "Items" then
@@ -1161,9 +1224,17 @@ function factionscreen:mousepressed(x,y,button)
     for i,button in ipairs(self.spellButtons) do
       if button and x > button.minX and x < button.maxX and y > button.minY-self.scrollY and y < button.maxY-self.scrollY then
         local spellID = self.spellButtons[i].spellID
+        local skillID = self.spellButtons[i].skillID
         local spell = possibleSpells[spellID]
-        if self.faction:teach_spell(spellID,player) ~= false then
-          self.outText = "You learn " .. spell.name .. "."
+        local skill = possibleSkills[skillID]
+        if spellID and spell then
+          if self.faction:teach_spell(spellID,player) ~= false then
+            self.outText = "You learn " .. spell.name .. "."
+          end
+        elseif skillID and skill then
+          if player:update_skill(skillID,1,true) then
+            self.outText = "You are trained in " .. skill.name .. "."
+          end
         end
       end --end button coordinate if
     end --end button for

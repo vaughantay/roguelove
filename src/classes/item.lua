@@ -73,38 +73,46 @@ end
 function Item:get_info()
   if not self:is_identified() then return "Its properties are unknown." end
 	local uses = ""
+  if self.kills then
+    uses = uses .. "Kills: " .. self.kills .. "\n"
+  end
   if self.charges and not self.hide_charges then
-    uses = uses .. (self.charge_name and ucfirst(self.charge_name) or "Charges") .. (self.ammo_name and " (" .. self.ammo_name .. ")" or "") .. ": " .. self.charges .. (self.max_charges and "/" .. self.max_charges or "")
+    uses = uses .. (self.charge_name and ucfirst(self.charge_name) or (self.ammo_name and "Current Ammo: " or "Charges: ")) .. (self.ammo_name and " (" .. self.ammo_name .. ")" or "") .. ": " .. self.charges .. (self.max_charges and "/" .. self.max_charges or "")
   end
   if self.owner and self.owner.cooldowns and self.owner.cooldowns[self] then
     uses = uses .. "\nYou can't use this item again for another " .. self.owner.cooldowns[self] .. " turns."
   end
-	if (self.itemType == "weapon") then
-		if self.damage then uses = uses .. "Melee Damage: " .. self.damage .. (self.damage_type and " (" .. self.damage_type .. ")" or "") end
-    if self.armor_piercing then uses = uses .. "Armor Piercing: " .. self.armor_piercing end
-		if self.accuracy then uses = uses .. "\nAccuracy Modifier: " .. self.accuracy .. "%" end
-		if self.critical then uses = uses .. "\nCritical Hit Chance: " .. self.critical .. "%" end
+	if self.melee_attack then
+    local damage = self:get_damage() + (not self.no_creature_damage and self.owner and self.owner.get_damage and self.owner:get_damage(self.melee_damage_stats) or 0)
+    local ap = self:get_armor_piercing()
+    local accuracy = self:get_accuracy()
+    local crit = self:get_critical_chance()
+    
+    uses = uses .. "Melee Damage: " .. damage .. (self.damage_type and " (" .. self.damage_type .. ")" or "")
+    
+    if ap > 0 then uses = uses .. "Armor Piercing: " .. ap end
+		if accuracy > 0 then uses = uses .. "\nAccuracy Modifier: " .. accuracy .. "%" end
+		if crit > 0 then uses = uses .. "\nCritical Hit Chance: " .. crit .. "%" end
   end
   if self.ranged_attack and rangedAttacks[self.ranged_attack] then
     local attack = rangedAttacks[self.ranged_attack]
     uses = uses .. "\nRanged Attack: " .. attack:get_name() .. " (" .. attack:get_description() .. ")"
-    uses = uses .. "\nRanged Accuracy: " .. (attack.accuracy + self:get_ranged_accuracy_modifier()) .. "%"
+    uses = uses .. "\nRanged Accuracy: " .. (attack.accuracy + self:get_ranged_accuracy()) .. "%"
     if attack.min_range or attack.range then uses = uses .. "\nRange: " .. (attack.min_range and attack.min_range .. " (min)" or "") .. (attack.min_range and attack.range and " - " or "") .. (attack.range and attack.range .. " (max)" or "") end
     if attack.best_distance_min or attack.best_distance_max then uses = uses .. "\nBest Range: " .. (attack.best_distance_min and attack.best_distance_min .. " (min)" or "") .. (attack.best_distance_min and attack.best_distance_max and " - " or "") .. (attack.best_distance_max and attack.best_distance_max .. " (max)" or "") end
-  end
-  if self.kills then
-    uses = uses .. "\nKills: " .. self.kills
   end
   local projectile_id = self.usingAmmo or self.projectile_name or (self.ranged_attack and rangedAttacks[self.ranged_attack] and rangedAttacks[self.ranged_attack].projectile_name)
   if projectile_id and projectiles[projectile_id] then
     local projectile = projectiles[projectile_id]
     uses = uses .. "\n\nProjectile: " .. ucfirst(projectile.name) .. " (" .. projectile.description .. ")"
-    local damage = projectile.damage or 0
-    if projectile.extra_damage_per_level and self.level then
-      damage = damage+(projectile.extra_damage_per_level*self.level)
+    local damage = projectile.damage
+    if damage then
+      if projectile.extra_damage_per_level and self.level then
+        damage = damage+(projectile.extra_damage_per_level*self.level)
+      end
+      damage = damage+self:get_ranged_damage() + (not self.no_creature_damage and self.owner and self.owner.get_ranged_damage and self.owner:get_ranged_damage(self.ranged_damage_stats) or 0)
+      uses = uses .. "\nDamage: " .. damage .. (projectile.damage_type and " (" .. projectile.damage_type .. ")" or "")
     end
-    damage = damage+self:get_ranged_damage_modifier()
-    if projectile.damage then uses = uses .. "\nDamage: " .. damage .. (projectile.damage_type and " (" .. projectile.damage_type .. ")" or "") end
   end
   if self.info then
     uses = uses .. "\n" .. self.info
@@ -253,7 +261,7 @@ function Item:use(target,user,ignoreCooldowns)
   --TODO: Generic item use here:
 end
 
----Find out how much damage an item will deal. Defaults to the item's damage value + the wielder's strength, but might be overridden by an item's get_damage() code
+---Find out how much damage an item will deal. The item's damage value + the wielder's get_damage(), but might be overridden by an item's get_damage() code
 --@param target Entity. The target of the item's attack.
 --@param wielder Creature. The creature using the item.
 --@return Number. The damage the item will deal.
@@ -265,7 +273,7 @@ function Item:get_damage(target,wielder)
   local bonus = .01*self:get_enchantment_bonus('damage_percent')
   dmg = dmg * math.ceil(bonus > 0 and bonus or 1)
   
-  return dmg + self:get_enchantment_bonus('damage') + (wielder:get_stat('strength')) + wielder:get_bonus('damage')
+  return dmg + self:get_enchantment_bonus('damage') + (wielder and not self.no_creature_damage and wielder:get_damage(self.melee_damage_stats) or 0)
 end
 
 ---Find out how much extra damage an item will deal due to enchantments
@@ -517,7 +525,7 @@ function Item:reload(possessor)
     self.charges = self.charges + amt
     possessor:delete_item(usedAmmo,amt)
     self.usingAmmo = usedAmmo.id
-    self.ammo_name = usedAmmo:get_name(false,1)
+    self.ammo_name = usedAmmo:get_name(true,1)
     self.projectile_name = usedAmmo.projectile_name
     self.projectile_enchantments = usedAmmo.enchantments
     if player:can_sense_creature(possessor) then
@@ -705,14 +713,14 @@ end
 
 ---Returns the ranged accuracy (modifier to the hit roll) of a weapon.
 --@return Number. The accuracy of the weapon.
-function Item:get_ranged_accuracy_modifier()
-  return (self.ranged_accuracy_modifier or 0)+self:get_enchantment_bonus('ranged_accuracy_modifier')
+function Item:get_ranged_accuracy()
+  return (self.ranged_accuracy or 0)+self:get_enchantment_bonus('ranged_accuracy')
 end
 
 ---Returns the ranged accuracy (modifier to the hit roll) of a weapon.
 --@return Number. The accuracy of the weapon.
-function Item:get_ranged_damage_modifier()
-  return (self.ranged_damage_modifier or 0)+self:get_enchantment_bonus('ranged_damage_modifier')
+function Item:get_ranged_damage()
+  return (self.ranged_damage or 0)+self:get_enchantment_bonus('ranged_damage')
 end
 
 ---Checks the critical chance of a weapon.

@@ -29,7 +29,7 @@ function ranged_attack:get_description()
   return self.description
 end
 
----Use the ranged attack.
+---Use the ranged attack
 --@param target Creature. The creature being targeted.
 --@param attacker Creature. The creature doing the attack.
 --@param item Item. The item being used to do the ranged attack (optional).
@@ -68,6 +68,7 @@ function ranged_attack:use(target, attacker, item)
   if self.sound and player:can_see_tile(attacker.x,attacker.y) then output:sound(self.sound) end
   --Create the projectile:
   local proj = Projectile((item and (item.usingAmmo or item.projectile_name) or self.projectile_name),attacker,target)
+  proj.source_attack = self
   --Add enchantments:
   if item then
     if item.preserve_on_throw then
@@ -121,7 +122,7 @@ function ranged_attack:does_hit(attacker,target,item)
   return false
 end
 
----Calculate the chance the ranged attack will hit.
+---Calculate the chance the ranged attack will hit. *MAY WANT TO CHANGE FOR YOUR OWN GAME*
 --@param target Creature. The creature being targeted.
 --@param attacker Creature. The creature doing the attack.
 --@param item Item. The item being used to do the attack. (optional)
@@ -132,7 +133,9 @@ function ranged_attack:calc_hit_chance(attacker,target,item)
     return 0
   end
   local min,max = self.best_distance_min,self.best_distance_max
-  local hitMod = self.accuracy + attacker:get_stat('ranged') + attacker:get_bonus('ranged_chance') - target:get_stat('dodging') - target:get_bonus('dodge_chance')
+  local base = self.accuracy + attacker:get_ranged_accuracy((item and item.ranged_accuracy_stats or self.ranged_accuracy_stats)) - (target.get_dodging and target:get_dodging() or 0) --These are on a seperate line because you may want to have a more complicated equation here
+  local mod =  attacker:get_bonus('ranged_hit_chance') - (target.get_bonus and target:get_bonus('dodge_chance') or 0) --The values on this line are applied straight to the %
+  local hitMod = base + mod
   if min and max then
     if dist < min or dist > max then --if within acceptable distance, return base accuracy
       local diff = (dist < min and min-dist or dist-max)
@@ -140,8 +143,8 @@ function ranged_attack:calc_hit_chance(attacker,target,item)
       hitMod = hitMod - math.ceil(mod*diff)
     end
   end
-  if item then hitMod = hitMod + item:get_ranged_accuracy_modifier() end
-  if (hitMod > 95) then hitMod = 95 elseif (hitMod < 10) then hitMod = 10 end
+  if item then hitMod = hitMod + item:get_ranged_accuracy() end
+  if (hitMod > 95) then hitMod = 95 elseif (hitMod < 25) then hitMod = 25 end
   return hitMod
 end
 

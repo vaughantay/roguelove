@@ -5,17 +5,17 @@ local healing = Service({
   description = "Heal all your damage.",
 })
 function healing:get_cost_text()
-  local amt = (player:get_mhp() - player.hp)
+  local amt = (player:get_max_hp() - player.hp)
   return get_money_name(1) .. " per HP" .. (amt > 0 and ", " .. amt .. " Total" or "")
 end
 function healing:requires()
-  local hp, mhp = player.hp,player:get_mhp()
+  local hp, mhp = player.hp,player:get_max_hp()
   if hp == mhp then
     return false,"You're at full health."
   end
 end
 function healing:use(user)
-  local amt = math.min((user:get_mhp() - user.hp),user.money)
+  local amt = math.min((user:get_max_hp() - user.hp),user.money)
   user.money = user.money-amt
   user:updateHP(amt)
   return true,"You regain " .. amt .. " HP.\nYou pay " .. get_money_name(amt) .. "."
@@ -27,11 +27,11 @@ local healing_church = Service({
   description = "Heal all your damage.",
 })
 function healing_church:get_cost_text()
-  local amt = (player:get_mhp() - player.hp)
+  local amt = (player:get_max_hp() - player.hp)
   return "1 favor per HP" .. (amt > 0 and ", " .. amt .. " Total" or "")
 end
 function healing_church:requires()
-  local hp, mhp = player.hp,player:get_mhp()
+  local hp, mhp = player.hp,player:get_max_hp()
   if hp == mhp then
     return false,"You're at full health."
   end
@@ -40,8 +40,8 @@ function healing_church:requires()
   end
 end
 function healing_church:use(user)
-  local amt = (user:get_mhp() - user.hp)
-  user.hp = user:get_mhp()
+  local amt = (user:get_max_hp() - user.hp)
+  user.hp = user:get_max_hp()
   user.favor.lightchurch = user.favor.lightchurch - amt
   return true,"You regain " .. amt .. " HP.\nYou lose " .. amt .. " favor with the Church of Sweetness and Light."
 end
