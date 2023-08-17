@@ -15,14 +15,16 @@ function Item:init(type_name,tags,info,ignoreNewFunc)
     return false
   end
 	for key, val in pairs(data) do
-    if type(val) ~= "function" then
+    local vt = type(val)
+    if vt == "table" then
+      self[key] = copy_table(data[key])
+    elseif vt ~= "function" then
       self[key] = data[key]
     end
 	end
   self.id = self.id or type_name
 	self.baseType = "item"
   self.itemType = self.itemType or "other"
-  self.color = copy_table(self.color)
   self.amount = self.amount or 1
   if not ignoreNewFunc and (possibleItems[type_name].new ~= nil) then
 		possibleItems[type_name].new(self,tags,info)

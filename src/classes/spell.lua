@@ -12,7 +12,10 @@ function Spell:init(spellID)
     return false
   end
 	for key, val in pairs(data) do
-    if type(val) ~= "function" then
+    local vt = type(val)
+    if vt == "table" then
+      self[key] = copy_table(data[key])
+    elseif vt ~= "function" then
       self[key] = data[key]
     end
 	end
@@ -442,12 +445,74 @@ end
 --@param upgradeID String. The ID of the upgrade
 --@param level Number. The level of the upgrade
 function Spell:can_upgrade(upgrade,level)
-  local details = (self.possible_upgrades and self.possible_upgrades[upgrade][level])
+  local details = (self.possible_upgrades and self.possible_upgrades[upgrade] and self.possible_upgrades[upgrade][level])
+  local broad_details= (self.possible_upgrades and self.possible_upgrades[upgrade]) --Details of the upgrade path in general
   local possessor = self.possessor
+  local canDo = true
+  local returnText = false
   if details and possessor then
+    --First, check requirements:
+    local lvlReq = details.level_requirement or broad_details.level_requirement
+    if lvlReq then 
+      if possessor.level < lvlReq then
+        local text = "Requires being level " .. lvlReq .. "."
+        canDo = false
+        returnText = (returnText and returnText .. "\n" .. text or text)
+      end
+    end
+    local statReqs = details.creature_stat_requirements or broad_details.creature_stat_requirements
+    if statReqs then
+      for statID, req in pairs(statReqs) do
+        if not possessor[statID] or possessor[statID] < req then
+          local text = "Requires " .. ucfirst(statID) .. (req > 1 and " level " .. req or ".")
+          canDo = false
+          returnText = (returnText and returnText .. "\n" .. text or text)
+        end
+      end
+    end
+    local skillReqs = details.skill_requirements or broad_details.skill_requirements
+    if skillReqs then
+      for skillID, req in pairs(skillReqs) do
+        local possLvl = possessor:get_skill(skillID)
+        if possLvl < req then
+          local skillName = possibleSkills[skillID].name
+          local text = "Requires " .. skillName .. (req > 1 and " level " .. req or ".")
+          canDo = false
+          returnText = (returnText and returnText .. "\n" .. text or text)
+        end
+      end
+    end
+    local upgradeReqs = details.upgrade_requirements or broad_details.upgrade_requirements
+    if upgradeReqs then
+      for upgradeID,level in pairs(upgradeReqs) do
+        if not self.applied_upgrades[upgradeID] or self.applied_upgrades[upgradeID] < level then
+          local badName = self.possible_upgrades[upgradeID].name
+          local text = "Requires " .. badName .. " upgrade" .. (level > 1 and " level " .. level or ".")
+          canDo = false
+          returnText = (returnText and returnText .. "\n" .. text or text)
+        end
+      end
+    end
+    local exclusions = details.upgrade_exclusions or broad_details.upgrade_exclusions
+    if exclusions then
+      for upgradeID,level in pairs(exclusions) do
+        local badName = self.possible_upgrades[upgradeID].name
+        local text = "Incompatible with " .. badName .. " upgrade" .. (level > 1 and " level " .. level or ".")
+        returnText = (returnText and returnText .. "\n" .. text or text)
+        if self.applied_upgrades[upgradeID] and (type(level) ~= "number" or self.applied_upgrades[upgradeID] >= level) then
+          canDo = false
+        end
+      end
+    end
+    local ret,text = self:upgrade_requires(possessor,upgrade)
+    if ret == false then
+      canDo = false
+      returnText = (returnText and returnText .. "\n" .. text or text)
+    end
+    --Then check costs:
     local pointCost = details.point_cost or 1
     if (possessor.spellPoints or 0) < pointCost then
-      return false
+      return false,returnText
     end
     if details.item_cost then
       for _,item_details in ipairs(details.item_cost) do
@@ -455,10 +520,12 @@ function Spell:can_upgrade(upgrade,level)
         local sortByVal = item_details.sortBy
         local _,_,has_amt = self.possessor:has_item(item_details.item,sortByVal)
         if has_amt < amount then
-          return false
+          return false,returnText
         end
       end --end item_cost for
     end --end if item_cost
+    return canDo,returnText
+  elseif not possessor then --you can upgrade a free-floating spell at any point
     return true
   end --end if details and possessor
   return false
@@ -501,6 +568,15 @@ function Spell:apply_upgrade(upgradeID,force)
     return true
   end
   return false
+end
+
+---Placeholder for the upgrade_requires() callback, used to determine if the creature meets the requirements for using the spell
+--@param possessor Creature. The creature who's trying to upgrade the spell
+--@param upgradeID String. The ID of the upgrade
+--@return true
+function Spell:upgrade_requires(possessor,upgradeID)
+  if possibleSpells[self.id].upgrade_requires then return possibleSpells[self.id].upgrade_requires(self,possessor,upgradeID) end
+  return true
 end
 
 ---Gets potential targets of a spell. Uses the spell's own get_potential_targets() function if it has one, or defaults to seen creatures if it doesn't and it's a creature-spell

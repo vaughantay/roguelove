@@ -272,6 +272,7 @@ function spellscreen:draw()
     if spell.stats then
       local tempstats = {}
       local stats = {}
+      local unsorted = {}
       local lastorder = 0
       for stat,info in pairs(spell.stats) do
         info.id = stat
@@ -280,9 +281,13 @@ function spellscreen:draw()
           lastorder = math.max(lastorder,display_order)
           table.insert(tempstats,display_order,info)
         else
-          table.insert(tempstats,info)
-          lastorder = math.max(lastorder,#tempstats)
+          table.insert(unsorted,info)
         end
+      end
+      sort_table(unsorted,'name')
+      for i,info in ipairs(unsorted) do
+        table.insert(tempstats,info)
+        lastorder = math.max(lastorder,#tempstats)
       end
       for i=1,lastorder,1 do
         if tempstats[i] then
@@ -310,11 +315,20 @@ function spellscreen:draw()
         local buttonY = 1
         local mod = buttonCount
         local upDesc,upY = nil,nil
+        --Sort alphabetically:
+        local sorted = {}
         for id,level in pairs(upgrades) do
+          sorted[#sorted+1] = {id=id,level=level,name=(spell.possible_upgrades[id].name or id)}
+        end
+        sort_table(sorted,'name')
+        for _,info in ipairs(sorted) do
+          local id = info.id
+          local level = upgrades[id]
           if self.sidebarCursorY==buttonY+mod and printY-self.descScrollY < self.descStartY then
             self:descScrollUp()
           end
-          if not spell:can_upgrade(id,level) then
+          local canUpgrade,noText = spell:can_upgrade(id,level)
+          if not canUpgrade then
             setColor(100,100,100,255)
           elseif not selected then
             setColor(175,175,175,255)
@@ -360,7 +374,7 @@ function spellscreen:draw()
               end --end item cost for
             end --end item cost if
           end
-          local upText = name .. costText .. (description and "\n" .. description or "") .. statText
+          local upText = name .. costText .. (description and "\n" .. description or "") .. (noText and "\n(" .. noText  .. ")" or "") .. statText
           love.graphics.printf(upText,printX+buttonW,printY,window2w-padding,"left")
           local _, dlines = fonts.textFont:getWrap(upText,window2w-padding)
           local dHeight = (#dlines+1)*fontSize

@@ -15,9 +15,12 @@ function Projectile:init(projectile_type,source,target,info)
     return false
   end
 	for key, val in pairs(data) do
-		if (type(val) ~= "function") then
-			self[key] = data[key]
-		end
+    local vt = type(val)
+    if vt == "table" then
+      self[key] = copy_table(data[key])
+    elseif vt ~= "function" then
+      self[key] = data[key]
+    end
 	end
   if (data.new ~= nil) then 
 		local r = data.new(self,source,target,(info or nil))
@@ -42,7 +45,6 @@ function Projectile:init(projectile_type,source,target,info)
     end
     self.angle = calc_angle(source.x,source.y,target.x,target.y)
   end
-  self.color = copy_table(self.color)
   self:refresh_path()
   self.first_turn=true
 	return self

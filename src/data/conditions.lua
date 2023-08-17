@@ -1803,6 +1803,11 @@ spindashing = Condition({
       end --end update function
     }),
   
+  bloodstarved = Condition({
+    name = "Starved for Blood",
+    bonuses={hit_chance=-25,strength=-5,dodge_chance=-25}
+  }),
+  
   --Basic conditions assumed to exist by the base game:
   
   knockback = Condition({

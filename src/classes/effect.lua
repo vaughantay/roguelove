@@ -13,11 +13,13 @@ function Effect:init(effect_type, ...)
     return false
   end
 	for key, val in pairs(data) do
-		if (type(val) ~= "function") then
-			self[key] = data[key]
-		end
+    local vt = type(val)
+    if vt == "table" then
+      self[key] = copy_table(data[key])
+    elseif vt ~= "function" then
+      self[key] = data[key]
+    end
 	end
-  self.color = copy_table(self.color)
   if (data.new ~= nil) then 
 		local n = data.new(self,unpack({...}))
 	end

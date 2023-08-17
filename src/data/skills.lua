@@ -114,14 +114,16 @@ possibleSkills['alchemy'] = alchemy
 
 local bloodpotency = {
   name = "Blood Potency",
-  description="The power of your vampiric blood. Increasing this will increase the strength of some of your vampiric powers, and give you points to spend on increasing other vampiric attributes.",
+  description="The power of your vampiric blood. Increasing this will give you points to spend on enhancing other vampiric attributes or abilities.",
   skill_type="attribute",
-  stats_per_level={upgrade_points_vampirism=3}
+  stats_per_level={upgrade_points_vampirism=1},
+  stats_at_level={[1]={upgrade_points_vampirism=-1}},
+  learns_spells={{spell='vampirism'}}
 }
 possibleSkills['bloodpotency'] = bloodpotency
 
 local bloodpool = {
-  name = "Blood Pool",
+  name = "Blood",
   description = "The amount of blood you can hold. Every point increases the amount you can hold by 10.",
   skill_type="vampirism",
   increase_per_point=10
@@ -134,3 +136,10 @@ function bloodpool:update(posssesor,val)
   end
 end
 possibleSkills['bloodpool'] = bloodpool
+
+local bloodmetabolism = {
+  name = "Vampiric Metabolic Efficiency",
+  description = "Your blood pool will decrease by 1 every time this number of turns passes.",
+  skill_type="vampirism"
+}
+possibleSkills['bloodmetabolism'] = bloodmetabolism

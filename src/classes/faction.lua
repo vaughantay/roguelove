@@ -13,7 +13,10 @@ function Faction:init(fid)
   end
   self.id = fid
 	for key, val in pairs(data) do
-		if type(val) ~= "function" then
+    local vt = type(val)
+    if vt == "table" then
+      self[key] = copy_table(data[key])
+    elseif vt ~= "function" then
       self[key] = data[key]
     end
 	end
@@ -118,6 +121,20 @@ function Faction:join(creature)
   creature = creature or player
   if not creature:is_faction_member(self.id) then
     creature.factions[#creature.factions+1] = self.id
+  end
+  if self.grants_spells then
+    for _, spell in ipairs(self.grants_spells) do
+      creature:learn_spell(spell,true)
+    end
+  end
+  if self.grants_skills then
+    for skillID,val in pairs(self.grants_skills) do
+      local currVal = creature:get_skill(skillID)
+      local increase = val-currVal
+      if increase then
+        creature:update_skill(skillID,increase,true)
+      end
+    end
   end
   if self.grants_recipes then
     for _,recipe in ipairs(self.grants_recipes) do

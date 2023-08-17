@@ -70,25 +70,59 @@ function characterscreen:draw()
   love.graphics.translate(0,-self.scrollY)
   if self.screen == "character" then
     love.graphics.print("Max HP: " .. player.max_hp .. (stat_increases['max_hp'] and " (" .. (stat_increases['max_hp'] >= 1 and "+" or "") .. stat_increases['max_hp'] .. " next level)" or ""),printX,printY)
-    printY = printY + fontSize
     if gamesettings.mp then
+      printY = printY+fontSize
       love.graphics.print("Max MP: " .. player.max_mp .. (stat_increases['max_mp'] and " (" .. (stat_increases['max_mp'] >= 1 and "+" or "") .. stat_increases['max_mp'] .. " next level)" or ""),printX,printY)
-      printY = printY + fontSize
     end
     if player.armor then
-      love.graphics.print("Damage Absorption: " .. player.armor,padding,printY)
       printY = printY+fontSize
+      love.graphics.print("Damage Absorption: " .. player.armor,padding,printY)
     end
     if player.stealth then
-      love.graphics.print("Stealth Modifier: " .. player.stealth .. "%",padding,printY)
       printY = printY+fontSize
+      love.graphics.print("Stealth Modifier: " .. player.stealth .. "%",padding,printY)
     end
     --Extra stats:
     if count(player.extra_stats) > 0 then
+      printY = printY+fontSize
       for stat_id,stat in pairs(player.extra_stats) do
         love.graphics.print(stat.name .. ": " .. stat.value .. (stat.max and "/" .. stat.max or "") .. (stat.description and " - " .. stat.description or ""),printX,printY)
-        printY=printY+fontSize
       end
+    end
+    --Weaknesses/resistances
+    if player.weaknesses then
+      printY = printY + fontSize
+      local weakstring = "Weaknesses: "
+      local first = true
+      for dtype,_ in pairs(player.weaknesses) do
+        weakstring = weakstring .. (not first and ", " or "") .. ucfirst(dtype)
+        first = false
+      end
+      love.graphics.print(weakstring,padding,printY)
+    end --end weaknesses
+    if player.resistances then
+      printY = printY+fontSize
+      local resiststring = "Resistances: "
+      local first = true
+      for dtype,_ in pairs(player.resistances) do
+        resiststring = resiststring .. (not first and ", " or "") .. ucfirst(dtype)
+        first = false
+      end
+      love.graphics.print(resiststring,padding,printY)
+    end --end resistances
+    
+    if player.hit_conditions then
+      printY = printY+fontSize
+      local context = ""
+      local i = 1
+      for _, condition in pairs(player.hit_conditions) do
+        if (i > 1) then context = context .. "; " end
+        context = context .. conditions[condition.condition].name .. ": "
+        if condition.chance then context = context .. condition.chance .. "% Chance" .. (condition.crit_chance and ", " or "") end
+        if condition.crit_chance then context = context .. condition.crit_chance .. "% Chance on a Critical Hit" end 
+        i = i + 1
+      end
+      love.graphics.printf("Hit Conditions: " .. context,padding,printY,math.floor(width/uiScale)-padding,"left")
     end
     
     --Skills:
@@ -106,7 +140,7 @@ function characterscreen:draw()
     end
     
     if count(skill_lists) > 0 then
-      printY=printY+fontSize
+      printY=printY+fontSize*2
       local ordered_list = {}
       if gamesettings.skill_type_order then
         for i,skillType in pairs(gamesettings.skill_type_order) do
@@ -160,25 +194,11 @@ function characterscreen:draw()
       end --end ordered_list for
     end --if skill lists exist
     
-    --[[printY = printY + 50
-    love.graphics.printf("Special Abilities:",padding,printY,math.floor(width/uiScale)-padding,"center")
-    printY=printY+fontSize*2
-    local abilities = ""
-    local i = 1
-    for id, ability in pairs(player:get_spells(true)) do
-      if (i > 1) then abilities = abilities .. "\n" end
-      abilities = abilities .. ability.name .. (ability.target_type == "passive" and " (Passive)" or "") .. " - " .. ability.description
-      i = i + 1
-    end
-    love.graphics.printf(abilities,padding,printY,math.floor(width/uiScale)-padding,"left")
-    local _, wrappedtext = fonts.textFont:getWrap(abilities, math.floor(width/uiScale))
-    printY=printY+#wrappedtext*fontSize]]
-    
     --Purchasable spells:
     --TODO: Add "choose-between" abilities:
     if #self.spell_purchases > 0 then
-      printY = printY + 50
-      love.graphics.printf("\nAbilities Available to Learn:",padding,printY,math.floor(width/uiScale)-padding,"center")
+      printY = printY + fontSize*2
+      love.graphics.printf("Abilities Available to Learn:",padding,printY,math.floor(width/uiScale)-padding,"center")
       printY = printY+fontSize
       love.graphics.printf((player.spellPoints or 0) .. " Ability Points Available",padding,printY,math.floor(width/uiScale)-padding,"center")
       printY = printY+fontSize*2
@@ -214,45 +234,7 @@ function characterscreen:draw()
       end --end if 
     end --end if spell.purchases
     
-    --Weaknesses/resistances
-    if player.weaknesses then
-      local weakstring = "Weaknesses: "
-      local first = true
-      for dtype,_ in pairs(player.weaknesses) do
-        weakstring = weakstring .. (not first and ", " or "") .. ucfirst(dtype)
-        first = false
-      end
-      love.graphics.print(weakstring,padding,printY)
-      printY = printY+fontSize
-    end --end weaknesses
-    if player.resistances then
-      local resiststring = "Resistances: "
-      local first = true
-      for dtype,_ in pairs(player.resistances) do
-        resiststring = resiststring .. (not first and ", " or "") .. ucfirst(dtype)
-        first = false
-      end
-      love.graphics.print(resiststring,padding,printY)
-      printY = printY + fontSize
-    end --end resistances
-    
-    if player.hit_conditions then
-      printY = printY + 50
-      love.graphics.printf("Hit Conditions:",padding,printY,math.floor(width/uiScale)-padding,"center")
-      printY = printY+fontSize*2
-      local context = ""
-      local i = 1
-      for _, condition in pairs(player.hit_conditions) do
-        if (i > 1) then context = context .. "; " end
-        context = context .. conditions[condition.condition].name .. ": "
-        if condition.chance then context = context .. condition.chance .. "% Chance" .. (condition.crit_chance and ", " or "") end
-        if condition.crit_chance then context = context .. condition.crit_chance .. "% Chance on a Critical Hit" end 
-        i = i + 1
-      end
-      love.graphics.printf(context,padding,printY,math.floor(width/uiScale)-padding,"left")
-    end
-    
-    printY = printY + 50
+    printY = printY + fontSize*2
     love.graphics.print("Turns played this game: " .. (currGame.stats.turns or 0),padding,printY)
     printY = printY + fontSize
     love.graphics.print("Kills this game: " .. (currGame.stats.kills or 0),padding,printY)

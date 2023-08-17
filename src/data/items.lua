@@ -154,6 +154,9 @@ function blood:use(user)
     local dmg = tweak(10)
     output:out(user:get_name() .. " drinks some blood and regains " .. dmg .. " health!")
     user:updateHP(dmg)
+    if user.extra_stats.blood then
+      user.extra_stats.blood.value = math.min(user.extra_stats.blood.value+dmg,user.extra_stats.blood.max)
+    end
   else
     if user == player then output:out("You're not going to drink blood. That's disgusting.") end
     return false

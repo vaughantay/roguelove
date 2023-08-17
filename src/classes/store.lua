@@ -12,7 +12,10 @@ function Store:init(store_id)
     return false
   end
 	for key, val in pairs(data) do
-		if type(val) ~= "function" then
+    local vt = type(val)
+    if vt == "table" then
+      self[key] = copy_table(data[key])
+    elseif vt ~= "function" then
       self[key] = data[key]
     end
 	end

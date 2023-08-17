@@ -15,19 +15,20 @@ function Feature:init(feature_type,info,x,y)
     return false
   end
 	for key, val in pairs(data) do
-    if type(val) ~= "function" then
+    local vt = type(val)
+    if vt == "table" then
+      self[key] = copy_table(data[key])
+    elseif vt ~= "function" then
       self[key] = data[key]
     end
 	end
   if x and y then self.x, self.y = x,y end
   if self.container then self.inventory = {} end
-  if self.actions then self.actions = copy_table(self.actions) end
 	if (possibleFeatures[feature_type].new ~= nil) then 
 		possibleFeatures[feature_type].new(self,(info or nil),x,y)
 	end
   self.id = self.id or feature_type
 	self.baseType = "feature"
-  self.color = copy_table(self.color)
   if self.image_varieties and not self.image_name then
     self.image_variety = random(1,self.image_varieties)
     self.image_name = self.id .. self.image_variety

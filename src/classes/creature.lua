@@ -2707,7 +2707,6 @@ function Creature:level_up(force,ignore_callback)
           tries2=tries2+1
           local skillID = get_random_element(skillList)
           if self:can_upgrade_skill(skillID) then
-            print('leveling ',skillID)
             self:update_skill(skillID)
             self[pointID] = points - 1
             points = points - 1

@@ -638,12 +638,12 @@ local vampireHero = {
   possible_inventory={{item="blood",chance=100,amount=5}},
   learns_spells={{spell="smite",level=2}}, --These spells will be automatically granted once a certain level is reached
   spell_purchases={{spell="vanish",level=5,cost=2}, {spell="auraoffear",level=2,cost=2}},
-  crit_chance={{condition="bleeding",chance=100,turns=5}},
+  hit_conditions={{condition="bleeding",crit_chance=100,turns=5}},
   favor={lightchurch=-1000}, --List of favor scores the character starts with
   nameType = "human",
   max_hp = 50,
   level = 1,
-  skills={strength=5,agility=5,toughness=5,bloodpotency=1,bloodpool=100},
+  skills={strength=5,agility=5,toughness=5,bloodpotency=1,bloodpool=100,bloodmetabolism=1},
   skills_per_x_levels={[5]={bloodpotency=1}},
   stealth = 10,
   perception = 8,

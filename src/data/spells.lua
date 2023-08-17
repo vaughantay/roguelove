@@ -48,8 +48,8 @@ blast = {
   stats={
     min_damage={value=8,name="Minimum Damage",stat_type="damage",display_order=1},
     max_damage={value=15,name="Maximum Damage",stat_type="damage",display_order=2},
-    confusion_chance={value=0,name="Chance of causing Confusion",hide_when_zero=true,stat_type="condition_chance",display_order=3},
-    stun_chance={value=0,name="Chance of causing Stun",hide_when_zero=true,stat_type="condition_chance",display_order=4},
+    confusion_chance={value=0,name="Chance of causing Confusion",hide_when_zero=true,stat_type="condition_chance",is_percentage=true,display_order=3},
+    stun_chance={value=0,name="Chance of causing Stun",hide_when_zero=true,stat_type="condition_chance",is_percentage=true,display_order=4},
     min_stun={value=0,name="Minimum Stun Turns",stat_type="condition_turns",hide_when_zero=true,display_order=5},
     max_stun={value=0,name="Maximum Stun Turns",stat_type="condition_turns",hide_when_zero=true,display_order=6},
     min_confusion={value=0,name="Minimum Confusion Turns",stat_type="condition_turns",hide_when_zero=true,display_order=7},
@@ -57,9 +57,9 @@ blast = {
     amnesia={value=false,name="Amnesia",description="Causes the target to forget they ever saw you.",display_order=9} --values set to false will be hidden
   },
   possible_upgrades={
-    damage={{min_damage=2,max_damage=3,point_cost=2},{min_damage=5,max_damage=7},name="Damage"},
-    confusion={{confusion_chance=10,min_confusion=4,max_confusion=6, item_cost={{item='dart',amount=2}}},{confusion_chance=15,min_confusion=2,max_confusion=4},name="Confusion"},
-    stun={{stun_chance=10,min_stun=2,max_stun=3},{stun_chance=15,min_stun=1,max_stun=2},name="Stunning"},
+    damage={{min_damage=2,max_damage=3,point_cost=2},{min_damage=5,max_damage=7,skill_requirements={magic=5}},name="Damage"},
+    confusion={{confusion_chance=10,min_confusion=4,max_confusion=6, item_cost={{item='dart',amount=2}}},{confusion_chance=15,min_confusion=2,max_confusion=4},name="Confusion",upgrade_exclusions={stun=1}},
+    stun={{stun_chance=10,min_stun=2,max_stun=3},{stun_chance=15,min_stun=1,max_stun=2},name="Stunning",upgrade_exclusions={confusion=1}},
     amnesia={{amnesia=true},name="Amnesia",description="Causes the target to forget they ever saw you.",playerOnly=true}, --Value set to true will just display the name and description
   },
   stat_bonuses_from_skills={
@@ -687,6 +687,9 @@ lifedrain = {
   stat_bonuses_from_spells={
     damage={vampirism=5}
   },
+  stat_bonuses_per_x_skills={
+    damage={bloodpotency={[1]=1}}
+  },
   cast = function(self,target,caster)
     if target:is_type('undead') or target:is_type('construct') then
       if caster == player then output:out("You can't drain the life out of something that's not alive.") end
@@ -971,13 +974,29 @@ vampirism = {
       local hp = tweak(math.ceil(damage*(random(2,6)/10)))
       if player:can_see_tile(possessor.x,possessor.y) and hp > 0 then
         output:out(possessor:get_name() .. " drains some blood from " .. target:get_name() .. ", regaining " .. hp .. " HP!")
+        if possessor.extra_stats.blood then
+          possessor.extra_stats.blood.value = math.min(possessor.extra_stats.blood.value+hp,possessor.extra_stats.blood.max)
+        end
         --local blood = currMap:add_effect(Effect('conditionanimation',{owner=possessor,condition="bleeding",symbol="",image_base="bloodmagicdamage",image_max=4,speed=0.20,color={r=255,g=0,b=0,a=125}}),possessor.x,possessor.y)
         local blood = currMap:add_effect(Effect('animation','bloodmagicdamage',5,target,{r=255,g=255,b=255}),target.x,target.y)
         if possessor == player or target == player then output:sound('vampirism') end
       end
       possessor:updateHP(hp)
     end
-	end
+	end,
+  advance = function(self,possessor)
+    if possessor == player and possessor.extra_stats.blood then
+      local turns = math.max(possessor:get_skill('bloodmetabolism'),1)
+      if currGame.stats.turns % turns == 0 then
+        possessor.extra_stats.blood.value = math.max(possessor.extra_stats.blood.value-1,0)
+      end
+      if possessor.extra_stats.blood.value < 1 then
+        possessor:give_condition('bloodstarved',-1)
+      else
+        possessor:cure_condition('bloodstarved',-1)
+      end
+    end
+  end
 },
 
 slimesplit = {
