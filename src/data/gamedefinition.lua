@@ -76,5 +76,5 @@ gamesettings = {
   default_spell_slots=0, --if not defined, defaults to infinite. See Creature:get_spell_slots() to customize formula
   mp=true, --If true, uses MP
   spells_forgettable_by_default=true, --If true, spells can be "forgotten" from the spell screen, unless the spell's forgettable flag is explicitly set to false. If not set to true, spells can be forgotten if their forgettable flag is true
-  spells_locked_by_default=true --If true, spells cannot be forgotten/memorized from the spellscreen at will
+  spells_locked_by_default=false --If true, spells cannot be forgotten/memorized from the spellscreen at will
 }

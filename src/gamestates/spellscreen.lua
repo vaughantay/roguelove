@@ -1,6 +1,9 @@
 spellscreen = {}
 
-function spellscreen:enter()
+function spellscreen:enter(previous,locked)
+  if locked == nil then
+    locked = gamesettings.spells_locked_by_default
+  end
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
   local uiScale = (prefs['uiScale'] or 1)
   
@@ -27,6 +30,10 @@ function spellscreen:enter()
   self.startY=0
   self.descStartY=0
   self.playerSpells = player:get_spells()
+  if locked then
+    self.locked = true
+  end
+  self.unmemorized = player:get_unmemorized_spells()
   self.buttons = {}
   self.upgradeButtons = {}
   
@@ -36,7 +43,7 @@ function spellscreen:enter()
     tween(0.2,self,{yModPerc=0})
     output:sound('stoneslideshort',2)
   end
-  self.spellLines = {}
+  self.spellList = {}
 end
 
 function spellscreen:draw()
@@ -95,6 +102,10 @@ function spellscreen:draw()
 	local spells = {}
   local line=1
   local mousedSpell = nil
+  if self.unmemorized and #self.unmemorized > 0 then
+    love.graphics.printf("Memorized Spells",x+padX,printY,window1w-x-padX,"center")
+    printY=printY+round(fontSize*1.5)
+  end
 	for i, spell in pairs(playerSpells) do
     local moused = (mouseX > printX and mouseX < window1w and mouseY+self.scrollY > printY and mouseY+self.scrollY < printY+fontSize+2)
     local spellID = spell.id
@@ -102,7 +113,7 @@ function spellscreen:draw()
     local name = spell.name
     local target_type = spell.target_type
     local active = spell.active
-    local upgrade = (spellPoints > 0 and (count(spell:get_possible_upgrades()) > 0))
+    local upgrade = ((spellPoints > 0 or spell.spellPoints > 0) and (count(spell:get_possible_upgrades()) > 0))
     --Draw the highlight box:
     if (self.cursorY == i) then
       if self.cursorX == 2 then
@@ -131,17 +142,55 @@ function spellscreen:draw()
 		love.graphics.print(fullText,x+padX,printY)
     setColor(255,255,255,255)
 		line = line+1
-    self.spellLines[i] = {minY=printY,maxY=printY+fontSize+2}
+    self.spellList[i] = {minY=printY,maxY=printY+fontSize+2,spell=spell}
     printY = printY+fontSize+2
 	end
+  if self.unmemorized and #self.unmemorized > 0 then
+    love.graphics.printf("Unmemorized Spells",x+padX,printY,window1w-x-padX,"center")
+    printY=printY+round(fontSize*1.5)
+    for i, spell in pairs(self.unmemorized) do
+      local index = #playerSpells+i
+      local moused = (mouseX > printX and mouseX < window1w and mouseY+self.scrollY > printY and mouseY+self.scrollY < printY+fontSize+2)
+      local spellID = spell.id
+      spells[index] = spellID
+      local name = spell.name
+      local target_type = spell.target_type
+      local upgrade = (spellPoints > 0 and (count(spell:get_possible_upgrades()) > 0))
+      --Draw the highlight box:
+      if (self.cursorY == index) then
+        if self.cursorX == 2 then
+          setColor(125,125,125,255)
+        else
+          setColor(100,100,100,255)
+        end
+        love.graphics.rectangle("fill",x+padX,printY,window1w-padX*2,fontSize+2)
+        setColor(255,255,255,255)
+      elseif moused then
+        setColor(100,100,100,125)
+        love.graphics.rectangle("fill",x+padX,printY,window1w-padX*2,fontSize+2)
+        setColor(255,255,255,255)
+        mousedSpell = index
+      end
+      setColor(255,255,(upgrade and 0 or 255),255)
+      local fullText = (spell.hotkey and spell.hotkey .. ") " or "") .. name .. (target_type == "passive" and " (Passive)" or "") .. (active and " (Active)" or "") .. (upgrade and " (+)" or "")
+      love.graphics.print(fullText,x+padX,printY)
+      setColor(255,255,255,255)
+      line = line+1
+      self.spellList[index] = {minY=printY,maxY=printY+fontSize+2,spell=spell}
+      printY = printY+fontSize+2
+    end
+  end
   bottom = printY
   
   love.graphics.setStencilTest()
   love.graphics.pop()
   
   --Description Box:
-  local spell = playerSpells[self.cursorY] or playerSpells[mousedSpell]
-  if spell ~= nil then
+  local spellEntry = (self.spellList[self.cursorY] or self.spellList[mousedSpell])
+  self.buttons = {}
+  self.upgradebuttons = {}
+  if spellEntry ~= nil then
+    local spell = spellEntry.spell
     love.graphics.push()
     --Draw the actual spell info:
     local target_type = spell.target_type
@@ -150,6 +199,7 @@ function spellscreen:draw()
     local printX = sidebarX+padX
     local hotkey = spell.hotkey
     local selected = (self.cursorX ~= 1)
+    local memorized = player:has_spell(spell.id,true)
     
     if target_type == "passive" then
       spellText = spellText .. "\n\nThis ability is passive and is used automatically when needed."
@@ -201,7 +251,8 @@ function spellscreen:draw()
     if not selected then
       setColor(175,175,175,255)
     end
-    if spell.target_type ~= "passive" then
+
+    if memorized and spell.target_type ~= "passive" then
       buttonCount = buttonCount + 1
       local useText = ((spell.active and not spell.no_manual_deactivate) and "Stop" or "Use")
       local buttonWidth = fonts.buttonFont:getWidth(useText)+25
@@ -222,14 +273,31 @@ function spellscreen:draw()
       self.buttons.hotkey.buttonNum = buttonCount
       printY = printY+buttonHeight
     end
-    if spell.forgettable or (gamesettings.spells_forgettable_by_default and spell.forgettable ~= false) then
-      buttonCount = buttonCount + 1
-      local forgetText = "Forget"
-      local buttonWidth = fonts.buttonFont:getWidth(forgetText)+25
-      self.buttons.forget = output:button(printX,printY,buttonWidth,false,(self.cursorX == 2 and self.sidebarCursorY == buttonCount and "hover" or nil),forgetText,true)
-      self.buttons.forget.buttonNum = buttonCount
-      printY = printY+buttonHeight
+    
+    if not self.locked then
+      if memorized and (spell.forgettable or (gamesettings.spells_forgettable_by_default and spell.forgettable ~= false)) then
+        buttonCount = buttonCount + 1
+        local forgetText = "Forget"
+        local buttonWidth = fonts.buttonFont:getWidth(forgetText)+25
+        self.buttons.forget = output:button(printX,printY,buttonWidth,false,(self.cursorX == 2 and self.sidebarCursorY == buttonCount and "hover" or nil),forgetText,true)
+        self.buttons.forget.buttonNum = buttonCount
+        printY = printY+buttonHeight
+      elseif not memorized then
+        buttonCount = buttonCount + 1
+        local memText = "Memorize"
+        local buttonWidth = fonts.buttonFont:getWidth(memText)+25
+        if not spell.freeSlot and (spellSlots and spellSlots < 1) then
+          setColor(100,100,100,255)
+        end
+        self.buttons.memorize = output:button(printX,printY,buttonWidth,false,(self.cursorX == 2 and self.sidebarCursorY == buttonCount and "hover" or nil),memText,true)
+        self.buttons.memorize.buttonNum = buttonCount
+        if not spell.freeSlot and (spellSlots and spellSlots < 1) then
+          setColor(255,255,255,255)
+        end
+        printY = printY+buttonHeight
+      end
     end
+    
     if not selected then
       setColor(255,255,255,255)
     end
@@ -311,6 +379,14 @@ function spellscreen:draw()
       local upgrades = spell:get_possible_upgrades()
       if count(upgrades) > 0 then
         love.graphics.printf("Upgrades:",printX,printY,window2w,"left")
+        if spell.free_upgrades > 0 then
+          printY=printY+fontSize
+          love.graphics.printf(spell.free_upgrades .. " Free Upgrade" .. (spell.free_upgrades > 1 and "s" or "") .. " Available",printX,printY,window2w,"left")
+        end
+        if spell.spellPoints > 0 then
+          printY=printY+fontSize
+          love.graphics.printf(spell.spellPoints .. " Ability Point" .. (spell.spellPoints > 1 and "s" or "") .. " Available",printX,printY,window2w,"left")
+        end
         printY=printY+fontSize+5
         local buttonY = 1
         local mod = buttonCount
@@ -346,21 +422,21 @@ function spellscreen:draw()
           local name = (level_details.name or details.name or ucfirst(id))
           local description = (level_details.description or details.description or nil)
           local i = 1
-          local point_cost = level_details.point_cost or 1
+          local spell_point_cost = level_details.spell_point_cost or 1
           local statText = ""
           for stat,amt in pairs(level_details) do
-            if type(amt) ~= "boolean" and type(amt) ~= "table" and stat ~= "point_cost" then
+            if type(amt) ~= "boolean" and type(amt) ~= "table" and stat ~= "spell_point_cost" then
               local statName = (spell.stats and spell.stats[stat] and spell.stats[stat].name or ucfirst(stat))
               statName = string.gsub(statName,'_',' ')
               statText = statText .. "\n\t" .. statName .. (type(amt) == "number" and (amt < 0 and " " or " +") or ": ") .. amt .. (spell.stats and spell.stats[stat] and spell.stats[stat].is_percentage and "%" or "")
             end
           end --end stat for
           local costText = ""
-          if point_cost > 0 or level_details.item_cost then
+          if spell_point_cost > 0 or level_details.item_cost then
             costText = " - Cost: "
             local firstCost = true
-            if point_cost > 0 then
-              costText = costText .. point_cost .. " ability point" .. (point_cost > 1 and "s" or "")
+            if spell_point_cost > 0 then
+              costText = costText .. spell_point_cost .. " ability point" .. (spell_point_cost > 1 and "s" or "")
               firstCost = false
             end
             if level_details.item_cost then
@@ -413,7 +489,6 @@ function spellscreen:buttonpressed(key)
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
   width,height = round(width/uiScale),round(height/uiScale)
   key = input:parse_key(key)
-  local playerSpells = player:get_spells()
 	if (key == "escape") then
     if self.cursorX == 1 then
       self:switchBack()
@@ -421,22 +496,19 @@ function spellscreen:buttonpressed(key)
       self.cursorX = 1
     end
 	elseif (key == "enter") or key == "wait" then
-    if self.cursorX == 1 and playerSpells[self.cursorY] then
+    if self.cursorX == 1 and self.spellList[self.cursorY] then
       self:select_spell(self.cursorY)
     elseif self.cursorX == 2 then
-      local spell = playerSpells[self.cursorY]
-      local passive = (spell.target_type == "passive")
-      local forgettable = spell.forgettable or (gamesettings.spells_forgettable_by_default and spell.forgettable ~= false)
-      if not passive then
-        if self.sidebarCursorY == 1 then
-          return self:cast_spell(self.cursorY)
-        elseif self.sidebarCursorY == 2 then
-          return Gamestate.switch(hotkey,playerSpells[self.cursorY])
-        elseif self.sidebarCursorY == 3 then
-          return self:forget_spell(self.cursorY)
-        end
-      elseif forgettable and self.sidebarCursorY == 1 then
+      local spell = self.spellList[self.cursorY].spell
+      --sidebarCursorY
+      if self.buttons.memorize and self.sidebarCursorY == self.buttons.memorize.buttonNum then
+        return self:memorize_spell(self.cursorY)
+      elseif self.buttons.forget and self.sidebarCursorY == self.buttons.forget.buttonNum then
         return self:forget_spell(self.cursorY)
+      elseif self.buttons.use and self.sidebarCursorY == self.buttons.use.buttonNum then
+        return self:cast_spell(self.cursorY)
+      elseif self.buttons.hotkey and self.sidebarCursorY == self.buttons.hotkey.buttonNum then
+        return Gamestate.switch(hotkey,spell)
       end
       if self.upgradeButtons then
         for index,button in ipairs(self.upgradeButtons) do
@@ -450,18 +522,17 @@ function spellscreen:buttonpressed(key)
     end
 	elseif (key == "north") then
     if self.cursorX == 1 then
-      if (playerSpells[self.cursorY-1] ~= nil) then
+      if (self.spellList[self.cursorY-1] ~= nil) then
         self.cursorY = self.cursorY - 1
         self.descScrollY = 0
         self.upgradeButtons = {}
       end
-      if self.spellLines[self.cursorY] and self.spellLines[self.cursorY].minY-self.scrollY-prefs['fontSize'] < self.startY then
+      if self.spellList[self.cursorY] and self.spellList[self.cursorY].minY-self.scrollY-prefs['fontSize'] < self.startY then
         self:scrollUp()
       end
     else --if a spell is selected
-      local spell = playerSpells[self.cursorY]
       self.sidebarCursorY = math.max(self.sidebarCursorY-1,1)
-      local topButtonCount = (spell.target_type == "passive" and 0 or 2)+((spell.forgettable or (gamesettings.spells_forgettable_by_default and spell.forgettable ~= false)) and 1 or 0)
+      local topButtonCount = count(self.buttons)
       if self.sidebarCursorY <= topButtonCount then
         self.descScrollY = 0
       elseif self.upgradeButtons[self.sidebarCursorY-topButtonCount] then
@@ -472,17 +543,16 @@ function spellscreen:buttonpressed(key)
     end
 	elseif (key == "south") then
     if self.cursorX == 1 then
-      if (playerSpells[self.cursorY+1] ~= nil) then
+      if (self.spellList[self.cursorY+1] ~= nil) then
         self.cursorY = self.cursorY + 1
         self.descScrollY = 0
         self.upgradeButtons = {}
       end
-      if self.spellLines[self.cursorY].maxY-self.scrollY+prefs['fontSize'] >= round(love.graphics.getHeight()/uiScale)-32 and self.scrollY < self.scrollMax then
+      if self.spellList[self.cursorY].maxY-self.scrollY+prefs['fontSize'] >= round(love.graphics.getHeight()/uiScale)-32 and self.scrollY < self.scrollMax then
         self:scrollDown()
       end
     else -- if a spell is selected
-      local spell = playerSpells[self.cursorY]
-      local topButtonCount = (spell.target_type == "passive" and 0 or 2)+((spell.forgettable or (gamesettings.spells_forgettable_by_default and spell.forgettable ~= false)) and 1 or 0)
+      local topButtonCount = count(self.buttons)
       local max = (self.upgradeButtons and #self.upgradeButtons or 0)+topButtonCount
       if self.sidebarCursorY < max then
         self.sidebarCursorY = self.sidebarCursorY+1
@@ -494,38 +564,45 @@ function spellscreen:buttonpressed(key)
       end
     end
   elseif (key == "east") then
-    if playerSpells[self.cursorY] then self:select_spell(self.cursorY) end
+    if self.spellList[self.cursorY] then self:select_spell(self.cursorY) end
   elseif (key == "west") then
     self.cursorX = 1
 	end
 end
 
 function spellscreen:mousepressed(x,y,button)
-  local playerSpells = player:get_spells()
   local uiScale = (prefs['uiScale'] or 1)
   x,y = x/uiScale,y/uiScale
   if button == 2 or (x > self.closebutton.minX and x < self.closebutton.maxX and y > self.closebutton.minY and y < self.closebutton.maxY) then self:switchBack() end
   if x > self.x and x < self.sidebarX-(self.scrollPositions and self.padding or 0) then
-    for index,coords in ipairs(self.spellLines) do
+    self.cursorX = 1 --if a spell is selected, unselect it
+    for index,coords in ipairs(self.spellList) do
       if y+self.scrollY > coords.minY and y+self.scrollY < coords.maxY then
         self:select_spell(index)
       end
     end
   end
-  if self.cursorX > 1 and x > self.sidebarX then --if a spell is selected
-    if self.buttons.use and x > self.buttons.use.minX and x < self.buttons.use.maxX and y > self.buttons.use.minY and y < self.buttons.use.maxY then
-      return self:cast_spell(self.cursorY)
-    elseif self.buttons.hotkey and x > self.buttons.hotkey.minX and x < self.buttons.hotkey.maxX and y > self.buttons.hotkey.minY and y < self.buttons.hotkey.maxY then
-      return Gamestate.switch(hotkey,playerSpells[self.cursorY])
+  if x > self.sidebarX then
+    if self.spellList[self.cursorY] then
+      self.cursorX = 2
+    end
+    if self.cursorX > 1 then --if a spell is selected
+      if self.buttons.memorize and x > self.buttons.memorize.minX and x < self.buttons.memorize.maxX and y > self.buttons.memorize.minY and y < self.buttons.memorize.maxY then
+        return self:memorize_spell(self.cursorY)
       elseif self.buttons.forget and x > self.buttons.forget.minX and x < self.buttons.forget.maxX and y > self.buttons.forget.minY and y < self.buttons.forget.maxY then
-      return self:forget_spell(self.cursorY)
-    end
-    for index,button in ipairs(self.upgradeButtons) do
-      if x > button.minX and x < button.maxX and y+self.descScrollY > button.minY and y+self.descScrollY < button.maxY then
-        self:perform_upgrade(button.upgradeID)
+        return self:forget_spell(self.cursorY)
+      elseif self.buttons.use and x > self.buttons.use.minX and x < self.buttons.use.maxX and y > self.buttons.use.minY and y < self.buttons.use.maxY then
+        return self:cast_spell(self.cursorY)
+      elseif self.buttons.hotkey and x > self.buttons.hotkey.minX and x < self.buttons.hotkey.maxX and y > self.buttons.hotkey.minY and y < self.buttons.hotkey.maxY then
+        return Gamestate.switch(hotkey,self.spellList[self.cursorY].spell)
       end
-    end
-  end
+      for index,button in ipairs(self.upgradeButtons) do
+        if x > button.minX and x < button.maxX and y+self.descScrollY > button.minY and y+self.descScrollY < button.maxY then
+          self:perform_upgrade(button.upgradeID)
+        end
+      end
+    end --end if cursorX > 1
+  end --end if x > sidebar X
 end
 
 function spellscreen:wheelmoved(x,y)
@@ -590,7 +667,6 @@ function spellscreen:update(dt)
     Gamestate.update(dt)
     return
   end
-  local playerSpells = player:get_spells()
 	local x,y = love.mouse.getPosition()
   local uiScale = (prefs['uiScale'] or 1)
   x,y = x/uiScale, y/uiScale
@@ -631,8 +707,7 @@ function spellscreen:switchBack()
 end
 
 function spellscreen:cast_spell(spellIndex)
-  local playerSpells = player:get_spells()
-  local spell = playerSpells[spellIndex] or playerSpells[self.cursorY]
+  local spell = self.spellList[spellIndex].spell
   if(spell:target(target,player) ~= false) then
     advance_turn()
   end
@@ -648,7 +723,7 @@ function spellscreen:select_spell(spellIndex)
 end
 
 function spellscreen:perform_upgrade(upgradeID)
-  local spell = self.playerSpells[self.cursorY]
+  local spell = self.spellList[self.cursorY].spell
   if not spell or not spell.possible_upgrades or not spell.possible_upgrades[upgradeID] then
     return false
   end
@@ -659,9 +734,21 @@ function spellscreen:perform_upgrade(upgradeID)
 end
 
 function spellscreen:forget_spell(spellIndex)
-  local playerSpells = player:get_spells()
-  local spell = playerSpells[spellIndex] or playerSpells[self.cursorY]
+  local spell = self.spellList[spellIndex].spell
   player:forget_spell(spell.id)
   self.playerSpells = player:get_spells()
+  self.unmemorized = player:get_unmemorized_spells()
+  self.spellList = {}
   self.cursorX = 1
+end
+
+function spellscreen:memorize_spell(spellIndex)
+  local spell = self.spellList[spellIndex].spell
+  if spell then
+    player:memorize_spell(spell.id)
+    self.playerSpells = player:get_spells()
+    self.unmemorized = player:get_unmemorized_spells()
+    self.spellList = {}
+    self.cursorX = 1
+  end
 end

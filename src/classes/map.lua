@@ -409,7 +409,7 @@ function Map:add_creature(creature,x,y,ignoreFunc)
     creature.origin_branch = self.branch
     for _,item in pairs(creature:get_inventory()) do
       item.origin_map = self.id
-      item.origin_mbranch = self.branch
+      item.origin_branch = self.branch
     end
   end
   return creature

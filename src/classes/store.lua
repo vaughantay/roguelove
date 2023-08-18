@@ -310,7 +310,7 @@ end
 --@return Boolean. Whether learning the spell was successful or not.
 function Store:teach_spell(spellID,creature)
   creature = creature or player
-  if creature:has_spell(spellID) then return false end
+  if creature:has_spell(spellID,true,true) then return false end
   
   --Get the spell info:
   local spellInfo = nil

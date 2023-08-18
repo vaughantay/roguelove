@@ -594,7 +594,7 @@ function factionscreen:draw()
       end
     end
     for i,spellDef in ipairs(faction.teaches_spells or {}) do
-      if not player:has_spell(spellDef.spell) then
+      if not player:has_spell(spellDef.spell,true,true) then
         spellCount = spellCount + 1
         local spell = possibleSpells[spellDef.spell]
         local costText = nil

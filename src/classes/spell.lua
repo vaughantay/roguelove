@@ -24,7 +24,12 @@ function Spell:init(spellID)
   self.flags = self.flags or {}
   self.applied_upgrades = {}
   self.level = self.level or 1
+  self.free_upgrades = 0
+  self.spellPoints = 0
   self.uses = 0
+  if self.max_charges then
+    self.charges = self.max_charges
+  end
 	return self
 end
 
@@ -408,9 +413,9 @@ function Spell:get_stat(stat,possessor)
         end
       end --end for statValue
     end --end statBonus for
-  end --end if statBonuses
+  end --end if skillBonuses
   
-  --Modifiers from "every X" creature stats
+  --Modifiers from "every X" creature skills
   local perSkillBonuses = self.stat_bonuses_per_x_skills and self.stat_bonuses_per_x_skills[stat]
   if perSkillBonuses and possessor and possessor.baseType == "creature" then
     for skill,bonuses in pairs(perSkillBonuses) do
@@ -420,7 +425,7 @@ function Spell:get_stat(stat,possessor)
         value = value + bonus*intervalCount
       end --end for statValue
     end --end statBonus for
-  end --end if statBonuses
+  end --end if skillBonuses
   return round(value)
 end
 
@@ -510,20 +515,22 @@ function Spell:can_upgrade(upgrade,level)
       returnText = (returnText and returnText .. "\n" .. text or text)
     end
     --Then check costs:
-    local pointCost = details.point_cost or 1
-    if (possessor.spellPoints or 0) < pointCost then
-      return false,returnText
+    if self.free_upgrades < 1 then
+      local pointCost = details.spell_point_cost or 1
+      if (possessor.spellPoints or 0) + (self.spellPoints or 0) < pointCost then
+        return false,returnText
+      end
+      if details.item_cost then
+        for _,item_details in ipairs(details.item_cost) do
+          local amount = item_details.amount or 1
+          local sortByVal = item_details.sortBy
+          local _,_,has_amt = self.possessor:has_item(item_details.item,sortByVal)
+          if has_amt < amount then
+            return false,returnText
+          end
+        end --end item_cost for
+      end --end if item_cost
     end
-    if details.item_cost then
-      for _,item_details in ipairs(details.item_cost) do
-        local amount = item_details.amount or 1
-        local sortByVal = item_details.sortBy
-        local _,_,has_amt = self.possessor:has_item(item_details.item,sortByVal)
-        if has_amt < amount then
-          return false,returnText
-        end
-      end --end item_cost for
-    end --end if item_cost
     return canDo,returnText
   elseif not possessor then --you can upgrade a free-floating spell at any point
     return true
@@ -554,16 +561,29 @@ function Spell:apply_upgrade(upgradeID,force)
     end
     self.applied_upgrades[upgradeID] = level
     if self.possessor then
-      local point_cost = stats.point_cost or 1
-      self.possessor.spellPoints = self.possessor.spellPoints - point_cost
-      if stats.item_cost then
-        for _,item_details in pairs(stats.item_cost) do
-          local amount = item_details.amount or 1
-          local sortByVal = item_details.sortBy
-          local item = self.possessor:has_item(item_details.item,sortByVal)
-          self.possessor:delete_item(item,amount)
+      if self.free_upgrades > 0 then --if you have upgrade points, use those first rather than the spell point and item costs
+        self.free_upgrades = self.free_upgrades - 1
+      else
+        local spell_point_cost = stats.spell_point_cost or 1
+        if self.spellPoints then
+          if self.spellPoints < spell_point_cost then
+            spell_point_cost = spell_point_cost - self.spellPoints
+            self.spellPoints = 0
+          else
+            self.spellPoints = self.spellPoints - spell_point_cost
+            spell_point_cost = 0
+          end
         end
-      end
+        self.possessor.spellPoints = self.possessor.spellPoints - spell_point_cost
+        if stats.item_cost then
+          for _,item_details in pairs(stats.item_cost) do
+            local amount = item_details.amount or 1
+            local sortByVal = item_details.sortBy
+            local item = self.possessor:has_item(item_details.item,sortByVal)
+            self.possessor:delete_item(item,amount)
+          end
+        end
+      end --end if upgrade points or not
     end --end if self possessor
     return true
   end

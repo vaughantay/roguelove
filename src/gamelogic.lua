@@ -45,15 +45,6 @@ function new_game(mapSeed,playTutorial,cheats,branch)
   output:set_camera(player.x,player.y,true)
   update_stat('branch_reached',currMap.branch)
   update_stat('map_reached',currMap.id)
-  --Pre-populate game hotkeys for player:
-  player.hotkeys = {}
-  for i,spell in ipairs(player.spells) do
-    if #player.hotkeys <= 10 and possibleSpells[spell.id].target_type ~= "passive" then
-      local hk = #player.hotkeys+1
-      player.hotkeys[hk] = {type="spell",hotkeyItem=spell}
-      spell.hotkey=hk
-    end
-  end
 end
 
 ---Figures out which level to load based on a given string. Used for level-skip cheats.
@@ -77,6 +68,7 @@ function initialize_player(creatureID,class,name,gender,pronouns)
   if class then player:apply_class(class) end
 	player.isPlayer = true
   player.playerAlly = true
+  player.hotkeys = {}
 	if gender then player.gender = gender end
   if gender == "custom" then player.pronouns = pronouns end
   if name ~= nil then

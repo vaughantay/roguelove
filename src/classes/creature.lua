@@ -82,6 +82,7 @@ function Creature:init(creatureType,level,noItems,noTweak,info,ignoreNewFunc) --
   --Holding slots for various things:
 	self.conditions = {}
 	self.spells = {}
+  self.spells_known = {}
   self.active_spells = {}
 	self.cooldowns = {}
   self.thralls = {}
@@ -1682,9 +1683,11 @@ function Creature:delete_item(item,amt)
 	if (id) then
     if amt == -1 or amt >= (item.amount or 0) then
       table.remove(self.inventory,id)
-      for hkid,hkinfo in pairs(self.hotkeys) do
-        if hkinfo.type == "item" and hkinfo.item == item then
-          self.hotkeys[hkid] = nil
+      if self.hotkeys then
+        for hkid,hkinfo in pairs(self.hotkeys) do
+          if hkinfo.type == "item" and hkinfo.hotKeyItem == item then
+            self.hotkeys[hkid] = nil
+          end
         end
       end
     else
@@ -3122,14 +3125,6 @@ function Creature:update_skill(skill,val,ignore_cost)
     --Do the skill increase:
     self.skills[skill] = newValue
     if skillDef.max and self.skills[skill] > skillDef.max then self.skills[skill] = skillDef.max end
-    --Grant spells:
-    if skillDef.learns_spells then
-      for _,info in pairs(skillDef.learns_spells) do
-        if (not info.level or (info.level > origValue and info.level <= newValue) or (info.level < origValue and info.level >= newValue)) and self:can_learn_spell(info.spell) then
-          self:learn_spell(info.spell)
-        end
-      end
-    end --end if learns_spells
     --Grant stat changes
     local statInc = {}
     if skillDef.stats_per_level then
@@ -3158,6 +3153,14 @@ function Creature:update_skill(skill,val,ignore_cost)
     for stat,mod in pairs(statInc) do
       self[stat] = (self[stat] or 0) + mod
     end
+    --Grant spells:
+    if skillDef.learns_spells then
+      for _,info in pairs(skillDef.learns_spells) do
+        if (not info.level or (info.level > origValue and info.level <= newValue) or (info.level < origValue and info.level >= newValue)) and self:can_learn_spell(info.spell) then
+          self:learn_spell(info.spell)
+        end
+      end
+    end --end if learns_spells
     return true
   end
   return false
@@ -3213,14 +3216,33 @@ function Creature:get_spells(noEquip)
   return merge_tables(self.spells,spells)
 end
 
+
+---Gets a list of spells in spells_known but not in spells
+--@return Table. A list of creature's unmemorized spells
+function Creature:get_unmemorized_spells()
+  local spells ={}
+  for _,spell in ipairs(self.spells_known) do
+    if not self:has_spell(spell.id,true) then
+      spells[#spells+1] = spell
+    end
+  end
+  return spells
+end
+
 ---Checks if the creature possesses a certain spell
 --@param spellName String. The name of the spell
 --@param noEquip Boolean. If true, ignore spells granted by equipment
+--@param included_unmemorized Boolean. If true, also look in the spells_known table
 --@return Number or Boolean. Either the index of the spell in the caster's "spellbook," or false if they don't know it
 --@return Spell or nil. The spell itself
-function Creature:has_spell(spellID,noEquip)
+function Creature:has_spell(spellID,noEquip,included_unmemorized)
   for index,spell in ipairs(self:get_spells(noEquip)) do
     if spell.id == spellID then return index,spell end
+  end
+  if included_unmemorized then
+    for index,spell in ipairs(self.spells_known) do
+      if spell.id == spellID then return index,spell end
+    end
   end
   return false
 end
@@ -3229,7 +3251,7 @@ end
 --@param spellID Text. The ID of the spell to learn
 --@param force Boolean. Ignore spell requirements
 function Creature:learn_spell(spellID,force)
-  if not self:has_spell(spellID,true) then
+  if not self:has_spell(spellID,true,true) then
     local newSpell = Spell(spellID)
     if not force then
       local ret,text = self:can_learn_spell(spellID)
@@ -3237,8 +3259,13 @@ function Creature:learn_spell(spellID,force)
         return false,text
       end
     end
-    self.spells[#self.spells+1] = newSpell
+    self.spells_known[#self.spells_known+1] = newSpell
     newSpell.possessor = self
+    local slots = self:get_free_spell_slots()
+    if not slots or slots > 0 then
+      self:memorize_spell(spellID)
+    end
+    return true
   end
 end
 
@@ -3250,6 +3277,33 @@ function Creature:forget_spell(spellID,force)
   local spellDef = player.spells[index]
   if spellDef and index and (force or spellDef.forgettable or (gamesettings.spells_forgettable_by_default and spellDef.forgettable ~= false)) then
     table.remove(player.spells,index)
+    for hkid,hkinfo in pairs(self.hotkeys) do
+      if hkinfo.type == "spell" and hkinfo.hotkeyItem == spellDef then
+        self.hotkeys[hkid] = nil
+        spellDef.hotkey = nil
+      end
+    end
+  end
+end
+
+---Add a spell to a creature's spell "inventory"
+--@param spellID String. The ID of the spell to memorize
+--@param force Boolean. If true, add the spell even if it overfills the slots
+function Creature:memorize_spell(spellID,force)
+  local index = self:has_spell(spellID,true,true)
+  local spellDef = self.spells_known[index]
+  local slots = self:get_free_spell_slots()
+  if spellDef and index and not player:has_spell(spellID,true) and (force or spellDef.freeSlot or (not slots or slots > 0)) then
+    self.spells[#self.spells+1] = spellDef
+    if self.hotkeys then
+      for i=1,10,1 do
+        if not self.hotkeys[i] then
+          self.hotkeys[i] = {type="spell",hotkeyItem=spellDef}
+          spellDef.hotkey=i
+          break
+        end
+      end
+    end --end hotkey iff
   end
 end
 
@@ -3286,11 +3340,6 @@ function Creature:can_learn_spell(spellID)
         return false,"You're unable to learn this type of ability."
       end
     end
-  end
-  --Check spell slots:
-  local slots = self:get_free_spell_slots()
-  if not spell.freeSlot and slots and slots < 1 then
-    return false,"You don't have enough spell slots."
   end
   
   --Check spell's learn_requires() code
