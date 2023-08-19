@@ -102,7 +102,7 @@ local trap = {
       if player:can_see_tile(entity.x,entity.y) then
         output:out("A trap bites down on " .. entity:get_name() .. ", dealing " .. dmg .. " damage, and getting them stuck!")
         output:sound('trap_close')
-        currMap:add_effect(Effect('animation','trapclose',3,entity,{r=255,g=255,b=255},entity.x,entity.y,false,false))
+        currMap:add_effect(Effect('animation',{image_name='trapclose',image_max=3,target=entity,color={r=255,g=255,b=255}},entity.x,entity.y,false,false))
       end
     end
   end

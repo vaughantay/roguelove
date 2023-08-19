@@ -513,7 +513,7 @@ function Creature:updateHP(amt)
     local p = Effect('dmgpopup',self.x,self.y)
     if (amt > 0) then
       p.color = {r=0,g=255,b=0,a=255}
-      currMap:add_effect(Effect('animation','floatingpluses',5,self,{r=0,g=255,b=0,a=255},false,true),self.x,self.y)
+      currMap:add_effect(Effect('animation',{image_name='floatingpluses',image_max=5,target=self,color={r=0,g=255,b=0,a=255},use_color_with_tials=true}),self.x,self.y)
     end --make it green if it's healing
     p.symbol = (amt > 0 and "+" or "") .. amt
     currMap:add_effect(p,self.x,self.y)
@@ -1344,6 +1344,8 @@ function Creature:die(killer)
     if (self.killer and self.killer.baseType == "creature") then
       local xp = math.max(0,10-(self.killer.level-self.level))
       if (self.killer.playerAlly == true) then
+        local mod = 0.1*self.killer:get_bonus('xp_percent')
+        local xpgain = xp + math.ceil(xp * mod)
         if self.killer == player then
           update_stat('kills')
           update_stat('kills_as_creature',player.id)
@@ -1353,7 +1355,7 @@ function Creature:die(killer)
           update_stat('branch_kills',currMap.branch)
           update_stat('map_kills',currMap.id)
           achievements:check('kill')
-          output:out("You kill " .. self:get_name() .. "!" .. (xp > 0 and " You gain " .. xp .. " XP!" or ""))
+          output:out("You kill " .. self:get_name() .. "!" .. (xpgain > 0 and " You gain " .. xpgain .. " XP!" or ""))
         else
           update_stat('ally_kills')
           update_stat('ally_kills_as_creature',player.id)
@@ -1361,7 +1363,7 @@ function Creature:die(killer)
           update_stat('ally_kills_as_creature_class_combo',player.id .. "_" .. player.class)
           update_stat('allied_creature_kills',self.killer.id)
           update_stat('creature_kills_by_ally',self.id)
-          output:out(self.killer:get_name() .. " kills " .. self:get_name() .. "!" .. (xp > 0 and " You gain " .. xp .. " XP!" or ""))
+          output:out(self.killer:get_name() .. " kills " .. self:get_name() .. "!" .. (xpgain > 0 and " You gain " .. xpgain .. " XP!" or ""))
         end
         run_all_events_of_type('player_kills')
       else --killed by a non-player ally
@@ -1908,7 +1910,7 @@ function Creature:can_use_item(item,verb)
   end
   if item.stat_requirements then
     for stat,requirement in pairs(item.stat_requirements) do
-      if self:get_stat(stat,true) < requirement and self:get_bonus_stat(stat,true) < requirement then
+      if self:get_stat(stat,true) < requirement then
         return false,"Your " .. stat .. " stat is too low to " .. verb .. " "  .. item:get_name() .. "."
       end
     end
@@ -2651,7 +2653,10 @@ end
 --@param xp Number. The amount of XP to give
 function Creature:give_xp(xp)
   if gamesettings.xp then
-    self.xp = self.xp+xp
+    local gain = xp
+    local mod = 0.1*self:get_bonus('xp_percent')
+    gain = gain + math.ceil(gain * mod)
+    self.xp = self.xp+gain
     while self.xp >= self:get_level_up_cost() and gamesettings.leveling do
       self:level_up()
       if self == player then
@@ -3320,7 +3325,7 @@ function Creature:can_learn_spell(spellID)
   --Check stats:
   if spell.stat_requirements then
     for stat,requirement in pairs(spell.stat_requirements) do
-      if self:get_stat(stat,true) < requirement and self:get_bonus_stat(stat,true) < requirement then
+      if self:get_stat(stat,true) < requirement then
         return false,"Your " .. stat .. " stat is too low to learn this ability."
       end
     end
@@ -3532,7 +3537,7 @@ function Creature:can_craft_recipe(recipeID)
   end
   if recipe.stat_requirements then
     for stat,requirement in pairs(recipe.stat_requirements) do
-      if self:get_stat(stat) < requirement and self:get_bonus_stat(stat) < requirement then
+      if self:get_stat(stat) < requirement then
         return false
       end
     end

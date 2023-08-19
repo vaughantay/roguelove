@@ -129,7 +129,7 @@ blink = {
 		end --end while
 		caster:moveTo(x,y)
 		if caster:has_spell('blink') and player:can_see_tile(caster.x,caster.y) then
-      currMap:add_effect(Effect('animation','magicdamage',5,{x=origX,y=origY},{r=255,g=255,b=255}),origX,origY)
+      currMap:add_effect(Effect('animation',{image_name='magicdamage',image_max=5,target={x=origX,y=origY},color={r=255,g=255,b=255}}),origX,origY)
       output:out(caster:get_name() .. " blinks!")
     end
 	end
@@ -256,7 +256,7 @@ homecoming = {
     cast = function(self,target,caster)
       if player:can_see_tile(target.x,target.y) then
         output:out(caster:get_name() .. " paralyzes " .. target:get_name() .. " with a touch!")
-        currMap:add_effect(Effect('animation','unholydamage',5,target,{r=150,g=0,b=150}),target.x,target.y)
+        currMap:add_effect(Effect('animation',{image_name='unholydamage',image_max=5,target=target,color={r=150,g=0,b=150}}),target.x,target.y)
       end
       target:give_condition('stunned',tweak(self:get_stat('turns')))
     end
@@ -498,7 +498,7 @@ reanimate = {
 				content:delete()
 				currMap:add_creature(z,target.x,target.y)
         z:become_thrall(caster)
-        currMap:add_effect(Effect('animation','unholydamage',5,target,{r=150,g=0,b=150}),target.x,target.y)
+        currMap:add_effect(Effect('animation',{image_name='unholydamage',image_max=5,target=target,color={r=150,g=0,b=150}}),target.x,target.y)
 				return true
 			end
 		end
@@ -521,10 +521,10 @@ sacrificecorpse = {
       if player:can_see_tile(caster.x,caster.y) then
         local mp = tweak((corpse.creature.level or 1)*10)
         output:out(caster:get_name() .. " sacrifices " .. corpse.creature:get_name() .. " to the darkness, gaining " .. mp .. " MP!")
-        currMap:add_effect(Effect('animation','floatingpluses',5,caster,{r=235,g=137,b=49,a=255},true,true),caster.x,caster.y)
+        currMap:add_effect(Effect('animation',{image_name='floatingpluses',image_max=5,target=caster,color={r=235,g=137,b=49,a=255},ascii=true,use_color_with_tiles=true}),caster.x,caster.y)
         output:sound("unholydamage")
       end
-      currMap:add_effect(Effect('animation','unholydamage',5,target,{r=150,g=0,b=150}),target.x,target.y)
+      currMap:add_effect(Effect('animation',{image_name='unholydamage',image_max=5,target=target,color={r=150,g=0,b=150}}),target.x,target.y)
       caster.mp = caster.mp + mp
       corpse:delete()
       return true
@@ -535,8 +535,8 @@ sacrificecorpse = {
   kills = function(self,possessor,victim)
     if not victim:is_type('undead') then
       possessor.magic = possessor.magic + 5
-      currMap:add_effect(Effect('animation','floatingpluses',5,possessor,{r=235,g=137,b=49,a=255},true,true),possessor.x,possessor.y)
-      currMap:add_effect(Effect('animation','unholydamage',5,false,{r=255,g=255,b=0}),victim.x,victim.y)
+      currMap:add_effect(Effect('animation',{image_name='floatingpluses',image_max=5,target=possessor,color={r=235,g=137,b=49,a=255},ascii=true,use_color_with_tiles=true}),possessor.x,possessor.y)
+      currMap:add_effect(Effect('animation',{image_name='unholydamage',image_max=5,color={r=255,g=255,b=0}}),victim.x,victim.y)
       if possessor == player then
         output:sound('unholydamage')
         output:out("Killing " .. victim:get_name() .. " grants you evil power!")
@@ -546,8 +546,8 @@ sacrificecorpse = {
   ally_kills = function(self,possessor,victim,killer)
     if not victim:is_type('undead') then
       possessor.magic = possessor.magic + 2
-      currMap:add_effect(Effect('animation','floatingpluses',5,possessor,{r=235,g=137,b=49,a=255},true,true),possessor.x,possessor.y)
-      currMap:add_effect(Effect('animation','unholydamage',5,false,{r=255,g=255,b=0}),victim.x,victim.y)
+      currMap:add_effect(Effect('animation',{image_name='floatingpluses',image_max=5,target=possessor,color={r=235,g=137,b=49,a=255},ascii=true,use_color_with_tiles=true}),possessor.x,possessor.y)
+      currMap:add_effect(Effect('animation',{image_name='unholydamage',image_max=5,color={r=255,g=255,b=0}}),victim.x,victim.y)
       if possessor == player then
         output:sound('unholydamage')
         output:out("The death of " .. victim:get_name() .. (killer and " at the hands of " .. killer:get_name() or "") .. " grants you evil power!")
@@ -704,7 +704,7 @@ lifedrain = {
     caster:updateHP(dmg)
     if player:can_see_tile(caster.x,caster.y) then
       output:out(caster:get_name() .. " drains " .. dmg .. " HP from " .. target:get_name() .. ".")
-      currMap:add_effect(Effect('animation','unholydamage',5,target,{r=150,g=0,b=150}),target.x,target.y)
+      currMap:add_effect(Effect('animation',{image_name='unholydamage',image_max=5,target=target,color={r=150,g=0,b=150}}),target.x,target.y)
       output:sound('unholydamage')
     end
     if target.hp < 1 then
@@ -907,7 +907,7 @@ painbolt = {
         local dmg = tweak(base_dmg)
         if player:can_see_tile(attacker.x,attacker.y) then
           output:out(attacker:get_name() .. " heals " .. target:get_name() .. " for " .. dmg .. " damage.")
-          currMap:add_effect(Effect('animation','unholydamage',5,target,{r=150,g=0,b=150}),target.x,target.y)
+          currMap:add_effect(Effect('animation',{image_name='unholydamage',image_max=5,target=target,color={r=150,g=0,b=150}}),target.x,target.y)
           output:sound("unholydamage")
         end
         target:updateHP(dmg)
@@ -915,7 +915,7 @@ painbolt = {
         local dmg = target:damage(tweak(base_dmg),attacker,"unholy")
         if player:can_see_tile(attacker.x,attacker.y) then
           output:out(attacker:get_name() .. " gestures at " .. target:get_name() .. ". " .. ucfirst(target:get_pronoun('n')) .. " convulses with pain, taking " .. dmg .. " damage.")
-          currMap:add_effect(Effect('animation','unholydamage',5,target,{r=150,g=0,b=150}),target.x,target.y)
+          currMap:add_effect(Effect('animation',{image_name='unholydamage',image_max=5,target=target,color={r=150,g=0,b=150}}),target.x,target.y)
           output:sound("unholydamage")
         end
       end
@@ -932,7 +932,7 @@ rigormortis = {
     tags={'unholy','curse','magic'},
     cast = function(self,target,caster)
       if player:can_see_tile(caster.x,caster.y) then output:out(caster:get_name() .. " gestures at " .. target:get_name() .. ". " .. ucfirst(target:get_pronoun('p')) .. " joints lock up!") end
-      currMap:add_effect(Effect('animation','unholydamage',5,target,{r=150,g=0,b=150}),target.x,target.y)
+      currMap:add_effect(Effect('animation',{image_name='unholydamage',image_max=5,target=target,color={r=150,g=0,b=150}}),target.x,target.y)
       output:sound('unholydamage')
       target:give_condition('stunned',tweak((target:is_type('undead') and 8 or 4)))
     end
@@ -951,7 +951,7 @@ deadlypremonition = {
       if target == player then return false end
       if not target:is_type('mindless') then
         if player:can_see_tile(caster.x,caster.y) then output:out(caster:get_name() .. " gives " .. target:get_name() .. " visions of " .. target:get_pronoun('p') .. " own death, terrifying " .. target:get_pronoun('n') .. "!") end
-        currMap:add_effect(Effect('animation','unholydamage',5,target,{r=150,g=0,b=150}),target.x,target.y)
+        currMap:add_effect(Effect('animation',{image_name='unholydamage',image_max=5,target=target,color={r=150,g=0,b=150}}),target.x,target.y)
         target:give_condition('fear',tweak(30))
         target.fear = target.fear + 50
       else
@@ -978,7 +978,7 @@ vampirism = {
           possessor.extra_stats.blood.value = math.min(possessor.extra_stats.blood.value+hp,possessor.extra_stats.blood.max)
         end
         --local blood = currMap:add_effect(Effect('conditionanimation',{owner=possessor,condition="bleeding",symbol="",image_base="bloodmagicdamage",image_max=4,speed=0.20,color={r=255,g=0,b=0,a=125}}),possessor.x,possessor.y)
-        local blood = currMap:add_effect(Effect('animation','bloodmagicdamage',5,target,{r=255,g=255,b=255}),target.x,target.y)
+        local blood = currMap:add_effect(Effect('animation',{image_name='bloodmagicdamage',image_max=5,target=target,color={r=255,g=255,b=255}}),target.x,target.y)
         if possessor == player or target == player then output:sound('vampirism') end
       end
       possessor:updateHP(hp)
@@ -1185,7 +1185,7 @@ poisonbite = {
     cast = function(self,target,caster)
       if player:can_see_tile(target.x,target.y) then
         output:out(caster:get_name() .. " injects " .. target:get_name() .. " with poison!")
-        currMap:add_effect(Effect('animation','poisondamage',5,target,{r=150,g=0,b=150}),target.x,target.y)
+        currMap:add_effect(Effect('animation',{image_name='poisondamage',image_max=5,target=target,color={r=150,g=0,b=150}}),target.x,target.y)
       end
       target:give_condition('poisoned',tweak(5))
     end

@@ -1250,7 +1250,7 @@ function shocker:update(dt)
               output:out(creat:get_name() .. " is shocked for " .. dmg .. "damage!")
             end
           else --if there is a creature, the electricdamage animation will already happen, so we don't need to do it again
-            currMap:add_effect(Effect('animation','electricdamage',5,{x=x,y=y},{r=255,g=255,b=255}),x,y)
+            currMap:add_effect(Effect('animation',{image_name='electricdamage',image_max=5,target={x=x,y=y},color={r=255,g=255,b=255}}),x,y)
           end
         end --end water if
       end --end alreadydone if
@@ -1491,7 +1491,7 @@ function zombieplaguecountdown:advance()
       if player:can_see_tile(self.x,self.y) then
         output:out("A " .. corpse.name .. " rises as a zombie!")
         output:sound("zombie_aggro")
-        currMap:add_effect(Effect('animation','unholydamage',5,target,{r=255,g=255,b=0}),corpse.x,corpse.y)
+        currMap:add_effect(Effect('animation',{image_name='unholydamage',image_max=5,target=target,color={r=255,g=255,b=0}}),corpse.x,corpse.y)
       end
       corpse:delete()
     end
@@ -2015,25 +2015,29 @@ local animation = {
   tilemap = true,
   color={r=255,g=255,b=255,a=255}
 }
-function animation:new(anim_name,frames,target,color,ascii,use_color_with_tiles,repetitions,backwards,ignoreTurns)
-  self.image_name = anim_name
-  self.image_max = frames
-  self.color = color or {r=255,g=255,b=255,a=255}
-  self.target = target
-  self.ascii = ascii or true
-  self.use_color_with_tiles = use_color_with_tiles
-  self.repetitions = repetitions or 0
+function animation:new(info)
+  --image_name,image_max,target,color,ascii,use_color_with_tiles,repetitions,backwards,ignoreTurns,stopsInput,time_per_tile
+  self.image_name = info.image_name
+  self.image_max = info.image_max
+  self.color = info.color or {r=255,g=255,b=255,a=255}
+  self.target = info.target
+  self.ascii = info.ascii or true
+  self.use_color_with_tiles = info.use_color_with_tiles
+  self.repetitions = info.repetitions or 0
+  self.time_per_tile = self.time_per_tile or .1
+  self.countdown = self.time_per_tile
 
-  self.image_frame = (backwards and frames or 1)
+  self.image_frame = (info.backwards and info.frames or 1)
   self.firstTurn = true
   self.repetition = 1
-  self.backwards=backwards
-  self.ignoreTurns=ignoreTurns
+  self.backwards=info.backwards
+  self.ignoreTurns=info.ignoreTurns
+  self.stopsInput=info.stopsInput
 end
 function animation:update(dt)
   self.countdown = self.countdown - dt
   if self.countdown <= 0 then
-    self.countdown = .1
+    self.countdown = self.time_per_tile
     self.image_frame = math.max(self.image_frame + (self.backwards and -1 or 1),1)
     if (not self.backwards and self.image_max >= self.image_frame) or (self.backwards and self.image_frame ~= 1) then --if you haven't reached the last frame
       if self.ascii then

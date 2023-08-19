@@ -48,7 +48,7 @@ local angels_blessing = {
   action = function()
     output:out("You're suddenly filled with a blessing from the angels.")
     player:give_condition('blessed',25)
-    currMap:add_effect(Effect('animation','holydamage',5,{x=player.x,y=player.y},{r=255,g=255,b=255}),player.x,player.y)
+    currMap:add_effect(Effect('animation',{image_name='holydamage',image_max=5,target={x=player.x,y=player.y},color={r=255,g=255,b=255}}),player.x,player.y)
   end
 }
 possibleEvents['angels_blessing'] = angels_blessing

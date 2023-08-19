@@ -42,7 +42,7 @@ regenerating=Condition({
 
 disease = Condition({
 		name = "Diseased",
-    bonuses={notice_chance=-10,hit_chance=-15,dodge_chance=-15,damage_percent=75,critical_chance=-100,speed=-10},
+    bonuses={notice_chance=-10,hit_chance=-15,dodge_chance=-15,damage_percent=-25,critical_chance=-100,speed=-10},
 	}),
 
 bleeding=Condition({
@@ -255,7 +255,7 @@ slipping = Condition({
 			possessor:moveTo(x,y)
       if player:can_see_tile(origX,origY) then
         output:out(possessor:get_name() .. " teleports away!")
-        currMap:add_effect(Effect('animation','magicdamage',5,{x=origX,y=origY},{r=255,g=255,b=255}),origX,origY)
+        currMap:add_effect(Effect('animation',{image_name='magicdamage',image_max=5,target={x=origX,y=origY},color={r=255,g=255,b=255}}),origX,origY)
         output:sound('teleport')
       end
 		end
@@ -385,7 +385,7 @@ blessed = Condition({
 
 chilled = Condition({
 		name = "Chilled",
-    bonuses={possession_chance=5,notice_chance=-5,hit_chance=-10,dodge_chance=-10,damage_percent=90,speed=-20,animation_time_percent=1.10},
+    bonuses={possession_chance=5,notice_chance=-5,hit_chance=-10,dodge_chance=-10,damage_percent=-10,speed=-20,animation_time_percent=1.10},
 		cured = function (self,possessor)
       possessor.chilledClock = nil
 		end,
@@ -462,7 +462,7 @@ chilled = Condition({
 	
 	jekyllhyde = Condition({
 		name = "Jekyllhyde",
-		bonuses={bravery=100,damage_percent=110,hit_chance=20,possession_chance=-10000},
+		bonuses={bravery=100,damage_percent=50,hit_chance=20,possession_chance=-10000},
     ai = function(self,possessor)
       ai.basic(possessor,{forceStupid=true,noRanged=true,noRunning=true})
       return false
@@ -1215,7 +1215,7 @@ bloodbond = Condition({
 
 	witheringcurse = Condition({
 		name = "Withering Curse",
-		bonuses={fear=20,hit_chance=-10,dodge_chance=-10,damage_percent=75},
+		bonuses={fear=20,hit_chance=-10,dodge_chance=-10,damage_percent=-25},
     advance = function(self,possessor)
       possessor:damage(random(1,5),nil,"unholy")
     end
@@ -1337,7 +1337,7 @@ bloodbond = Condition({
   
   grappled = Condition({
       name = "Grappled",
-      bonuses={dodge_chance=-10,damage_percent=60,notice_chance=-5},
+      bonuses={dodge_chance=-10,damage_percent=-40,notice_chance=-5},
       apply = function(self,possessor,applier)
         possessor.grappler = applier
         applier:give_condition('grappling',-1,possessor.grappler)
@@ -1471,7 +1471,7 @@ spearless = Condition({
   
   inspired = Condition({
       name = "Inspired",
-      bonuses={bravery=30,hit_chance=10,dodge_chance=10,damage_percent=125,notice_chance=10},
+      bonuses={bravery=30,hit_chance=10,dodge_chance=10,damage_percent=25,notice_chance=10},
       ai = function(self,possessor)
         ai.basic(possessor,{noRunning=true})
         return false
@@ -1498,7 +1498,7 @@ spearless = Condition({
         if player:can_see_tile(possessor.x,possessor.y) then
           output:out(possessor:get_name() .. "'s magic shield absorbs " .. absorb .. " damage.")
           output:sound('magicshield_hit')
-          local flash = currMap:add_effect(Effect('animation','magicshieldhit',3,possessor,{r=178,g=220,b=239,a=255}),possessor.x,possessor.y)
+          local flash = currMap:add_effect(Effect('animation',{image_name='magicshieldhit',image_max=3,target=possessor,color={r=178,g=220,b=239,a=255}}),possessor.x,possessor.y)
         end
         return (dmg-absorb)
     end
@@ -1656,7 +1656,7 @@ channeling = Condition({
     cured = function(self,possessor)
       for _, spirit in pairs(possessor.spirits) do
         spirit:remove()
-        currMap:add_effect(Effect('animation','unholydamage',5,spirit,{r=150,g=150,b=0}),spirit.x,spirit.y)
+        currMap:add_effect(Effect('animation',{image_name='unholydamage',image_max=5,target=spirit,color={r=150,g=150,b=0}}),spirit.x,spirit.y)
       end
       possessor.spirits = nil
       if player:can_see_tile(possessor.x,possessor.y) then output:out(possessor:get_name() .. "'s concentraion is broken. " .. ucfirst(possessor:get_pronoun('p')) .. " summoned spirits are banished back to wherever spirits come from.") end
@@ -1691,7 +1691,7 @@ illusorydouble = Condition({
       if possessor == player then
         output:out("You suddenly realize you are possessing an illusion! The illusion fades away.")
         possessor:die()
-        currMap:add_effect(Effect('animation','magicdamage',5,{x=possessor.x,y=possessor.y},{r=255,g=255,b=255}),possessor.x,possessor.y)
+        currMap:add_effect(Effect('animation',{image_name='magicdamage',image_max=5,target={x=possessor.x,y=possessor.y},color={r=255,g=255,b=255}}),possessor.x,possessor.y)
       elseif player:can_sense_creature(possessor) and possessor.master ~= player then
         output:out(possessor:get_name() .. " misses " .. target:get_name() .. ".")
       end
@@ -1716,7 +1716,7 @@ illusorydouble = Condition({
 
   shieldwall = Condition({
     name = "Shield Wall",
-    bonuses={speed=-25,damage_percent=75,notice_chance=-5,armor=10,hit_chance=-10},
+    bonuses={speed=-25,damage_percent=-25,notice_chance=-5,armor=10,hit_chance=-10},
     apply = function(self,possessor)
       if possessor.id == "templeguard" then possessor.image_name = "templeguardshielding" .. (possessor == player and "possessed" or "") end
     end,
@@ -1823,7 +1823,7 @@ spindashing = Condition({
         possessor:flyTo({x=possessor.x+xMod,y=possessor.y+yMod})
         if applier and applier.baseType == "creature" and player:can_see_tile(possessor.x,possessor.y) then
           output:sound('collision_creature')
-          currMap:add_effect(Effect('animation','holydamage',5,false,{r=255,g=255,b=0}),possessor.x,possessor.y)
+          currMap:add_effect(Effect('animation',{image_name='holydamage',image_max=5,color={r=255,g=255,b=0}}),possessor.x,possessor.y)
         end
       end,
       update = function(self,possessor)

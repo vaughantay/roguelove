@@ -14,7 +14,7 @@ conditions = {
         possessor:flyTo({x=possessor.x+xMod,y=possessor.y+yMod})
         if applier and applier.baseType == "creature" and player:can_see_tile(possessor.x,possessor.y) then
           output:sound('collision_creature')
-          currMap:add_effect(Effect('animation','holydamage',5,false,{r=255,g=255,b=0}),possessor.x,possessor.y)
+          currMap:add_effect(Effect('animation',{image_name='holydamage',image_max=5,color={r=255,g=255,b=0}}),possessor.x,possessor.y)
         end
       end,
       update = function(self,possessor)

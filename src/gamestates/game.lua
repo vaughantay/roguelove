@@ -1829,9 +1829,6 @@ function game:buttonpressed(key,scancode,isRepeat)
       self.contextualMenu = ContextualMenu(output.cursorX,output.cursorY)
       setTarget(output.cursorX,output.cursorY)
     end
-  elseif (key == "q" and action=="moving") then --TODO: Take this out, it's a test
-     --test_spells()
-    downtime()
 	elseif key == "charScreen" then
 		Gamestate.switch(characterscreen)
 	elseif key == "save" then

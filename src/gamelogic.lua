@@ -155,7 +155,7 @@ end
 function calc_attack(attacker,target,forceHit,item)
 	local dmg = (item and item:get_damage(target,attacker) or attacker:get_damage())
   local dbonus = .01*attacker:get_bonus('damage_percent')
-  dmg = dmg * math.ceil(dbonus > 0 and dbonus or 1)
+  dmg = dmg + math.ceil(dmg * dbonus)
 	local critChance = attacker:get_critical_chance() + (item and item:get_critical_chance() or 0)
 	local hitMod = calc_hit_chance(attacker,target,item)
   local result = "miss"

@@ -14,7 +14,7 @@ function vampiric:after_damage(item,possessor,target,damage)
     local hp = tweak(math.ceil(damage*(random(2,6)/10)))
     if player:can_see_tile(possessor.x,possessor.y) and hp > 0 then
       output:out(item:get_name() .. " drains some blood from " .. target:get_name() .. ", restoring " .. hp .. " HP to " .. possessor:get_name() .. "!")
-      local blood = currMap:add_effect(Effect('animation','bloodmagicdamage',5,target,{r=255,g=255,b=255}),target.x,target.y)
+      local blood = currMap:add_effect(Effect('animation',{image_name='bloodmagicdamage',image_max=5,target=target,color={r=255,g=255,b=255}}),target.x,target.y)
       if possessor == player or target == player then output:sound('vampirism') end
     end
     possessor:updateHP(hp)

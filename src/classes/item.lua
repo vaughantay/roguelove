@@ -273,7 +273,7 @@ function Item:get_damage(target,wielder)
   end
   local dmg = (self.damage or 0)
   local bonus = .01*self:get_enchantment_bonus('damage_percent')
-  dmg = dmg * math.ceil(bonus > 0 and bonus or 1)
+  dmg = dmg + math.ceil(dmg * bonus)
   
   return dmg + self:get_enchantment_bonus('damage') + (wielder and not self.no_creature_damage and wielder:get_damage(self.melee_damage_stats) or 0)
 end

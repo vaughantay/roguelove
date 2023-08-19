@@ -300,7 +300,7 @@ function Projectile:get_damage()
     damage = damage + self.source_item:get_ranged_damage()
   end
   local bonus = .01*self:get_enchantment_bonus('damage_percent')
-  damage = damage * math.ceil(bonus > 0 and bonus or 1)
+  damage = damage + math.ceil(damage * bonus)
   damage = damage + self:get_enchantment_bonus('damage')
   return damage
 end
