@@ -476,7 +476,7 @@ local caretaker = {
   stealth=10,
   resistances={dark=10},
   gender='either',
-  spells = {'zombait','undeadrepellent'},
+  --spells = {'zombait','undeadrepellent'},
   crit_conditions={{condition="stunned",turns=3,chance=100}},
 }
 possibleMonsters['caretaker'] = caretaker
@@ -633,6 +633,7 @@ local vampireHero = {
   description = "A bloodsucking monster of the night.",
   symbol = "v",
   types={"undead","intelligent","vampire"},
+  extra_stats={blood = {name="Blood",description="The amount of blood in your body. Used to power vampiric abilities.",value=50,max=50,bar_color={r=155,g=0,b=0,a=255}}},
   forbidden_tags={'holy','healing','food'},
   spells={"vampirism"},
   possible_inventory={{item="blood",chance=100,amount=5}},

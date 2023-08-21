@@ -20,7 +20,7 @@ function monsterpedia:enter(previous,selectMonster)
       if creat then
         monsterpedia.list[creat.level] = (monsterpedia.list[creat.level] or {})
         if monsterpedia.list[creat.level] then
-          monsterpedia.list[creat.level][#monsterpedia.list[creat.level]+1] = monster
+          monsterpedia.list[creat.level][#monsterpedia.list[creat.level]+1] = {id=monster,name=creat.name}
         end
       end
     end
@@ -37,7 +37,9 @@ function monsterpedia:enter(previous,selectMonster)
   for level, monsters in pairs (monsterpedia.list) do --loop through levels
     monsterpedia.positions[#monsterpedia.positions+1] = {id=-1,startY=printY,endY=printY+lineSize,level=level}
     printY=printY+lineSize
-    for _, id in pairs (monsters) do --loop through monsters within levels
+    sort_table(monsters,'name')
+    for _, info in pairs(monsters) do --loop through monsters within levels
+      local id = info.id
       local _, tlines = fonts.textFont:getWrap(possibleMonsters[id].name,322)
       monsterpedia.positions[#monsterpedia.positions+1] = {id=id,startY=printY,endY=printY+#tlines*lineSize}
       printY=printY+#tlines*lineSize
@@ -176,7 +178,7 @@ function monsterpedia:draw()
 		love.graphics.printf("Level " .. creat.level,450,start+fontSize,(width-460-scrollPad),"center")
     local types = ""
     for _,ctype in pairs((creat.types or {})) do
-      if types ~= "" then types = types .. ", " .. ucfirst(ctype)
+      if types ~= "" then types = types .. ", " .. (creatureTypes[ctype] and creatureTypes[ctype].name or ucfirst(ctype))
       else types = ucfirst(ctype) end
     end
     love.graphics.printf(types,450,start+fontSize*2,(width-460-scrollPad),"center")
@@ -187,25 +189,17 @@ function monsterpedia:draw()
     local statStart = (start+fontSize*2)+((#tlines+2)*fontSize)
     local text = "Max HP: " .. creat.max_hp
     if creat.max_mp then text = text .. "\nMax MP: " .. creat.max_mp end
-    if gamesettings.default_stats then
-      text = text .. "\nStats:"
-      for _,stat in ipairs(gamesettings.default_stats) do
-        text = text .. "\n\t" .. ucfirst(stat) .. ": " .. (creat[stat]or 0)
-      end
-    end
-    if creat.skills then
-      text = text .. "\nSkills:"
-      for skillID,val in pairs(creat.skills) do
-        local skill = possibleSkills[skillID]
-        if skill then
-          text = text .. "\n\t" .. skill.name .. ": " .. val
-        end
-      end
-    end
-    if creat.armor then text = text .. "\nDamage Absorption: " .. creat.armor end
     text = text .. "\nSight Radius: " .. creat.perception
+    if creat.stealth then text = text .. "\nStealth Modifier: " .. creat.stealth .. "%" end
+    if creat.armor then text = text .. "\nDamage Absorbtion: " .. creat.armor .. "" end
     if creat.ranged_attack then text = text .. "\nRanged Attack: " .. rangedAttacks[creat.ranged_attack].name end
-    
+    --Extra stats:
+    if creat.extra_stats then
+      for stat_id,stat in pairs(creat.extra_stats) do
+        text = text .. "\n" .. stat.name .. ": " .. stat.value .. (stat.max and "/" .. stat.max or "") .. (stat.description and " - " .. stat.description or "")
+      end
+    end
+    --Weaknesses and resistances
     if creat.weaknesses then
       local weakstring = "\nWeaknesses: "
       local first = true
@@ -225,33 +219,7 @@ function monsterpedia:draw()
       text = text .. resiststring
     end --end weaknesses
     
-    love.graphics.printf(text,455,statStart,(width-475-scrollPad),"left")
-    _,tlines = fonts.textFont:getWrap(text,(width-475-scrollPad))
-    local printY = statStart+(#tlines+1)*fontSize
-    printY=math.max(350,printY+fontSize*2)
-		love.graphics.printf("Special Abilities:",450,printY,(width-460-scrollPad),"center")
-    printY=printY+fontSize
-		local abilities = ""
-		if (creat.spells) then
-      local i = 1
-      for id, ability in pairs(creat.spells) do
-        if (i > 1) then abilities = abilities .. "\n" end
-        abilities = abilities .. possibleSpells[ability].name .. (possibleSpells[ability].target_type == "passive" and " (Passive)" or "") .. " - " .. possibleSpells[ability].description
-        i = i + 1
-      end
-      love.graphics.printf(abilities,455,printY,(width-475-scrollPad),"left")
-      printY = printY+fontSize*i
-		else
-			abilities = "None"
-      love.graphics.printf(abilities,450,printY,(width-460-scrollPad),"center")
-		end
-    _,tlines = fonts.textFont:getWrap(abilities,(width-475-scrollPad))
-    printY = printY+(#tlines)*fontSize
-    
     if creat.hit_conditions then
-      printY=printY+fontSize
-      love.graphics.printf("Hit Conditions:",450,printY,(width-460-scrollPad),"center")
-      printY=printY+fontSize
       local context = ""
       local i = 1
       if creat.hit_conditions then
@@ -263,44 +231,115 @@ function monsterpedia:draw()
           i = i + 1
         end
       end
-      love.graphics.printf(context,450,printY,(width-460-scrollPad),"center")
-      printY=printY+fontSize*2
+      text = text .. "\nHit Conditions: " .. context
 		end
     
-    local statText = ""
+    text = text .. "\n"
+    
+    --Skills:
+    if gamesettings.default_skills or creat.skills then
+      local skillVals = {}
+      for _,skillID in ipairs(gamesettings.default_skills or {}) do
+        skillVals[skillID] = 0
+      end
+      for skillID, value in pairs(creat.skills or {}) do
+        if value == false then
+          skillVals[skillID] = false
+        elseif skillVals[skillID] ~= false then
+          skillVals[skillID] = (skillVals[skillID] or 0) + value
+        end
+      end
+      
+      local skill_lists = {}
+      for skillID,value in pairs(skillVals) do
+        local skill = possibleSkills[skillID]
+        if skill then
+          local sType = skill.skill_type or "skill"
+          if not skill_lists[sType] then
+            skill_lists[sType] = {}
+          end
+          skill_lists[sType][#skill_lists[sType]+1] = {skillID=skillID,value=value,name=skill.name}
+        end
+      end
+      
+      local ordered_list = {}
+      if gamesettings.skill_type_order then
+        for i,skillType in pairs(gamesettings.skill_type_order) do
+          ordered_list[#ordered_list+1] = skillType
+        end
+      end
+      local unordered = {} --sort unordered skill lists alphabetically so at least there's consistency
+      for skillType,_ in pairs(skill_lists) do
+        if not in_table(skillType,ordered_list) then
+          unordered[#unordered+1] = skillType
+        end
+      end
+      sort_table(unordered) --sort alphabetically
+      for _,skillType in ipairs(unordered) do
+        ordered_list[#ordered_list+1] = skillType
+      end
+      
+      for _,sType in pairs(ordered_list) do
+        local list = skill_lists[sType]
+        if list then
+          sort_table(list,'name')
+          local typeDef = possibleSkillTypes[sType]
+          text = text .. "\n" .. (typeDef and typeDef.name .. ":" or ucfirst(sType) .. ":")
+          for _,skillInfo in pairs(list) do
+            local skillID,value = skillInfo.skillID, skillInfo.value
+            local skill = possibleSkills[skillID]
+            if value then
+              text = text .. "\n\t" .. skill.name .. (skill.max ~= 1 and ": " .. value or "") .. " - " .. skill.description
+            end
+          end --end for skillInfo
+        end --end if list
+        text = text .. "\n"
+      end --end ordered list for
+    end --end skill if
+    
+		local abilities = ""
+		if (creat.spells) then
+      local i = 1
+      for id, ability in pairs(creat.spells) do
+        abilities = abilities .. "\n\t" .. possibleSpells[ability].name .. (possibleSpells[ability].target_type == "passive" and " (Passive)" or "") .. " - " .. possibleSpells[ability].description
+        i = i + 1
+      end
+      text = text .. "\nSpecial Abilities:" .. abilities .. "\n"
+		end
+    
     if totalstats.exploded_creatures and totalstats.exploded_creatures[id] then
-      statText = statText .. ucfirst(creat.name) .. " exploded: " .. totalstats.exploded_creatures[id] .. "\n"
+      text = text .. "\n" .. ucfirst(creat.name) .. " exploded: " .. totalstats.exploded_creatures[id]
     end
     if totalstats.creature_kills and totalstats.creature_kills[id] then
-      statText = statText .. ucfirst(creat.name) .. "s killed: " .. totalstats.creature_kills[id] .. "\n"
+      text = text .. "\n" .. ucfirst(creat.name) .. "s killed: " .. totalstats.creature_kills[id]
     end
     if totalstats.creature_kills_by_ally and totalstats.creature_kills_by_ally[id] then
-      statText = statText .. ucfirst(creat.name) .. "s killed by allies: " .. totalstats.creature_kills_by_ally[id] .. "\n"
+      text = text .. "\n" .. ucfirst(creat.name) .. "s killed by allies: " .. totalstats.creature_kills_by_ally[id]
     end
     if totalstats.turns_as_creature and totalstats.turns_as_creature[id] then
-      statText = statText .. "Turns as " .. creat.name .. ": " .. totalstats.turns_as_creature[id] .. "\n"
+      text = text .. "\nTurns as " .. creat.name .. ": " .. totalstats.turns_as_creature[id]
     end
     if totalstats.kills_as_creature and totalstats.kills_as_creature[id] then
-      statText = statText .. "Kills as " .. creat.name .. ": " .. totalstats.kills_as_creature[id] .. "\n"
+      text = text .. "\nKills as " .. creat.name .. ": " .. totalstats.kills_as_creature[id]
     end
     if totalstats.deaths_as_creature and totalstats.deaths_as_creature[id] then
-      statText = statText .. "Deaths as " .. creat.name .. ": " .. totalstats.deaths_as_creature[id] .. "\n"
+      text = text .. "\nDeaths as " .. creat.name .. ": " .. totalstats.deaths_as_creature[id]
     end
     if totalstats.ally_kills_as_creature and totalstats.ally_kills_as_creature[id] then
-      statText = statText .. "Kills made by allies as " .. creat.name .. ": " .. totalstats.ally_kills_as_creature[id] .. "\n"
+      text = text .. "\nKills made by allies as " .. creat.name .. ": " .. totalstats.ally_kills_as_creature[id]
     end
     if totalstats.allied_creature_kills and totalstats.allied_creature_kills[id] then
-      statText = statText .. "Kills made by allied " .. creat.name .. "s: " .. totalstats.allied_creature_kills[id] .. "\n"
+      text = text .. "\nKills made by allied " .. creat.name .. "s: " .. totalstats.allied_creature_kills[id]
     end
     if totalstats.creature_ally_deaths and totalstats.creature_ally_deaths[id] then
-      statText = statText .. 'Allied ' .. creat.name .. " deaths: " .. totalstats.creature_ally_deaths[id] .. "\n"
+      text = text .. '\nAllied ' .. creat.name .. " deaths: " .. totalstats.creature_ally_deaths[id]
     end
     if totalstats.ally_deaths_as_creature and totalstats.ally_deaths_as_creature[id] then
-      statText = statText .. 'Ally deaths as ' .. creat.name .. ": " .. totalstats.ally_deaths_as_creature[id] .. "\n"
+      text = text .. '\nAlly deaths as ' .. creat.name .. ": " .. totalstats.ally_deaths_as_creature[id]
     end
-    love.graphics.printf(statText,455,printY,(width-475-scrollPad),"left")
-    _,tlines = fonts.textFont:getWrap(statText,(width-475-scrollPad))
-    printY = printY+(#tlines+1)*fontSize
+    love.graphics.printf(text,455,statStart,(width-475-scrollPad),"left")
+    local _,tlines = fonts.textFont:getWrap(text,(width-475-scrollPad))
+    local printY = statStart+(#tlines+1)*fontSize
     self.rightYmax = printY+fontSize-love.graphics:getHeight()
     love.graphics.setStencilTest()
     love.graphics.pop()

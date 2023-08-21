@@ -894,7 +894,7 @@ function newgame:get_stat_text(whichSpecies,whichClass)
   desc = desc .. "Base HP: " .. creature.max_hp + (class.stat_modifiers and class.stat_modifiers.max_hp or 0) .. "\n"
   desc = desc .. "Base MP: " .. (creature.max_mp or 0) + (class.stat_modifiers and class.stat_modifiers.max_mp or 0) .. "\n"
   desc = desc .. "Sight Radius: " .. creature.perception + (class.stat_modifiers and class.stat_modifiers.perception or 0) .. "\n"
-  if creature.stealth or (class.stat_modifiers and class.stat_modifiers.stealth) then desc = desc .. "Stealth Modifier: " .. (creature.stealth or 0) + (class.stat_modifiers and class.stat_modifiers.stealth or 0) .. "\n" end
+  if creature.stealth or (class.stat_modifiers and class.stat_modifiers.stealth) then desc = desc .. "Stealth Modifier: " .. (creature.stealth or 0) + (class.stat_modifiers and class.stat_modifiers.stealth or 0) .. "%\n" end
   if creature.armor or (class.stat_modifiers and class.stat_modifiers.armor) then desc = desc .. "Damage Absorbtion: " .. (creature.armor or 0) + (class.stat_modifiers and class.stat_modifiers.armor or 0) .. "\n" end
   
   --Other stats:
@@ -909,6 +909,40 @@ function newgame:get_stat_text(whichSpecies,whichClass)
         desc = desc .. stat.name .. ": " .. stat.value .. (stat.max and " (" .. stat.max .. " max)") .. "\n"
       end
     end
+  end
+  
+  --Weaknesses and resistances
+  if (class.weaknesses and count(class.weaknesses) > 0) or (creature.weaknesses and count(creature.weaknesses) > 0) then
+    local weak = {}
+    desc = desc .. "Weaknesses: "
+    for stat,amt in pairs(creature.weaknesses or {}) do
+      weak[stat] = amt
+    end
+    for stat,amt in pairs(class.weaknesses or {}) do
+      weak[stat] = (weak[stat] or 0) + amt
+    end
+     local first = true
+    for stat,amt in pairs(weak) do
+      desc = desc .. (not first and ", " or "") .. ucfirst(stat) .. " " .. amt .. "%"
+      first = false
+    end
+    desc = desc .. "\n"
+  end
+  if (class.resistances and count(class.resistances) > 0) or (creature.resistances and count(creature.resistances) > 0) then
+    local resist = {}
+    desc = desc .. "Resistances: "
+    for stat,amt in pairs(creature.resistances or {}) do
+      resist[stat] = amt
+    end
+    for stat,amt in pairs(class.resistances or {}) do
+      resist[stat] = (resist[stat] or 0) + amt
+    end
+     local first = true
+    for stat,amt in pairs(resist) do
+      desc = desc .. (not first and ", " or "") .. ucfirst(stat) .. " " .. amt .. "%"
+      first = false
+    end
+    desc = desc .. "\n"
   end
   
   --Skills:
@@ -976,34 +1010,6 @@ function newgame:get_stat_text(whichSpecies,whichClass)
         end --end for skillInfo
       end --end if list
     end --end ordered list for
-  end
-  
-  --Weaknesses and resistances
-  if (class.weaknesses and count(class.weaknesses) > 0) or (creature.weaknesses and count(creature.weaknesses) > 0) then
-    local weak = {}
-    desc = desc .. "\nWeaknesses:\n"
-    for stat,amt in pairs(creature.weaknesses or {}) do
-      weak[stat] = amt
-    end
-    for stat,amt in pairs(class.weaknesses or {}) do
-      weak[stat] = (weak[stat] or 0) + amt
-    end
-    for stat,amt in pairs(weak) do
-      desc = desc .. "\t" .. ucfirst(stat) .. " " .. amt .. "%" .. "\n"
-    end
-  end
-  if (class.resistances and count(class.resistances) > 0) or (creature.resistances and count(creature.resistances) > 0) then
-    local resist = {}
-    desc = desc .. "\nResistances:\n"
-    for stat,amt in pairs(creature.resistances or {}) do
-      resist[stat] = amt
-    end
-    for stat,amt in pairs(class.resistances or {}) do
-      resist[stat] = (resist[stat] or 0) + amt
-    end
-    for stat,amt in pairs(resist) do
-      desc = desc .. "\t" .. ucfirst(stat) .. " " .. amt .. "%" .. "\n"
-    end
   end
   
   --Abilities:

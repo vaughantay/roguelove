@@ -74,6 +74,8 @@ function characterscreen:draw()
       printY = printY+fontSize
       love.graphics.print("Max MP: " .. player.max_mp .. (stat_increases['max_mp'] and " (" .. (stat_increases['max_mp'] >= 1 and "+" or "") .. stat_increases['max_mp'] .. " next level)" or ""),printX,printY)
     end
+    printY = printY+fontSize
+    love.graphics.print("Sight Radius: " .. player.perception,padding,printY)
     if player.armor then
       printY = printY+fontSize
       love.graphics.print("Damage Absorption: " .. player.armor,padding,printY)
@@ -94,8 +96,8 @@ function characterscreen:draw()
       printY = printY + fontSize
       local weakstring = "Weaknesses: "
       local first = true
-      for dtype,_ in pairs(player.weaknesses) do
-        weakstring = weakstring .. (not first and ", " or "") .. ucfirst(dtype)
+      for dtype,amt in pairs(player.weaknesses) do
+        weakstring = weakstring .. (not first and ", " or "") .. ucfirst(dtype) .. " " .. amt .. "%"
         first = false
       end
       love.graphics.print(weakstring,padding,printY)
@@ -104,8 +106,8 @@ function characterscreen:draw()
       printY = printY+fontSize
       local resiststring = "Resistances: "
       local first = true
-      for dtype,_ in pairs(player.resistances) do
-        resiststring = resiststring .. (not first and ", " or "") .. ucfirst(dtype)
+      for dtype,amt in pairs(player.resistances) do
+        resiststring = resiststring .. (not first and ", " or "") .. ucfirst(dtype) .. " " .. amt .. "%"
         first = false
       end
       love.graphics.print(resiststring,padding,printY)

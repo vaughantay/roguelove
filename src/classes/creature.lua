@@ -42,37 +42,6 @@ function Creature:init(creatureType,level,noItems,noTweak,info,ignoreNewFunc) --
   self.baseType = "creature"
   self.xp = 0
   self.level = self.level or 0
-  
-  --Stats and skills:
-  self.max_hp = (noTweak and self.max_hp or tweak(self.max_hp or 0))
-  self.hp = self.max_hp
-  self.max_mp = (noTweak and self.max_mp or tweak(self.max_mp or 0))
-  self.mp = self.max_mp
-  if gamesettings.default_stats then
-    for _,stat in ipairs(gamesettings.default_stats) do
-      if not self[stat] then
-        self[stat] = 0
-      elseif not noTweak then
-        self[stat] = tweak(self[stat])
-      end
-    end
-  end
-  self.extra_stats = self.extra_stats or {}
-  self.skills = {}
-  if gamesettings.default_skills then
-    for _,skill in ipairs(gamesettings.default_skills) do
-      self.skills[skill] = 0
-    end
-  end
-  if data.skills then
-    for skill,level in pairs(data.skills) do
-      if level == false then
-        self.skills[skill] = false
-      else
-        self:update_skill(skill,level,true)
-      end
-    end
-  end
   self.inventory_space = self.inventory_space or gamesettings.default_inventory_space
   self.spell_slots = self.spell_slots or gamesettings.default_spell_slots
   self.money = (noTweak and (self.money or 0) or tweak(self.money or 0))
@@ -111,6 +80,37 @@ function Creature:init(creatureType,level,noItems,noTweak,info,ignoreNewFunc) --
   self.skills_per_level = self.stats_per_level or {}
   self.skills_at_level = self.stats_at_level or {}
   self.skills_per_x_levels = self.stats_per_x_levels or {}
+  
+  --Stats and skills:
+  self.max_hp = (noTweak and self.max_hp or tweak(self.max_hp or 0))
+  self.hp = self.max_hp
+  self.max_mp = (noTweak and self.max_mp or tweak(self.max_mp or 0))
+  self.mp = self.max_mp
+  if gamesettings.default_stats then
+    for _,stat in ipairs(gamesettings.default_stats) do
+      if not self[stat] then
+        self[stat] = 0
+      elseif not noTweak then
+        self[stat] = tweak(self[stat])
+      end
+    end
+  end
+  self.extra_stats = self.extra_stats or {}
+  self.skills = {}
+  if gamesettings.default_skills then
+    for _,skill in ipairs(gamesettings.default_skills) do
+      self.skills[skill] = 0
+    end
+  end
+  if data.skills then
+    for skill,level in pairs(data.skills) do
+      if level == false then
+        self.skills[skill] = false
+      else
+        self:update_skill(skill,level,true)
+      end
+    end
+  end
 
   --Add equipment, spells, and ranged attacks:
   if self.equipment_slots then
