@@ -26,6 +26,9 @@ function Item:init(type_name,tags,info,ignoreNewFunc)
 	self.baseType = "item"
   self.itemType = self.itemType or "other"
   self.amount = self.amount or 1
+  if self.max_charges then
+    self.charges = self.charges or 0
+  end
   if not ignoreNewFunc and (possibleItems[type_name].new ~= nil) then
 		possibleItems[type_name].new(self,tags,info)
 	end
@@ -468,74 +471,91 @@ end
 
 ---Reload an item.
 --@param possessor Creature. The creature using the item.
+--@param ammo Item. The item to use as ammo
 --@return Boolean. Whether the reload was successful.
-function Item:reload(possessor)
-  if self.max_charges and self.charges >= self.max_charges then
+function Item:reload(possessor,ammo)
+  if not self.usesAmmo then
+    output:out(ucfirst(self:get_name() .. " is not reloadable."))
+    return false,ucfirst(self:get_name() .. " is not reloadable.")
+  end
+  if self.max_charges and self.max_charges ~= 0 and self.charges >= self.max_charges then
+    output:out(ucfirst(self:get_name() .. " is already fully loaded."))
     return false,ucfirst(self:get_name() .. " is already fully loaded.")
   end
-  if self.charges > 1 and self.usingAmmo then
-    local it,id,amt = possessor:has_item(self.usingAmmo,nil,self.projectile_enchantments)
-    amt = math.min((amt or 0),self.max_charges - self.charges) --don't reload more than the item can hold
-    if amt > 0 then
+  if ammo then --Actual reloading only done if ammo is actually passed
+    if ammo.baseType ~= "item" or ammo.ammoType ~= self.usesAmmo then
+      if debug then output:out("Tried to load " .. self:get_name() .. " with incorrect ammo " .. ammo:get_name(false) .. ".") end
+      return false,"Tried to load " .. self:get_name() .. " with incorrect ammo " .. ammo:get_name(false) .. "."
+    end
+    --TODO: unload active ammo first
+    local amt = 1
+    if self.max_charges and self.max_charges > 0 then --only actually load the ammo into the item if it's a reloadable item
+      local amt = math.min((ammo.amount or 1),self.max_charges - self.charges) --don't reload more than the item can hold
       self.charges = self.charges + amt
-      possessor:delete_item(it,amt)
-      if player:can_sense_creature(possessor) then
-        output:out(possessor:get_name() .. " reloads " .. self:get_name() .. " with " .. it:get_name(false,amt) .. ".")
-        output:sound(self.recharge_sound or self.id .. "_recharge")
-      end
-      return true,"You reload " .. self:get_name() .. " with " .. it:get_name(false,amt) .. "."
+      possessor:delete_item(ammo,amt)
+    end
+    self.usingAmmo = ammo.id
+    self.ammo_name = ammo:get_name(true,1)
+    self.projectile_name = ammo.projectile_name
+    self.projectile_enchantments = ammo.enchantments
+    if player:can_sense_creature(possessor) and self.max_charges and self.max_charges > 0 then
+      output:out(possessor:get_name() .. " reloads " .. self:get_name() .. " with " .. ammo:get_name(false,amt) .. ".")
+      output:sound(self.recharge_sound or self.id .. "_recharge")
+    end
+    return true,(self.max_charges and self.max_charges > 0 and "You reload " .. self:get_name() .. " with " .. ammo:get_name(false,amt) .. "." or false)
+  elseif self.charges and self.charges > 1 and self.usingAmmo then --If ammo is already loaded, use the same type of ammo you're currently using
+    local it,id,amt = possessor:has_item(self.usingAmmo,nil,self.projectile_enchantments)
+    if it then
+      return self:reload(possessor,it)
     else
       if possessor == player then output:out("You don't have any more of the specific type of ammo that is loaded in" .. self:get_name() .. ".") end
       return false,"You don't have any more of the specific type of ammo that is loaded in" .. self:get_name() .. "."
     end
   else --not using specific ammo, or empty
-    --First use whatever's equipped:
+    --First go for whatever's equipped in the ammo slot:
     local usedAmmo = nil
     if possessor.equipment.ammo and #possessor.equipment.ammo > 0 then
       for _,ammo in ipairs(possessor.equipment.ammo) do
         if ammo.ammoType == self.usesAmmo then
-          usedAmmo = ammo
-          break
+          return self:reload(possessor,ammo)
         end
       end
     end
-    --if there's not a usable ammo equipped, select a random type from the inventory, with preference to ammo types the player is holding enough of to reload
-    if not usedAmmo then 
-      local ammoTypes = {}
-      for id,it in ipairs(possessor.inventory) do
-        if it.ammoType == self.usesAmmo then
-          ammoTypes[#ammoTypes+1] = it
-        end --end ammotype match
-      end --end inventory for
-      --Do you even have any ammo that matches?
-      if #ammoTypes < 1 then
-        if possessor == player then output:out("You don't have any more ammo for " .. self:get_name() .. ".") end
-        return false,"You don't have any more ammo for " .. self:get_name() .. "."
+    --Were we previously using an ammo type? If so then reload with that if it can fully fill the item
+     if self.usingAmmo then --if you were previously using a specific type of ammo, prioritize that first
+      local it,id,amt = possessor:has_item(self.usingAmmo,nil,self.projectile_enchantments)
+      if it and (it.amount or 1) >= (self.max_charges or 1) then
+        return self:reload(possessor,it)
       end
-      --If you do have ammo, use it:
-      ammoTypes = shuffle(ammoTypes) --do this so it picks a random one
-      usedAmmo = ammoTypes[random(1,#ammoTypes)] --pick a random one at first, not paying attention to the amount the possessor has
-      for _,ammo in ipairs(ammoTypes) do --loop through and pick the first one you see that fills the item to full
-        if (ammo.amount or 1) >= (self.max_charges - self.charges) then --if 
-          usedAmmo = ammo
-          break
-        end
+    end --end if you have the previous ammo
+    
+    --Select random ammo from the inventory, with preference to ammo that the player is holding enough of to reload entirely
+    local ammoTypes = self:get_possible_ammo(possessor)
+    if #ammoTypes < 1 then
+      if possessor == player then output:out("You don't have ammo for " .. self:get_name() .. ".") end
+      return false,"You don't have ammo for " .. self:get_name() .. "."
+    end
+    ammoTypes = shuffle(ammoTypes)
+    usedAmmo = ammoTypes[random(1,#ammoTypes)] --pick a random one at first
+    for _,ammo in ipairs(ammoTypes) do --loop through and pick the first one you see that fills the item to full
+      if (ammo.amount or 1) >= (self.max_charges or 1) then
+        return self:reload(possessor,ammo)
       end
     end
-    --Now actually do the reloading, with whatever ammo you've decided on:
-    local amt = math.min((usedAmmo.amount or 1),self.max_charges - self.charges) --don't reload more than the item can hold
-    self.charges = self.charges + amt
-    possessor:delete_item(usedAmmo,amt)
-    self.usingAmmo = usedAmmo.id
-    self.ammo_name = usedAmmo:get_name(true,1)
-    self.projectile_name = usedAmmo.projectile_name
-    self.projectile_enchantments = usedAmmo.enchantments
-    if player:can_sense_creature(possessor) then
-      output:out(possessor:get_name() .. " reloads " .. self:get_name() .. " with " .. usedAmmo:get_name(false,amt) .. ".")
-      output:sound(self.recharge_sound)
-    end
-    return true,"You reload " .. self:get_name() .. " with " .. usedAmmo:get_name(false,amt) .. "."
-  end --end if using specific ammo
+  end --end ammotype for
+end
+
+---Get a list of items that can be used as ammo for this item
+--@param possessor Creature. The creature using the item.
+--@return Table. A list of items that can be used for ammo.
+function Item:get_possible_ammo(possessor)
+  local ammoTypes = {}
+  for id,it in ipairs(possessor:get_inventory()) do
+    if it.ammoType == self.usesAmmo then
+      ammoTypes[#ammoTypes+1] = it
+    end --end ammotype match
+  end --end inventory for
+  return ammoTypes
 end
 
 ---Determines if another item is the same as this item

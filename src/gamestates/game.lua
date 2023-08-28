@@ -117,7 +117,6 @@ function game:print_cursor_game()
           love.graphics.draw(images.uicrosshair,printX+16*(currGame.zoom or 1),printY+16*(currGame.zoom or 1),0,(currGame.zoom or 1),(currGame.zoom or 1),16,16)
         end
       end
-      
     else --if you can't reach the target
       if (#output.targetLine > 0) then --if you're targeting, draw the yellow box at the location you'll be targeting, even if it's not the cursor
         --Draw the "actual" target
@@ -316,40 +315,39 @@ function game:print_sidebar()
   --Buttons for ranged attacks:
  local ranged_attacks = player:get_ranged_attacks()
   if #ranged_attacks > 0 then
+    local anyAvailable = false
     local ranged_text = input:get_button_name("ranged") .. ") Ranged: "
     local ranged_description_box = ""
     for i,attack_instance in ipairs(ranged_attacks) do
       local attack = rangedAttacks[attack_instance.attack]
       local item = attack_instance.item or nil
       ranged_text = ranged_text .. attack:get_name()
-      if attack_instance.charges and attack.hide_charges ~= true then
+      if attack_instance.charges and attack_instance.hide_charges ~= true and attack_instance.hide_charges ~= true then
         ranged_text = ranged_text .. " (" .. attack_instance.charges .. ")"
+      end
+      if attack_instance.cooldown or attack_instance.recharge_turns then
+        ranged_text = ranged_text .. " (" .. (attack_instance.cooldown or attack_instance.recharge_turns) .. " turns to recharge)"
       end
       if i < #ranged_attacks then ranged_text = ranged_text .. ", " end
       ranged_description_box = ranged_description_box .. (i > 1 and "\n\n" or "") .. attack.name .. "\n" .. attack.description
+      if not attack_instance.cooldown and (not attack_instance.charges or attack_instance.charges > 0) then
+        anyAvailable=true
+      end
     end --end ranged attack for
     local rangedWidth = whichFont:getWidth(ranged_text)
     local minX,minY=printX+xPad-2,printY
     local maxX,maxY=minX+rangedWidth+4,minY+(smallButtons and 16 or 32)
-    local buttonType = (player.ranged_recharge_countdown and "disabled" or (actionResult and actionResult == attack and "hover" or nil))
+    local buttonType = (not anyAvailable and "disabled" or (actionResult and actionResult == attack and "hover" or nil))
     self.spellButtons["ranged"] = output:button(minX,minY+2,(maxX-minX),smallButtons,buttonType,nil,true)
-    if player.ranged_recharge_countdown then
-      ranged_text = ranged_text .. " \n(" .. player.ranged_recharge_countdown .. " turns to recharge)"
-    end
     if self.spellButtons["ranged"].hover == true then
       descBox = {desc=ranged_description_box,x=minX,y=minY}
     end
-    --[[if actionResult and actionResult.name == attack.name or (output.mouseX >= minX and output.mouseY >= minY and output.mouseX <= maxX and output.mouseY <= maxY and not player.ranged_recharge_countdown) then
-      setColor(100,100,100,255)
-      love.graphics.rectangle('fill',printX+xPad-2,printY+yPad,rangedWidth+4,16)
-      setColor(255,255,255,255)
-    end]]
-    if player.ranged_recharge_countdown then
-      setColor(100,100,100,255)
+    if not anyAvailable then
+      setColor(200,200,200,255)
     end
     --love.graphics.rectangle('line',printX+xPad-2,printY+yPad,rangedWidth+4,16)
     love.graphics.print(ranged_text,printX+xPad,printY-2)
-    if player.ranged_recharge_countdown then
+    if not anyAvailable then
       setColor(255,255,255,255)
     end
     --[[if attack.active_recharge then
@@ -1725,7 +1723,7 @@ function game:buttonpressed(key,scancode,isRepeat)
     local ranged_attacks = player:get_ranged_attacks()
     local anyAvailable = false
     for i, attack in ipairs(ranged_attacks) do
-      if not attack.charges or attack.charges > 0 then
+      if (not attack.charges or attack.charges > 0) and not attack.cooldown then
         anyAvailable = true
         break
       end
@@ -1737,30 +1735,44 @@ function game:buttonpressed(key,scancode,isRepeat)
       local allAttacks = {}
       local attackName = ""
       local min_range,range=nil,nil
-      for i,attack_instance in ipairs(player:get_ranged_attacks()) do
+      local projectile=nil
+      local i = 1
+      for _,attack_instance in ipairs(player:get_ranged_attacks()) do
         local attack = rangedAttacks[attack_instance.attack]
-        attackName = attackName .. (i > 1 and ", " or "") .. attack.name
-        if attack.min_range and (min_range == nil or attack.min_range < min_range) then
-          min_range = attack.min_range
-        end
-        if attack.range and (range == nil or attack.range < range) then
-          range = attack.range
+        if (not attack_instance.charges or attack_instance.charges > 0) and not attack_instance.cooldown then
+          attackName = attackName .. (i > 1 and ", " or "") .. attack.name
+          i = i + 1
+          if attack.min_range and (min_range == nil or attack.min_range < min_range) then
+            min_range = attack.min_range
+          end
+          if attack.range and (range == nil or attack.range < range) then
+            range = attack.range
+          end
+          if attack.projectile then
+            projectile=true
+          end
         end
       end --end ranged attack for
       local attackFunction = function(_,target)
+        local result = false
         for i,attack_instance in ipairs(player:get_ranged_attacks()) do
           local attack = rangedAttacks[attack_instance.attack]
-          if (not attack.charges or attack.charges > 0) and attack:calc_hit_chance(player,target,attack_instance.item) > 0 then
+          if (not attack.charges or attack.charges > 0) and attack:calc_hit_chance(player,target,attack_instance.item) > 0 and not attack_instance.cooldown then
             local proj = attack:use(target,player,attack_instance.item)
+            if proj ~= false then
+              result = true
+            end
             if proj and i > 1 then
               proj.pause = (i-1)/10
             end
           end --end can use attack if
         end --end ranged attack for
+        return result
       end --end attackFunction
       allAttacks.name = attackName
       allAttacks.use = attackFunction
-      allAttacks.min_range,allAttacks.max_range = min_range,range
+      allAttacks.min_range,allAttacks.range = min_range,range
+      allAttacks.projectile=projectile
       allAttacks.target_type="creature"
       allAttacks.baseType = "ranged"
       actionResult=allAttacks
@@ -1774,7 +1786,7 @@ function game:buttonpressed(key,scancode,isRepeat)
       local recharge = false
       for i, attack_instance in ipairs(ranged_attacks) do
         local attack = rangedAttacks[attack_instance.attack]
-        if (attack_instance.item and type(attack_instance.item.charges) == "number" and not attack_instance.item.cooldown) or (not attack_instance.item and attack.active_recharge) then
+        if not attack_instance.cooldown and ((attack_instance.item and attack_instance.item.charges) or (not attack_instance.item and attack.active_recharge)) then
           if attack:recharge(player,attack_instance.item) ~= false then
             recharge = true
           end
@@ -1782,6 +1794,7 @@ function game:buttonpressed(key,scancode,isRepeat)
       end
       if recharge == false then
         output:out("You can't use any ranged attacks right now.")
+        return
       else
          advance_turn()
       end
@@ -1789,8 +1802,9 @@ function game:buttonpressed(key,scancode,isRepeat)
   elseif key == "recharge" then
     local recharge = false
     for i, attack_instance in ipairs(player:get_ranged_attacks()) do
+      for q,t in pairs(attack_instance) do print(q,t) end
       local attack = rangedAttacks[attack_instance.attack]
-      if (attack_instance.item and type(attack_instance.item.charges) == "number" and not attack_instance.item.cooldown) or (not attack_instance.item and attack.active_recharge) then
+      if (attack_instance.item and attack_instance.item.charges) or (not attack_instance.item and attack.active_recharge) then
         if attack:recharge(player,attack_instance.item) ~= false then
           recharge = true
         end
@@ -1947,18 +1961,22 @@ function ContextualMenu:init(x,y,printX,printY)
     spellY = spellY+fontPadding
     local ranged_attacks = player:get_ranged_attacks()
     if #ranged_attacks > 0 then
+      local max_cooldown = 0
       local ranged_text = "Ranged: "
       for i,attack_instance in ipairs(ranged_attacks) do
         local attack = rangedAttacks[attack_instance.attack]
         local item = attack_instance.item or nil
         ranged_text = ranged_text .. attack:get_name()
-        if attack_instance.charges and attack.hide_charges ~= true then
+        if attack_instance.charges and attack_instance.hide_charges ~= true then
           ranged_text = ranged_text .. " (" .. attack_instance.charges .. ")"
+        end
+        if attack_instance.cooldown then
+          ranged_text = ranged_text .. " (" .. attack_instance.cooldown .. " turns to recharge)"
         end
         if i < #ranged_attacks then ranged_text = ranged_text .. ", " end
       end --end ranged attack for
       
-      self.entries[#self.entries+1] = {name=ranged_text,y=spellY,action="ranged",cooldown=player.ranged_recharge_countdown}
+      self.entries[#self.entries+1] = {name=ranged_text,y=spellY,action="ranged"}
       spellY = spellY+fontPadding
       --[[if attack.active_recharge then
         self.entries[3] = {name="Recharge/Reload",y=spellY,action="recharge"}
@@ -2083,7 +2101,7 @@ function ContextualMenu:click(x,y)
       local recharge = false
       for i, attack_instance in ipairs(player:get_ranged_attacks()) do
         local attack = rangedAttacks[attack_instance.attack]
-        if (attack_instance.item and type(attack_instance.item.charges) == "number" and not attack_instance.item.cooldown) or (not attack_instance.item and attack.active_recharge) then
+        if (attack_instance.item and attack_instance.item.charges) or (not attack_instance.item and attack.active_recharge) then
           if attack:recharge(player,attack_instance.item) ~= false then
             recharge = true
           end
@@ -2111,7 +2129,7 @@ function ContextualMenu:click(x,y)
       local ranged_attacks = player:get_ranged_attacks()
       local anyAvailable = false
       for i, attack in ipairs(ranged_attacks) do
-        if not attack.charges or attack.charges > 0 then
+        if not attack.cooldown and (not attack.charges or attack.charges > 0)then
           anyAvailable = true
           break
         end
@@ -2121,20 +2139,24 @@ function ContextualMenu:click(x,y)
         local allAttacks = {}
         local attackName = ""
         local min_range,range=nil,nil
-        for i,attack_instance in ipairs(player:get_ranged_attacks()) do
-          local attack = rangedAttacks[attack_instance.attack]
-          attackName = attackName .. (i > 1 and ", " or "") .. attack.name
-          if attack.min_range and (min_range == nil or attack.min_range < min_range) then
-            min_range = attack.min_range
-          end
-          if attack.range and (range == nil or attack.range < range) then
-            range = attack.range
+        local i = 1
+        for _,attack_instance in ipairs(player:get_ranged_attacks()) do
+          if not attack_instance.cooldown and (not attack_instance.charges or attack_instance.charges > 0 ) then
+            local attack = rangedAttacks[attack_instance.attack]
+            i = i + 1
+            attackName = attackName .. (i > 1 and ", " or "") .. attack.name
+            if attack.min_range and (min_range == nil or attack.min_range < min_range) then
+              min_range = attack.min_range
+            end
+            if attack.range and (range == nil or attack.range < range) then
+              range = attack.range
+            end
           end
         end --end ranged attack for
         local attackFunction = function(_,target)
           for i,attack_instance in ipairs(player:get_ranged_attacks()) do
             local attack = rangedAttacks[attack_instance.attack]
-            if (not attack.charges or attack.charges > 0) and attack:calc_hit_chance(player,target,attack_instance.item) > 0 then
+            if not attack.cooldown and (not attack.charges or attack.charges > 0) and attack:calc_hit_chance(player,target,attack_instance.item) > 0 then
               local proj = attack:use(target,player,attack_instance.item)
               if proj and i > 1 then
                 proj.pause = (i-1)/10
@@ -2144,7 +2166,7 @@ function ContextualMenu:click(x,y)
         end --end attackFunction
         allAttacks.name = attackName
         allAttacks.use = attackFunction
-        allAttacks.min_range,allAttacks.max_range = min_range,range
+        allAttacks.min_range,allAttacks.range = min_range,range
         allAttacks.target_type="creature"
         actionResult=allAttacks
         game.targets = {}

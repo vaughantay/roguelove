@@ -77,9 +77,9 @@ function Creature:init(creatureType,level,noItems,noTweak,info,ignoreNewFunc) --
   self.stats_per_level = self.stats_per_level or {}
   self.stats_at_level = self.stats_at_level or {}
   self.stats_per_x_levels = self.stats_per_x_levels or {}
-  self.skills_per_level = self.stats_per_level or {}
-  self.skills_at_level = self.stats_at_level or {}
-  self.skills_per_x_levels = self.stats_per_x_levels or {}
+  self.skills_per_level = self.skills_per_level or {}
+  self.skills_at_level = self.skills_at_level or {}
+  self.skills_per_x_levels = self.skills_per_x_levels or {}
   
   --Stats and skills:
   self.max_hp = (noTweak and self.max_hp or tweak(self.max_hp or 0))
@@ -667,6 +667,7 @@ function Creature:callbacks(callback_type,...)
     local status,r = pcall(possibleMonsters[self.id][callback_type],self,unpack({...}))
     if status == false then
         output:out("Error in creature " .. self.name .. " callback \"" .. callback_type .. "\": " .. r)
+        print("Error in creature " .. self.name .. " callback \"" .. callback_type .. "\": " .. r)
       end
 		if (r == false) then return false end
     if r ~= nil and type(r) ~= "boolean" then table.insert(ret,r) end
@@ -676,6 +677,7 @@ function Creature:callbacks(callback_type,...)
 			local status,r = pcall(conditions[condition][callback_type],conditions[condition],self,unpack({...}))
       if status == false then
         output:out("Error in condition " .. conditions[condition].name .. " callback \"" .. callback_type .. "\": " .. r)
+        print("Error in condition " .. conditions[condition].name .. " callback \"" .. callback_type .. "\": " .. r)
       end
 			if (r == false) then return false end
       if r ~= nil and type(r) ~= "boolean" then table.insert(ret,r) end
@@ -687,6 +689,7 @@ function Creature:callbacks(callback_type,...)
 			local status,r = pcall(possibleSpells[spellID][callback_type],spell,self,unpack({...}))
       if status == false then
         output:out("Error in spell " .. spell.name .. " callback \"" .. callback_type .. "\": " .. r)
+        print("Error in spell " .. spell.name .. " callback \"" .. callback_type .. "\": " .. r)
       end
 			if (r == false) then return false end
       if r ~= nil and type(r) ~= "boolean" then table.insert(ret,r) end
@@ -698,6 +701,7 @@ function Creature:callbacks(callback_type,...)
       local status,r = pcall(skill[callback_type],skill,self,unpack({...}))
       if status == false then
         output:out("Error in skill " .. skill.name .. " callback \"" .. callback_type .. "\": " .. r)
+        print("Error in skill " .. skill.name .. " callback \"" .. callback_type .. "\": " .. r)
       end
 			if (r == false) then return false end
       if r ~= nil and type(r) ~= "boolean" then table.insert(ret,r) end
@@ -708,6 +712,7 @@ function Creature:callbacks(callback_type,...)
       local status,r = pcall(possibleItems[equip.id][callback_type],equip,self,unpack({...}))
       if status == false then
         output:out("Error in item " .. possibleItems[equip.id].name .. " callback \"" .. callback_type .. "\": " .. r)
+        print("Error in item " .. possibleItems[equip.id].name .. " callback \"" .. callback_type .. "\": " .. r)
       end
       if (r == false) then return false end
       if r ~= nil and type(r) ~= "boolean" then table.insert(ret,r) end
@@ -717,6 +722,7 @@ function Creature:callbacks(callback_type,...)
         local status,r = pcall(enchantments[ench][callback_type],equip,self,unpack({...}))
         if status == false then
           output:out("Error in enchantment " .. enchantments[ench].name .. " callback \"" .. callback_type .. "\": " .. r)
+          print("Error in enchantment " .. enchantments[ench].name .. " callback \"" .. callback_type .. "\": " .. r)
         end
         if (r == false) then return false end
         if r ~= nil and type(r) ~= "boolean" then table.insert(ret,r) end
@@ -729,6 +735,7 @@ function Creature:callbacks(callback_type,...)
       local status,r = pcall(mission[callback_type],mission,self,unpack({...}))
       if status == false then
         output:out("Error in mission " .. mission.name .. " callback \"" .. callback_type .. "\": " .. r)
+        print("Error in mission " .. mission.name .. " callback \"" .. callback_type .. "\": " .. r)
       end
       if (r == false) then return false end
       if r ~= nil and type(r) ~= "boolean" then table.insert(ret,r) end
@@ -1104,7 +1111,7 @@ function Creature:advance(skip_conditions)
     --Recharge ranged attack:
     if self.ranged_attack then
       local attack = rangedAttacks[self.ranged_attack]
-      if attack and attack.max_charges and attack.active_recharge ~= true then
+      if attack and self.ranged_charges and not attack.active_recharge then
         attack:recharge(self)
       end --end max_charges if
     end --end ranged_attack if
@@ -2021,7 +2028,7 @@ end
 function Creature:can_shoot_tile(x,y)
   --if (self == player) then return true end
 	local dist = calc_distance(self.x,self.y,x,y)
-	if (self:get_perception() > dist) then
+	if self:can_see_tile(x,y) then
 		return currMap:is_line(self.x,self.y,x,y,false,'flyer',false,true,true)
 	end
 	return false
@@ -2722,8 +2729,6 @@ function Creature:level_up(force,ignore_callback)
         end --end points for
       end --end pointID for
       upgradable_skills_by_upgrade_stat = self:get_upgradable_skills(true)
-      print('ending',tries)
-      for i,v in pairs(upgradable_skills_by_upgrade_stat) do print(i) for q,t in pairs(v) do print(q,t) end end
     end --end while
     
     --Upgrade spells:
@@ -3098,6 +3103,11 @@ end
 function Creature:update_skill(skill,val,ignore_cost)
   val = val or 1
   local skillDef = possibleSkills[skill]
+  if not skillDef then
+    output:out("Error: Tried to update nonexistent skill " .. skill)
+    print("Error: Tried to update nonexistent skill " .. skill)
+    return false
+  end
   local sType = skillDef.skill_type or "skill"
   local typeDef = possibleSkillTypes[sType]
   if not ignore_cost then
@@ -3395,11 +3405,9 @@ function Creature:get_purchasable_spells()
     end --end spell purchase list for
   end --end if player definition has spell purchases
   for skill,skillRank in pairs(self.skills) do
-    print(skill,skillRank)
     local skillDef = possibleSkills[skill]
     if skillDef and skillDef.spell_purchases then
       for _,info in pairs(skillDef.spell_purchases) do
-        for i,v in pairs(info) do print(i,v) end
         if (not info.level or info.level <= skillRank) and self:can_learn_spell(info.spell) then
           spell_purchases[#spell_purchases+1] = info
         end
@@ -3426,10 +3434,20 @@ end
 --@return Table. A list of the creature's ranged attacks
 function Creature:get_ranged_attacks()
   local ranged = {}
-  if self.ranged_attack then ranged[#ranged+1] = {attack=self.ranged_attack,charges=player.ranged_charges} end
+  if self.ranged_attack then
+    local attack = rangedAttacks[self.ranged_attack]
+    local cooldownIsRecharge = attack.max_charges
+    ranged[#ranged+1] = {attack=self.ranged_attack,charges=player.ranged_charges,cooldown=(not cooldownIsRecharge and player.cooldowns[attack] or nil),recharge_turns=(cooldownIsRecharge and player.cooldowns[attack] or nil),hide_charges=rangedAttacks[self.ranged_attack].hide_charges}
+  end
   for _, equip in pairs(self.equipment_list) do
     if equip.ranged_attack then
-      ranged[#ranged+1] = {attack=equip.ranged_attack,item=equip,charges=equip.charges}
+      local charges = equip.charges
+      if equip.usesAmmo and (not equip.max_charges or equip.max_charges == 0) then --if it's a use-ammo-from-inventory item, then show the total amount of ammo in inventory
+        for _,ammo in ipairs(equip:get_possible_ammo(self)) do
+          charges = charges+ammo.amount
+        end
+      end
+      ranged[#ranged+1] = {attack=equip.ranged_attack,item=equip,charges=charges,hide_charges=equip.hide_charges,cooldown=self.cooldowns[equip]}
     end --end bonuses if
   end --end equipment for
   return ranged

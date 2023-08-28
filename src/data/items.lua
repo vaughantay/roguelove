@@ -753,6 +753,23 @@ function painwand:use(target,user)
 end
 possibleItems['painwand'] = painwand
 
+local firewand = {
+  name = "Wand of Fireballs",
+  description = "A wand that shoots fireballs.",
+  symbol = "/",
+  itemType="weapon",
+  subType="ranged",
+  equippable=true,
+  equipSlot="wielded",
+  ranged_attack='smallfireball',
+  color={r=255,g=0,b=255,a=255},
+  cooldown=10,
+  target_type = "creature",
+  tags={'magic','wood','fire'},
+  value=50
+}
+possibleItems['firewand'] = firewand
+
 local breastplate = {
   name="iron breastplate",
 	description="An iron breastplate.",
@@ -889,7 +906,6 @@ local crossbow = {
   equippable=true,
   equipSlot="wielded",
   equipSize=2,
-  charges = 0,
   max_charges=1,
   level=1,
   ranged_attack="crossbow",
@@ -911,7 +927,6 @@ local revolver = {
   subType="ranged",
   equippable=true,
   equipSlot="wielded",
-  charges = 0,
   charge_name="shots",
   max_charges=6,
   ranged_attack="revolver",
@@ -921,6 +936,45 @@ local revolver = {
   value=10
 }
 possibleItems['revolver'] = revolver
+
+local bow = {
+  name = "bow",
+  description="",
+  symbol="]",
+  itemType="weapon",
+  subType="ranged",
+  equippable=true,
+  equipSlot="wielded",
+  equipSize=2,
+  level=1,
+  ranged_attack="bow",
+  ranged_accuracy=5,
+  usesAmmo="arrow",
+  color={r=150,g=150,b=150,a=255},
+  tags={'wooden','ranged'},
+  stats_per_level={ranged_accuracy=1,ranged_damage=1},
+  value=10
+}
+possibleItems['bow'] = bow
+
+local arrow = {
+  name = "arrow",
+  pluralName = "arrows",
+  description = "A simple arrow.",
+  symbol = ")",
+  itemType="ammo",
+  equippable=true,
+  equipSlot="ammo",
+  ammoType = "arrow",
+  stacks=true,
+  color={r=150,g=150,b=150,a=255},
+  value=1,
+  tags={'sharp'}
+}
+function arrow:new()
+  self.amount = tweak(10)
+end
+possibleItems['arrow'] = arrow
 
 local bolt = {
   name = "crossbow bolt",

@@ -11,7 +11,7 @@ damage_types = {
     end
   end,
   ice = function(target)
-    currMap:add_effect(Effect('animation',{image_name='icedamage',image_max=5,target=target,color={r=255,g=255,b=255}),target.x,target.y)
+    currMap:add_effect(Effect('animation',{image_name='icedamage',image_max=5,target=target,color={r=255,g=255,b=255}}),target.x,target.y)
   end,
   fire = function(target)
     currMap:add_effect(Effect('animation',{image_name='firedamage',image_max=5,target=target,color={r=255,g=0,b=0}}),target.x,target.y)

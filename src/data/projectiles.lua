@@ -597,17 +597,17 @@ local bolt = {
 }
 projectiles['bolt'] = bolt
 
-local centaurarrow = {
+local arrow = {
   name = "arrow",
   description = "An arrow.",
   symbol = "/",
-  damage = 10,
+  damage = 4,
   angled = true,
   color = {r=200,g=200,b=200,a=255},
   time_per_tile = .01,
   hit_sound = 'hit_stab'
 }
-projectiles['centaurarrow'] = centaurarrow
+projectiles['arrow'] = arrow
 
 local cherubarrow = {
   name = "holy arrow",

@@ -292,7 +292,7 @@ function examine_item:calculate_height()
       buttonX = buttonX+buttonWidth+25
       buttonCursorX = buttonCursorX+1
     end
-    if item.charges and (not item.max_charges or item.max_charges > 0) then
+    if item.charges and (item.max_charges and item.max_charges > 0) then
       local useText = "Reload" .. " (" .. input:get_button_name("recharge") .. ")"
       local buttonWidth = fonts.buttonFont:getWidth(useText)+25
       if buttonX+buttonWidth >= buttonMaxX then

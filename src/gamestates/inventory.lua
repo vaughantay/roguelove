@@ -810,7 +810,7 @@ end
 
 function inventory:reloadItem(item)
   item = item or self.selectedItem
-  if item and item.charges and (not item.max_charges or item.max_charges > 0) then
+  if item and item.charges and (item.max_charges and item.max_charges > 0) then
     local recharge,text = item:reload(self.entity)
     self.text = text
     if recharge ~= false then

@@ -87,7 +87,7 @@ playerClasses = {
   wimp = {
     name="Total Wimp",
     description="A scrawny nerd.",
-    items={{item="healthpotionminor",amount=5},{item="scroll",amount=3,displayName="Random Scrolls",unidentified=true},{item="scroll",passed_info="blink",displayName = "Scroll of Blink"},{item="scroll",passed_info="homecoming",displayName = "Scroll of Homecoming"},{item="crossbow"},{item="bolt",amount=25},{item="weaponpoison",amount=2},{item="painwand"},{item="dart",amount=25}}, --These items will be granted on game start
+    items={{item="healthpotionminor",amount=5},{item="scroll",amount=3,displayName="Random Scrolls",unidentified=true},{item="scroll",passed_info="blink",displayName = "Scroll of Blink"},{item="scroll",passed_info="homecoming",displayName = "Scroll of Homecoming"},{item="crossbow"},{item="bolt",amount=25},{item="weaponpoison",amount=2},{item="painwand"},{item="firewand"},{item="dart",amount=25}}, --These items will be granted on game start
     skills={ranged=5,magic=5,melee=false,strength=false,toughness=-2}, --The skills that this character will start with (in addition to default skills)
     stat_modifiers={max_hp=-25,max_mp=25}, --These values will be added to the characters' base stats
     stats_per_level={upgrade_points_skill=2,spellPoints=1},
@@ -123,5 +123,12 @@ playerClasses = {
     spell_purchases={}, --These spells will show up as options to learn (requiring spending points on them)
     spell_choices={}, --These spells will show up as options when you reach their level, and you can choose one of them
     stat_modifiers={max_mp=30}, --These values will be added to the characters' base stats
+  },
+  mysticarcher = {
+    name="Mystic Archer",
+    description="An archer with elemental powers.",
+    skills={ranged=10}, --The skills that this character will start with (in addition to default skills)
+    items={{item="arrow",amount=100}}, --These items will be granted on game start
+    equipment={{item="bow"}}
   }
 }
