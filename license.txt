@@ -1,6 +1,6 @@
 Permission is granted to use and copy this software freely, as long as it is unmodified, and with this file and the readme.txt file included.
 
-All code and content is copyright 2019 Taylor Vaughan, available for use under the MIT license, unless noted below.
+All code and content is copyright 2023 Taylor Vaughan, available for use under the MIT license, unless noted below.
 
 
 Uses the L…VE (love2d) game development framework, available at http://love2d.org, included under the ZLIB License.

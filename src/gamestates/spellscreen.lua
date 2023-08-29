@@ -30,9 +30,7 @@ function spellscreen:enter(previous,locked)
   self.startY=0
   self.descStartY=0
   self.playerSpells = player:get_spells()
-  if locked then
-    self.locked = true
-  end
+  self.locked = locked
   self.unmemorized = player:get_unmemorized_spells()
   self.buttons = {}
   self.upgradeButtons = {}

@@ -1,1 +1,2 @@
-Taylor Vaughan
+Taylor Vaughan - all code except the libraries in lib/ and anything listed below
+Rorkh - input system rework including controller support, organization of files

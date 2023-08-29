@@ -1,13 +1,14 @@
 examine_item = {}
 --TODO: Add scrolling for long descriptions
 
-function examine_item:enter(previous,item)
+function examine_item:enter(previous,item,container)
   if previous ~= hotkey and previous ~= splitstack and previous ~= nameitem then
     local width, height = love.graphics:getWidth(),love.graphics:getHeight()
     local uiScale = (prefs['uiScale'] or 1)
     width,height = round(width/uiScale),round(height/uiScale)
     self.previous=previous
     self.item=item
+    self.container = container
     self.has_item = player:has_specific_item(self.item)
     self.cursorX,self.cursorY=1,1
     self.scroll=0
@@ -36,6 +37,7 @@ function examine_item:draw()
   love.graphics.translate(0,height*(self.yModPerc/100))
   
   output:draw_window(self.x,self.y,self.x+self.width,self.y+self.height)
+  love.graphics.setFont(fonts.textFont)
   
   local item = self.item
   local name = item:get_name(true)
@@ -62,16 +64,15 @@ function examine_item:draw()
   
   self.buttons = {}
   
+  local buttonStartX = self.x+padding
+  local buttonX = buttonStartX
+  local buttonMaxX = self.x+self.width
+  local buttonY = printY+padding
+  local buttonCursorX = 1
+  local buttonCursorY = 1
+  self.buttons.values = {}
+  self.buttons.values[buttonCursorY]={}
   if self.has_item then
-    local buttonStartX = self.x+padding
-    local buttonX = buttonStartX
-    local buttonMaxX = self.x+self.width
-    local buttonY = printY+padding
-    local buttonCursorX = 1
-    local buttonCursorY = 1
-    self.buttons.values = {}
-    self.buttons.values[buttonCursorY]={}
-    
     if item.usable==true then
       local useText = (item.useVerb and ucfirst(item.useVerb) or "Use") .. " (" .. input:get_button_name("use") .. ")"
       local buttonWidth = fonts.buttonFont:getWidth(useText)+25
@@ -191,7 +192,7 @@ function examine_item:draw()
       buttonX = buttonX+buttonWidth+25
       buttonCursorX = buttonCursorX+1
     end
-    local dropText = "Drop (" .. input:get_button_name("drop") .. ")"
+    local dropText = (self.container and "Place in " .. self.container:get_name(true) or "Drop") .. " (" .. input:get_button_name("drop") .. ")"
     local buttonWidth = fonts.buttonFont:getWidth(dropText)+25
     if buttonX+buttonWidth >= buttonMaxX then
       buttonCursorX=1
@@ -203,11 +204,89 @@ function examine_item:draw()
     if not item.undroppable then
       self.buttons.drop = output:button(buttonX,buttonY,buttonWidth,false,(self.cursorX == buttonCursorX and self.cursorY == buttonCursorY and "hover" or nil),dropText,true)
       self.buttons.values[buttonCursorY][buttonCursorX] = "drop"
-      printY=buttonY+40
-      love.graphics.line(self.x+padding,printY,self.x+padding+self.width,printY)
-      printY=printY+padding
+    end
+  elseif self.container then
+    if player:get_free_inventory_space() > (item.size or 1) then
+      local useText = "Take (" .. input:get_button_name("pickup") .. ")"
+      local buttonWidth = fonts.buttonFont:getWidth(useText)+25
+      if buttonX+buttonWidth >= buttonMaxX then
+        buttonCursorX=1
+        buttonCursorY=buttonCursorY+1
+        self.buttons.values[buttonCursorY] = {}
+        buttonX = buttonStartX
+        buttonY = buttonY+40
+      end
+      self.buttons.pickup = output:button(buttonX,buttonY,buttonWidth,false,(self.cursorX == buttonCursorX and self.cursorY == buttonCursorY and "hover" or nil),useText,true)
+      self.buttons.values[buttonCursorY][buttonCursorX] = "pickup"
+      buttonX = buttonX+buttonWidth+25
+      buttonCursorX = buttonCursorX+1
+    end
+    if item.equippable==true then
+      local equipped = player:is_equipped(item)
+      local useText = (equipped and "Unequip" or "Equip") .. " (" .. input:get_button_name("equip") .. ")"
+      local buttonWidth = fonts.buttonFont:getWidth(useText)+25
+      if buttonX+buttonWidth >= buttonMaxX then
+        buttonCursorX=1
+        buttonCursorY=buttonCursorY+1
+        self.buttons.values[buttonCursorY] = {}
+        buttonX = buttonStartX
+        buttonY = buttonY+40
+      end
+      self.buttons.equip = output:button(buttonX,buttonY,buttonWidth,false,(self.cursorX == buttonCursorX and self.cursorY == buttonCursorY and "hover" or nil),useText,true)
+      self.buttons.values[buttonCursorY][buttonCursorX] = "equip"
+      buttonX = buttonX+buttonWidth+25
+      buttonCursorX = buttonCursorX+1
+    end
+    if item.equippable==true and not item.stacks then
+      local useText = (item.properName and "Rename" or "Name")
+      local buttonWidth = fonts.buttonFont:getWidth(useText)+25
+      if buttonX+buttonWidth >= buttonMaxX then
+        buttonCursorX=1
+        buttonCursorY=buttonCursorY+1
+        self.buttons.values[buttonCursorY] = {}
+        buttonX = buttonStartX
+        buttonY = buttonY+40
+      end
+      self.buttons.name = output:button(buttonX,buttonY,buttonWidth,false,(self.cursorX == buttonCursorX and self.cursorY == buttonCursorY and "hover" or nil),useText,true)
+      self.buttons.values[buttonCursorY][buttonCursorX] = "name"
+      buttonX = buttonX+buttonWidth+25
+      buttonCursorX = buttonCursorX+1
+    end
+    if item.stacks==true and item.amount and item.amount > 1 then
+      local useText = "Split Stack"
+      local buttonWidth = fonts.buttonFont:getWidth(useText)+25
+      if buttonX+buttonWidth >= buttonMaxX then
+        buttonCursorX=1
+        buttonCursorY=buttonCursorY+1
+        self.buttons.values[buttonCursorY] = {}
+        buttonX = buttonStartX
+        buttonY = buttonY+40
+      end
+      self.buttons.split = output:button(buttonX,buttonY,buttonWidth,false,(self.cursorX == buttonCursorX and self.cursorY == buttonCursorY and "hover" or nil),useText,true)
+      self.buttons.values[buttonCursorY][buttonCursorX] = "split"
+      buttonX = buttonX+buttonWidth+25
+      buttonCursorX = buttonCursorX+1
+    end
+  elseif (gamesettings.can_pickup_adjacent_items and player:touching(item)) or (player.x == item.x and player.y == item.y) then
+    if player:get_free_inventory_space() > (item.size or 1) then
+      local useText = "Take (" .. input:get_button_name("pickup") .. ")"
+      local buttonWidth = fonts.buttonFont:getWidth(useText)+25
+      if buttonX+buttonWidth >= buttonMaxX then
+        buttonCursorX=1
+        buttonCursorY=buttonCursorY+1
+        self.buttons.values[buttonCursorY] = {}
+        buttonX = buttonStartX
+        buttonY = buttonY+40
+      end
+      self.buttons.pickup = output:button(buttonX,buttonY,buttonWidth,false,(self.cursorX == buttonCursorX and self.cursorY == buttonCursorY and "hover" or nil),useText,true)
+      self.buttons.values[buttonCursorY][buttonCursorX] = "pickup"
+      buttonX = buttonX+buttonWidth+25
+      buttonCursorX = buttonCursorX+1
     end
   end --end if has_item
+  printY=buttonY+(count(self.buttons) > 1 and 40 or 0)
+  love.graphics.line(self.x+padding,printY,self.x+padding+self.width,printY)
+  printY=printY+padding
   love.graphics.printf(desc,self.x+padding,printY,self.width,"center")
   printY=printY+descH
   love.graphics.printf(info,self.x+padding,printY,self.width,"center")
@@ -247,14 +326,13 @@ function examine_item:calculate_height()
     printY=printY+levelH
   end
   
+  local buttonStartX = self.x+padding
+  local buttonX = buttonStartX
+  local buttonMaxX = self.x+self.width
+  local buttonY = printY+padding
+  local buttonCursorX = 1
+  local buttonCursorY = 1
   if self.has_item then
-    local buttonStartX = self.x+padding
-    local buttonX = buttonStartX
-    local buttonMaxX = self.x+self.width
-    local buttonY = printY+padding
-    local buttonCursorX = 1
-    local buttonCursorY = 1
-    
     if item.usable==true then
       local useText = (item.useVerb and ucfirst(item.useVerb) or "Use") .. " (" .. input:get_button_name("use") .. ")"
       local buttonWidth = fonts.buttonFont:getWidth(useText)+25
@@ -350,8 +428,69 @@ function examine_item:calculate_height()
       buttonY = buttonY+40
     end
     printY=buttonY+40
-    love.graphics.line(self.x+padding,printY,self.x+padding+self.width,printY)
-    printY=printY+padding
+  elseif self.container and player:touching(self.container) then
+    if player:get_free_inventory_space() > (item.size or 1) then
+      local useText = "Take (" .. input:get_button_name("pickup") .. ")"
+      local buttonWidth = fonts.buttonFont:getWidth(useText)+25
+      if buttonX+buttonWidth >= buttonMaxX then
+        buttonCursorX=1
+        buttonCursorY=buttonCursorY+1
+        buttonX = buttonStartX
+        buttonY = buttonY+40
+      end
+      buttonX = buttonX+buttonWidth+25
+      buttonCursorX = buttonCursorX+1
+    end
+    if item.equippable==true then
+      local equipped = player:is_equipped(item)
+      local useText = (equipped and "Unequip" or "Equip") .. " (" .. input:get_button_name("equip") .. ")"
+      local buttonWidth = fonts.buttonFont:getWidth(useText)+25
+      if buttonX+buttonWidth >= buttonMaxX then
+        buttonCursorX=1
+        buttonCursorY=buttonCursorY+1
+        buttonX = buttonStartX
+        buttonY = buttonY+40
+      end
+      buttonX = buttonX+buttonWidth+25
+      buttonCursorX = buttonCursorX+1
+    end
+    if item.equippable==true and not item.stacks then
+      local useText = (item.properName and "Rename" or "Name")
+      local buttonWidth = fonts.buttonFont:getWidth(useText)+25
+      if buttonX+buttonWidth >= buttonMaxX then
+        buttonCursorX=1
+        buttonCursorY=buttonCursorY+1
+        buttonX = buttonStartX
+        buttonY = buttonY+40
+      end
+      buttonX = buttonX+buttonWidth+25
+      buttonCursorX = buttonCursorX+1
+    end
+    if item.stacks==true and item.amount and item.amount > 1 then
+      local useText = "Split Stack"
+      local buttonWidth = fonts.buttonFont:getWidth(useText)+25
+      if buttonX+buttonWidth >= buttonMaxX then
+        buttonCursorX=1
+        buttonCursorY=buttonCursorY+1
+        buttonX = buttonStartX
+        buttonY = buttonY+40
+      end
+      buttonX = buttonX+buttonWidth+25
+      buttonCursorX = buttonCursorX+1
+    end
+  elseif (gamesettings.can_pickup_adjacent_items and player:touching(item)) or (player.x == item.x and player.y == item.y) then
+    if player:get_free_inventory_space() > (item.size or 1) then
+      local useText = "Take (" .. input:get_button_name("pickup") .. ")"
+      local buttonWidth = fonts.buttonFont:getWidth(useText)+25
+      if buttonX+buttonWidth >= buttonMaxX then
+        buttonCursorX=1
+        buttonCursorY=buttonCursorY+1
+        buttonX = buttonStartX
+        buttonY = buttonY+40
+      end
+      buttonX = buttonX+buttonWidth+25
+      buttonCursorX = buttonCursorX+1
+    end
   end --end if has_item
   printY=printY+descH
   printY=printY+infoH
@@ -364,12 +503,19 @@ function examine_item:buttonpressed(key)
   key = input:parse_key(key)
 	if (key == "escape") then
     self:switchBack()
-	elseif self.has_item and ((key == "enter") or key == "wait") then
-    if self.buttons.values[self.cursorY][self.cursorX] == "use" then
+	elseif key == "enter" or key == "wait" then
+    if self.buttons.values[self.cursorY][self.cursorX] == "pickup" then
+      player:pickup(self.item)
+      self:switchBack()
+    elseif self.buttons.values[self.cursorY][self.cursorX] == "use" then
       self:switchBack()
       inventory:useItem(self.item)
     elseif self.buttons.values[self.cursorY][self.cursorX] == "equip" then
       self:switchBack()
+      if self.container then
+        self.container:drop_item(self.item)
+        player:pickup(self.item)
+      end
       inventory:equipItem(self.item)
     elseif self.buttons.values[self.cursorY][self.cursorX] == "drop" then
       self:switchBack()
@@ -411,8 +557,15 @@ function examine_item:buttonpressed(key)
   elseif key == "use" and self.has_item then
     self:switchBack()
     inventory:useItem(self.item)
-  elseif key == "equip" and self.has_item then
+  elseif key == "pickup" and self.buttons.pickup then
+    player:pickup(self.item)
     self:switchBack()
+  elseif key == "equip" and self.buttons.equip then
+    self:switchBack()
+    if self.container then
+      self.container:drop_item(self.item)
+      player:pickup(self.item)
+    end
     inventory:equipItem(self.item)
   elseif key == "drop" and self.has_item then
     self:switchBack()
@@ -483,11 +636,18 @@ function examine_item:mousepressed(x,y,button)
     self:switchBack()
   end
   --Item use buttons:
-  if self.buttons.use and x > self.buttons.use.minX and x < self.buttons.use.maxX and y > self.buttons.use.minY and y < self.buttons.use.maxY then
+  if self.buttons.pickup and x > self.buttons.pickup.minX and x < self.buttons.pickup.maxX and y > self.buttons.pickup.minY and y < self.buttons.pickup.maxY then
+    player:pickup(self.item)
+    self:switchBack()
+  elseif self.buttons.use and x > self.buttons.use.minX and x < self.buttons.use.maxX and y > self.buttons.use.minY and y < self.buttons.use.maxY then
     self:switchBack()
     inventory:useItem(self.item)
   elseif self.buttons.equip and x > self.buttons.equip.minX and x < self.buttons.equip.maxX and y > self.buttons.equip.minY and y < self.buttons.equip.maxY then
     self:switchBack()
+    if self.container then
+      self.container:drop_item(self.item)
+      player:pickup(self.item)
+    end
     inventory:equipItem(self.item)
   elseif self.buttons.drop and x > self.buttons.drop.minX and x < self.buttons.drop.maxX and y > self.buttons.drop.minY and y < self.buttons.drop.maxY then
     self:switchBack()

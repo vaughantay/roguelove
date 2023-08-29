@@ -300,7 +300,7 @@ function mapgen:make_artifact(item,tags)
   end
 end
 
----Creates an instance of a branch, to be attached to a given playthrough. Called at the beginning of the game, shouldn't need to be called in game unless you wanted to re-create a branch for some reason.
+---Creates an instance of a branch, to be attached to a given playthrough
 --@param branchID Text. The ID of the branch
 --@return Table. The information for the new branch
 function mapgen:generate_branch(branchID)
@@ -311,16 +311,16 @@ function mapgen:generate_branch(branchID)
       newBranch[key] = data[key]
     end
   end
-  if data.generateName then
-    newBranch.name = data.generateName(newBranch)
-  elseif data.nameType then
-    newBranch.name = namegen:generate_name(data.nameType)
-  end
   if data.mapTypes then
     newBranch.mapTypes = copy_table(data.mapTypes)
   end
   if data.new then
     data.new(newBranch)
+  end
+  if data.generateName then
+    newBranch.name = data.generateName(newBranch)
+  elseif data.nameType then
+    newBranch.name = namegen:generate_name(data.nameType)
   end
 
   --Add map types based on tags:
@@ -1239,18 +1239,20 @@ function mapgen:get_content_list_from_tags(content_type,tags)
   end
   
   for id,content in pairs(content_list) do
-    local done = false
-    if tags and not done then
-      for _,tag in ipairs(tags) do
-        if not content.specialOnly and content.tags and in_table(tag,content.tags) then
-          done = true
-          break
-        end
-      end --end tags for
-    end --end tags if
-    if done then
-      contents[#contents+1] = id
-    end
+    if not content.neverSpawn then
+      local done = false
+      if tags and not done then
+        for _,tag in ipairs(tags) do
+          if not content.specialOnly and content.tags and in_table(tag,content.tags) then
+            done = true
+            break
+          end
+        end --end tags for
+      end --end tags if
+      if done then
+        contents[#contents+1] = id
+      end
+    end --end neverspawn if
   end --end content for
   return contents
 end

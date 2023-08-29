@@ -296,7 +296,7 @@ function Map:get_tile_actions(x,y,user,noAdjacent)
       if entity.actions then
         for id,act in pairs(entity.actions) do
           if not act.requires or act.requires(entity,user) then
-            actions[#actions+1] = {id=id,entity=entity,text=act.text,description=act.description,order=act.order}
+            actions[#actions+1] = {id=id,entity=entity,text=act.text,description=act.description,order=act.order,image=act.image,image_color=act.image_color,noDirection=act.noDirection}
           end --end requires if
         end --end action for
       end --end if
@@ -308,7 +308,7 @@ function Map:get_tile_actions(x,y,user,noAdjacent)
           if entity.actions then
             for id,act in pairs(entity.actions) do
               if not act.requires or act.requires(entity,user) then
-                actions[#actions+1] = {id=id,entity=entity,text=act.text,description=act.description,order=act.order}
+                actions[#actions+1] = {id=id,entity=entity,text=act.text,description=act.description,order=act.order,image=act.image,image_color=act.image_color,noDirection=act.noDirection}
               end --end requires if
             end --end action for
           end --end if
@@ -855,46 +855,48 @@ function Map:get_creature_list(force,allowAll)
   --Add the types and factions to the specialCreats list
   for cid,creat in pairs(possibleMonsters) do
     local done = false
-    if cTypes then
-      for _,cType in pairs(cTypes) do
-        if (allowAll or not creat.specialOnly) and Creature.is_type(creat,cType) then
-          done = true
-          break
-        end
-        if done == true then break end
-      end --end cType for
-    end --end cType if
-    if cFactions and not done then
-      for _,cFac in pairs(cFactions) do
-        if (allowAll or not creat.specialOnly) and Creature.is_faction_member(creat,cFac) then
-          done = true
-          break
-        end
-        if done == true then break end
-      end --end cFac for
-    end --end faction if
-    if cTags and not done then
-      for _,cTag in pairs(cTags) do
-        if (allowAll or not creat.specialOnly) and Creature.has_tag(creat,cTag) then
-          done = true
-          break
-        end
-        if done == true then break end
-      end --end cFac for
-    end --end faction if
-    --Check for forbidden tags:
-    if done and #fTags > 0 then
-      for _,fTag in pairs(fTags) do
-        if Creature.has_tag(creat,fTag) then
-          done = false
-          break
-        end --end has_tag if
-      end --end ftag for
-    end --end if #ftag
-    if done then
-      if not specialCreats then specialCreats = {} end
-      specialCreats[#specialCreats+1] = cid
-    end
+    if not creat.neverSpawn then
+      if cTypes then
+        for _,cType in pairs(cTypes) do
+          if (allowAll or not creat.specialOnly) and Creature.is_type(creat,cType) then
+            done = true
+            break
+          end
+          if done == true then break end
+        end --end cType for
+      end --end cType if
+      if cFactions and not done then
+        for _,cFac in pairs(cFactions) do
+          if (allowAll or not creat.specialOnly) and Creature.is_faction_member(creat,cFac) then
+            done = true
+            break
+          end
+          if done == true then break end
+        end --end cFac for
+      end --end faction if
+      if cTags and not done then
+        for _,cTag in pairs(cTags) do
+          if (allowAll or not creat.specialOnly) and Creature.has_tag(creat,cTag) then
+            done = true
+            break
+          end
+          if done == true then break end
+        end --end cFac for
+      end --end faction if
+      --Check for forbidden tags:
+      if done and #fTags > 0 then
+        for _,fTag in pairs(fTags) do
+          if Creature.has_tag(creat,fTag) then
+            done = false
+            break
+          end --end has_tag if
+        end --end ftag for
+      end --end if #ftag
+      if done then
+        if not specialCreats then specialCreats = {} end
+        specialCreats[#specialCreats+1] = cid
+      end
+    end --end neverspawn if
   end
   self.creature_list = specialCreats
   return specialCreats
@@ -937,29 +939,31 @@ function Map:get_item_list(force,allowAll)
   
   --Add the applicable items to the specialItems list
   for iid,item in pairs(possibleItems) do
-    local done = false
-    if iTags and not done then
-      for _,iTag in pairs(iTags) do
-        if (allowAll or not item.specialOnly) and Item.has_tag(item,iTag,true) then
-          done = true
-          break
-        end
-        if done == true then break end
-      end --end cFac for
-    end --end tags if
-    --Check for forbidden tags:
-    if done and #fTags > 0 then
-      for _,fTag in pairs(fTags) do
-        if Item.has_tag(item,fTag,true) then
-          done = false
-          break
-        end --end has_tag if
-      end --end ftag for
-    end --end if #ftag
-    if done then
-      if not specialItems then specialItems = {} end
-      specialItems[#specialItems+1] = iid
-    end
+    if not item.neverSpawn then
+      local done = false
+      if iTags and not done then
+        for _,iTag in pairs(iTags) do
+          if (allowAll or not item.specialOnly) and Item.has_tag(item,iTag,true) then
+            done = true
+            break
+          end
+          if done == true then break end
+        end --end cFac for
+      end --end tags if
+      --Check for forbidden tags:
+      if done and #fTags > 0 then
+        for _,fTag in pairs(fTags) do
+          if Item.has_tag(item,fTag,true) then
+            done = false
+            break
+          end --end has_tag if
+        end --end ftag for
+      end --end if #ftag
+      if done then
+        if not specialItems then specialItems = {} end
+        specialItems[#specialItems+1] = iid
+      end
+    end --end nevespawn if
   end
   self.item_list = specialItems
   return specialItems

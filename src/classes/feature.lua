@@ -253,6 +253,11 @@ function Feature:drop_all_items()
   self.inventory = {}
 end
 
+---Get every item in a feature's inventory:
+function Feature:get_inventory()
+  return self.inventory
+end
+
 ---Check if a feature has an instance of an item ID
 --@param item String. The item ID to check for
 --@param sortBy Text. What the "sortBy" value you're checking is (optional)

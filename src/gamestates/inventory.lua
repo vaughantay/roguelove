@@ -2,8 +2,8 @@ inventory = {}
 --TODO: Scrolling for equipment
 --TODO: Test for non-player inventory
 
-function inventory:enter(previous,whichFilter,action,entity)
-  if previous == game then
+function inventory:enter(previous,whichFilter,action,entity,container)
+  if previous == game or previous == multiselect then
     self.cursorY = 0
     self.cursorX = 1
     self.scroll=0
@@ -17,8 +17,9 @@ function inventory:enter(previous,whichFilter,action,entity)
     self.filterButtons = nil
     self.action = nil
     self.entity = entity or player
+    self.container = container
   end
-  self.inventory_space = (self.entity.inventory_space and self.entity.get_inventory_space and self.entity:get_inventory_space() or self.entity.inventory_space or false)
+  self.inventory_space = (self.entity.inventory_space and self.entity:get_stat('inventory_space') or false)
   self.free_space = self.entity:get_free_inventory_space()
   self.biggestY=0
   self.action=action or self.action
@@ -111,6 +112,21 @@ function inventory:sort()
       end
     end
   end
+  if self.container and self.container.inventory then
+    local containerInv = self.container:get_inventory()
+    self.inventory[#self.inventory+1] = {item=false,y=itemPrintY,text=self.container:get_name(true),header=true,maxY=itemPrintY+lineSize,height=lineSize,lineHeight=lineSize}
+      itemPrintY = itemPrintY+lineSize
+    for i,item in ipairs(containerInv) do
+      local name = item:get_name(true,nil,true)
+      local _,nlines = fonts.textFont:getWrap(name,self.sidebarX-self.padding*2-numberPad-tileSize)
+      local size = (self.inventory_space and math.max(item.size or 1,1) or 1)
+      local lineHeight = math.max(tileSize,round(fontSize*(#nlines+0.5))+2)
+      local height = lineHeight*size+(2*size)
+      local maxY = itemPrintY+height
+      self.inventory[#self.inventory+1] = {item=item,y=itemPrintY,text=name,maxY=maxY,height=height,lineHeight=lineHeight,nlines=#nlines}
+      itemPrintY = maxY+2
+    end
+  end
   
   local equipOrder = gamesettings.default_equipment_order
   self.equipment = {}
@@ -118,8 +134,8 @@ function inventory:sort()
   local equipSlotWidth = 0
   for _,s in ipairs(equipOrder) do
     local slot = self.entity.equipment[s]
-    equipSlotWidth = math.max(equipSlotWidth,fonts.textFont:getWidth((slot.name or ucfirst(s)) .. ":"))
     if slot then
+      equipSlotWidth = math.max(equipSlotWidth,fonts.textFont:getWidth((slot.name or ucfirst(s)) .. ":"))
       local usedSlots = 0
       for id,equip in ipairs(slot) do
         local slots = 1
@@ -184,7 +200,7 @@ function inventory:draw()
   output:draw_window(sidebarX,1,width-padding,height-padding)
   local topText = "Inventory"
   if self.action == "use" then topText = "Select items to use"
-  elseif self.action == "drop" then topText = "Select items to drop"
+  elseif self.action == "drop" then topText = "Select items to " .. (self.container and "place in " .. self.container:get_name(true) or "drop")
   elseif self.action == "throw" then topText = "Select items to throw"
   elseif self.action == "equip" then topText = "Select items to equip" end
 
@@ -496,12 +512,12 @@ function inventory:buttonpressed(key)
           elseif self.action == "throw" then
             return self:throwItem(self.inventory[self.cursorY].item)
           else
-            Gamestate.switch(examine_item,self.inventory[self.cursorY].item)
+            Gamestate.switch(examine_item,self.inventory[self.cursorY].item,self.container)
           end
         end --end item exists if
       elseif self.cursorX == 2 then --selecting an item from the equipped list
         if self.equipment[self.cursorY].item then
-          Gamestate.switch(examine_item,self.equipment[self.cursorY].item)
+          Gamestate.switch(examine_item,self.equipment[self.cursorY].item,self.container)
           --[[self.selectedItem = self.equipment[self.cursorY].item
           self.xHold = self.cursorX
           self.cursorX = 3]]
@@ -723,7 +739,7 @@ function inventory:mousepressed(x,y,button)
           elseif self.action == "throw" then
             return self:throwItem(item.item)
           else
-            Gamestate.switch(examine_item,item.item)
+            Gamestate.switch(examine_item,item.item,self.container)
           end
           return
         end
@@ -735,7 +751,7 @@ function inventory:mousepressed(x,y,button)
         self.cursorY = i
         self.cursorX = 2
         if item.item then
-          Gamestate.switch(examine_item,item.item)
+          Gamestate.switch(examine_item,item.item,self.container)
         else
           self.filter = {filter="equippable",itemType=item.slotID,appliedFromEquipment=true} --Filter for items that fit in this slot
           self:sort()
@@ -794,7 +810,11 @@ function inventory:dropItem(item)
     if self.cursorY > #self.inventory then
       self.cursorY = #self.inventory
     end
-    self.text = "You drop " .. item:get_name() .. "."
+    if self.container then
+      currMap.contents[item.x][item.y][item] = nil
+      self.container:give_item(item)
+    end
+    self.text = (self.container and "You put " .. item:get_name() .. " in " .. self.container:get_name(true) ..  "." or "You drop " .. item:get_name() .. "." )
     advance_turn()
     self:sort()
   end

@@ -41,6 +41,13 @@ Highlights:
   * Abilities have a variety of callbacks that can run at various points in the game.
   * Abilities can appy passive buffs/debuffs.
   * Abilities' stats can be upgraded.
+* Skills
+  * Extremely customizable creature skill/attrbitute system. "Skills" are defined per-game, and the base engine doesn't assume any creature has any given skill.
+  * The game can set given skills or stats to use as melee and ranged hit/damage, and dodging bonuses. Creature definitions and item definitions can override these to use their own skills. For example, you can have a default Melee skill for most weapons but have a magic weapon that gives extra damage based on your Magic skill instead.
+  * Skills can grant spells, increase creature stats, and grant bonuses automatically when upgraded. Skills can also grant the option of purchasing spells from the character screen.
+  * Skills have all the same callbacks as spells/items/conditions.
+  * By default, you increase skills infinitely at 1 per point. But you can cap them, or cause them to increase by more than 1 per point. They can also be capped to 1 if you just want a skill to be "you have it or you don't" instead of having skill ranks.
+  * Skills can be assigned to different categories that use their own points, so you can for example, split them into Attributes, Skills, and Feats D&D-style, or have special class or species-specific skills that level up with their own points.
 * Conditions
   * Creatures can suffer/benefit from conditions, which can have callbacks that can run at various points in the game.
   * Conditions can apply passive buffs/debuffs.

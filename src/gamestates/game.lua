@@ -595,7 +595,7 @@ function game:print_sidebar()
     end
   end --end player sees if
   setColor(255,255,255,255)
-  if descBox then
+  if descBox and descBox.desc then
     output:description_box(descBox.desc,descBox.x+20,descBox.y+fontSize)
   end
 end
@@ -1802,7 +1802,6 @@ function game:buttonpressed(key,scancode,isRepeat)
   elseif key == "recharge" then
     local recharge = false
     for i, attack_instance in ipairs(player:get_ranged_attacks()) do
-      for q,t in pairs(attack_instance) do print(q,t) end
       local attack = rangedAttacks[attack_instance.attack]
       if (attack_instance.item and attack_instance.item.charges) or (not attack_instance.item and attack.active_recharge) then
         if attack:recharge(player,attack_instance.item) ~= false then
@@ -1878,7 +1877,7 @@ function game:buttonpressed(key,scancode,isRepeat)
         elseif entity.y > player.y then direction = direction .. "south" end
         if entity.x < player.x then direction = direction .. "west"
         elseif entity.x > player.x then direction = direction .. "east" end
-        list[#list+1] = {text=action.text .. " (" .. ucfirst(direction) .. ")",description=action.description,selectFunction=entity.action,selectArgs={entity,player,action.id},image=(action.image or 'feature' .. (entity.image_name or entity.id)),image_color=(action.image_color or (entity.use_color_with_tiles or (gamesettings.always_use_color_with_tiles and entity.use_color_with_tiles ~= false) and entity.color) or nil),order=action.order}
+        list[#list+1] = {text=action.text .. ((direction ~= "" and not action.noDirection) and " (" .. ucfirst(direction) .. ")" or ""),description=action.description,selectFunction=entity.action,selectArgs={entity,player,action.id},image=(action.image or 'feature' .. (entity.image_name or entity.id)),image_color=(action.image_color or (entity.use_color_with_tiles or (gamesettings.always_use_color_with_tiles and entity.use_color_with_tiles ~= false) and entity.color) or nil),order=action.order}
       end
       Gamestate.switch(multiselect,list,"Select an Action",true,true)
     end

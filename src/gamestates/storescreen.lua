@@ -756,7 +756,7 @@ function storescreen:buttonpressed(key)
         list[id].buyAmt = tonumber(newAmt)
       end
     end
-  elseif (key == "backspace") and self.cursorX == 3 then
+  elseif (typed == "backspace") and self.cursorX == 3 then
     local id = self.cursorY-2
     local list = (self.screen == "Buy" and self.selling_list or self.buying_list)
     local amt = tostring(list[id].buyAmt)

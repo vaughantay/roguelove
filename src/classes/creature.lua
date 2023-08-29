@@ -1594,7 +1594,7 @@ function Creature:pickup(item,tileOnly)
     return false,pickupText
   end
   local x,y = self.x,self.y
-  if (tileOnly ~= true and not self:touching(item)) or (tileOnly == true and (item.x ~= x or item.y ~= y)) then return false end
+  if ((tileOnly ~= true and not self:touching(item)) or (tileOnly == true and (item.x ~= x or item.y ~= y))) then return false end
   if item.owner then
     if player:can_sense_creature(self) then
       output:out(pickupText or self:get_name() .. " takes " .. item:get_name() .. " from " .. item.owner:get_name() .. ".")
