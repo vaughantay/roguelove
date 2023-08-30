@@ -831,11 +831,20 @@ end
 function inventory:reloadItem(item)
   item = item or self.selectedItem
   if item and item.charges and (item.max_charges and item.max_charges > 0) then
-    local recharge,text = item:reload(self.entity)
-    self.text = text
-    if recharge ~= false then
-      advance_turn()
-      self:sort()
+    local ammo_list = item:get_possible_ammo(self.entity)
+    if item.charges == 0 and #ammo_list > 1 then
+      local ammo_selection = {}
+      for _, ammo in ipairs(ammo_list) do
+        ammo_selection[#ammo_selection+1] = {text=ammo:get_name(true),description=ammo:get_description(),selectFunction=Item.reload,selectArgs={item,self.entity,ammo}}
+      end
+      Gamestate.switch(multiselect,ammo_selection,"Reload " .. item:get_name(true),true,true)
+    else
+      local recharge,text = item:reload(self.entity)
+      self.text = text
+      if recharge ~= false then
+        advance_turn()
+        self:sort()
+      end
     end
   end
 end

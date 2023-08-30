@@ -1757,7 +1757,7 @@ function game:buttonpressed(key,scancode,isRepeat)
         local result = false
         for i,attack_instance in ipairs(player:get_ranged_attacks()) do
           local attack = rangedAttacks[attack_instance.attack]
-          if (not attack.charges or attack.charges > 0) and attack:calc_hit_chance(player,target,attack_instance.item) > 0 and not attack_instance.cooldown then
+          if (not attack_instance.charges or attack_instance.charges > 0) and attack:calc_hit_chance(player,target,attack_instance.item) > 0 and not attack_instance.cooldown then
             local proj = attack:use(target,player,attack_instance.item)
             if proj ~= false then
               result = true
@@ -2153,15 +2153,20 @@ function ContextualMenu:click(x,y)
           end
         end --end ranged attack for
         local attackFunction = function(_,target)
+          local result = false
           for i,attack_instance in ipairs(player:get_ranged_attacks()) do
             local attack = rangedAttacks[attack_instance.attack]
-            if not attack.cooldown and (not attack.charges or attack.charges > 0) and attack:calc_hit_chance(player,target,attack_instance.item) > 0 then
+            if (not attack_instance.charges or attack_instance.charges > 0) and attack:calc_hit_chance(player,target,attack_instance.item) > 0 and not attack_instance.cooldown then
               local proj = attack:use(target,player,attack_instance.item)
+              if proj ~= false then
+                result = true
+              end
               if proj and i > 1 then
                 proj.pause = (i-1)/10
               end
             end --end can use attack if
           end --end ranged attack for
+          return result
         end --end attackFunction
         allAttacks.name = attackName
         allAttacks.use = attackFunction

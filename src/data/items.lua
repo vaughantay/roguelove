@@ -933,7 +933,8 @@ local revolver = {
   usesAmmo="bullet",
   color={r=98,g=73,b=22,a=255},
   tags={'ranged'},
-  value=10
+  value=10,
+  reload_limit_per_turn=1
 }
 possibleItems['revolver'] = revolver
 
@@ -995,25 +996,6 @@ function bolt:new()
 end
 possibleItems['bolt'] = bolt
 
-local bullet = {
-  name = "bullet",
-  pluralName = "bullets",
-  description = "A simple bullet.",
-  symbol = ")",
-  itemType="ammo",
-  equippable=true,
-  equipSlot="ammo",
-  ammoType = "bullet",
-  tags={"sharp"},
-  stacks=true,
-  color={r=33,g=33,b=33,a=33},
-  value=1
-}
-function bullet:new()
-  self.amount = tweak(10)
-end
-possibleItems['bullet'] = bullet
-
 local firebolt = {
   name = "fire bolt",
   pluralName = "fiery bolts",
@@ -1022,7 +1004,7 @@ local firebolt = {
   itemType="ammo",
   equippable=true,
   equipSlot="ammo",
-  ammoType = "bullet",
+  ammoType = "bolt",
   damage_type="fire",
   projectile_name="smallfireball",
   stacks=true,
@@ -1043,7 +1025,7 @@ local explosivebolt = {
   itemType="ammo",
   equippable=true,
   equipSlot="ammo",
-  ammoType = "bullet",
+  ammoType = "bolt",
   projectile_name="bomb",
   stacks=true,
   color={r=255,g=255,b=150,a=255},
@@ -1054,6 +1036,85 @@ function explosivebolt:new()
   self.amount = tweak(10)
 end
 possibleItems['explosivebolt'] = explosivebolt
+
+local bullet = {
+  name = "bullet",
+  pluralName = "bullets",
+  description = "A simple bullet.",
+  symbol = ")",
+  itemType="ammo",
+  equippable=true,
+  equipSlot="ammo",
+  ammoType = "bullet",
+  tags={"sharp"},
+  stacks=true,
+  color={r=33,g=33,b=33,a=33},
+  value=1
+}
+function bullet:new()
+  self.amount = tweak(10)
+end
+possibleItems['bullet'] = bullet
+
+local speedloader = {
+  name = "speedloader",
+  pluralName = "speedloaders",
+  description = "A speedloader, used to quickly load all chambers of a revolver at once.",
+  symbol = ")",
+  itemType="ammo",
+  equippable=true,
+  equipSlot="ammo",
+  ammoType = "bullet",
+  projectile_name = "bullet",
+  ammo_name = "bullet",
+  tags={"sharp"},
+  stacks=true,
+  color={r=33,g=33,b=33,a=33},
+  value=1,
+  charges_granted=6
+}
+possibleItems['speedloader'] = speedloader
+
+local firebullet = {
+  name = "fire bullet",
+  pluralName = "fiery bullets",
+  description = "A bullet on fire.",
+  symbol = ")",
+  itemType="ammo",
+  equippable=true,
+  equipSlot="ammo",
+  ammoType = "bullet",
+  damage_type="fire",
+  projectile_name="smallfireball",
+  stacks=true,
+  color={r=255,g=150,b=150,a=255},
+  tags={'fire'},
+  value=1
+}
+function firebullet:new()
+  self.amount = tweak(10)
+end
+possibleItems['firebullet'] = firebullet
+
+local explosivebullet = {
+  name = "explosive bullet",
+  pluralName = "explosive bullets",
+  description = "An explosive bullet.",
+  symbol = ")",
+  itemType="ammo",
+  equippable=true,
+  equipSlot="ammo",
+  ammoType = "bullet",
+  projectile_name="bomb",
+  stacks=true,
+  color={r=255,g=255,b=150,a=255},
+  value=1,
+  noEnchantments=true
+}
+function explosivebullet:new()
+  self.amount = tweak(10)
+end
+possibleItems['explosivebullet'] = explosivebullet
 
 
 local alcahest = {

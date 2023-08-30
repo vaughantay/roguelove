@@ -106,7 +106,7 @@ function Item:get_info()
     if attack.min_range or attack.range then uses = uses .. "\nRange: " .. (attack.min_range and attack.min_range .. " (min)" or "") .. (attack.min_range and attack.range and " - " or "") .. (attack.range and attack.range .. " (max)" or "") end
     if attack.best_distance_min or attack.best_distance_max then uses = uses .. "\nBest Range: " .. (attack.best_distance_min and attack.best_distance_min .. " (min)" or "") .. (attack.best_distance_min and attack.best_distance_max and " - " or "") .. (attack.best_distance_max and attack.best_distance_max .. " (max)" or "") end
   end
-  local projectile_id = self.usingAmmo or self.projectile_name or (self.ranged_attack and rangedAttacks[self.ranged_attack] and rangedAttacks[self.ranged_attack].projectile_name)
+  local projectile_id = self.projectile_name or self.usingAmmo or (self.ranged_attack and rangedAttacks[self.ranged_attack] and rangedAttacks[self.ranged_attack].projectile_name)
   if projectile_id and projectiles[projectile_id] then
     local projectile = projectiles[projectile_id]
     uses = uses .. "\n\nProjectile: " .. ucfirst(projectile.name) .. " (" .. projectile.description .. ")"
@@ -488,21 +488,29 @@ function Item:reload(possessor,ammo)
       return false,"Tried to load " .. self:get_name() .. " with incorrect ammo " .. ammo:get_name(false) .. "."
     end
     --TODO: unload active ammo first
-    local amt = 1
+    local ammo_used = 1
     if self.max_charges and self.max_charges > 0 then --only actually load the ammo into the item if it's a reloadable item
-      local amt = math.min((ammo.amount or 1),self.max_charges - self.charges) --don't reload more than the item can hold
+      local missing_ammo = self.max_charges - self.charges
+      local charges_granted = ammo.charges_granted or 1
+      local items_per_turn = self.reload_limit_per_turn
+      
+      local ammo_used = math.min(ammo.amount,math.ceil(missing_ammo/charges_granted))
+      if items_per_turn and items_per_turn < ammo_used then ammo_used = items_per_turn end
+      
+      local amt = math.min(missing_ammo,ammo_used*charges_granted) --don't reload more than the item can hold
+      
       self.charges = self.charges + amt
-      possessor:delete_item(ammo,amt)
+      possessor:delete_item(ammo,ammo_used)
     end
     self.usingAmmo = ammo.id
-    self.ammo_name = ammo:get_name(true,1)
+    self.ammo_name = ammo.ammo_name or ammo:get_name(true,1)
     self.projectile_name = ammo.projectile_name
     self.projectile_enchantments = ammo.enchantments
     if player:can_sense_creature(possessor) and self.max_charges and self.max_charges > 0 then
-      output:out(possessor:get_name() .. " reloads " .. self:get_name() .. " with " .. ammo:get_name(false,amt) .. ".")
+      output:out(possessor:get_name() .. " reloads " .. self:get_name() .. " with " .. ammo:get_name(false,ammo_used) .. ".")
       output:sound(self.recharge_sound or self.id .. "_recharge")
     end
-    return true,(self.max_charges and self.max_charges > 0 and "You reload " .. self:get_name() .. " with " .. ammo:get_name(false,amt) .. "." or false)
+    return true,(self.max_charges and self.max_charges > 0 and "You reload " .. self:get_name() .. " with " .. ammo:get_name(false,ammo_used) .. "." or false)
   elseif self.charges and self.charges > 1 and self.usingAmmo then --If ammo is already loaded, use the same type of ammo you're currently using
     local it,id,amt = possessor:has_item(self.usingAmmo,nil,self.projectile_enchantments)
     if it then
@@ -588,7 +596,7 @@ end
 --@param permanent Boolean. Whether the enchantment has to qualify as a permanent enchantment (optional)
 --@return Boolean. Whether or not the item qualifies for the enchantment
 function Item:qualifies_for_enchantment(eid,permanent)
-  if self.noEnchantments then return false end
+  if not self.enchantable then return false end
   local enchantment = enchantments[eid]
   
   if permanent and enchantment.neverPermanent then
