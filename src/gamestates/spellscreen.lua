@@ -34,6 +34,8 @@ function spellscreen:enter(previous,locked)
   self.unmemorized = player:get_unmemorized_spells()
   self.buttons = {}
   self.upgradeButtons = {}
+  self.settingsButtons = {}
+  self.buttonCount = 0
   
   self.yModPerc = 0
   if previous == game then
@@ -245,50 +247,50 @@ function spellscreen:draw()
     
     --Buttons:
     local buttonHeight = 32
-    local buttonCount = 0
+    self.buttonCount = 0
     if not selected then
       setColor(175,175,175,255)
     end
 
     if memorized and spell.target_type ~= "passive" then
-      buttonCount = buttonCount + 1
+      self.buttonCount = self.buttonCount + 1
       local useText = ((spell.active and not spell.no_manual_deactivate) and "Stop" or "Use")
       local buttonWidth = fonts.buttonFont:getWidth(useText)+25
       if player.cooldowns[spell.name] or spell:requires(player) == false or (spell.active and spell.no_manual_deactivate) then
         setColor(100,100,100,255)
       end
-      self.buttons.use = output:button(printX,printY,buttonWidth,false,(self.cursorX == 2 and self.sidebarCursorY == buttonCount and "hover" or nil),useText,true)
-      self.buttons.use.buttonNum = buttonCount
+      self.buttons.use = output:button(printX,printY,buttonWidth,false,(self.cursorX == 2 and self.sidebarCursorY == self.buttonCount and "hover" or nil),useText,true)
+      self.buttons.use.buttonNum = self.buttonCount
       if player.cooldowns[spell.name] or spell:requires(player) == false or (spell.active and spell.no_manual_deactivate) then
         if selected then setColor(255,255,255,255)
         else setColor(175,175,175,255) end
       end
       printY = printY+buttonHeight
-      buttonCount = buttonCount + 1
+      self.buttonCount = self.buttonCount + 1
       local hotkeyText = (hotkey and "Change Hotkey" or "Assign Hotkey")
       buttonWidth = fonts.buttonFont:getWidth(hotkeyText)+25
-      self.buttons.hotkey = output:button(printX,printY,buttonWidth,false,(self.cursorX == 2 and self.sidebarCursorY == buttonCount and "hover" or nil),hotkeyText,true)
-      self.buttons.hotkey.buttonNum = buttonCount
+      self.buttons.hotkey = output:button(printX,printY,buttonWidth,false,(self.cursorX == 2 and self.sidebarCursorY == self.buttonCount and "hover" or nil),hotkeyText,true)
+      self.buttons.hotkey.buttonNum = self.buttonCount
       printY = printY+buttonHeight
     end
     
     if not self.locked then
       if memorized and (spell.forgettable or (gamesettings.spells_forgettable_by_default and spell.forgettable ~= false)) then
-        buttonCount = buttonCount + 1
+        self.buttonCount = self.buttonCount + 1
         local forgetText = "Forget"
         local buttonWidth = fonts.buttonFont:getWidth(forgetText)+25
-        self.buttons.forget = output:button(printX,printY,buttonWidth,false,(self.cursorX == 2 and self.sidebarCursorY == buttonCount and "hover" or nil),forgetText,true)
-        self.buttons.forget.buttonNum = buttonCount
+        self.buttons.forget = output:button(printX,printY,buttonWidth,false,(self.cursorX == 2 and self.sidebarCursorY == self.buttonCount and "hover" or nil),forgetText,true)
+        self.buttons.forget.buttonNum = self.buttonCount
         printY = printY+buttonHeight
       elseif not memorized then
-        buttonCount = buttonCount + 1
+        self.buttonCount = self.buttonCount + 1
         local memText = "Memorize"
         local buttonWidth = fonts.buttonFont:getWidth(memText)+25
         if not spell.freeSlot and (spellSlots and spellSlots < 1) then
           setColor(100,100,100,255)
         end
-        self.buttons.memorize = output:button(printX,printY,buttonWidth,false,(self.cursorX == 2 and self.sidebarCursorY == buttonCount and "hover" or nil),memText,true)
-        self.buttons.memorize.buttonNum = buttonCount
+        self.buttons.memorize = output:button(printX,printY,buttonWidth,false,(self.cursorX == 2 and self.sidebarCursorY == self.buttonCount and "hover" or nil),memText,true)
+        self.buttons.memorize.buttonNum = self.buttonCount
         if not spell.freeSlot and (spellSlots and spellSlots < 1) then
           setColor(255,255,255,255)
         end
@@ -301,39 +303,73 @@ function spellscreen:draw()
     end
     
     self.descStartY=printY
+    printY=printY+fontSize
     --Stencil and scroll:
     local function stencilFunc()
-      love.graphics.rectangle("fill",printX,self.descStartY,window2w,height-padY-self.descStartY)
+      love.graphics.rectangle("fill",printX-8,self.descStartY,window2w+8,height-padY-self.descStartY)
     end
     love.graphics.stencil(stencilFunc,"replace",1)
     love.graphics.setStencilTest("greater",0)
     love.graphics.translate(0,-self.descScrollY)
     
+    --Settings
+    local settingH = output:get_tile_size(true)
+    local settings = spell:get_all_settings()
+    --sort_table(settings,'name')
+    if count(settings) > 0 then
+      local buttonY=0
+      love.graphics.printf("Settings:",printX,printY,window2w,"left")
+      printY=printY+settingH
+      for settingID,info in pairs(settings) do
+        self.buttonCount = self.buttonCount+1
+        buttonY = buttonY+1
+        local boxW = (prefs['noImages'] and fonts.textFont:getWidth("(Y)") or output:get_tile_size(true))
+        local button = self.settingsButtons[buttonY]
+        if self.sidebarCursorY == self.buttonCount or (button and mouseX > button.minX and mouseX < button.maxX and mouseY > button.minY and mouseY < button.maxY) then
+          setColor(100,100,100,255)
+          love.graphics.rectangle('fill',printX-8,printY-8,boxW,settingH)
+          setColor(255,255,255,255)
+        end
+        if prefs['noImages'] then
+          love.graphics.print((info.enabled and "(Y)" or "(N)"),printX,printY)
+        else
+          love.graphics.draw((info.enabled and images.uicheckboxchecked or images.uicheckbox),printX,printY)
+        end
+        local setText = info.name .. (info.description and " (" .. info.description .. ")" or "")
+        love.graphics.printf(setText,printX+boxW,printY,window2w,"left")
+        local _, slines = fonts.textFont:getWrap(setText,window2w)
+        local sHeight = #slines*settingH
+        self.settingsButtons[buttonY] = {minX=printX-8,minY=printY-8,maxX=printX+32-8,maxY=printY+settingH-8}
+        self.settingsButtons[buttonY].settingID = settingID
+        printY = printY+sHeight
+      end
+    end
+    
     --Print stats
     local statText = ""
     if spell.charges then
-      statText = statText .. "\nCharges: " .. spell.charges .. (spell.max_charges and "/" .. spell.max_charges or "")
+      statText = statText .. "Charges: " .. spell.charges .. (spell.max_charges and "/" .. spell.max_charges or "") .. "\n"
     end
     if spell.cost then
-      statText = statText .. "\nMP Cost: " .. spell.cost
+      statText = statText .. "MP Cost: " .. spell.cost .. "\n"
     end
     if spell.cost_per_turn then
-      statText = statText .. "\nMP Cost per Turn: " .. spell.cost_per_turn
+      statText = statText .. "MP Cost per Turn: " .. spell.cost_per_turn .. "\n"
     end
     if spell.max_active_turns then
-      statText = statText .. "\nMax Active Turns: " .. spell.max_active_turns
+      statText = statText .. "Max Active Turns: " .. spell.max_active_turns .. "\n"
     end
     if spell.cooldown then
-      statText = statText .. "\nCooldown: " .. spell.cooldown .. " Turns"
+      statText = statText .. "Cooldown: " .. spell.cooldown .. " Turns" .. "\n"
     end
     if spell.min_range then
-      statText = statText .. "\nMin Range: " .. spell.range
+      statText = statText .. "Min Range: " .. spell.range .. "\n"
     end
     if spell.range then
-      statText = statText .. "\nMax Range: " .. spell.range
+      statText = statText .. "Max Range: " .. spell.range .. "\n"
     end
     if spell.deactivate_on_damage_chance then
-      statText = statText .. "\nChance of Deactivation when Damaged: " .. spell.deactivate_on_damage_chance .. "%"
+      statText = statText .. "Chance of Deactivation when Damaged: " .. spell.deactivate_on_damage_chance .. "%" .. "\n"
     end
     if spell.stats then
       local tempstats = {}
@@ -363,13 +399,13 @@ function spellscreen:draw()
       for i,stat in pairs(stats) do
         local value = spell:get_stat(stat.id)
         if value ~= false and stat.hide ~= true and (value ~= 0 or stat.hide_when_zero ~= true) then
-          statText = statText .. "\n" .. stat.name .. (type(value) ~= "boolean" and ": " .. value .. (stat.is_percentage and "%" or "") or "") .. (stat.description and " (" .. stat.description .. ")" or "")
+          statText = statText .. stat.name .. (type(value) ~= "boolean" and ": " .. value .. (stat.is_percentage and "%" or "") or "") .. (stat.description and " (" .. stat.description .. ")" or "") .. "\n"
         end
       end
     end
     love.graphics.printf(statText,printX,printY,window2w,"left")
     local _, slines = fonts.textFont:getWrap(statText,window2w)
-    local sHeight = (#slines+2)*fontSize
+    local sHeight = (#slines+1)*fontSize
     printY = printY+sHeight
     
     --Print upgrades
@@ -387,7 +423,7 @@ function spellscreen:draw()
         end
         printY=printY+fontSize+5
         local buttonY = 1
-        local mod = buttonCount
+        local mod = self.buttonCount
         local upDesc,upY = nil,nil
         --Sort alphabetically:
         local sorted = {}
@@ -508,9 +544,18 @@ function spellscreen:buttonpressed(key)
       elseif self.buttons.hotkey and self.sidebarCursorY == self.buttons.hotkey.buttonNum then
         return Gamestate.switch(hotkey,spell)
       end
+      if self.settingsButtons then
+        for index,button in ipairs(self.settingsButtons) do
+          local mod = count(self.buttons)
+          if self.sidebarCursorY == index+mod then
+            self:toggle_setting(button.settingID)
+            return
+          end
+        end
+      end
       if self.upgradeButtons then
         for index,button in ipairs(self.upgradeButtons) do
-          local mod = (passive and 0 or 2)
+          local mod = count(self.buttons)+(self.settingsButtons and #self.settingsButtons or 0)
           if self.sidebarCursorY == index+mod then
             self:perform_upgrade(button.upgradeID)
             return
@@ -531,10 +576,15 @@ function spellscreen:buttonpressed(key)
     else --if a spell is selected
       self.sidebarCursorY = math.max(self.sidebarCursorY-1,1)
       local topButtonCount = count(self.buttons)
+      local settingsButtons = (self.settingsButtons and #self.settingsButtons or 0)
       if self.sidebarCursorY <= topButtonCount then
         self.descScrollY = 0
-      elseif self.upgradeButtons[self.sidebarCursorY-topButtonCount] then
-        while self.upgradeButtons[self.sidebarCursorY-topButtonCount].minY-self.descScrollY < self.descStartY do
+      elseif self.settingsButtons[self.sidebarCursorY-topButtonCount] then
+        while self.settingsButtons[self.sidebarCursorY-topButtonCount].minY-self.descScrollY < self.descStartY do
+          self:descScrollUp()
+        end
+      elseif self.upgradeButtons[self.sidebarCursorY-topButtonCount-settingsButtons] then
+        while self.upgradeButtons[self.sidebarCursorY-topButtonCount-settingsButtons].minY-self.descScrollY < self.descStartY do
           self:descScrollUp()
         end
       end
@@ -551,12 +601,18 @@ function spellscreen:buttonpressed(key)
       end
     else -- if a spell is selected
       local topButtonCount = count(self.buttons)
-      local max = (self.upgradeButtons and #self.upgradeButtons or 0)+topButtonCount
+      local settingsButtons = (self.settingsButtons and #self.settingsButtons or 0)
+      local upgradeButtons = (self.upgradeButtons and #self.upgradeButtons or 0)
+      local max = upgradeButtons+settingsButtons+topButtonCount
       if self.sidebarCursorY < max then
         self.sidebarCursorY = self.sidebarCursorY+1
       end
-      if self.upgradeButtons[self.sidebarCursorY-topButtonCount] then
-        while self.upgradeButtons[self.sidebarCursorY-topButtonCount].textMaxY-self.descScrollY > height-self.padY do
+      if self.settingsButtons[self.sidebarCursorY-topButtonCount] then
+        while self.settingsButtons[self.sidebarCursorY-topButtonCount].maxY-self.descScrollY > height-self.padY do
+          self:descScrollDown()
+        end
+      elseif self.upgradeButtons[self.sidebarCursorY-topButtonCount-settingsButtons] then
+        while self.upgradeButtons[self.sidebarCursorY-topButtonCount-settingsButtons].textMaxY-self.descScrollY > height-self.padY do
           self:descScrollDown()
         end
       end
@@ -594,9 +650,14 @@ function spellscreen:mousepressed(x,y,button)
       elseif self.buttons.hotkey and x > self.buttons.hotkey.minX and x < self.buttons.hotkey.maxX and y > self.buttons.hotkey.minY and y < self.buttons.hotkey.maxY then
         return Gamestate.switch(hotkey,self.spellList[self.cursorY].spell)
       end
+      for index,button in ipairs(self.settingsButtons) do
+        if x > button.minX and x < button.maxX and y+self.descScrollY > button.minY and y+self.descScrollY < button.maxY then
+          return self:toggle_setting(button.settingID)
+        end
+      end
       for index,button in ipairs(self.upgradeButtons) do
         if x > button.minX and x < button.maxX and y+self.descScrollY > button.minY and y+self.descScrollY < button.maxY then
-          self:perform_upgrade(button.upgradeID)
+          return self:perform_upgrade(button.upgradeID)
         end
       end
     end --end if cursorX > 1
@@ -748,5 +809,15 @@ function spellscreen:memorize_spell(spellIndex)
     self.unmemorized = player:get_unmemorized_spells()
     self.spellList = {}
     self.cursorX = 1
+  end
+end
+
+function spellscreen:toggle_setting(settingID)
+  local spell = self.spellList[self.cursorY].spell
+  if not spell or not spell:setting_available(settingID) then
+    return false
+  end
+  if spell:toggle_setting(settingID) then
+    return true
   end
 end

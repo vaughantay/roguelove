@@ -100,10 +100,10 @@ function storescreen:draw()
     buybuttonW,sellbuttonW,servicebuttonW,spellbuttonW= biggestButton,biggestButton,biggestButton,biggestButton
     local totalButtons = (self.store.noBuy and 1 or 2)
     self.navButtons = {}
-    if count(self.store.offers_services) > 0 then
+    if self.store.offers_services and count(self.store.offers_services) > 0 then
       totalButtons = totalButtons+1
     end
-    if count(self.store.teaches_spells) > 0 or count(self.store.teaches_skills) > 0 then
+    if (self.store.teaches_spells and count(self.store.teaches_spells) > 0) or (self.store.teaches_skills and count(self.store.teaches_skills) > 0) then
       totalButtons = totalButtons+1
     end
     local buttonX = windowX+math.floor(windowWidth/2-padding-(totalButtons/2)*biggestButton)+padding
@@ -126,7 +126,7 @@ function storescreen:draw()
       buttonX=buttonX+servicebuttonW+padX
       if self.screen == "Services" then setColor(255,255,255,255) end
     end
-    if count(self.store.teaches_spells) > 0 or count(self.store.teaches_skills) > 0 then
+    if (self.store.teaches_spells and count(self.store.teaches_spells) > 0) or (self.store.teaches_skills and count(self.store.teaches_skills) > 0) then
       if self.screen == "Spells" then setColor(150,150,150,255) end
       self.spellsButton = output:button(buttonX,printY,spellbuttonW,false,((self.cursorX == #self.navButtons+1 and self.cursorY == 1) and "hover" or nil),"Skills/Abilities",true)
       self.navButtons[#self.navButtons+1] = self.spellsButton

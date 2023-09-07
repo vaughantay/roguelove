@@ -363,11 +363,19 @@ function Spell:get_stat(stat,possessor)
   --Modifiers from having other abilities:
   local spellBonuses = self.stat_bonuses_from_spells and self.stat_bonuses_from_spells[stat]
   if spellBonuses and possessor and possessor.baseType == "creature" then
-    if spellBonuses then
-      for spellID,amt in pairs(spellBonuses) do
-        if possessor:has_spell(spellID) then
-          value = value + amt
-        end
+    for spellID,amt in pairs(spellBonuses) do
+      if possessor:has_spell(spellID) then
+        value = value + amt
+      end
+    end --end spell for
+  end --end spell bonuses
+  
+  --Modifiers from having settings enabled:
+  local settingBonuses = self.stat_bonuses_from_settings and self.stat_bonuses_from_settings[stat]
+  if settingBonuses then
+    for settingID,amt in pairs(settingBonuses) do
+      if self.settings[settingID] and self.settings[settingID].enabled then
+        value = value + amt
       end
     end --end spell for
   end --end spell bonuses
@@ -618,4 +626,60 @@ function Spell:get_potential_targets(caster,target_number)
     return targets
   end --end creature if
   return {}
+end
+
+--Get settings that are currently available for this spell
+--@return Table. A list of settings
+function Spell:get_all_settings()
+  local settings = {}
+  if self.settings then
+    for settingID,info in pairs(self.settings) do
+      if self:setting_available(settingID) then
+        settings[settingID] = info
+      end --end setting available if
+    end --end settings for
+  end --end if settings
+  return settings
+end
+
+--Get the value of a spell setting
+--@return Boolean. Whether the setting is set or not
+function Spell:get_setting(settingID)
+  if self:setting_available(settingID) then
+    return self.settings[settingID].enabled
+  end
+  return false
+end
+
+function Spell:setting_available(settingID)
+  if self.settings and self.settings[settingID] then
+    local setting = self.settings[settingID]
+    if setting.requires_upgrades then
+      for upgradeID,req in pairs(setting.requires_upgrades) do
+        local applied = self.applied_upgrades[upgradeID]
+        if not applied or (type(applied) == "number" and applied < req) then
+          return false
+        end --end applied if
+      end --end upgrade for
+    end --end requires upgrades if
+    return true
+  else --if no settings, or doesn't have a setting with that ID
+    return false
+  end
+end
+
+--Toggle a setting on or off
+--@param settingID String. The ID of the setting
+--@return Boolean. The setting's new value, false for off, true for on
+function Spell:toggle_setting(settingID)
+  if self:setting_available(settingID) then
+    self.settings[settingID].enabled = not self.settings[settingID].enabled
+    if self.settings[settingID].setting_exclusions then
+      for _,exclusionID in pairs(self.settings[settingID].setting_exclusions) do
+        if self:setting_available(exclusionID) then
+          self.settings[exclusionID].enabled = false
+        end
+      end
+    end --end exlucions if
+  end
 end

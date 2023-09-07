@@ -45,6 +45,7 @@ blast = {
   max_charges=5,
   min_targets=1,
   max_targets=2,
+  settings={confusion={name="Confusion",description="Chance of causing confusion in the target.",requires_upgrades={confusion=1,stun=1},setting_exclusions={'stun'}},stun={name="Stunning",description="Chance of stunning the target.",requires_upgrades={stun=1,confusion=1},setting_exclusions={'confusion'}}},
   stats={
     min_damage={value=8,name="Minimum Damage",stat_type="damage",display_order=1},
     max_damage={value=15,name="Maximum Damage",stat_type="damage",display_order=2},
@@ -58,8 +59,8 @@ blast = {
   },
   possible_upgrades={
     damage={{min_damage=2,max_damage=3},{min_damage=5,max_damage=7,skill_requirements={magic=5}},name="Damage"},
-    confusion={{confusion_chance=10,min_confusion=4,max_confusion=6, item_cost={{item='dart',amount=2}}},{confusion_chance=15,min_confusion=2,max_confusion=4},name="Confusion",upgrade_exclusions={stun=1}},
-    stun={{stun_chance=10,min_stun=2,max_stun=3},{stun_chance=15,min_stun=1,max_stun=2},name="Stunning",upgrade_exclusions={confusion=1}},
+    confusion={{confusion_chance=10,min_confusion=4,max_confusion=6, item_cost={{item='dart',amount=2}}},{confusion_chance=15,min_confusion=2,max_confusion=4},name="Confusion"},
+    stun={{stun_chance=10,min_stun=2,max_stun=3},{stun_chance=15,min_stun=1,max_stun=2},name="Stunning"},
     amnesia={{amnesia=true,spell_point_cost=2},name="Amnesia",description="Causes the target to forget they ever saw you.",playerOnly=true}, --Value set to true will just display the name and description
   },
   stat_bonuses_from_skills={
@@ -75,12 +76,12 @@ blast = {
     local stun = (self:get_stat('stun_chance') or 0)
 		local dmg = target:damage(random(min,max),caster,"magic")
     local text = caster:get_name() .. " blasts " .. target:get_name() .. " with " .. caster:get_pronoun('p') .. " mind, dealing " .. dmg .. " damage."
-    if random(1,100) <= stun then
+    if random(1,100) <= stun and (confusion == 0 or self:get_setting('stun')) then
       local turns = random(self:get_stat('min_stun'),self:get_stat('max_stun'))
       local s = target:give_condition('stunned',turns)
       if s then text = text .. " " .. ucfirst(target:get_pronoun('n') .. " is stunned!") end
     end
-    if random(1,100) <= confusion then
+    if random(1,100) <= confusion and (stun == 0 or self:get_setting('confusion')) then
       local turns = random(self:get_stat('min_confusion'),self:get_stat('max_confusion'))
       local c = target:give_condition('confused',turns)
       if c then text = text .. " " .. ucfirst(target:get_pronoun('n') .. " is confused!") end
@@ -518,8 +519,8 @@ sacrificecorpse = {
       output:out("You can't sacrifice the undead.")
       return false
     elseif corpse then
+      local mp = tweak((corpse.creature.level or 1)*10)
       if player:can_see_tile(caster.x,caster.y) then
-        local mp = tweak((corpse.creature.level or 1)*10)
         output:out(caster:get_name() .. " sacrifices " .. corpse.creature:get_name() .. " to the darkness, gaining " .. mp .. " MP!")
         currMap:add_effect(Effect('animation',{image_name='floatingpluses',image_max=5,target=caster,color={r=235,g=137,b=49,a=255},ascii=true,use_color_with_tiles=true}),caster.x,caster.y)
         output:sound("unholydamage")
