@@ -100,7 +100,6 @@ function RangedAttack:use(target, attacker, item)
             proj:apply_enchantment(e,0) --"0" used for turns tells the projectile not to apply this enchantment to the ammo item left behind
           end
         end
-        item:decrease_all_enchantments('hit') --decrease the "hit" enchantment if you're using a ranged weapon shooting ammo, since most of the time that's what you'll need
       end
       item:decrease_all_enchantments('attack')
     end

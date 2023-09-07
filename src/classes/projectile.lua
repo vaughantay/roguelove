@@ -213,6 +213,9 @@ function Projectile:hits(target,force_generic)
     end --end miss item == string
     if dmg then
       it:decrease_all_enchantments('hit')
+      if self.source_item then
+        self.source_item:decrease_all_enchantments('hit')
+      end
     end
   end -- end miss_item if
   

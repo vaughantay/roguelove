@@ -642,7 +642,7 @@ function Spell:get_all_settings()
   return settings
 end
 
---Get the value of a spell setting
+---Get the value of a spell setting
 --@return Boolean. Whether the setting is set or not
 function Spell:get_setting(settingID)
   if self:setting_available(settingID) then
@@ -651,6 +651,8 @@ function Spell:get_setting(settingID)
   return false
 end
 
+---Checks whether a spell setting is available
+--@return Boolean. Whether the setting is available or not
 function Spell:setting_available(settingID)
   if self.settings and self.settings[settingID] then
     local setting = self.settings[settingID]

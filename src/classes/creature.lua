@@ -606,6 +606,7 @@ function Creature:damage(amt,attacker,damage_type,armor_piercing,noSound,item)
     for _,item in pairs(self.equipment_list) do
       item:decrease_all_enchantments('damaged')
     end
+    self:decrease_all_conditions('damaged')
     --Cancel active spells if applicable:
     for id,data in pairs(self.active_spells) do
       if data.spell.deactivate_on_damage_chance and random(1,100) <= data.spell.deactivate_on_damage_chance then
@@ -653,6 +654,22 @@ function Creature:has_condition(condition)
     return true
   else
     return false
+  end
+end
+
+---Decrease all conditions of a given type
+--@param removal_type Text. The removal type of the condition (defaults to turns)
+function Creature:decrease_all_conditions(removal_type)
+  removal_type = removal_type or 'turn'
+  
+  for condition, turns in pairs(self.conditions) do
+    local con = conditions[condition]
+    if con and con.removal_type == removal_type and turns ~= -1 then
+      self.conditions[condition] = self.conditions[condition] - 1
+      if self.conditions[condition] <= 0 then
+        self:cure_condition(condition)
+      end --end if condition <= 0
+    end --end condition for
   end
 end
 
@@ -974,7 +991,12 @@ function Creature:attack(target,forceHit,ignore_callbacks)
   
   --Basic attack:
   if target.baseType == "feature" and self:touching(target) then
-    return target:damage(self:get_damage(),self,self.damage_type)
+    local dmg = target:damage(self:get_damage(),self,self.damage_type)
+    self:decrease_all_enchantments('attack')
+    if dmg > 0 then
+      self:decrease_all_conditions('hit')
+    end
+    return dmg
 	elseif self:touching(target) and (ignore_callbacks or self:callbacks('attacks',target) and target:callbacks('attacked',self)) then
 		local result,dmg = calc_attack(self,target)
     if forceHit == true then result = 'hit' end
@@ -1029,6 +1051,7 @@ function Creature:attack(target,forceHit,ignore_callbacks)
 					target:give_condition(condition.condition,turns,self)
 				end -- end condition chance
 			end	-- end condition forloop
+      self:decrease_all_conditions('hit')
 		end -- end hit if
     --Cancel active spells if applicable:
     for id,data in pairs(self.active_spells) do
@@ -1039,6 +1062,7 @@ function Creature:attack(target,forceHit,ignore_callbacks)
         data.spell:finish(t, self, cd, mp)
       end
     end
+    self:decrease_all_conditions('attack')
 		return dmg
 	else -- if not touching target
 		return false
@@ -1092,12 +1116,7 @@ function Creature:advance(skip_conditions)
     self:callbacks('advance')
     
     --Decrease condition time:
-    for condition, turns in pairs(self.conditions) do
-      if self.conditions[condition] and self.conditions[condition] ~= -1 then self.conditions[condition] = self.conditions[condition] - 1 end
-      if not self.conditions[condition] or (self.conditions[condition] <= 0 and self.conditions[condition] ~= -1) then
-        self:cure_condition(condition)
-      end --end if condition <= 0
-    end --end condition for
+    self:decrease_all_conditions('turn')
     
     --Decrease cooldowns:
     for thing, cooldown in pairs(self.cooldowns) do
@@ -1404,6 +1423,7 @@ function Creature:die(killer)
           end --end banich favor if
         end --end if member/members only favor
       end --end faction for
+      self.killer:decrease_all_conditions('kill')
     elseif seen then --killed by something other than a creature
       output:out(self:get_name() .. " dies!")
     end --end playerally killer if

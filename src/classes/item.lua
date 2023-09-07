@@ -330,7 +330,7 @@ end
 --@return Number. How much damage (if any) was done
 function Item:attack(target,wielder,forceHit,ignore_callbacks,forceBasic)
   local txt = ""
-  self:decrease_all_enchantments('attack') --decrease the turns left for any enchantments that decrease on attack
+  
   if not forceBasic and possibleItems[self.id].attacked_with then
     local result, damage, text = possibleItems[self.id].attacked_with(self,target,wielder)
     if result == false then
@@ -342,7 +342,14 @@ function Item:attack(target,wielder,forceHit,ignore_callbacks,forceBasic)
   
   --Basic attack:
   if target.baseType == "feature" and wielder:touching(target) then
-    return target:damage(self:get_damage(target,wielder),wielder,self.damage_type)
+    local dmg = target:damage(self:get_damage(target,wielder),wielder,self.damage_type)
+    self:decrease_all_enchantments('attack') --decrease the turns left for any enchantments that decrease on attack
+    wielder:decrease_all_conditions('attack')
+    if dmg > 0 then
+      wielder:decrease_all_conditions('hit')
+      self:decrease_all_enchantments('hit') --decrease the turns left for any enchantments that decrease on hit
+    end
+    return dmg
 	elseif wielder:touching(target) and (ignore_callbacks or wielder:callbacks('attacks',target) and target:callbacks('attacked',self)) then
     local result,dmg="miss",0
     if possibleItems[self.id].calc_attack then
@@ -462,7 +469,10 @@ function Item:attack(target,wielder,forceHit,ignore_callbacks,forceBasic)
 				end -- end condition chance
 			end	-- end condition forloop
       self:decrease_all_enchantments('hit') --decrease the turns left for any enchantments that decrease on hit
+      wielder:decrease_all_conditions('hit')
 		end -- end hit if
+    self:decrease_all_enchantments('attack') --decrease the turns left for any enchantments that decrease on attack
+    wielder:decrease_all_conditions('attack')
 		return dmg
 	else -- if not touching target
 		return false

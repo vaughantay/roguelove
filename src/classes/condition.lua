@@ -8,6 +8,7 @@ function Condition:init(data)
 	for key, val in pairs(data) do
 		self[key] = data[key]
 	end
+  if not self.removal_type then self.removal_type = "turn" end
 	return self
 end
 
