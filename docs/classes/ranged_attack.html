@@ -33,7 +33,7 @@
 
 <h2>Contents</h2>
 <ul>
-<li><a href="#Methods">Methods</a></li>
+<li><a href="#Functions">Functions</a></li>
 </ul>
 
 
@@ -86,34 +86,34 @@
 <p></p>
 
 
-<h2><a href="#Methods">Methods</a></h2>
+<h2><a href="#Functions">Functions</a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#ranged_attack:new">ranged_attack:new (data)</a></td>
+	<td class="name" nowrap><a href="#RangedAttack:init">RangedAttack:init (data)</a></td>
 	<td class="summary">Initiate a ranged attack from its definition.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#ranged_attack:get_name">ranged_attack:get_name ()</a></td>
+	<td class="name" nowrap><a href="#RangedAttack:get_name">RangedAttack:get_name ()</a></td>
 	<td class="summary">Get the name of the ranged attack.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#ranged_attack:get_description">ranged_attack:get_description ()</a></td>
+	<td class="name" nowrap><a href="#RangedAttack:get_description">RangedAttack:get_description ()</a></td>
 	<td class="summary">Get the description of the ranged attack.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#ranged_attack:use">ranged_attack:use (target, attacker, item)</a></td>
-	<td class="summary">Use the ranged attack.</td>
+	<td class="name" nowrap><a href="#RangedAttack:use">RangedAttack:use (target, attacker, item)</a></td>
+	<td class="summary">Use the ranged attack</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#ranged_attack:does_hit">ranged_attack:does_hit (target, attacker, item)</a></td>
+	<td class="name" nowrap><a href="#RangedAttack:does_hit">RangedAttack:does_hit (target, attacker, item)</a></td>
 	<td class="summary">Calculate whether the ranged attack hits.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#ranged_attack:calc_hit_chance">ranged_attack:calc_hit_chance (target, attacker, item)</a></td>
+	<td class="name" nowrap><a href="#RangedAttack:calc_hit_chance">RangedAttack:calc_hit_chance (target, attacker, item)</a></td>
 	<td class="summary">Calculate the chance the ranged attack will hit.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#ranged_attack:recharge">ranged_attack:recharge (possessor, item)</a></td>
+	<td class="name" nowrap><a href="#RangedAttack:recharge">RangedAttack:recharge (possessor, item)</a></td>
 	<td class="summary">Recharge the charges of the ranged attack.</td>
 	</tr>
 </table>
@@ -122,12 +122,12 @@
 <br/>
 
 
-    <h2 class="section-header "><a name="Methods"></a>Methods</h2>
+    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
 
     <dl class="function">
     <dt>
-    <a name = "ranged_attack:new"></a>
-    <strong>ranged_attack:new (data)</strong>
+    <a name = "RangedAttack:init"></a>
+    <strong>RangedAttack:init (data)</strong>
     </dt>
     <dd>
     Initiate a ranged attack from its definition.  You shouldn't use this function, the game uses it at loadtime to instantiate the ranged attacks.
@@ -151,8 +151,8 @@
 
 </dd>
     <dt>
-    <a name = "ranged_attack:get_name"></a>
-    <strong>ranged_attack:get_name ()</strong>
+    <a name = "RangedAttack:get_name"></a>
+    <strong>RangedAttack:get_name ()</strong>
     </dt>
     <dd>
     Get the name of the ranged attack.
@@ -170,8 +170,8 @@
 
 </dd>
     <dt>
-    <a name = "ranged_attack:get_description"></a>
-    <strong>ranged_attack:get_description ()</strong>
+    <a name = "RangedAttack:get_description"></a>
+    <strong>RangedAttack:get_description ()</strong>
     </dt>
     <dd>
     Get the description of the ranged attack.
@@ -189,11 +189,11 @@
 
 </dd>
     <dt>
-    <a name = "ranged_attack:use"></a>
-    <strong>ranged_attack:use (target, attacker, item)</strong>
+    <a name = "RangedAttack:use"></a>
+    <strong>RangedAttack:use (target, attacker, item)</strong>
     </dt>
     <dd>
-    Use the ranged attack.
+    Use the ranged attack
 
 
     <h3>Parameters:</h3>
@@ -220,8 +220,8 @@
 
 </dd>
     <dt>
-    <a name = "ranged_attack:does_hit"></a>
-    <strong>ranged_attack:does_hit (target, attacker, item)</strong>
+    <a name = "RangedAttack:does_hit"></a>
+    <strong>RangedAttack:does_hit (target, attacker, item)</strong>
     </dt>
     <dd>
     Calculate whether the ranged attack hits.
@@ -251,11 +251,11 @@
 
 </dd>
     <dt>
-    <a name = "ranged_attack:calc_hit_chance"></a>
-    <strong>ranged_attack:calc_hit_chance (target, attacker, item)</strong>
+    <a name = "RangedAttack:calc_hit_chance"></a>
+    <strong>RangedAttack:calc_hit_chance (target, attacker, item)</strong>
     </dt>
     <dd>
-    Calculate the chance the ranged attack will hit.
+    Calculate the chance the ranged attack will hit.  *MAY WANT TO CHANGE FOR YOUR OWN GAME*
 
 
     <h3>Parameters:</h3>
@@ -282,8 +282,8 @@
 
 </dd>
     <dt>
-    <a name = "ranged_attack:recharge"></a>
-    <strong>ranged_attack:recharge (possessor, item)</strong>
+    <a name = "RangedAttack:recharge"></a>
+    <strong>RangedAttack:recharge (possessor, item)</strong>
     </dt>
     <dd>
     Recharge the charges of the ranged attack.
@@ -316,7 +316,7 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2023-08-04 10:22:03 </i>
+<i style="float:right;">Last updated 2023-09-08 16:24:54 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

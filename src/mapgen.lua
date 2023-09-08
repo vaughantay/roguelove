@@ -169,17 +169,17 @@ end
 --@param min_level The lower level limit of the desired creature
 --@param max_level The upper level limit of the desired creature
 --@param list Table. A specific list of creatures to choose from. Optional
+--@param tags Table. A list of tags to pass to the creature
 --@param allowAll Boolean. If True, creatures with the specialOnly flag can still be chosen (but bosses or creatures with the neverSpawn flag set still cannot). Optional
 --@return Creature. The new creature
-function mapgen:generate_creature(min_level,max_level,list,allowAll)
-  local origList = list
-  if not list then list = possibleMonsters end
+function mapgen:generate_creature(min_level,max_level,list,tags,allowAll)
+  if not list then return false end
 
   --Prevent an infinite loop if there are no creatures of a given level:
   local noCreatures = true
   for _,cid in pairs(list) do
     local creat = (type(cid) == "table" and cid or possibleMonsters[cid] or nil)
-    if creat and ((creat.level >= min_level and creat.level <= max_level) or (creat.max_level and creat.max_level >= min_level and creat.max_level <= max_level)) and creat.isBoss ~= true and creat.neverSpawn ~= true and (allowAll or origList or possibleMonsters[n].specialOnly ~= true) then
+    if creat and not creat.isBoss and not creat.neverSpawn and ((creat.level >= min_level and creat.level <= max_level) or (creat.max_level and (creat.max_level >= min_level or creat.max_level <= max_level))) then 
       noCreatures = false break
     end
   end
@@ -189,9 +189,9 @@ function mapgen:generate_creature(min_level,max_level,list,allowAll)
   while (1 == 1) do -- endless loop, broken by the "return"
     local n = get_random_element(list)
     local creat = (type(n) == "table" and n or possibleMonsters[n])
-    if creat and (((creat.level >= min_level and creat.level <= max_level) or (creat.max_level and creat.max_level >= min_level and creat.max_level <= max_level)) and creat.isBoss ~= true and creat.neverSpawn ~= true and (allowAll or origList or possibleMonsters[n].specialOnly ~= true) and random(1,100) >= (creat.rarity or 0)) then
+    if creat and not creat.isBoss and not creat.neverSpawn and random(1,100) >= (creat.rarity or 0) and ((creat.level >= min_level and creat.level <= max_level) or (creat.max_level and (creat.max_level >= min_level or creat.max_level <= max_level))) then
       local level = random(math.max(creat.level,min_level),math.min(creat.max_level or creat.level,max_level))
-      return Creature(n,level)
+      return Creature(n,level,tags)
     end
   end
 end
@@ -205,14 +205,13 @@ end
 --@return Item. The new item
 function mapgen:generate_item(min_level,max_level,list,tags,allowAll)
   local newItem = nil
-  local origList = list
-  if not list then list = possibleItems end
+  if not list then return false end
 
   --Prevent an infinite loop if there are no items of a given level:
   local noItems = true
   for _,iid in pairs(list) do
-    local item = (type(iid) == "table" and iid or possibleItems[iid] or nil)
-    if item and (not item.level or ((item.level >= min_level and item.level <= max_level) or (item.max_level and item.max_level >= min_level and item.max_level <= max_level)) and item.neverSpawn ~= true and (allowAll or origList or item.specialOnly ~= true)) then 
+    local item = (type(iid) == "string" and possibleItems[iid] or iid)
+    if not item.neverSpawn and (not item.level or ((item.level >= min_level and item.level <= max_level) or (item.max_level and (item.max_level >= min_level or item.max_level <= max_level))))  then 
       noItems = false break
     end
   end
@@ -222,7 +221,7 @@ function mapgen:generate_item(min_level,max_level,list,tags,allowAll)
   while (1 == 1) do -- endless loop, broken by the "return"
     local n = (list == possibleItems and get_random_key(list) or get_random_element(list))
     local item = (type(n) == "table" and n or possibleItems[n])
-    if item and ((not item.level or ((item.level >= min_level and item.level <= max_level) or (item.max_level and item.max_level >= min_level and item.max_level <= max_level))) and item.neverSpawn ~= true and (allowAll or origList or possibleItems[n].specialOnly ~= true) and random(1,100) >= (item.rarity or 0)) then
+    if item and not item.neverSpawn and random(1,100) >= (item.rarity or 0) and (not item.level or ((item.level >= min_level and item.level <= max_level) or (item.max_level and (item.max_level >= min_level or item.max_level <= max_level)))) then
       newItem = n
       break
     end
@@ -1049,6 +1048,7 @@ function mapgen:populate_creatures_in_room(room,map,decID)
             end
           end --end tags for
         end --end tags if
+        --TODO: check forbidden tags
         if done then
           creature_list[#creature_list+1] = cid
         end
@@ -1061,6 +1061,12 @@ function mapgen:populate_creatures_in_room(room,map,decID)
     local clearSpace = 0
     local current_creats = 0
     local branch = currWorld.branches[map.branch]
+    
+    --Passed tags:
+    local passedTags = (dec and dec.passedTags or {})
+    local mapPassed = map:get_content_tags('passed')
+    passedTags = merge_tables(passedTags, mapPassed)
+    
     for x = room.minX,room.maxX,1 do
       for y = room.minY,room.maxY,1 do
         if map:isClear(x,y) then
@@ -1081,8 +1087,8 @@ function mapgen:populate_creatures_in_room(room,map,decID)
       local max_level = map:get_max_level()
       while creats_spawned < creatMax and tries < 100 do
         tries = 0
-        local nc = mapgen:generate_creature(min_level,max_level,creature_list)
-        if nc == false then print('no nc') break end
+        local nc = mapgen:generate_creature(min_level,max_level,creature_list,passedTags)
+        if nc == false then break end
         
         local placed = false
         local cx,cy = random(room.minX,room.maxX),random(room.minY,room.maxY)
@@ -1118,7 +1124,7 @@ function mapgen:populate_creatures_in_room(room,map,decID)
               if tries2 > 10 then break end
             end --end while
             if tries2 <= 10 then
-              local creat = mapgen:generate_creature(min_level,max_level,{nc.id})
+              local creat = mapgen:generate_creature(min_level,max_level,{nc.id},passedTags)
               map:add_creature(creat,cx,cy)
               nc.origin_room = room
               creats_spawned = creats_spawned+0.5 --a group spawned creature only counts as half a creature for the purposes of creature totals, so group spawns won't eat up all the creature slots but also won't overwhelm the map
@@ -1161,7 +1167,8 @@ function mapgen:populate_items_in_room(room,map,decID)
     end --end if items
     if dec.itemTags or dec.contentTags then
       local tags = dec.itemTags or dec.contentTags
-      local tagged_items = mapgen:get_content_list_from_tags('item',tags)
+      local forbidden = dec.forbiddenTags
+      local tagged_items = mapgen:get_content_list_from_tags('item',tags,forbidden)
       item_list = merge_tables(item_list,tagged_items)
     end --end if item or tags listed in room decorator 
   end --end if decid
@@ -1171,9 +1178,9 @@ function mapgen:populate_items_in_room(room,map,decID)
     local branch = currWorld.branches[map.branch]
     
     --Passed tags:
-    local passedTags = dec.passedTags
+    local passedTags = (dec and dec.passedTags or {})
     local mapPassed = map:get_content_tags('passed')
-    passedTags = merge_tables((passedTags or {}),mapPassed)
+    passedTags = merge_tables(passedTags ,mapPassed)
     
     local clearSpace = 0
     local current_items = 0
@@ -1218,7 +1225,7 @@ function mapgen:populate_items_in_room(room,map,decID)
   end --end if creature list
 end
 
-function mapgen:get_content_list_from_tags(content_type,tags)
+function mapgen:get_content_list_from_tags(content_type,tags,forbiddenTags)
   local content_list
   local contents = {}
   if content_type == "creature" then
@@ -1239,20 +1246,54 @@ function mapgen:get_content_list_from_tags(content_type,tags)
   end
   
   for id,content in pairs(content_list) do
-    if not content.neverSpawn then
+    if not content.neverSpawn and not content.specialOnly then
       local done = false
-      if tags and not done then
-        for _,tag in ipairs(tags) do
-          if not content.specialOnly and content.tags and in_table(tag,content.tags) then
+      local allowed = false
+      if forbiddenTags then
+        for _,tag in ipairs(forbiddenTags) do
+          if content.tags and in_table(tag,content.tags) then
             done = true
+            allowed = false
+            break
+          end
+        end --end tag for
+      end --end forbiddentags if
+      if not done then
+        for _,tag in ipairs(tags) do
+          if content.tags and in_table(tag,content.tags) then
+            done = true
+            allowed = true
             break
           end
         end --end tags for
-      end --end tags if
-      if done then
+      end --end done if
+      if allowed then
         contents[#contents+1] = id
       end
     end --end neverspawn if
   end --end content for
   return contents
+end
+
+---Generate a room on a map
+--@param minX Number. The minimum X value of the room.
+--@param minY Number. The minimum Y value of the room.
+--@param maxX Number. The maximum X value of the room.
+--@param maxY Number. The maximum Y value of the room.
+--@param map Map. The map to create the room on.
+--@param rectChance Number. Chance that the room will be a rectangle rather than any other room type
+function mapgen:generate_room(minX,minY,maxX,maxY,map,rectChance)
+  local ret
+  if love.math.random(1,100) <= rectChance and roomTypes.rectangle then
+    ret = roomTypes.rectangle(minX,minY,maxX,maxY,map)
+  else
+    local room = get_random_element(roomTypes)
+    ret = room(minX,minY,maxX,maxY,map)
+  end
+  if ret.floors then
+    for _,floor in pairs(ret.floors) do
+      map.tile_info[floor.x][floor.y].room = ret
+    end
+  end
+  return ret
 end

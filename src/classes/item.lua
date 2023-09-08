@@ -106,7 +106,7 @@ function Item:get_info()
     if attack.min_range or attack.range then uses = uses .. "\nRange: " .. (attack.min_range and attack.min_range .. " (min)" or "") .. (attack.min_range and attack.range and " - " or "") .. (attack.range and attack.range .. " (max)" or "") end
     if attack.best_distance_min or attack.best_distance_max then uses = uses .. "\nBest Range: " .. (attack.best_distance_min and attack.best_distance_min .. " (min)" or "") .. (attack.best_distance_min and attack.best_distance_max and " - " or "") .. (attack.best_distance_max and attack.best_distance_max .. " (max)" or "") end
   end
-  local projectile_id = self.projectile_name or self.usingAmmo or (self.ranged_attack and rangedAttacks[self.ranged_attack] and rangedAttacks[self.ranged_attack].projectile_name)
+  local projectile_id = self.usingAmmo or self.projectile_name or (self.ranged_attack and rangedAttacks[self.ranged_attack] and rangedAttacks[self.ranged_attack].projectile_name)
   if projectile_id and projectiles[projectile_id] then
     local projectile = projectiles[projectile_id]
     uses = uses .. "\n\nProjectile: " .. ucfirst(projectile.name) .. " (" .. projectile.description .. ")"

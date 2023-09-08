@@ -246,8 +246,9 @@ end --end function
 --@param x Number. The x-coordinate
 --@param y Number. The y-coordinate
 --@param getAdjacent Boolean. Whether to also look at adjacent tiles (optional, defaults to false)
+--@param ignoreContainers Boolean. Whether to ignore containers
 --@return A table of items (may be empty)
-function Map:get_tile_items(x,y,getAdjacent)
+function Map:get_tile_items(x,y,getAdjacent,ignoreContainers)
   if not self:in_map(x,y) then return {} end
   
   local items = {}
@@ -1108,7 +1109,18 @@ function Map:populate_creatures(creatTotal,forceGeneric)
   
   --Do special code if the mapType has it:
   if mapType.populate_creatures and not forceGeneric then
-    return mapType:populate_creatures(creatTotal)
+    return mapType.populate_creatures(self,creatTotal)
+  end
+  
+  local passedTags = nil
+  if mapType.passedTags then
+    if mapType.noBranchItems or mapType.noBranchContent or not branch.passedTags then
+      passedTags = mapType.passedTags
+    else
+      passedTags =  merge_tables(mapType.passedTags,branch.passedTags)
+    end
+  else --if the mapType doesn't have passedTags, fall back to the branch's items
+    passedTags = branch.passedTags --if branch doesn't have creatures, this will set it to nil and just use regular items
   end
   
   if not self.noCreatures and creatTotal > 0 then
@@ -1119,7 +1131,7 @@ function Map:populate_creatures(creatTotal,forceGeneric)
     local allSpawnsUsed = false
 		for creat_amt=1,creatTotal,1 do
       if creat_amt > creatTotal then break end --creatTotal is decreased when group spawning happens, but the for loop still tries to run to its original value, so we're checking here to make sure whether or not it should still be running
-			local nc = mapgen:generate_creature(min_level,max_level,specialCreats)
+			local nc = mapgen:generate_creature(min_level,max_level,specialCreats,passedTags)
       if nc == false then break end
       local placed = false
       
@@ -1177,7 +1189,7 @@ function Map:populate_creatures(creatTotal,forceGeneric)
             if tries > 10 then break end
           end --end while
           if tries <= 10 then
-            local creat = mapgen:generate_creature(min_level,max_level,{nc.id})
+            local creat = mapgen:generate_creature(min_level,max_level,{nc.id},passedTags)
             self:add_creature(creat,cx,cy)
             newCreats[#newCreats+1] = creat
             creatTotal = creatTotal-0.5 --a group spawned creature only counts as half a creature for the purposes of creature totals, so group spawns won't eat up all the creature slots but also won't overwhelm the map

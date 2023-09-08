@@ -1,4 +1,4 @@
-local roomTypes = {}
+roomTypes = {}
 
 local rectangle = function(minX,minY,maxX,maxY,map)
   local floors = {}
@@ -223,7 +223,7 @@ local cave = function(minX,minY,maxX,maxY,map)
   local width = math.floor((maxX-minX)/3)
   local height = math.floor((maxY-minY)/3)
   local midX,midY = math.floor((maxX+minX)/2),math.floor((maxY+minY)/2)
-  --if width < 10 or height < 10 then return generate_room(minX,minY,maxX,maxY,map) end --too small, don't make a cave
+  --if width < 10 or height < 10 then return mapgen:generate_room(minX,minY,maxX,maxY,map) end --too small, don't make a cave
   
   local wallchance = wallchance or random(40,45)
 	for x = minX, maxX, 1 do
@@ -281,11 +281,3 @@ local cave = function(minX,minY,maxX,maxY,map)
   return {minX=minX,maxX=maxX,minY=minY,maxY=maxY,midX=midX,midY=midY,walls=walls,dirWalls=dirWalls,floors=floors}
 end
 roomTypes['cave'] = cave --]]
-
-function generate_room(minX,minY,maxX,maxY,map,rectChance)
-  if random(1,100) <= rectChance then
-    return roomTypes.rectangle(minX,minY,maxX,maxY,map)
-  end
-  local room = get_random_element(roomTypes)
-  return room(minX,minY,maxX,maxY,map)
-end

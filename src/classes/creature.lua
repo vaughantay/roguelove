@@ -4,12 +4,12 @@ Creature = Class{}
 ---Initiates a creature. Don't call this explicitly, it's called when you create a new creature with Creature('creatureID').
 --@param creatureType String. The ID of the creature you want to create.
 --@param level Number. The level to set the creature to (optional)
---@param noItems Boolean. Whether to generate without items (optional)
---@param noTweak Boolean. If true, don't randomize certain values
+--@param tags Table. A table of tags to pass to the creature's new() function
 --@param info Anything. Passed to the new() function
+--@param noTweak Boolean. If true, don't randomize certain values
 --@param ignorenewFunc Boolean. Whether to ignore the new() function
 --@return Creature. The creature itself.
-function Creature:init(creatureType,level,noItems,noTweak,info,ignoreNewFunc) --TODO: apply creature.items to creature
+function Creature:init(creatureType,level,tags,info,noTweak,ignoreNewFunc) --TODO: apply creature.items to creature
   local data = possibleMonsters[creatureType]
   noTweak = (noTweak == nil and data.noTweak or noTweak)
   if not data then
@@ -25,10 +25,6 @@ function Creature:init(creatureType,level,noItems,noTweak,info,ignoreNewFunc) --
     elseif vt ~= "function" then
       self[key] = data[key]
     end
-	end
-  --Run new() function
-  if not ignoreNewFunc and (possibleMonsters[creatureType].new ~= nil) then
-		possibleMonsters[creatureType].new(self,(info or nil))
 	end
   
   --Basic stuff:
@@ -163,6 +159,11 @@ function Creature:init(creatureType,level,noItems,noTweak,info,ignoreNewFunc) --
   self.lastSawPlayer = {x=nil,y=nil}
   self.aggression = self.aggression or 100 -- used by NPCs only, chance they'll be hostile when seeing player
   self.memory = self.memory or 10 --turns they remember seeing an enemy
+  
+  --Run new() function
+  if not ignoreNewFunc and (possibleMonsters[creatureType].new ~= nil) then
+		possibleMonsters[creatureType].new(self,tags,info)
+	end
   
   --Generate Name:
   if possibleMonsters[self.id].nameGen then self.properName = possibleMonsters[self.id].nameGen(self)
@@ -1672,6 +1673,7 @@ function Creature:drop_item(item,silent)
     end
     item.x,item.y=self.x,self.y
     item.owner=nil
+    item.equipped=false
 	end
 end
 
@@ -1685,12 +1687,14 @@ function Creature:drop_all_items(deathItems)
     end
     item.x,item.y=self.x,self.y
     item.owner=nil
+    item.equipped=false
 	end --end inventory for loop
   if deathItems and self.death_items then
     for _,item in ipairs(self.death_items) do
       currMap:add_item(item,self.x,self.y,true)
       item.x,item.y=self.x,self.y
       item.owner=nil
+      item.equipped=false
     end --end inventory for loop
   end
   --Money:
@@ -1712,9 +1716,6 @@ function Creature:delete_item(item,amt)
 	if (id) then
     if amt == -1 or amt >= (item.amount or 0) then
       table.remove(self.inventory,id)
-      if self:is_equipped(item) then
-        self:unequip(item)
-      end
       if self.hotkeys then
         for hkid,hkinfo in pairs(self.hotkeys) do
           if hkinfo.type == "item" and hkinfo.hotKeyItem == item then
@@ -1724,6 +1725,9 @@ function Creature:delete_item(item,amt)
       end
     else
       item.amount = item.amount - amt
+    end
+    if self:is_equipped(item) then
+      self:unequip(item)
     end
 	end
 end
@@ -2706,7 +2710,7 @@ end
 function Creature:level_up(force,ignore_callback)
   local cost = self:get_level_up_cost()
   if not ignore_callback then
-    local leveled = self:callbacks('level_up')
+    local leveled = self:callbacks('level_up',self.level+1)
     if leveled == false then return false end
   end
   if not force then 
@@ -2752,7 +2756,7 @@ function Creature:level_up(force,ignore_callback)
     end --end while
     
     --Upgrade spells:
-    if self.spellPoints > 0 then
+    if self.spellPoints and self.spellPoints > 0 then
       local upgradable_spells = {}
       for id,spell in ipairs(self:get_spells(true)) do
         local upgrades = spell:get_possible_upgrades(true)

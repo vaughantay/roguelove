@@ -89,7 +89,7 @@
 <h2><a href="#Methods">Methods</a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#creature:init">creature:init (creatureType, level, noItems, noTweak, info, ignorenewFunc)</a></td>
+	<td class="name" nowrap><a href="#creature:init">creature:init (creatureType, level, tags, info, noTweak, ignorenewFunc)</a></td>
 	<td class="summary">Initiates a creature.</td>
 	</tr>
 	<tr>
@@ -109,8 +109,8 @@
 	<td class="summary">Get the pronoun of a creature</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#creature:get_mhp">creature:get_mhp ()</a></td>
-	<td class="summary">Get the max HP of a creature</td>
+	<td class="name" nowrap><a href="#creature:get_max_hp">creature:get_max_hp ()</a></td>
+	<td class="summary">Get the max HP of a creature *MAY WANT TO CHANGE FOR YOUR OWN GAME*</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#creature:get_max_mp">creature:get_max_mp ()</a></td>
@@ -135,6 +135,10 @@
 	<tr>
 	<td class="name" nowrap><a href="#creature:has_condition">creature:has_condition (condition)</a></td>
 	<td class="summary">Check if a creature has a condition</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#creature:decrease_all_conditions">creature:decrease_all_conditions (removal_type)</a></td>
+	<td class="summary">Decrease all conditions of a given type</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#creature:callbacks">creature:callbacks (callback_type, Anything.)</a></td>
@@ -214,7 +218,7 @@
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#creature:get_inventory_space">creature:get_inventory_space ()</a></td>
-	<td class="summary">Gets the total inventory space the creature has</td>
+	<td class="summary">Gets the total inventory space the creature has *MAY WANT TO CHANGE FOR YOUR OWN GAME*</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#creature:pickup">creature:pickup (item, tileOnly)</a></td>
@@ -389,12 +393,16 @@
 	<td class="summary">How much XP do you need to level up?</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#creature:level_up">creature:level_up (force)</a></td>
-	<td class="summary">Level Up, granting skill points (for players), or randomly increasing skills (for NPCs)</td>
+	<td class="name" nowrap><a href="#creature:level_up">creature:level_up (force, ignore_callback)</a></td>
+	<td class="summary">Level Up, granting stat points (for players), or randomly increasing stats (for NPCs)</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#creature:get_stat_increases_for_level">creature:get_stat_increases_for_level (level)</a></td>
-	<td class="summary">Get a list of what the stat inscrease will be for a given level</td>
+	<td class="summary">Get a list of what the stat increase will be for a given level</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#creature:get_skill_increases_for_level">creature:get_skill_increases_for_level (level)</a></td>
+	<td class="summary">Get a list of what the skill increase will be for a given level</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#creature:get_fear">creature:get_fear (self)</a></td>
@@ -421,8 +429,24 @@
 	<td class="summary">Gets the creature's stealth stat value, including bonuses</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#creature:get_damage">creature:get_damage ()</a></td>
+	<td class="name" nowrap><a href="#creature:get_damage">creature:get_damage (damage_stats)</a></td>
 	<td class="summary">Gets the creature's damage value, including bonuses</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#creature:get_melee_accuracy">creature:get_melee_accuracy (damage_stats)</a></td>
+	<td class="summary">Gets the total of a creature's melee accuracy stats, including bonuses</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#creature:get_ranged_damage">creature:get_ranged_damage (damage_stats)</a></td>
+	<td class="summary">Gets the creature's damage value, including bonuses</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#creature:get_ranged_accuracy">creature:get_ranged_accuracy (damage_stats)</a></td>
+	<td class="summary">Gets the total of a creature's melee accuracy stats, including bonuses</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#creature:get_dodging">creature:get_dodging (damage_stats)</a></td>
+	<td class="summary">Gets the creature's dodge stat values, including bonuses</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#creature:get_armor_piercing">creature:get_armor_piercing ()</a></td>
@@ -434,7 +458,27 @@
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#creature:get_stat">creature:get_stat (stat, noBonus)</a></td>
-	<td class="summary">A generic function for getting a stat and its bonus</td>
+	<td class="summary">A generic function for getting a stat and its bonus.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#creature:get_skills">creature:get_skills (noBonus)</a></td>
+	<td class="summary">Returns a list of all the skills a creature has</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#creature:get_upgradable_skills">creature:get_upgradable_skills (sorted_by_stat)</a></td>
+	<td class="summary">Returns a list of all upgradable skills a creature has, and the points required</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#creature:get_skill">creature:get_skill (stat, noBonus)</a></td>
+	<td class="summary">A generic function for getting a skill and its bonus</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#creature:can_upgrade_skill">creature:can_upgrade_skill (skill, val)</a></td>
+	<td class="summary">Returns whether or not the creature has enough points to upgrade the skill</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#creature:update_skill">creature:update_skill (skill, val, ignore_cost)</a></td>
+	<td class="summary">Changes the skill value</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#creature:get_extra_stat">creature:get_extra_stat (stat, noBonus)</a></td>
@@ -453,7 +497,11 @@
 	<td class="summary">Get all spells the creature has, including those granted by equipment</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#creature:has_spell">creature:has_spell (spellName, noEquip)</a></td>
+	<td class="name" nowrap><a href="#creature:get_unmemorized_spells">creature:get_unmemorized_spells ()</a></td>
+	<td class="summary">Gets a list of spells in spells_known but not in spells</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#creature:has_spell">creature:has_spell (spellName, noEquip, included_unmemorized)</a></td>
 	<td class="summary">Checks if the creature possesses a certain spell</td>
 	</tr>
 	<tr>
@@ -465,6 +513,10 @@
 	<td class="summary">Remove a spell from a creature's spell "inventory"</td>
 	</tr>
 	<tr>
+	<td class="name" nowrap><a href="#creature:memorize_spell">creature:memorize_spell (spellID, force)</a></td>
+	<td class="summary">Add a spell to a creature's spell "inventory"</td>
+	</tr>
+	<tr>
 	<td class="name" nowrap><a href="#creature:can_learn_spell">creature:can_learn_spell (spellID)</a></td>
 	<td class="summary">Determine if a creature can learn this spell or not</td>
 	</tr>
@@ -474,7 +526,11 @@
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#creature:get_spell_slots">creature:get_spell_slots ()</a></td>
-	<td class="summary">Gets the number of total spell slots the creature has</td>
+	<td class="summary">Gets the number of total spell slots the creature has *MAY WANT TO CHANGE FOR YOUR OWN GAME*</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#creature:get_purchasable_spells">creature:get_purchasable_spells ()</a></td>
+	<td class="summary">Gets a list of all the spells a creature can currently learn from its definition, class, or skills</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#creature:get_melee_attacks">creature:get_melee_attacks ()</a></td>
@@ -520,7 +576,7 @@ TODO: Forbidden tags on recipes</td>
     <dl class="function">
     <dt>
     <a name = "creature:init"></a>
-    <strong>creature:init (creatureType, level, noItems, noTweak, info, ignorenewFunc)</strong>
+    <strong>creature:init (creatureType, level, tags, info, noTweak, ignorenewFunc)</strong>
     </dt>
     <dd>
     Initiates a creature.  Don't call this explicitly, it's called when you create a new creature with Creature('creatureID').
@@ -534,14 +590,14 @@ TODO: Forbidden tags on recipes</td>
         <li><span class="parameter">level</span>
          Number. The level to set the creature to (optional)
         </li>
-        <li><span class="parameter">noItems</span>
-         Boolean. Whether to generate without items (optional)
-        </li>
-        <li><span class="parameter">noTweak</span>
-         Boolean. If true, don't randomize certain values
+        <li><span class="parameter">tags</span>
+         Table. A table of tags to pass to the creature's new() function
         </li>
         <li><span class="parameter">info</span>
          Anything. Passed to the new() function
+        </li>
+        <li><span class="parameter">noTweak</span>
+         Boolean. If true, don't randomize certain values
         </li>
         <li><span class="parameter">ignorenewFunc</span>
          Boolean. Whether to ignore the new() function
@@ -652,18 +708,18 @@ TODO: Forbidden tags on recipes</td>
 
 </dd>
     <dt>
-    <a name = "creature:get_mhp"></a>
-    <strong>creature:get_mhp ()</strong>
+    <a name = "creature:get_max_hp"></a>
+    <strong>creature:get_max_hp ()</strong>
     </dt>
     <dd>
-    Get the max HP of a creature
+    Get the max HP of a creature *MAY WANT TO CHANGE FOR YOUR OWN GAME*
 
 
 
     <h3>Returns:</h3>
     <ol>
 
-        Number. the max HP
+        Number. The max HP
     </ol>
 
 
@@ -823,6 +879,26 @@ TODO: Forbidden tags on recipes</td>
 
         Boolean. Whether the creature has the condition.
     </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "creature:decrease_all_conditions"></a>
+    <strong>creature:decrease_all_conditions (removal_type)</strong>
+    </dt>
+    <dd>
+    Decrease all conditions of a given type
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">removal_type</span>
+         Text. The removal type of the condition (defaults to turns)
+        </li>
+    </ul>
+
 
 
 
@@ -1299,7 +1375,7 @@ TODO: Forbidden tags on recipes</td>
     <strong>creature:get_inventory_space ()</strong>
     </dt>
     <dd>
-    Gets the total inventory space the creature has
+    Gets the total inventory space the creature has *MAY WANT TO CHANGE FOR YOUR OWN GAME*
 
 
 
@@ -2323,7 +2399,7 @@ TODO: Forbidden tags on recipes</td>
     <strong>creature:get_level_up_cost ()</strong>
     </dt>
     <dd>
-    How much XP do you need to level up?  TODO: Replace with better formula
+    How much XP do you need to level up?  *MAY WANT TO CHANGE FOR YOUR OWN GAME*
 
 
 
@@ -2339,16 +2415,19 @@ TODO: Forbidden tags on recipes</td>
 </dd>
     <dt>
     <a name = "creature:level_up"></a>
-    <strong>creature:level_up (force)</strong>
+    <strong>creature:level_up (force, ignore_callback)</strong>
     </dt>
     <dd>
-    Level Up, granting skill points (for players), or randomly increasing skills (for NPCs)
+    Level Up, granting stat points (for players), or randomly increasing stats (for NPCs)
 
 
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">force</span>
          Boolean. Whether or not to ignore XP costs
+        </li>
+        <li><span class="parameter">ignore_callback</span>
+         Boolean. Whether to ignore level_up callbacks
         </li>
     </ul>
 
@@ -2362,7 +2441,32 @@ TODO: Forbidden tags on recipes</td>
     <strong>creature:get_stat_increases_for_level (level)</strong>
     </dt>
     <dd>
-    Get a list of what the stat inscrease will be for a given level
+    Get a list of what the stat increase will be for a given level
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">level</span>
+         Number. The level to look at the stat increases for
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A list of stats and increases in the format {stat=1}
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "creature:get_skill_increases_for_level"></a>
+    <strong>creature:get_skill_increases_for_level (level)</strong>
+    </dt>
+    <dd>
+    Get a list of what the skill increase will be for a given level
 
 
     <h3>Parameters:</h3>
@@ -2510,12 +2614,118 @@ TODO: Forbidden tags on recipes</td>
 </dd>
     <dt>
     <a name = "creature:get_damage"></a>
-    <strong>creature:get_damage ()</strong>
+    <strong>creature:get_damage (damage_stats)</strong>
     </dt>
     <dd>
     Gets the creature's damage value, including bonuses
 
 
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">damage_stats</span>
+         Table. A table of stats and skills that increase damage in the format stat=amt_per_level
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The damage value
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "creature:get_melee_accuracy"></a>
+    <strong>creature:get_melee_accuracy (damage_stats)</strong>
+    </dt>
+    <dd>
+    Gets the total of a creature's melee accuracy stats, including bonuses
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">damage_stats</span>
+         Table. A table of stats and skills that increase damage in the format stat=amt_per_level
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The damage value
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "creature:get_ranged_damage"></a>
+    <strong>creature:get_ranged_damage (damage_stats)</strong>
+    </dt>
+    <dd>
+    Gets the creature's damage value, including bonuses
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">damage_stats</span>
+         Table. A table of stats and skills that increase damage in the format stat=amt_per_level
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The damage value
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "creature:get_ranged_accuracy"></a>
+    <strong>creature:get_ranged_accuracy (damage_stats)</strong>
+    </dt>
+    <dd>
+    Gets the total of a creature's melee accuracy stats, including bonuses
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">damage_stats</span>
+         Table. A table of stats and skills that increase damage in the format stat=amt_per_level
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The damage value
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "creature:get_dodging"></a>
+    <strong>creature:get_dodging (damage_stats)</strong>
+    </dt>
+    <dd>
+    Gets the creature's dodge stat values, including bonuses
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">damage_stats</span>
+         Table. A table of stats and skills that increase dodge in the format stat=amt_per_level
+        </li>
+    </ul>
 
     <h3>Returns:</h3>
     <ol>
@@ -2570,7 +2780,7 @@ TODO: Forbidden tags on recipes</td>
     <strong>creature:get_stat (stat, noBonus)</strong>
     </dt>
     <dd>
-    A generic function for getting a stat and its bonus
+    A generic function for getting a stat and its bonus.  Looks at base stats first, then extra_stats, then skills
 
 
     <h3>Parameters:</h3>
@@ -2588,6 +2798,138 @@ TODO: Forbidden tags on recipes</td>
 
         Number. The stat value
     </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "creature:get_skills"></a>
+    <strong>creature:get_skills (noBonus)</strong>
+    </dt>
+    <dd>
+    Returns a list of all the skills a creature has
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">noBonus</span>
+
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A list of all skills in the format skillID=value
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "creature:get_upgradable_skills"></a>
+    <strong>creature:get_upgradable_skills (sorted_by_stat)</strong>
+    </dt>
+    <dd>
+    Returns a list of all upgradable skills a creature has, and the points required
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">sorted_by_stat</span>
+         Boolean. If true, the table will return in the format {upgrade_stat1={skill1,skill2},upgradestat2={skill3,skill4}}. If false, it will just return a flat list of skills
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A list of all skills in the format skillID=upgrade_stat
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "creature:get_skill"></a>
+    <strong>creature:get_skill (stat, noBonus)</strong>
+    </dt>
+    <dd>
+    A generic function for getting a skill and its bonus
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">stat</span>
+         Text. The skill to get
+        </li>
+        <li><span class="parameter">noBonus</span>
+         Boolean. If true, don't add the bonus to the stat
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The stat value
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "creature:can_upgrade_skill"></a>
+    <strong>creature:can_upgrade_skill (skill, val)</strong>
+    </dt>
+    <dd>
+    Returns whether or not the creature has enough points to upgrade the skill
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">skill</span>
+         Text. The ID of the skill
+        </li>
+        <li><span class="parameter">val</span>
+         Number. The amount to change the skill by, defaults to 1
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether the skill is upgradable or not
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "creature:update_skill"></a>
+    <strong>creature:update_skill (skill, val, ignore_cost)</strong>
+    </dt>
+    <dd>
+    Changes the skill value
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">skill</span>
+         Text. The ID of the skill
+        </li>
+        <li><span class="parameter">val</span>
+         Number. The amount to change the skill by, defaults to 1
+        </li>
+        <li><span class="parameter">ignore_cost</span>
+         Boolean. If true, don't pay the cost of the upgrade
+        </li>
+    </ul>
+
 
 
 
@@ -2698,8 +3040,27 @@ TODO: Forbidden tags on recipes</td>
 
 </dd>
     <dt>
+    <a name = "creature:get_unmemorized_spells"></a>
+    <strong>creature:get_unmemorized_spells ()</strong>
+    </dt>
+    <dd>
+    Gets a list of spells in spells_known but not in spells
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A list of creature's unmemorized spells
+    </ol>
+
+
+
+
+</dd>
+    <dt>
     <a name = "creature:has_spell"></a>
-    <strong>creature:has_spell (spellName, noEquip)</strong>
+    <strong>creature:has_spell (spellName, noEquip, included_unmemorized)</strong>
     </dt>
     <dd>
     Checks if the creature possesses a certain spell
@@ -2712,6 +3073,9 @@ TODO: Forbidden tags on recipes</td>
         </li>
         <li><span class="parameter">noEquip</span>
          Boolean. If true, ignore spells granted by equipment
+        </li>
+        <li><span class="parameter">included_unmemorized</span>
+         Boolean. If true, also look in the spells_known table
         </li>
     </ul>
 
@@ -2774,6 +3138,29 @@ TODO: Forbidden tags on recipes</td>
 
 </dd>
     <dt>
+    <a name = "creature:memorize_spell"></a>
+    <strong>creature:memorize_spell (spellID, force)</strong>
+    </dt>
+    <dd>
+    Add a spell to a creature's spell "inventory"
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">spellID</span>
+         String. The ID of the spell to memorize
+        </li>
+        <li><span class="parameter">force</span>
+         Boolean. If true, add the spell even if it overfills the slots
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
     <a name = "creature:can_learn_spell"></a>
     <strong>creature:can_learn_spell (spellID)</strong>
     </dt>
@@ -2824,7 +3211,21 @@ TODO: Forbidden tags on recipes</td>
     <strong>creature:get_spell_slots ()</strong>
     </dt>
     <dd>
-    Gets the number of total spell slots the creature has
+    Gets the number of total spell slots the creature has *MAY WANT TO CHANGE FOR YOUR OWN GAME*
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "creature:get_purchasable_spells"></a>
+    <strong>creature:get_purchasable_spells ()</strong>
+    </dt>
+    <dd>
+    Gets a list of all the spells a creature can currently learn from its definition, class, or skills
 
 
 
@@ -3028,7 +3429,7 @@ TODO: Forbidden tags on recipes
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2023-08-04 10:22:03 </i>
+<i style="float:right;">Last updated 2023-09-08 16:24:54 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

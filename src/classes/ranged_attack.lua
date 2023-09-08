@@ -75,7 +75,7 @@ function RangedAttack:use(target, attacker, item)
   end
   if self.sound and player:can_see_tile(attacker.x,attacker.y) then output:sound(self.sound) end
   --Create the projectile:
-  local proj = Projectile((item and (item.projectile_name or item.usingAmmo) or self.projectile_name),attacker,target)
+  local proj = Projectile((item and (item.usingAmmo or item.projectile_name) or self.projectile_name),attacker,target)
   proj.source_attack = self
   --Add enchantments:
   if item then
