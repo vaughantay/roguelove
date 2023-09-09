@@ -47,6 +47,14 @@ function Effect:delete(map)
   if self.castsLight then map.lights[self] = nil end
 end
 
+
+---Perform an effect's cleanup() callback, if applicable.
+--@param map Map. The map the effect is on
+function Effect:cleanup(map)
+  map = map or currMap
+  if effects[self.id].cleanup then return effects[self.id].cleanup(self,map) end
+end
+
 ---Returns the name and description of the effect
 function Effect:get_description()
 	return self.name .. "\n" .. self.description

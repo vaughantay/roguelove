@@ -1,15 +1,15 @@
 gamesettings = {
   --Basic game definition:
-  name = "Insert Game Title Here",
-  id="rogueloveuntitled",
+  name = "Insert Game Title Here", --Will be displayed on the main screen
+  id="rogueloveuntitled", --Used internally
   author = "You",
-  version_text = "In Development",
-  copyright_text="Copyright 2023",
-  url="http://weirdfellows.com",
+  --version_text = "In Development", --Will be displayed at the bottom of the screen
+  --copyright_text="Copyright 2023", --Will be displayed at the bottom of the screen
+  --url="http://yourwebsite.com", --Will be displayed at the bottom of the screen. Clicking it opens the URL
   
   --Display:
-  --always_use_color_with_tiles=true,
-  tilesize=32, --Change the image tile size. But be warned: a lot of parts of the engine still will assume 32 for images
+  --always_use_color_with_tiles=true, --If true, always tint sprites with the entity's color setting. If false, display them as-is
+  tilesize=32, --Change the image tile size. This isn't fully implemented and a lot of parts of the engine still will assume 32 for images
   
   --Game features:
   --xp=true, --If true, this game awards XP on kills and uses it for leveling
@@ -19,7 +19,9 @@ gamesettings = {
   --bosses=true, --If true, bosses will spawn when trying to go to a new level
   --player_tombstones=true, --If true, tombstones will be created on levels where players were previous killed listing their date and cause of death
   --heal_on_level_up=true, --reset to max HP and MP on a level up
-  ---display_creature_levels=true, --If true, creature levels will be displayed. Otherwise they won't (but can still be used behind the scenes)
+  --display_creature_levels=true, --If true, creature levels will be displayed. Otherwise they won't (but can still be used behind the scenes)
+  --cleanup_on_map_exit=true, --If true, run Map:cleanup() when you exit a map
+  --cleanup_on_branch_exit=true -- If true, run Map:cleanup() when you exit a branch (redundant if cleanup_on_map_exit is already true)
   
   --Map and world generation:
   default_map_width=60,

@@ -19,17 +19,18 @@ local sign = {
 possibleFeatures['sign'] = sign
 
 local bloodstain = {
-    name = "blood",
-    symbol = ".",
-    description = "Someone bled here. Gross!",
+  name = "blood",
+  symbol = ".",
+  description = "Someone bled here. Gross!",
   image_name = "whitechunk1",
   use_color_with_tiles=true,
-    color={r=255,g=0,b=0,a=255},
-    new = function (self,color)
+  color={r=255,g=0,b=0,a=255},
+  remove_on_cleanup=true,
+  new = function (self,color)
     self.angle = random(1,360)
         self.image_name = "whitechunk" .. random(1,2)
     if color then self.color=copy_table(color) end
-    end
+  end
 }
 possibleFeatures['bloodstain'] = bloodstain
 
@@ -39,6 +40,7 @@ local slipperyblood = {
   description = "A slippery puddle of blood. Gross!",
   image_name = "chunk1",
   color={r=255,g=0,b=0,a=255},
+  remove_on_cleanup=true,
 }
 function slipperyblood:new()
   self.angle = random(1,360)
@@ -58,21 +60,22 @@ end
 possibleFeatures['slipperyblood'] = slipperyblood
 
 local acid = {
-    name = "acid",
+  name = "acid",
   id="acid",
-    symbol = "≈",
-    description = "And not the fun kind, either!",
+  symbol = "≈",
+  description = "And not the fun kind, either!",
   safeFor={flyer=true},
   pathThrough = true,
-    color={r=0,g=200,b=0},
+  color={r=0,g=200,b=0},
   hazard = 10,
   tilemap = true,
-    enter = function(self,entity)
+  remove_on_cleanup=true,
+  enter = function(self,entity)
     if not entity:is_type('flyer') then
       local dmg = entity:damage(tweak(7),self.caster,"acid")
       if player:can_sense_creature(entity) then output:out("The acid on the floor damages " .. entity:get_name() .. " for " .. dmg .. " damage.") end
     end
-    end
+  end
 }
 function acid:refresh_image_name()
   local directions = ""
@@ -85,13 +88,14 @@ end --end get_image
 possibleFeatures['acid'] = acid
 
 local trap = {
-    name = "trap",
+  name = "trap",
   id="trap",
-    symbol = "^",
-    description = "A nasty immobilizing trap.",
-    color={r=255,g=255,b=255},
+  symbol = "^",
+  description = "A nasty immobilizing trap.",
+  color={r=255,g=255,b=255},
   useWalkedOnImage = true,
   hazard = 10,
+  remove_on_cleanup=true,
   enter=function(self,entity,fromX,fromY)
     local moved = not (self.x == fromX and self.y == fromY)
     if moved and entity:is_type('flyer') == false then
@@ -110,12 +114,12 @@ local trap = {
 possibleFeatures['trap'] = trap
 
 local statue = {
-    name = "Statue",
-    symbol="Ω",
-    blocksMovement = true,
+  name = "Statue",
+  symbol="Ω",
+  blocksMovement = true,
   alwaysDisplay=true,
-    color={r=150,g=150,b=150,a=255},
-    description="A stern stone statue.",
+  color={r=150,g=150,b=150,a=255},
+  description="A stern stone statue.",
   useWalkedOnImage = true,
 }
 function statue:placed(map)
@@ -153,25 +157,25 @@ end
 possibleFeatures['statue'] = statue
 
 local petrify_victim = {
-    name = "Petrified Creature",
-    symbol="Ω",
+  name = "Petrified Creature",
+  symbol="Ω",
   alwaysDisplay=true,
   blocksMovement=true,
-    color={r=150,g=150,b=150,a=255},
-    description="Poor unfortunate soul.",
+  color={r=150,g=150,b=150,a=255},
+  description="Poor unfortunate soul.",
   useWalkedOnImage = true,
 }
 possibleFeatures['petrify_victim'] = petrify_victim
 
 local gate = {
-    name="Gate",
-    symbol="+",
-    color={r=100,g=100,b=100,a=255},
-    description = "A closed iron gate.",
+  name="Gate",
+  symbol="+",
+  color={r=100,g=100,b=100,a=255},
+  description = "A closed iron gate.",
   passableFor={ghost=true},
-    blocksMovement = true,
+  blocksMovement = true,
   pathThrough = true,
-    enter=function(self,entity)
+  enter=function(self,entity)
     if entity:is_type('ghost') then return true end
     if self.symbol == "+" then
       if self.playerOnly and entity ~= player then return false end
@@ -190,19 +194,19 @@ local gate = {
       self.image_name = "gateopen"
       return false
     end
-    end
+  end
 }
 possibleFeatures['gate'] = gate
 
 local valhallagate = {
-    name="Gate to Valhalla",
-    symbol="+",
-    color={r=100,g=100,b=100,a=255},
-    description = "A closed adamantium gate.",
-    blocksMovement = true,
-    pathThrough = true,
-    closed=true,
-    actions={unlock={text="Unlock the Gate to Valhalla",description="Unlock the Gate to Valhalla.",requires=function(self,user) if self.closed and user:has_item('heroskey') then return true else return false end end}},
+  name="Gate to Valhalla",
+  symbol="+",
+  color={r=100,g=100,b=100,a=255},
+  description = "A closed adamantium gate.",
+  blocksMovement = true,
+  pathThrough = true,
+  closed=true,
+  actions={unlock={text="Unlock the Gate to Valhalla",description="Unlock the Gate to Valhalla.",requires=function(self,user) if self.closed and user:has_item('heroskey') then return true else return false end end}},
   enter=function(self,entity)
     if self.closed then
       self:action(entity)
@@ -295,17 +299,17 @@ end
 possibleFeatures['mushroom'] = mushroom
 
 local grass = {
-    name = "Grass",
+  name = "Grass",
   id="grass",
-    description = "Green blades of grass.",
-    symbol = ".",
-    color={r=0,g=255,b=0},
+  description = "Green blades of grass.",
+  symbol = ".",
+  color={r=0,g=255,b=0},
   noDesc = true,
   fireChance = 5,
   fireTime = 5,
   tilemap = true,
   image_varieties=2,
-    new = function(self)
+  new = function(self)
         self.color.g = random(150,255)
     local symbol = random(1,3)
     if symbol == 1 then
@@ -313,7 +317,7 @@ local grass = {
     elseif symbol == 2 then
       self.symbol = ";"
     end
-    end
+  end
 }
 function grass:refresh_image_name()
   local directions = ""
@@ -326,18 +330,18 @@ end --end get_image
 possibleFeatures['grass'] = grass
 
 local deadgrass = {
-    name = "Dead Grass",
-    description = "Dead, crunchy, flammable grass.",
-    symbol = ".",
-    color={r=200,g=200,b=200,a=255},
+  name = "Dead Grass",
+  description = "Dead, crunchy, flammable grass.",
+  symbol = ".",
+  color={r=200,g=200,b=200,a=255},
   noDesc = true,
   fireChance = 100,
   fireTime = 2,
   tilemap = true,
-    new = function(self)
-        self.color.g = random(150,255)
-        if (random(1,2) == 1) then self.symbol = "," end
-    end
+  new = function(self)
+    self.color.g = random(150,255)
+    if (random(1,2) == 1) then self.symbol = "," end
+  end
 }
 function deadgrass:refresh_image_name()
   local directions = ""
@@ -350,11 +354,11 @@ end --end get_image
 possibleFeatures['deadgrass'] = deadgrass
 
 local shallowwater = {
-    name = "Shallow Water",
-    description = "Cool, blue water.",
-    symbol="≈",
+  name = "Shallow Water",
+  description = "Cool, blue water.",
+  symbol="≈",
   water = true,
-    color={r=0,g=200,b=200},
+  color={r=0,g=200,b=200},
   hazard = 1,
   hazardousFor = {fire=true},
   tilemap = true,
@@ -394,14 +398,14 @@ end --end get_image
 possibleFeatures['shallowwater'] = shallowwater
 
 local sewage = {
-    name = "Sewage",
-    description = "Smelly.",
-    symbol="≈",
+  name = "Sewage",
+  description = "Smelly.",
+  symbol="≈",
   tilemap = true,
   water = true,
   safeFor = {swimmer=true,flyer=true},
   walkedOnImage = "wadingsewage",
-    color={r=55,g=70,b=60,a=255},
+  color={r=55,g=70,b=60,a=255},
   enter = function(self,entity,fromX,fromY)
     if entity:has_condition('onfire') then entity:cure_condition('onfire') end
     local moved = not (self.x == fromX and self.y == fromY)
@@ -442,11 +446,11 @@ end --end get_image
 possibleFeatures['sewage'] = sewage
 
 local swampwater = {
-    name = "Swamp Water",
-    description = "Still water, covered in a layer of slime.",
-    symbol="≈",
+  name = "Swamp Water",
+  description = "Still water, covered in a layer of slime.",
+  symbol="≈",
   water = true,
-    color={r=0,g=125,b=100},
+  color={r=0,g=125,b=100},
   hazard = 1,
   hazardousFor = {fire=true},
   tilemap = true,
@@ -486,10 +490,10 @@ end --end get_image
 possibleFeatures['swampwater'] = swampwater
 
 local riverofthedead = {
-    name = "River of the Dead",
-    description = "Dark water that absorbs all light and casts no reflection. If you get too close, you can hear ghostly whispers.",
-    symbol="≈",
-    color={r=33,g=0,b=33,a=255},
+  name = "River of the Dead",
+  description = "Dark water that absorbs all light and casts no reflection. If you get too close, you can hear ghostly whispers.",
+  symbol="≈",
+  color={r=33,g=0,b=33,a=255},
   hazard = 1,
   absorbs = true,
   safeFor={flyer=true,undead=true},
@@ -537,13 +541,13 @@ end --end get_image
 possibleFeatures['riverofthedead'] = riverofthedead
 
 local deepwater = {
-    name = "Deep Water",
-    description = "Cool, blue water.",
-    symbol="≈",
+  name = "Deep Water",
+  description = "Cool, blue water.",
+  symbol="≈",
   water=true,
   absorbs = true,
-    color={r=0,g=0,b=200},
-    hazard=5,
+  color={r=0,g=0,b=200},
+  hazard=5,
   absorbs = true,
   safeFor={swimmer=true,flyer=true},
   tilemap = true,
@@ -580,11 +584,11 @@ end --end get_image
 possibleFeatures['deepwater'] = deepwater
 
 local lava = {
-    name = "Lava",
-    description = "Hot, hot, hot!",
-    symbol="≈",
-    color={r=255,g=40,b=0},
-    hazard=20,
+  name = "Lava",
+  description = "Hot, hot, hot!",
+  symbol="≈",
+  color={r=255,g=40,b=0},
+  hazard=20,
   absorbs = true,
   tilemap=true,
   tileDirection = "nsew",
@@ -620,11 +624,11 @@ end --end get_image
 possibleFeatures['lava'] = lava
 
 local ember = {
-    name = "Ember",
-    description = "Hot embers are scattered on the ground.",
-    symbol=".",
-    color={r=150,g=0,b=0},
-    hazard=10,
+  name = "Ember",
+  description = "Hot embers are scattered on the ground.",
+  symbol=".",
+  color={r=150,g=0,b=0},
+  hazard=10,
   tilemap=true,
   tileDirection = "middle",
   castsLight = true,
@@ -632,6 +636,7 @@ local ember = {
   heat=8,
   use_color_with_tiles=true,
   safeFor={fireImmune=true,flyer=true},
+  remove_on_cleanup=true,
   enter = function(self,entity)
     if (entity:is_type('fireImmune') == false and entity:is_type('flyer') == false) then
       local dmg = entity:damage(tweak(self.heat),nil,'fire')
@@ -735,16 +740,16 @@ end --end get_image
 possibleFeatures['brokentiles'] = brokentiles
 
 local flower = {
-    name = "Flower",
+  name = "Flower",
   id = "flower",
-    description = "A pretty flower.",
-    symbol = "*",
+  description = "A pretty flower.",
+  symbol = "*",
   use_color_with_tiles = true,
-    color={r=255,g=255,b=255},
-    new = function(self)
-        local r,g,b = random(0,255),random(0,255),random(0,255)
-        self.color={r=r,g=g,b=b}
-    end
+  color={r=255,g=255,b=255},
+  new = function(self)
+    local r,g,b = random(0,255),random(0,255),random(0,255)
+    self.color={r=r,g=g,b=b}
+  end
 }
 possibleFeatures['flower'] = flower
 
@@ -762,8 +767,8 @@ local bonepile = {
   description = "A pile of old bones.",
   color={r=200,g=200,b=200},
   new = function(self,creature)
-        self.creature = creature
-    end,
+    self.creature = creature
+  end,
 }
 possibleFeatures['bonepile'] = bonepile
 
@@ -771,7 +776,8 @@ local zombait = {
   name = "Bait",
   description = "A bit of rotten meat. Animals and the undead find it irresistable.",
   symbol = "*",
-  color={r=150,g=0,b=0,a=255}
+  color={r=150,g=0,b=0,a=255},
+  remove_on_cleanup=true
 }
 possibleFeatures['zombait'] = zombait
 
@@ -783,6 +789,7 @@ local slime = {
   tileDirection = "nsew",
   hazard=1,
   color={r=0,g=175,b=0,a=175},
+  remove_on_cleanup=true,
   enter = function(self,entity,fromX,fromY)
     local xMod,yMod = self.x-fromX,self.y-fromY
     if entity:has_spell('slimetrail') == false and entity:is_type('flyer') == false then
@@ -850,6 +857,7 @@ local web = {
   alwaysDisplay=true,
   fireChance = 100,
   fireTime = 2,
+  remove_on_cleanup=true,
   enter = function(self,entity)
     if (entity.id ~= "spider" and not entity:is_type('flyer')) then
       entity:give_condition("webbed",random(2,3))
@@ -1174,12 +1182,12 @@ local fountain = {
 possibleFeatures['fountain'] = fountain
 
 local landmine = {
-    name = "suspicious mound of dirt",
-    symbol = "^",
-    description = "There's a strange mound of dirt here. Maybe you shouldn't step on it.",
-    color={r=98,g=73,b=22,a=255},
+  name = "suspicious mound of dirt",
+  symbol = "^",
+  description = "There's a strange mound of dirt here. Maybe you shouldn't step on it.",
+  color={r=98,g=73,b=22,a=255},
   hazard = 5,
-    enter=function(self,entity,fromX,fromY)
+  enter=function(self,entity,fromX,fromY)
     local moved = not (self.x == fromX and self.y == fromY)
     if entity and not moved then return end -- don't blow up a landmine if you haven't moved
     if entity and player:can_see_tile(entity.x,entity.y) then output:out(entity:get_name() .. " steps on a landmine!") end
@@ -1216,8 +1224,8 @@ local landmine = {
         end --end wall if
       end --end fory
     end --end forx
-        self:delete()
-    end
+    self:delete()
+  end
 }
 possibleFeatures['landmine'] = landmine
 
@@ -1529,6 +1537,7 @@ local spilledbooze = {
   color={r=150,g=0,b=150,a=255},
   fireChance = 100,
   fireTime = 5,
+  remove_on_cleanup=true,
 }
 function spilledbooze:new()
   self.angle = random(1,360)
@@ -1549,18 +1558,19 @@ end
 possibleFeatures['spilledbooze'] = spilledbooze
 
 local brokenglass = {
-    name = "broken glass",
-    symbol = "^",
-    description = "There are shards of broken glass all over the floor. Someone should really clean that up.",
-    color={r=255,g=255,b=255},
+  name = "broken glass",
+  symbol = "^",
+  description = "There are shards of broken glass all over the floor. Someone should really clean that up.",
+  color={r=255,g=255,b=255},
   use_color_with_tiles=true,
   hazard = 10,
-    enter = function(self,entity,fromX,fromY)
+  remove_on_cleanup=true,
+  enter = function(self,entity,fromX,fromY)
     local moved = not (self.x == fromX and self.y == fromY)
     if not moved then return end -- don't get damaged if you don't actually STEP on it but just stay there
-        local dmg = entity:damage(tweak(3),self.caster)
-        if player:can_see_tile(self.x,self.y) then output:out(entity:get_name() .. " steps on broken glass, taking " .. dmg .. " damage.") end
-    end
+    local dmg = entity:damage(tweak(3),self.caster)
+    if player:can_see_tile(self.x,self.y) then output:out(entity:get_name() .. " steps on broken glass, taking " .. dmg .. " damage.") end
+  end
 }
 possibleFeatures['brokenglass'] = brokenglass
 
@@ -1598,7 +1608,8 @@ local ashpile = {
   name = "pile of ashes",
   symbol = "^",
   color = {r=100,g=100,b=100,a=255},
-  description = "A pile of ashes, left behind after the death of a phoenix.",
+  description = "A pile of ashes.",
+  remove_on_cleanup=true,
   new = function (self,data,x,y)
     local cdown = Effect('phoenixcountdown')
     cdown.ashpile = self
@@ -1708,6 +1719,7 @@ local noisemaker = {
   symbol = "*",
   description = "A small device that continously emits distracting noises.",
   color={r=200,g=200,b=0,a=255},
+  remove_on_cleanup=true,
 }
 possibleFeatures['noisemaker'] = noisemaker
 
@@ -1956,6 +1968,7 @@ local brokenvase = {
   symbol = "*",
   description = "Someone broke something.",
   color = {r=0,g=0,b=255,a=255},
+  remove_on_cleanup=true,
   new = function(self,args)
     if type(args) == "table" and args.image_base then
       self.image_name = args.image_base .. "broken" .. (args.broken_num and random(1,args.broken_num) or "")
@@ -1970,6 +1983,7 @@ local smashedwood = {
   description = "Someone smashed something something.",
   color={r=129,g=94,b=0,a=255},
   image_varieties=3,
+  remove_on_cleanup=true,
 }
 possibleFeatures['smashedwood'] = smashedwood
 
@@ -2231,6 +2245,7 @@ local corpse = {
   description = "A dead body.",
   targetable = true,
   alwaysDisplay = true,
+  remove_on_cleanup=true,
   new = function (self,creature)
     if creature.spritesheet then
       self.spritesheet = true
@@ -2261,32 +2276,33 @@ end
 possibleFeatures['corpse'] = corpse
 
 local chunk = {
-    name = "chunks",
-    symbol = ".",
-    description = "The bloody remains of some unfortunate creature.",
+  name = "chunks",
+  symbol = ".",
+  description = "The bloody remains of some unfortunate creature.",
   image_name = "whitechunk1",
-    color={r=255,g=0,b=0,a=255},
+  color={r=255,g=0,b=0,a=255},
   use_color_with_tiles=true,
-    new = function (self, creature)
-        if (creature ~= nil) then
-            self.name = creature.name .. " chunks"
-        end
+  remove_on_cleanup=true,
+  new = function (self, creature)
+    if (creature ~= nil) then
+      self.name = creature.name .. " chunks"
+    end
     self.angle = random(1,360)
-        local chunkType = random(1,6)
-        if (chunkType == 2) then
+    local chunkType = random(1,6)
+    if (chunkType == 2) then
       self.image_name = "whitechunk2"
-            self.symbol = "*"
-        elseif (chunkType == 3) then
+      self.symbol = "*"
+    elseif (chunkType == 3) then
       self.image_name = "whitechunk2"
-            self.symbol = "~"
+      self.symbol = "~"
     elseif (chunkType == 4) then
       self.image_name = "whitechunk3"
       self.symbol = ","
-        end
+    end
     if creature and creature.bloodColor then
       self.color = copy_table(creature.bloodColor)
     end
-    end
+  end
 }
 possibleFeatures['chunk'] = chunk
 

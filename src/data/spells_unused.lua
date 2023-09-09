@@ -1,4 +1,4 @@
----The below spells were pulled straight from Possession, so may need some tweaking to work correctly.
+--The below spells were pulled straight from Possession, so may need some tweaking to work correctly.
 possibleSpells = {
 
 repairBody = Spell({

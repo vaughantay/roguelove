@@ -863,3 +863,10 @@ function Item:identify()
     currGame.identified_items[ID] = true
   end
 end
+
+---Perform an item's cleanup() callback, if applicable.
+--@param map Map. The map the item is on
+function Item:cleanup(map)
+  map = map or currMap
+  if possibleItems[self.id].cleanup then return possibleItems[self.id].cleanup(self,map) end
+end

@@ -64,7 +64,7 @@ end
 --@param pronouns Table. A table of custom pronouns. Optional, only needed if using "custom" gender.
 function initialize_player(creatureID,class,name,gender,pronouns)
   creatureID = creatureID or gamesettings.default_player
-	player = Creature(creatureID,1,nil,true)
+	player = Creature(creatureID,1,nil,nil,true)
   if class then player:apply_class(class) end
 	player.isPlayer = true
   player.playerAlly = true
@@ -349,6 +349,9 @@ function goToMap(depth,branch,force)
       update_stat('map_reached',currMap.id)
 		end
 		currMap.contents[player.x][player.y][player] = nil
+    if gamesettings.cleanup_on_map_exit or (gamesettings.cleanup_on_branch_exit and branch ~= oldBranch) then
+      currMap:cleanup()
+    end
 		currMap=maps[branch][depth]
     
     --Place the player:
@@ -805,17 +808,12 @@ end
 ---Function that causes things to happen during "downtime." What that means and when that happens is up to you, this is just an example.
 function downtime()
   --Max out HP and MP
-  player.hp = player.max_hp
-  player.mp = player.max_mp
-  --Remove all non-permanent conditions:
-  for condition,turns in pairs(player.conditions) do
-    if turns ~= -1 then
-      player:cure_condition(condition)
-    end
-  end
+  player:refresh()
+  
   --Repopulate dungeons, restock stores and factions:
   for _, branch in pairs(maps) do
     for _, m in pairs(branch) do
+      m:cleanup()
       m:populate_creatures()
     end
   end

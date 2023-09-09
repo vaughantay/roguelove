@@ -200,7 +200,7 @@ end
 --@param skip_basic Boolean. Whether to skip the combust() callback and just go ahead and light the fire. (optional)
 function Feature:combust(skip_basic)
   if not skip_basic and possibleFeatures[self.id].combust then return possibleFeatures[self.id].combust(self) end
-  currMap:add_effect(Effect('fire',{x=self.x,y=self.y,timer=(self.fireTime or 10)}),self.x,self.y)
+  currMap:add_effect(Effect('fire',{x=self.x,y=self.y,turns_remaining=(self.fireTime or 10)}),self.x,self.y)
   self:delete()
 end
 
@@ -210,6 +210,13 @@ end
 function Feature:action(activator,actionID)
   if possibleFeatures[self.id].action then return possibleFeatures[self.id].action(self,activator,actionID) end
   return false
+end
+
+---Perform a feature's cleanup() callback, if applicable.
+--@param map Map. The map the feature is on
+function Feature:cleanup(map)
+  map = map or currMap
+  if possibleFeatures[self.id].cleanup then return possibleFeatures[self.id].cleanup(self,map) end
 end
 
 ---Transfer an item to a feature's inventory

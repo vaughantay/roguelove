@@ -6,7 +6,8 @@ local poisonGas = {
 	strength = 6,
   hazard = 5,
 	symbol = "§",
-	color={r=0,g=255,b=0,a=250}
+	color={r=0,g=255,b=0,a=250},
+  remove_on_cleanup=true
 }
 function poisonGas:new()
   self.image_name = "poisongas" .. random(1,4)
@@ -37,7 +38,8 @@ local smoke = {
   symbol = "#",
   blocksSight = true,
   color={r=200,g=200,b=200,a=200},
-  image_varieties=4
+  image_varieties=4,
+  remove_on_cleanup=true
 }
 function smoke:new()
   self.color={r=200,g=200,b=200,a=200}
@@ -82,6 +84,7 @@ local sandstorm = {
   blocksSight=true,
   image_name = "sandstorm1",
   hazard=5,
+  remove_on_cleanup=true
   --sightReduction = .75
 }
 function sandstorm:advance()
@@ -111,7 +114,8 @@ local darkness = {
   color={r=0,g=0,b=0,a=200},
   use_color_with_tiles=true,
   image_name="square",
-  blocksSight=true
+  blocksSight=true,
+  remove_on_cleanup=true
 }
 function darkness:advance()
   local creat = currMap:get_tile_creature(self.x,self.y)
@@ -134,6 +138,7 @@ local bloodrain = {
   spritesheet=true,
   image_max=5,
   animation_time = 0.2,
+  remove_on_cleanup=true
 }
 function bloodrain:advance()
   local creat = currMap:get_tile_creature(self.x,self.y)
@@ -180,7 +185,8 @@ local graspingdead = {
   image_varieties=8,
   hazard=20,
   safeFor={flyer=true},
-  turns=5
+  turns=5,
+  remove_on_cleanup=true
 }
 function graspingdead:new()
   self.turns = random(4,7)
@@ -235,7 +241,8 @@ local fireball = {
 	countdown = .25,
   tilemap=true,
   castsLight = true,
-	color={r=255,g=0,b=0,a=150}
+	color={r=255,g=0,b=0,a=150},
+  remove_on_cleanup=true
 }
 function fireball:new()
   self.image_name = "fireaura" .. random(1,4)
@@ -285,7 +292,8 @@ local earthquake = {
 	symbol = "≈",
 	countdown = .10,
 	bigCountdown = .5,
-	color={r=111,g=55,b=25,a=150}
+	color={r=111,g=55,b=25,a=150},
+  remove_on_cleanup=true
 }
 function earthquake:update(dt)
   local creat = currMap:get_tile_creature(self.x,self.y)
@@ -322,6 +330,7 @@ local fireaura = {
   tilemap = true,
   hazard = 10,
   castsLight=true,
+  remove_on_cleanup=true
 }
 function fireaura:new(owner)
   self.owner = owner
@@ -377,7 +386,8 @@ local spores = {
 	description = "Mildly hallucinogenic fungal spores. They're perfectly harmless, as long as you don't breathe them in.",
 	symbol = "*",
 	color={r=0,g=255,b=0,a=250},
-	strength = 5
+	strength = 5,
+  remove_on_cleanup=true
 }
 function spores:new()
   self.color = {r=0,g=255,b=0,a=250}
@@ -566,7 +576,8 @@ local absinthefairy = {
   description = "It's...so...beautiful...",
   symbol = "&",
   color={r=255,g=255,b=255,a=125},
-  use_color_with_tiles=true
+  use_color_with_tiles=true,
+  remove_on_cleanup=true
 }
 function absinthefairy:new(creat)
   self.creature = creat
@@ -610,7 +621,8 @@ local ratswarm = {
 	symbol = "&",
 	color={r=153,g=103,b=73,a=255},
   countdown = .1,
-  image_name = "ratswarm1"
+  image_name = "ratswarm1",
+  remove_on_cleanup=true
 }
 function ratswarm:advance()
 	local creat = currMap:get_tile_creature(self.x,self.y)
@@ -676,7 +688,8 @@ local scarabs = {
 	symbol = "&",
 	color={r=33,g=33,b=33,a=255},
   countdown = .1,
-  image_name = "scarabs1"
+  image_name = "scarabs1",
+  remove_on_cleanup=true
 }
 function scarabs:advance()
   self.strength = self.strength-1
@@ -726,7 +739,8 @@ local zombait = {
   description = "A bit of raw meat. The undead and animals find it irresistable.",
   symbol = "",
   countdown = 15,
-  color={r=150,g=0,b=0,a=0}
+  color={r=150,g=0,b=0,a=0},
+  remove_on_cleanup=true
 }
 function zombait:advance()
   self.countdown = self.countdown - 1
@@ -768,7 +782,8 @@ local soul = {
   spritesheet=true,
   randomAnimation=true,
   image_max=4,
-  animation_time = 0.3
+  animation_time = 0.3,
+  remove_on_cleanup=true
 }
 function soul:advance()
   local creat = currMap:get_tile_creature(self.x,self.y)
@@ -811,7 +826,8 @@ local blaster = {
   symbol = "",
   noDesc = true,
   stopsInput = true,
-  color={r=255,g=255,b=255,a=0}
+  color={r=255,g=255,b=255,a=0},
+  remove_on_cleanup=true
 }
 function blaster:new(info)
   self.x,self.y = info.x,info.y
@@ -851,7 +867,8 @@ local rainbowblast = {
   symbol = "=",
   noDesc = true,
   stopsInput = true,
-  color={r=255,g=255,b=255,a=255}
+  color={r=255,g=255,b=255,a=255},
+  remove_on_cleanup=true
 }
 function rainbowblast:new()
   self.color = {r=random(0,255),g=random(0,255),b=random(0,255),a=255}
@@ -882,7 +899,8 @@ local eyelaser = {
   symbol = "=",
   noDesc = true,
   stopsInput = true,
-  color={r=255,g=0,b=0,a=255}
+  color={r=255,g=0,b=0,a=255},
+  remove_on_cleanup=true
 }
 function eyelaser:update(dt)
   self.countdown = self.countdown - dt
@@ -904,7 +922,8 @@ local snowstorm = {
   countdown = .01,
   symbol = "*",
   blocksSight = true,
-  color={r=200,g=200,b=200,a=255}
+  color={r=200,g=200,b=200,a=255},
+  remove_on_cleanup=true
 }
 function snowstorm:advance()
   self.strength = self.strength - 1
@@ -929,6 +948,7 @@ local cussin = {
   disappearTime = 1,
   image_name = "symbolssmall1",
   color={r=255,g=0,b=0,a=150},
+  remove_on_cleanup=true
 }
 function cussin:new(creature)
   local tSize = output:get_tile_size()
@@ -986,7 +1006,8 @@ local explosion = {
   stopsInput = true,
   image_name = "explosion",
   color={r=255,g=255,b=0,a=255},
-  image_max = 5
+  image_max = 5,
+  remove_on_cleanup=true
 }
 function explosion:new()
   self.image_frame = 1
@@ -1058,6 +1079,7 @@ local tornado = {
   turns = 20,
   hazard=100,
   image_name = "tornado1",
+  remove_on_cleanup=true,
   advance = function(self)
     self.turns = self.turns - random(1,2)
     if (self.turns <= 0) then
@@ -1129,6 +1151,7 @@ local stormcloud = {
   countdown = 0.1,
   color = {r=100,g=100,b=100,a=200},
   turns = 10,
+  remove_on_cleanup=true,
   advance = function(self)
     self.turns = self.turns - 1
     if self.turns <= 0 or self.target.hp <= 0 then
@@ -1224,7 +1247,8 @@ local shocker = {
   stopsInput=true,
   alreadyDone={},
   dist=0,
-  amt=5
+  amt=5,
+  remove_on_cleanup=true
 }
 function shocker:update(dt)
   if not self.countdown then self.countdown = .1 end
@@ -1377,7 +1401,8 @@ local soundwavemaker = {
   symbol = "",
   noDesc = true,
   dist = 10,
-  color={r=255,g=255,b=255,a=0}
+  color={r=255,g=255,b=255,a=0},
+  remove_on_cleanup=true
 }
 function soundwavemaker:new(color,dist)
   self.color = color
@@ -1404,6 +1429,7 @@ local noisemakerattractor = {
   symbol = "",
   color={r=150,g=150,b=0,a=0},
   time = 10,
+  remove_on_cleanup=true
 }
 function noisemakerattractor:new(info)
   self.x,self.y = info.x,info.y
@@ -1508,7 +1534,8 @@ local emberanimator = {
   symbol = "",
   description = "Animates embers and causes them to cool.",
   speed=.25,
-  countdown = .25
+  countdown = .25,
+  remove_on_cleanup=true
 }
 function emberanimator:new()
   self.speed = tweak(25)/100
@@ -1708,7 +1735,8 @@ local sleepZ = {
   color={r=0,g=255,b=255,a=225},
   yMod = -10,
   xMod = 0,
-  xChange = 50
+  xChange = 50,
+  remove_on_cleanup=true
 }
 function sleepZ:new()
   if random(1,2) == 1 then self.xChange = -50 end 
@@ -1742,6 +1770,7 @@ local bubble = {
   xChange = 50,
   scaleChange = 0,
   spinDir=1,
+  remove_on_cleanup=true,
 }
 function bubble:new()
   if random(1,2) == 1 then self.xChange = -50 self.spinDir = -1 end 
@@ -1779,7 +1808,7 @@ local fire = {
   symbol = "^",
   color={r=255,g=0,b=0},
   countdown = .25,
-  timer = 10,
+  turns_remaining = 10,
   firstturn = true,
   hazard = 1000,
   castsLight=true,
@@ -1788,7 +1817,7 @@ local fire = {
 }
 function fire:new(data)
   if data then
-    if data.timer then self.timer = data.timer end
+    if data.turns_remaining then self.turns_remaining = data.turns_remaining end
     if data.x and data.y then
       self.x,self.y = data.x,data.y
       local feats = currMap:get_tile_features(self.x,self.y)
@@ -1798,7 +1827,7 @@ function fire:new(data)
       if type(currMap[self.x][self.y]) == "table" and currMap[self.x][self.y].water == true then return false end
     end
   end
-  self.timer = tweak(self.timer)
+  self.turns_remaining = tweak(self.turns_remaining)
   self.image_name = "fire" .. random(1,3)
   if self.x and self.y and player:can_see_tile(self.x,self.y) then output:sound('ignite') end
 end --end new function
@@ -1857,8 +1886,8 @@ function fire:advance()
   end --end grass and tree chunk
   
   -- Count down the fire:
-  self.timer = self.timer - 1
-  if (self.timer < 1) then
+  self.turns_remaining = self.turns_remaining - 1
+  if (self.turns_remaining < 1) then
     self:delete()
   end
 end --end advance function
@@ -1873,7 +1902,8 @@ local dmgPopup = {
   color={r=255,g=0,b=0,a=255},
   use_color_with_tiles = true,
   yMod = 0,
-  speed=100
+  speed=100,
+  remove_on_cleanup=true
 }
 function dmgPopup:update(dt)
   if (self.y) then
@@ -1899,7 +1929,8 @@ local heart = {
   color={r=255,g=0,b=0,a=225},
   yMod = -10,
   xMod = 0,
-  xChange = 50
+  xChange = 50,
+  remove_on_cleanup=true
 }
 function heart:new()
   if random(1,2) == 1 then self.xChange = -50 end 
@@ -2013,7 +2044,8 @@ local animation = {
   symbol = "",
   countdown = .1,
   tilemap = true,
-  color={r=255,g=255,b=255,a=255}
+  color={r=255,g=255,b=255,a=255},
+  remove_on_cleanup=true
 }
 function animation:new(info)
   --image_name,image_max,target,color,ascii,use_color_with_tiles,repetitions,backwards,ignoreTurns,stopsInput,time_per_tile
@@ -2320,7 +2352,8 @@ local conditionanimation = {
   noDesc = true,
   color={r=0,g=0,b=0,a=0},
   symbol = "",
-  description = "a",
+  description = "",
+  remove_on_cleanup=true,
 }
 function conditionanimation:new(info)
   --Don't add multiples of the same animation:
@@ -2421,6 +2454,7 @@ local screenShaker = {
   description = "This invisible effect shakes the screen.",
   stopsInput = true,
   shakeTime=2,
+  remove_on_cleanup=true,
 }
 function screenShaker:new(time)
   self.shakeTime = time or 2
@@ -2443,6 +2477,7 @@ local angelofdeath = {
   color={r=0,g=0,b=0,a=0},
   symbol = "",
   description = "This invisible effect KILLS EVERYONE.",
+  remove_on_cleanup=true
 }
 function angelofdeath:update(dt)
   for _,creat in pairs(currMap.creatures) do

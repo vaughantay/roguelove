@@ -1355,6 +1355,53 @@ function Map:populate_factions(forceGeneric)
   end
 end
 
+---Cleans up the map, removing effects with temporary durations, and entities with remove_on_cleanup=true
+function Map:cleanup()
+  --Clean up content:
+  for _,eff in pairs(self.effects) do
+    if eff.remove_on_cleanup == true or eff.turns_remaining then
+      if eff.turns_remaining then
+        eff.turns_remaining = 1
+        eff:advance()
+      end
+      eff:delete(self)
+    else
+      eff:cleanup(self)
+    end
+  end --end effect for
+  for x=1,self.width,1 do
+    for y=1,self.height,1 do
+      local contents = self:get_contents(x,y)
+      for _,content in pairs(contents) do
+        if content.remove_on_cleanup or content.summoned then
+          if content.delete then content:delete(self)
+          elseif content.remove then content:remove(self) end
+        elseif content.baseType == "item" then
+          content:cleanup(self)
+          --TODO: item cleanup
+        elseif content.baseType == "creature" then
+          content:callbacks('cleanup',self)
+          content:refresh()
+        else --if not a creature, just run its custom cleanup code if it has any
+          if content.cleanup then
+            content:cleanup(self)
+          end
+        end --end remove if
+      end --end content for
+    end --end fory
+  end --end forx
+  --Clear spawn points:
+  if self.spawn_points then
+    for _,sp in pairs(self.spawn_points) do
+      sp.used=nil
+    end
+  end
+  --Run custom cleanup code:
+  if mapTypes[self.mapType].cleanup then
+    return mapTypes[self.mapType].cleanup(self)
+  end
+end
+
 ---Gets the full name string of the map (eg The Wilds Depth 2: The Forest of Horror)
 --@param noBranch Boolean. Optional, if set to true, only returns the base name of the map without depth and branch info
 function Map:get_name(noBranch)

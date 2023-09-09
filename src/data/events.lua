@@ -90,7 +90,7 @@ local town_guards = {
 }
 possibleEvents['town_guards'] = town_guards
 
-local town_clear_corpses = {
+--[[local town_clear_corpses = {
   event_type="enter_map",
   mapTypes={"town"}, --The mapTypes this event can occur on
   branches = {}, --The branches this event can occur on
@@ -109,4 +109,4 @@ local town_clear_corpses = {
     end
   end
 }
-possibleEvents['town_clear_corpses'] = town_clear_corpses
+possibleEvents['town_clear_corpses'] = town_clear_corpses]]

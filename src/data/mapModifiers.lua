@@ -157,6 +157,7 @@ local cave = function(build,hazard)
         for _,tile in pairs(tiles) do
           if not build:tile_has_feature(tile.x,tile.y,featureType) then
             local w = Feature(featureType)
+            w.remove_on_cleanup=false
             build:add_feature(w,tile.x,tile.y)
           end --end if not has feature
         end --end tile for
@@ -173,7 +174,11 @@ local cave = function(build,hazard)
       tx,ty = random(2,width-1),random(2,height-1)
       tries = tries + 1
     end
-    if build:isEmpty(tx,ty,false,true) then build:add_feature(Feature('chunk'),tx,ty) end
+    if build:isEmpty(tx,ty,false,true) then
+      local chunk = Feature('chunk')
+      chunk.remove_on_cleanup = false
+      build:add_feature(chunk,tx,ty)
+    end
   end --end blood for
   
   --Add cave torches/crystals:

@@ -3614,3 +3614,33 @@ end
 function Creature:learn_recipe(recipeID)
   self.known_recipes[recipeID] = true
 end
+
+---Restores HP, MP, spells, removes cooldowns and conditions
+function Creature:refresh()
+  for condition,turns in pairs(self.conditions) do
+    if turns ~= -1 then
+      self:cure_condition(condition)
+    end
+  end
+  for _,spell in ipairs(self.spells_known) do
+    spell.charges = (spell.max_charges or spell.charges)
+  end
+  self.hp = self:get_max_hp()
+  self.mp = self:get_max_mp()
+  self.cooldowns = {}
+  --Reset AI stuff:
+  self.fear = 0
+  self.alert = 0
+  self.target=nil
+  self.notices = {}
+  self.shitlist = {}
+  self.ignoring = {}
+  self.lastSawPlayer = {x=nil,y=nil}
+  self.path=nil
+  --Clear Caches:
+  self.checked = {}
+  self.seen_tile_cache = {}
+  self.sensed_creatures = {}
+  self.bonus_cache = {}
+  self.can_move_cache = {}
+end

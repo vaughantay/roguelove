@@ -1153,7 +1153,8 @@ local insectwing = {
   tags={'insect','bodypart','ingredient'},
   value=1,
   stacks=true,
-  neverSpawn=true
+  neverSpawn=true,
+  remove_on_cleanup=true
   }
 possibleItems['insectwing'] = insectwing
 
@@ -1167,7 +1168,8 @@ local dragonflyheart = {
   tags={'insect','bodypart','fire','ingredient'},
   value=1,
   stacks=true,
-  neverSpawn=true
+  neverSpawn=true,
+  remove_on_cleanup=true
   }
 possibleItems['dragonflyheart'] = dragonflyheart
 
@@ -1181,7 +1183,8 @@ local spores = {
   tags={'fungus','nature','ingredient'},
   value=1,
   stacks=true,
-  neverSpawn=true
+  neverSpawn=true,
+  remove_on_cleanup=true
   }
 possibleItems['spores'] = spores
 
@@ -1196,7 +1199,8 @@ local mushroomcap = {
 	color={r=255,g=0,b=0,a=0},
   tags={'bodypart','nature','ingredient'},
   value=1,
-  neverSpawn=true
+  neverSpawn=true,
+  remove_on_cleanup=true
 }
 possibleItems['mushroomcap'] = mushroomcap
 
@@ -1211,7 +1215,8 @@ local bone = {
   ranged_accuracy=-15,
   value=1,
   stacks=true,
-  neverSpawn=true
+  neverSpawn=true,
+  remove_on_cleanup=true
   }
 possibleItems['bone'] = bone
 
@@ -1229,7 +1234,8 @@ local humanskull = {
   throwable=true,
 	color={r=255,g=255,b=255,a=255},
 	ranged_attack="genericthrow",
-  neverSpawn=true
+  neverSpawn=true,
+  remove_on_cleanup=true
   }
 possibleItems['humanskull'] = humanskull
 
