@@ -103,7 +103,7 @@ function Creature:init(creatureType,level,tags,info,noTweak,ignoreNewFunc) --TOD
       if level == false then
         self.skills[skill] = false
       else
-        self:update_skill(skill,level,true)
+        self:upgrade_skill(skill,level,true)
       end
     end
   end
@@ -351,7 +351,7 @@ function Creature:apply_class(classID)
       if mod == false then
         self.skills[skill] = false
       else
-        self:update_skill(skill,mod,true)
+        self:upgrade_skill(skill,mod,true)
       end
     end
   end
@@ -914,7 +914,7 @@ function Creature:get_bonus(bonusType)
       end
       if skill.bonuses_per_x_levels then
         for lvl,bonuses in pairs(skill.bonuses_per_x_levels) do
-          if bonuses[bonusType] and player.skills[skillID] % lvl == 0 then
+          if bonuses[bonusType] and self.skills[skillID] % lvl == 0 then
             bonus = bonus + bonuses[bonusType]
             skillB = true
           end
@@ -1740,7 +1740,7 @@ end
 --@param ignore_full_stack Boolean. If true, don't send an item if it's already fully stacked (optional)
 --@return either Boolean or Item. False, or the specific item they have in their inventory
 --@return either nil or Number. The index of the item in the inventory
---@return either nil or Number. The amount of the item the player has
+--@return either nil or Number. The amount of the item the creature has
 function Creature:has_item(itemID,sortBy,enchantments,level,ignore_full_stack)
   enchantments = enchantments or {}
 	for id, it in ipairs(self.inventory) do
@@ -1770,7 +1770,7 @@ end
 --@param item Item. The item to check for
 --@return either Boolean or Item. False, or the specific item they have in their inventory
 --@return either nil or Number. The index of the item in the inventory
---@return either nil or Number. The amount of the item the player has
+--@return either nil or Number. The amount of the item the creature has
 function Creature:has_specific_item(item)
 	for id, it in ipairs(self.inventory) do
     if item == it then
@@ -1961,7 +1961,7 @@ function Creature:can_use_item(item,verb)
     end
   end
   if self.cooldowns[item] then
-    return false,"You can't use this item again for " .. player.cooldowns[item] .. " more turns."
+    return false,"You can't use this item again for " .. self.cooldowns[item] .. " more turns."
   end
   return true
 end
@@ -1969,7 +1969,7 @@ end
 ---Check if a creature can see a given tile
 --@param x Number. The x-coordinate
 --@param y Number. The y-coordinate
---@param forceRefresh Boolean. Whether to force actually calculating if a player can see it, versus just looking at the stored values of player sight. Useful only when calling this for the player.
+--@param forceRefresh Boolean. Whether to force actually calculating if a creature can see it, versus just looking at the stored values of player sight. Useful only when calling this for the player.
 --@return Boolean. Whether or not they can see it.
 function Creature:can_see_tile(x,y,forceRefresh)
   if (self == player) and currGame.cheats.seeAll==true then return true end
@@ -2730,7 +2730,7 @@ function Creature:level_up(force,ignore_callback)
   end
   local skill_increases = self:get_skill_increases_for_level(self.level)
   for skill_id,value in pairs(skill_increases) do
-    self:update_skill(skill_id,value,true)
+    self:upgrade_skill(skill_id,value,true)
   end
   --If an NPC, or the player has autoleveling turned on, then apply stats randomly:
   if self ~= player or prefs.autoLevel then
@@ -2746,9 +2746,8 @@ function Creature:level_up(force,ignore_callback)
           tries2=tries2+1
           local skillID = get_random_element(skillList)
           if self:can_upgrade_skill(skillID) then
-            self:update_skill(skillID)
-            self[pointID] = points - 1
-            points = points - 1
+            self:upgrade_skill(skillID)
+            points = self[pointID] or 0
           end --end upgradable if
         end --end points for
       end --end pointID for
@@ -3072,7 +3071,7 @@ function Creature:get_upgradable_skills(sorted_by_stat)
         local sType = skill.skill_type or "skill"
         local typeDef = possibleSkillTypes[sType]
         local pointID = skill.upgrade_stat or (typeDef and typeDef.upgrade_stat) or "upgrade_points_" .. sType
-        local points = player[pointID] or 0
+        local points = self[pointID] or 0
         if points > 0 then
           skills[#skills+1] = skillID
           if sorted_by_stat then
@@ -3101,69 +3100,109 @@ end
 ---Returns whether or not the creature has enough points to upgrade the skill
 --@param skill Text. The ID of the skill
 --@param val Number. The amount to change the skill by, defaults to 1
+--@param ignore_cost Boolean. If true, just check non-cost requirements
 --@return Boolean. Whether the skill is upgradable or not
-function Creature:can_upgrade_skill(skillID,val)
+function Creature:can_upgrade_skill(skillID,val,ignore_cost)
   val = val or 1
+  local currVal = self.skills[skillID]
   local skill = possibleSkills[skillID]
-  if skill.max and self.skills[skillID] and self.skills[skillID]+val > skill.max then
+  if skill.max and self.skills[skillID] and currVal+val > skill.max then
     return false
   end
-  local sType = skill.skill_type or "skill"
-  local typeDef = possibleSkillTypes[sType]
-  local pointID = skill.upgrade_stat or (typeDef and typeDef.upgrade_stat) or "upgrade_points_" .. sType
-  local points = player[pointID] or 0
-  local cost = (val > 0 and val or 0)
+  if currVal == false then
+    return false
+  elseif not currVal then
+    currVal = 0
+  end
+  if skill.upgrade_requires then
+    local ret,text = skill:upgrade_requires(self,val)
+    if ret == false then return false,text end
+  end
   
-  if cost ~= 0 and (not self[pointID] or self[pointID] < cost) then
-    return false
-  end
+  --Check costs if increasing skill:
+  if val > 0 and not ignore_cost then
+    local cost = self:get_skill_upgrade_cost(skillID,val)
+    if cost.point_cost then
+      local sType = skill.skill_type or "skill"
+      local typeDef = possibleSkillTypes[sType]
+      local pointID = skill.upgrade_stat or (typeDef and typeDef.upgrade_stat) or "upgrade_points_" .. sType
+      local points = self[pointID] or 0
+      if points < cost.point_cost then
+        return false
+      end
+    end
+      
+    if cost.items then
+      for _,item_details in ipairs(cost.items) do
+        local amount = (item_details.amount or 1)
+        local sortByVal = item_details.sortBy
+        local has,_,has_amt = self:has_item(item_details.item,sortByVal)
+        if not has or has_amt < amount then 
+          return false
+        end
+      end --end item details for
+    end --end cost.items if
+  end --end if val > 0
   return true
 end
 
 ---Changes the skill value
---@param skill Text. The ID of the skill
+--@param skillID Text. The ID of the skill
 --@param val Number. The amount to change the skill by, defaults to 1
 --@param ignore_cost Boolean. If true, don't pay the cost of the upgrade
-function Creature:update_skill(skill,val,ignore_cost)
+function Creature:upgrade_skill(skillID,val,ignore_cost)
   val = val or 1
-  local skillDef = possibleSkills[skill]
+  local currVal = self.skills[skillID]
+  if currVal == false then
+    return
+  elseif not currVal then
+    currVal = 0
+  end
+  local skillDef = possibleSkills[skillID]
   if not skillDef then
-    output:out("Error: Tried to update nonexistent skill " .. skill)
-    print("Error: Tried to update nonexistent skill " .. skill)
+    output:out("Error: Tried to update nonexistent skill " .. skillID)
+    print("Error: Tried to update nonexistent skill " .. skillID)
     return false
   end
   local sType = skillDef.skill_type or "skill"
   local typeDef = possibleSkillTypes[sType]
-  if not ignore_cost then
-    if not self:can_upgrade_skill(skill,val) then
-      return false
+  if not self:can_upgrade_skill(skillID,val,ignore_cost) then
+    return false
+  end
+  --Remove points and items:
+  if val > 0 and not ignore_cost then
+    local cost = self:get_skill_upgrade_cost(skillID,val)
+    if cost.point_cost then
+      local sType = skillDef.skill_type or "skill"
+      local typeDef = possibleSkillTypes[sType]
+      local pointID = skillDef.upgrade_stat or (typeDef and typeDef.upgrade_stat) or "upgrade_points_" .. sType
+      self[pointID] = self[pointID] - cost.point_cost
     end
-    local pointID = skillDef.upgrade_stat or (typeDef and typeDef.upgrade_stat) or "upgrade_points_" .. sType
-    local points = player[pointID] or 0
-    local cost = (val > 0 and val or 0)
-    self[pointID] = self[pointID] - cost
-  end
+      
+    if cost.items then
+      for _,item_details in ipairs(cost.items) do
+        local amount = (item_details.amount or 1)
+        local sortByVal = item_details.sortBy
+        local item = self:has_item(item_details.item,sortByVal)
+        self:delete_item(item,amount)
+      end --end item details for
+    end --end cost.items if
+  end --end if val > 0
   
-  local origValue = self.skills[skill]
-  if origValue == false then
-    return
-  elseif not origValue then
-    origValue = 0
-  end
-  val = val*(skill.increase_per_point or 1)
-  local newValue = origValue + val
+  val = val*(skillDef.increase_per_point or 1)
+  local newValue = currVal + val
   if newValue < 0 then newValue = 0 end
-  if origValue == newValue then return end
+  if currVal == newValue then return end
   local mod = (val > 0 and 1 or -1)
-  if skillDef and (not skillDef.max or origValue < skillDef.max) and val ~= 0 then
+  if skillDef and (not skillDef.max or currVal < skillDef.max) and val ~= 0 then
     --Custom level up code:
     if skillDef.update then
       local result = skillDef:update(self,val)
       if result == false then return false end
     end
     --Do the skill increase:
-    self.skills[skill] = newValue
-    if skillDef.max and self.skills[skill] > skillDef.max then self.skills[skill] = skillDef.max end
+    self.skills[skillID] = newValue
+    if skillDef.max and self.skills[skillID] > skillDef.max then self.skills[skillID] = skillDef.max end
     --Grant stat changes
     local statInc = {}
     if skillDef.stats_per_level then
@@ -3171,7 +3210,7 @@ function Creature:update_skill(skill,val,ignore_cost)
         statInc[stat_id] = (statInc[stat_id] or 0)+(value*val)
       end
     end
-    local checkStart = origValue+(mod > 0 and 1 or 0) --if going negative, you want to check the level you're at and unapply it
+    local checkStart = currVal+(mod > 0 and 1 or 0) --if going negative, you want to check the level you're at and unapply it
     local checkEnd = newValue+(mod > 0 and 0 or 1) --if going negative, you don't want to check the level you're ending at
     for level = checkStart,checkEnd,mod do
       if skillDef.stats_at_level and skillDef.stats_at_level[level] then
@@ -3195,7 +3234,7 @@ function Creature:update_skill(skill,val,ignore_cost)
     --Grant spells:
     if skillDef.learns_spells then
       for _,info in pairs(skillDef.learns_spells) do
-        if (not info.level or (info.level > origValue and info.level <= newValue) or (info.level < origValue and info.level >= newValue)) and self:can_learn_spell(info.spell) then
+        if (not info.level or (info.level > currVal and info.level <= newValue) or (info.level < currVal and info.level >= newValue)) and self:can_learn_spell(info.spell) then
           self:learn_spell(info.spell)
         end
       end
@@ -3203,6 +3242,59 @@ function Creature:update_skill(skill,val,ignore_cost)
     return true
   end
   return false
+end
+
+---Returns the cost to upgrade a skill by a given amount
+--@param skillID. String. The skill ID to check
+--@param val. Number. The amount of points to boost the skill by (defaults to 1)
+--@param Table. A table. Will potentially have two entries: points for skill points used, and items, a table of items with the format {item=itemID,sortBy="text",amount=1,displayName="text"}
+function Creature:get_skill_upgrade_cost(skillID,val)
+  local cost = {}
+  val = val or 1
+  
+  if val > 0 then
+    local currVal = self.skills[skillID] or 0
+    local skill = possibleSkills[skillID]
+    --Check points:
+    local sType = skill.skill_type or "skill"
+    local typeDef = possibleSkillTypes[sType]
+    local pointID = skill.upgrade_stat or (typeDef and typeDef.upgrade_stat) or "upgrade_points_" .. sType
+    local point_cost = (skill.point_cost or 1)
+    local learn_point_cost = (skill.learn_point_cost or point_cost)
+    local points = (val-(currVal == 0 and 1 or 0))*point_cost+(currVal == 0 and learn_point_cost or 0)
+    if points > 0 then cost.point_cost = points end
+  
+    --Check items:
+    local learn_item_cost = skill.learn_item_cost or skill.item_cost
+    if currVal == 0 and learn_item_cost then
+      if not cost.items then cost.items = {} end
+      for _,item_details in ipairs(learn_item_cost) do
+        local amount = (item_details.amount or 1)
+        local index = item_details.item .. (item_details.sortBy or "")
+        if not cost.items[index] then
+          cost.items[index] = {item=item_details.item,sortBy=item_details.sortBy,amount=amount,displayName=item_details.displayName}
+        else
+          cost.items[index].amount = cost.items[index].amount+amount
+        end
+      end --end item cost for
+    end
+    
+    local item_cost = skill.item_cost
+    if item_cost then
+      if not cost.items then cost.items = {} end
+      for _,item_details in ipairs(item_cost) do
+        local amount = (item_details.amount or 1)
+        local index = item_details.item .. (item_details.sortBy or "")
+        if not cost.items[index] then
+          cost.items[index] = {item=item_details.item,sortBy=item_details.sortBy,amount=amount,displayName=item_details.displayName}
+        else
+          cost.items[index].amount = cost.items[index].amount+amount
+        end
+      end --end item cost for
+    end --end if item_cost
+  end
+  
+  return cost
 end
 
 ---A generic function for getting an extra stat and its bonuses
@@ -3313,9 +3405,9 @@ end
 --@param force Boolean. If true, remove the spell even if it's normally not supposed to be forgettable
 function Creature:forget_spell(spellID,force)
   local index = self:has_spell(spellID,true)
-  local spellDef = player.spells[index]
+  local spellDef = self.spells[index]
   if spellDef and index and (force or spellDef.forgettable or (gamesettings.spells_forgettable_by_default and spellDef.forgettable ~= false)) then
-    table.remove(player.spells,index)
+    table.remove(self.spells,index)
     for hkid,hkinfo in pairs(self.hotkeys) do
       if hkinfo.type == "spell" and hkinfo.hotkeyItem == spellDef then
         self.hotkeys[hkid] = nil
@@ -3332,7 +3424,7 @@ function Creature:memorize_spell(spellID,force)
   local index = self:has_spell(spellID,true,true)
   local spellDef = self.spells_known[index]
   local slots = self:get_free_spell_slots()
-  if spellDef and index and not player:has_spell(spellID,true) and (force or spellDef.freeSlot or (not slots or slots > 0)) then
+  if spellDef and index and not self:has_spell(spellID,true) and (force or spellDef.freeSlot or (not slots or slots > 0)) then
     self.spells[#self.spells+1] = spellDef
     if self.hotkeys then
       for i=1,10,1 do
@@ -3412,6 +3504,7 @@ function Creature:get_spell_slots()
 end
 
 ---Gets a list of all the spells a creature can currently learn from its definition, class, or skills
+--@return Table. A table of the spells available to purchase
 function Creature:get_purchasable_spells()
   local spell_purchases = {}
   if self.class and playerClasses[self.class].spell_purchases then
@@ -3441,6 +3534,41 @@ function Creature:get_purchasable_spells()
   return spell_purchases
 end
 
+---Gets a list of all the skills a creature can currently learn from its definition, class, or generally purchasable skills
+--@param skillType String. Limit to a particular skill tpyre (optional)
+--@return Table. A table of the skills available to purchase
+function Creature:get_purchasable_skills(skillType)
+  local skill_purchases = {}
+  local possibilities = {}
+  if self.class and playerClasses[self.class].skill_purchases then
+    for _,info in ipairs(playerClasses[self.class].skill_purchases) do
+      local skillDef = possibleSkills[info.skill]
+      if not possibilities[info.skill] and skillDef and self.skills[info.skill] == nil  and (not skillType or skillDef.skill_type == skillType) and (not info.level or info.level <= self.level) and self:can_upgrade_skill(info.skill,1) then
+        info.name = skillDef.name
+        skill_purchases[#skill_purchases+1] = info
+        possibilities[info.skill] = true
+      end --end level check if
+    end --end skill purchase list for
+  end --end if player class has skill purchases
+  if possibleMonsters[self.id].skill_purchases then
+    for _,info in ipairs(possibleMonsters[self.id].skill_purchases) do
+      local skillDef = possibleSkills[info.skill]
+      if not possibilities[info.skill] and skillDef and self.skills[info.skill] == nil and (not skillType or skillDef.skill_type == skillType) and (not info.level or info.level <= self.level) and self:can_upgrade_skill(info.skill,1) then
+        info.name = skillDef.name
+        skill_purchases[#skill_purchases+1] = info
+        possibilities[info.skill] = true
+      end --end level check if
+    end --end skill purchase list for
+  end --end if player definition has skill purchases
+  for skillID,info in pairs(possibleSkills) do
+    if not possibilities[skillID] and self.skills[skillID] == nil  and (not skillType or info.skill_type == skillType) and (info.always_learnable or (info.always_learnable ~= false and info.skill_type and possibleSkillTypes[info.skill_type] and possibleSkillTypes[info.skill_type].always_learnable)) and self:can_upgrade_skill(skillID,1) then
+      skill_purchases[#skill_purchases+1] = {skill=skillID,point_cost=(info.learn_point_cost or info.point_cost),item_cost=(info.learn_item_cost or info.item_cost),name=info.name}
+      possibilities[skillID] = true
+    end --end skilldef if
+  end --end skill for
+  return skill_purchases
+end
+
 
 ---Get all items equipped that can be used for melee attacks
 --@return Table. A list of items that can be used for melee attacks
@@ -3461,7 +3589,7 @@ function Creature:get_ranged_attacks()
   if self.ranged_attack then
     local attack = rangedAttacks[self.ranged_attack]
     local cooldownIsRecharge = attack.max_charges
-    ranged[#ranged+1] = {attack=self.ranged_attack,charges=player.ranged_charges,cooldown=(not cooldownIsRecharge and player.cooldowns[attack] or nil),recharge_turns=(cooldownIsRecharge and player.cooldowns[attack] or nil),hide_charges=rangedAttacks[self.ranged_attack].hide_charges}
+    ranged[#ranged+1] = {attack=self.ranged_attack,charges=self.ranged_charges,cooldown=(not cooldownIsRecharge and self.cooldowns[attack] or nil),recharge_turns=(cooldownIsRecharge and self.cooldowns[attack] or nil),hide_charges=rangedAttacks[self.ranged_attack].hide_charges}
   end
   for _, equip in pairs(self.equipment_list) do
     if equip.ranged_attack then
@@ -3569,7 +3697,7 @@ function Creature:can_craft_recipe(recipeID)
       if not has then return false end
     end --end tag for
   end
-  if recipe.required_level and player.level < recipe.required_level then
+  if recipe.required_level and self.level < recipe.required_level then
     return false
   end
   if recipe.skill_requirements then

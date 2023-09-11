@@ -850,6 +850,7 @@ local loincloth = {
   equipSlot="legs",
 	color={r=150,g=150,b=150,a=255},
   tags={'cloth'},
+  bonuses={agility=1},
   value=25
 }
 possibleItems['loincloth'] = loincloth

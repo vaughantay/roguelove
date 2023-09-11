@@ -132,7 +132,7 @@ function Faction:join(creature)
       local currVal = creature:get_skill(skillID)
       local increase = val-currVal
       if increase then
-        creature:update_skill(skillID,increase,true)
+        creature:upgrade_skill(skillID,increase,true)
       end
     end
   end

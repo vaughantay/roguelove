@@ -909,7 +909,7 @@ function factionscreen:buttonpressed(key)
               self.outText = "You learn " .. spell.name .. "."
             end
           elseif skillID and skill then
-            if player:update_skill(skillID,1,true) then
+            if player:upgrade_skill(skillID,1,true) then
               self.outText = "You are trained in " .. skill.name .. "."
             end
           end
@@ -1232,7 +1232,7 @@ function factionscreen:mousepressed(x,y,button)
             self.outText = "You learn " .. spell.name .. "."
           end
         elseif skillID and skill then
-          if player:update_skill(skillID,1,true) then
+          if player:upgrade_skill(skillID,1,true) then
             self.outText = "You are trained in " .. skill.name .. "."
           end
         end

@@ -4,6 +4,7 @@ possibleSkillTypes = {}
   
 possibleSkillTypes['attribute']={name="Attributes",upgrade_stat="upgrade_points_attribute",upgrade_stat_name="Attribute Points"}
 possibleSkillTypes['skill']={name="Skills",upgrade_stat="upgrade_points_skill",upgrade_stat_name="Skill Points"}
+possibleSkillTypes['perk']={name="Perks",upgrade_stat="upgrade_points_perk",upgrade_stat_name="Perk Points",always_learnable=true}
 
 --Attributes:
 local strength = {
@@ -109,6 +110,26 @@ local alchemy = {
   skill_type="skill"
 }
 possibleSkills['alchemy'] = alchemy
+
+--Perks
+
+local packrat = {
+  name = "Packrat",
+  description="You're adept at finding a place to store your stuff. Grants 5 extra inventory slots.",
+  skill_type="perk",
+  max=1,
+  stats_at_level={[1]={inventory_space=5}}
+}
+possibleSkills['packrat'] = packrat
+
+local critical = {
+  name = "Overly Critical",
+  description="You've very critical of others. And, unrelatedly, extra good at critically hitting. Grants +1% critical chance to all attacks.",
+  skill_type="perk",
+  max=1,
+  bonuses={critical_chance=1},
+}
+possibleSkills['critical'] = critical
 
 --Vampiric skills
 

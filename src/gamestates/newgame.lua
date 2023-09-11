@@ -1027,7 +1027,7 @@ function newgame:get_stat_text(whichSpecies,whichClass)
   if (class.items and #class.items > 0) or (class.equipment and #class.equipment > 0) or (creature.items and #creature.items > 0) or (creature.equipment and #creature.equipment > 0) or (creature.money and creature.money > 0) or (class.money and class.money > 0) then
     desc = desc .. "\nItems:\n"
     local hasItems = false
-    if (creature.items and #creature.items > 0) then
+    if (creature.items and #creature.items > 0) then --TODO: rewrite to use possible_inventory?
       for _,item in ipairs(creature.items) do
         local amount = item.amount or 1
         desc = desc .. "\t" .. (amount > 1 and amount .. " " or "") .. ucfirst(item.displayName or (amount > 1 and possibleItems[item.item].pluralName or possibleItems[item.item].name)) .. "\n"

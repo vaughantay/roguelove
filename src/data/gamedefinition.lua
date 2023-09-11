@@ -43,10 +43,10 @@ gamesettings = {
   --Stats and skills:
   --default_stats={}, --The stats the game will give every creature at a 0 by default
   default_skills={'strength','agility','toughness','melee','ranged'}, --The skills the game will give every creature at a 0 by default
-  skill_type_order={'attribute','skill'},
-  stats_per_level={upgrade_points_attribute=1,spellPoints=1,upgrade_points_skill=3,max_hp=5},
-  stats_at_level={[5]={upgrade_points_attribute=3,upgrade_points_skill=10}},
-  stats_per_x_levels={[3]={upgrade_points_attribute=1}},
+  skill_type_order={'attribute','skill','perk'},
+  stats_per_level={upgrade_points_attribute=1,spellPoints=1,upgrade_points_skill=3},
+  --stats_at_level={[5]={upgrade_points_attribute=3,upgrade_points_skill=10}},
+  stats_per_x_levels={[3]={upgrade_points_perk=1}},
   --skills_per_level={},
   --skills_at_level={[5]={}},
   --skills_per_x_levels={[3]={},

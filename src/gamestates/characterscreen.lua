@@ -141,6 +141,12 @@ function characterscreen:draw()
       end
     end
     
+    for sType,_ in pairs(possibleSkillTypes) do
+      if not skill_lists[sType] and count(player:get_purchasable_skills(sType)) > 0 then
+        skill_lists[sType] = {}
+      end
+    end
+    
     if count(skill_lists) > 0 then
       printY=printY+fontSize*2
       local ordered_list = {}
@@ -176,13 +182,35 @@ function characterscreen:draw()
             printY=printY+fontSize
           end
           for _,skillInfo in pairs(list) do
-            local skillID,skillLvl = skillInfo.skillID, skillInfo.value
+            local skillID,skillLvl,skillBase = skillInfo.skillID, skillInfo.value, player.skills[skillInfo.skillID]
             local skill = possibleSkills[skillID]
-            if skill and skillLvl ~= false then
-              local maxed = skill.max and (skillLvl >= skill.max)
-              local skillText = skill.name .. (skill.max == 1 and "" or ": " .. skillLvl .. (skill_increases[skillID] and " (" .. (skill_increases[skillID] >= 0 and "+" or "-") .. skill_increases[skillID] .. " next level)" or "")) .. (skill.description and " - " .. skill.description or "")
-              love.graphics.printf(skillText,(not maxed and points > 0 and printXbuttoned or printX),printY,width-padding,"left")
-              if points > 0 and not maxed then
+            if skill and skillBase ~= false then
+              local maxed = skill.max and (skillBase >= skill.max)
+              --Create cost text:
+              local costText = "" 
+              local cost = player:get_skill_upgrade_cost(skillID)
+              if not maxed and (cost.point_cost > 1 or cost.item_cost) then
+                costText = costText .. " - Cost: "
+                local firstCost = true
+                if cost.point_cost and cost.point_cost > 0 then
+                  costText = costText .. cost.point_cost .. " " .. pointName
+                  firstCost = false
+                end
+                if cost.item_cost then
+                  for _,item_details in ipairs(cost.item_cost) do
+                    local amount = item_details.amount or 1
+                    local sortByVal = item_details.sortBy
+                    local _,_,has_amt = player:has_item(item_details.item,sortByVal)
+                    local name = item_details.displayName or (amount > 1 and possibleItems[item_details.item].pluralName or possibleItems[item_details.item].name)
+                    costText = costText .. (firstCost == false and ", " or "") .. amount .. " " .. name .. " (You have " .. has_amt .. ")"
+                    firstCost = false
+                  end --end item cost for
+                end --end item cost if
+              end
+              local skillText = skill.name .. (skill.max == 1 and "" or ": " .. (skillLvl ~= skillBase and skillLvl .. " (" .. skillBase .. " base)" or skillLvl) .. (skill_increases[skillID] and " (" .. (skill_increases[skillID] >= 0 and "+" or "-") .. skill_increases[skillID] .. " next level)" or "")) .. costText .. (skill.description and "\n\t" .. skill.description or "")
+              local req, reqtext = player:can_upgrade_skill(skillID)
+              love.graphics.printf(skillText .. (reqtext and " (" .. reqtext .. ")" or ""),(req and printXbuttoned or printX),printY,width-padding,"left")
+              if req then
                 self.skillButtons[buttonY] = output:tinybutton(printX,printY,true,(self.cursorY==buttonY or nil),"+",true)
                 self.skillButtons[buttonY].skill = skillID
                 buttonY = buttonY+1
@@ -191,6 +219,46 @@ function characterscreen:draw()
               printY=printY+#wrappedtext*fontSize
             end --end skill exists
           end --end skill for
+          --List possible skills for purchase:
+          local purchases = player:get_purchasable_skills(sType)
+          if #purchases > 0 then
+            sort_table(purchases,'name')
+            love.graphics.printf(("\nAvailable to Learn:"),padding,printY,math.floor(width/uiScale)-padding,"center")
+            printY=printY+(fontSize*2)
+            for _,skillInfo in pairs(purchases) do
+              local skillID = skillInfo.skill
+              local skill = possibleSkills[skillID]
+              if player.skills[skillID] ~= false then
+                local costText = "" 
+                local cost = player:get_skill_upgrade_cost(skillID)
+                if not maxed and (cost.point_cost > 1 or cost.item_cost) then
+                  costText = costText .. " - Cost: "
+                  local firstCost = true
+                  if cost.point_cost and cost.point_cost > 0 then
+                    costText = costText .. cost.point_cost .. " " .. pointName
+                    firstCost = false
+                  end
+                  if cost.item_cost then
+                    for _,item_details in ipairs(cost.item_cost) do
+                      local amount = item_details.amount or 1
+                      local sortByVal = item_details.sortBy
+                      local _,_,has_amt = player:has_item(item_details.item,sortByVal)
+                      local name = item_details.displayName or (amount > 1 and possibleItems[item_details.item].pluralName or possibleItems[item_details.item].name)
+                      costText = costText .. (firstCost == false and ", " or "") .. amount .. " " .. name .. " (You have " .. has_amt .. ")"
+                      firstCost = false
+                    end --end item cost for
+                  end --end item cost if
+                end
+                local skillText = skill.name .. costText .. (skill.description and "\n\t" .. skill.description or "")
+                self.learnButtons[buttonY] = output:tinybutton(printX,printY,true,(self.cursorY==buttonY or nil),"+",true)
+                self.learnButtons[buttonY].info = skillInfo
+                buttonY = buttonY+1
+                love.graphics.printf(skillText,printXbuttoned,printY,width-padding,"left")
+                local _, wrappedtext = fonts.textFont:getWrap(skillText, math.floor(width/uiScale))
+                printY=printY+#wrappedtext*fontSize
+              end --end if skillID ~= false
+            end --end skill for
+          end --end purchases if
         end --end list if
         printY=printY+fontSize
       end --end ordered_list for
@@ -426,14 +494,20 @@ function characterscreen:use_statButton(stat)
 end
 
 function characterscreen:use_skillButton(skillID)
-  player:update_skill(skillID)
+  player:upgrade_skill(skillID)
   self.skillButtons = {}
 end
 
 function characterscreen:use_learnButton(info)
-  if (not info.spell_point_cost or (player.spellPoints and player.spellPoints >= info.spell_point_cost)) and (not info.stat_point_cost or (player.upgrade_points_attribute and player.upgrade_points_attribute >= info.stat_point_cost)) then
-    player:learn_spell(info.spell)
-    if info.spell_point_cost then player.spellPoints = player.spellPoints - info.spell_point_cost end
+  if info.skill then
+    if player:can_upgrade_skill(info.skill,1) then
+      player:upgrade_skill(info.skill,1)
+    end
+  elseif info.spell then
+    if (not info.spell_point_cost or (player.spellPoints and player.spellPoints >= info.spell_point_cost)) and (not info.stat_point_cost or (player.upgrade_points_attribute and player.upgrade_points_attribute >= info.stat_point_cost)) then
+      player:learn_spell(info.spell)
+      if info.spell_point_cost then player.spellPoints = player.spellPoints - info.spell_point_cost end
+    end
   end
 end
 
