@@ -58,7 +58,7 @@ function fire:advance()
   --Burn creatures on tile:
   local creat = currMap:get_tile_creature(self.x,self.y)
   if (creat and creat.fireImmune ~= true and not creat:has_condition('onfire')) then
-    local dmg = creat:damage(tweak(5),self.caster,"fire")
+    local dmg = creat:damage(tweak(5),self.creator,"fire")
     if dmg > 0 and player:can_see_tile(self.x,self.y) then output:out(creat:get_name() .. " takes " .. dmg .. " damage from fire.") end
     if (dmg> 0 and random(1,100) >= 60) then
       if creat.conditions['onfire'] == nil and player:can_see_tile(creat.x,creat.y) then output:out(creat:get_name() .. " catches on fire!") end

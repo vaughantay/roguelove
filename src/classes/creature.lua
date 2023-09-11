@@ -575,7 +575,7 @@ function Creature:damage(amt,attacker,damage_type,armor_piercing,noSound,item)
         --Add the guy who attacked you to your list of enemies, if they're not already in an enemy faction
         --First, if it's a spell, realize the caster of the spell is the attacker:
         if (attacker.source and attacker.source.baseType == "creature") then attacker = attacker.source
-        elseif (attacker.caster and attacker.caster.baseType == "creature") then attacker = attacker.caster end
+        elseif (attacker.creator and attacker.creator.baseType == "creature") then attacker = attacker.creator end
         local hostile = false
         if attacker.baseType == "creature" and not (self.shitlist[attacker] or (self.ignoring and self.ignoring[attacker]) or self == attacker) then 
           hostile = self:become_hostile(attacker)

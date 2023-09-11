@@ -234,7 +234,7 @@ homecoming = {
     kills = function(self,possessor,victim)
       if random(1,2) == 1 and not victim:is_type("undead") and not victim:is_type("construct") then
         local zpc = Effect('zombieplaguecountdown')
-        zpc.owner = possessor
+        zpc.creator = possessor
         currMap:add_effect(zpc,victim.x,victim.y)
       end
     end
@@ -324,7 +324,7 @@ poisoncloud = {
             hasGas.color.a = math.min(255,hasGas.strength*50)
           else
             local gas = Effect('poisongas')
-            gas.caster = caster
+            gas.creator = caster
             currMap:add_effect(gas,x,y)
             if (x ~= target.x or y ~= target.y) then
               gas.strength = 5
@@ -740,7 +740,7 @@ graspingdead = {
             dead.turns = dead.turns+(6-dead.turns)
           else
             local graspingdead = Effect('graspingdead')
-            graspingdead.owner = owner
+            graspingdead.creator = caster
             currMap:add_effect(graspingdead,x,y)
           end --end already have if
 				end

@@ -72,7 +72,7 @@ local acid = {
   remove_on_cleanup=true,
   enter = function(self,entity)
     if not entity:is_type('flyer') then
-      local dmg = entity:damage(tweak(7),self.caster,"acid")
+      local dmg = entity:damage(tweak(7),self.creator,"acid")
       if player:can_sense_creature(entity) then output:out("The acid on the floor damages " .. entity:get_name() .. " for " .. dmg .. " damage.") end
     end
   end
@@ -99,8 +99,8 @@ local trap = {
   enter=function(self,entity,fromX,fromY)
     local moved = not (self.x == fromX and self.y == fromY)
     if moved and entity:is_type('flyer') == false then
-      local trapdmg = 7+2*(self.caster and self.caster.level or 1)
-      local dmg = entity:damage(tweak(trapdmg),self.caster)
+      local trapdmg = 7+2*(self.creator and self.creator.level or 1)
+      local dmg = entity:damage(tweak(trapdmg),self.creator)
       entity:give_condition('trapped',random(3,6))
       self:delete()
       if player:can_see_tile(entity.x,entity.y) then
@@ -1198,7 +1198,7 @@ local landmine = {
         output:sound('bomb')
         local creat = currMap:get_tile_creature(x,y)
         if creat and creat:is_type('flyer') == false then
-          local dmg = creat:damage((creat.x == self.x and creat.y == self.y and 25 or 10),self.caster)
+          local dmg = creat:damage((creat.x == self.x and creat.y == self.y and 25 or 10),self.creator)
           if player:can_see_tile(creat.x,creat.y) then output:out(creat:get_name() .. " gets caught in the explosion and takes " .. dmg .. " damage.") end
         end --end creat if
         local mine = currMap:tile_has_feature(x,y,'landmine')
@@ -1273,7 +1273,7 @@ function keg:combust(source)
       currMap:add_effect(Effect('explosion'),x,y)
       local creat = currMap:get_tile_creature(x,y)
       if creat then
-        local dmg = creat:damage(10,(source and source.caster or nil),"fire")
+        local dmg = creat:damage(10,(source and source.creator or nil),"fire")
         if player:can_see_tile(creat.x,creat.y) then output:out(creat:get_name() .. " gets caught in the explosion and takes " .. dmg .. " damage.") end
       end --end creat if
       local barrel = currMap:tile_has_feature(x,y,'keg')
@@ -1568,7 +1568,7 @@ local brokenglass = {
   enter = function(self,entity,fromX,fromY)
     local moved = not (self.x == fromX and self.y == fromY)
     if not moved then return end -- don't get damaged if you don't actually STEP on it but just stay there
-    local dmg = entity:damage(tweak(3),self.caster)
+    local dmg = entity:damage(tweak(3),self.creator)
     if player:can_see_tile(self.x,self.y) then output:out(entity:get_name() .. " steps on broken glass, taking " .. dmg .. " damage.") end
   end
 }
@@ -1699,7 +1699,7 @@ function tnt:combust(source)
       end
       local creat = currMap:get_tile_creature(x,y)
       if creat then
-        local dmg = creat:damage(tweak(25),(source and source.caster or nil),"explosive")
+        local dmg = creat:damage(tweak(25),(source and source.creator or nil),"explosive")
         if player:can_see_tile(creat.x,creat.y) then output:out(creat:get_name() .. " gets caught in the explosion and takes " .. dmg .. " damage.") end
         if creat.hp <= 0 and self.hitByCart then
           achievements:give_achievement('mines_special')
@@ -1842,7 +1842,7 @@ function campfire:advance()
   --Burn creatures on tile:
   local creat = currMap:get_tile_creature(self.x,self.y)
   if (creat and creat.fireImmune ~= true and not creat:has_condition('onfire') and not creat:is_type('flyer')) then
-    local dmg = creat:damage(tweak(5),self.caster,"fire")
+    local dmg = creat:damage(tweak(5),self.creator,"fire")
     if dmg > 0 and player:can_see_tile(self.x,self.y) then output:out(creat:get_name() .. " takes " .. dmg .. " damage from fire.") end
     if (dmg> 0 and random(1,100) >= 60) then
       if creat.conditions['onfire'] == nil and player:can_see_tile(creat.x,creat.y) then output:out(creat:get_name() .. " catches on fire!") end

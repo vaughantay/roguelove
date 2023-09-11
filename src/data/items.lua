@@ -636,6 +636,22 @@ local bomb = {
 }
 possibleItems['bomb'] = bomb
 
+local molotov = {
+  name = "molotov cocktail",
+  pluralName = "molotov cocktails",
+  description = "A bottle of explosive liquid.",
+  symbol="*",
+	itemType="throwable",
+  projectile_name="molotov",
+  throwable=true,
+	color={r=100,g=100,b=100,a=255},
+	ranged_attack="genericthrow",
+  stacks=true,
+  value=10,
+  tags={'explosive','fire'}
+}
+possibleItems['molotov'] = molotov
+
 local soul = {
   name = "soul",
   pluralName = "souls",

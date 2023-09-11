@@ -221,7 +221,7 @@ local explodingfireball = {
 }
 function explodingfireball:hits(target)
   local fball = Effect('fireball')
-  fball.caster = caster
+  fball.creator = self.source
   fball.reproduceCountdown = .1
   currMap:add_effect(fball,target.x,target.y)
   fball:refresh_image_name()
@@ -299,7 +299,7 @@ local boozefirebreath = {
   color={r=255,g=200,b=0,a=150}
 }
 function boozefirebreath:new(source,target)
-  self.caster = caster
+  self.creator = source
   self.range = random(0,2)
   local xMod,yMod = get_unit_vector(source.x,source.y,target.x,target.y)
   local xPossibility = (xMod ~= 0 and (xMod == 1 and "<" or ">") or false)
@@ -646,7 +646,9 @@ local ratswarm = {
   countdown = .05,
   image_name = "ratswarm1",
   imageType = "effect",
-  time_per_tile = .05
+  time_per_tile = .05,
+  hit_effect="ratswarm",
+  miss_effect="ratswarm"
 }
 function ratswarm:update(dt)
   self.countdown = self.countdown - dt
@@ -656,12 +658,6 @@ function ratswarm:update(dt)
     self.symbol = (random(1,3) == 1 and "&" or (random(1,2) == 1 and "%" or "#"))
   end
   Projectile.update(self,dt,true)
-end
-function ratswarm:hits(target)
-  local rats = Effect('ratswarm')
-  rats.caster = self.source
-  currMap:add_effect(rats,target.x,target.y)
-  self:delete()
 end
 projectiles['ratswarm'] = ratswarm
     
@@ -728,6 +724,10 @@ local molotov = {
   use_color_with_tiles=true,
   hit_sound = 'breakingbottle',
   miss_sound = 'breakingbottle',
+  hit_effect="fire",
+  miss_effect="fire",
+  hit_feature="brokenglass",
+  miss_feature="brokenglass",
   new = function(self)
     self.angle = random(0,math.ceil(2*math.pi))
   end,
@@ -740,9 +740,6 @@ local molotov = {
     Projectile.update(self,dt,true)
   end,
   hits = function(self,target)
-    local fire = Effect('fire')
-    fire.caster = self.source
-    currMap:add_effect(fire,target.x,target.y)
     local creat = currMap:get_tile_creature(target.x,target.y)
     if (creat and creat.fireImmune ~= true) then
       creat:give_condition('onfire',random(5,10))
@@ -792,7 +789,7 @@ local acid = {
             currMap:add_feature(acid,x,y)
             local creat = currMap:get_tile_creature(x,y)
             if creat then
-              local dmg = creat:damage(tweak(7),self.caster,"acid")
+              local dmg = creat:damage(tweak(7),self.source,"acid")
               if player:can_sense_creature(creat) then output:out(creat:get_name() .. " gets caught in the acid splash and takes " .. dmg .. " damage.") end
             end
           end --end make if

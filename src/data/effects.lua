@@ -16,7 +16,7 @@ end
 function poisonGas:advance()
 	local creat = currMap:get_tile_creature(self.x,self.y)
 	if (creat) and self.strength > 0 then
-		local dmg = creat:damage(tweak(self.strength),self.caster,"poison")
+		local dmg = creat:damage(tweak(self.strength),self.creator,"poison")
     if (dmg > 0 and player:can_see_tile(self.x,self.y)) then output:out(creat:get_name() .. " chokes on the poison gas, taking " .. dmg .. " damage.") end
 	end
 	self.strength = self.strength - 1
@@ -216,11 +216,11 @@ function graspingdead:advance()
     self:delete()
   else
     local creat = currMap:get_tile_creature(self.x,self.y)
-    if creat and not creat:is_type('flyer') and creat ~= self.owner then
+    if creat and not creat:is_type('flyer') and creat ~= self.creator then
       local hit = false
       local sees = player:can_see_tile(self.x,self.y)
       if random(1,2) == 1 then
-        local dmg = creat:damage(tweak(creat:get_max_hp()/10),self.owner)
+        local dmg = creat:damage(tweak(creat:get_max_hp()/10),self.creator)
         if sees then output:out("The grasping hands of the dead deal " .. dmg .. " damage to " .. creat:get_name() .. "!") end
         hit = true
       end
@@ -257,7 +257,7 @@ function fireball:update(dt)
         for y=self.y-1,self.y+1,1 do
           if x~=self.x or y~=self.y then
             local newBall = Effect('fireball')
-            newBall.caster = self.caster
+            newBall.creator = self.creator
             currMap:add_effect(newBall,x,y)
             self.balls[#self.balls+1] = newBall
           end
@@ -307,9 +307,9 @@ function earthquake:update(dt)
         local makeQuake = true
         if currMap:tile_has_effect(x,y,'earthquake') then makeQuake = false end
         
-				if (makeQuake == true and (x ~= self.x or y ~= self.y) and calc_distance(x,y,self.caster.x,self.caster.y) < 5) then
+				if (makeQuake == true and (x ~= self.x or y ~= self.y) and calc_distance(x,y,self.creator.x,self.creator.y) < 5) then
 					local quake = Effect('earthquake')
-					quake.caster = self.caster
+					quake.creator = self.creator
 					quake.bigCountdown = self.bigCountdown
           currMap:add_effect(quake,x,y)
 				end --end makequake if
@@ -332,13 +332,13 @@ local fireaura = {
   castsLight=true,
   remove_on_cleanup=true
 }
-function fireaura:new(owner)
-  self.owner = owner
+function fireaura:new(creator)
+  self.creator = creator
   self.image_name = "fireaura" .. random(1,4)
 end
 function fireaura:refresh_image_name()
   local directions = ""
-  local xMod,yMod = self.owner.x-self.x,self.owner.y-self.y
+  local xMod,yMod = self.creator.x-self.x,self.creator.y-self.y
   if yMod == 1 and currMap:tile_has_effect(self.x,self.y-1,'fireaura') == false then directions = directions .. "n" end
   if yMod == -1 and currMap:tile_has_effect(self.x,self.y+1,'fireaura') == false then directions = directions .. "s" end
   if xMod == -1 and currMap:tile_has_effect(self.x+1,self.y,'fireaura') == false then directions = directions .. "e" end
@@ -346,14 +346,14 @@ function fireaura:refresh_image_name()
   if directions == "" then self.tileDirection = "middle" else self.tileDirection = directions end
 end
 function fireaura:advance()
-	if (self.owner.conditions['fireaura'] == nil or not currMap:touching(self.owner.x,self.owner.y,self.x,self.y) or self.owner.hp < 1) then
+	if (self.creator.conditions['fireaura'] == nil or not currMap:touching(self.creator.x,self.creator.y,self.x,self.y) or self.creator.hp < 1) then
 		self:delete()
 	else
     self:refresh_image_name()
 		local creat = currMap:get_tile_creature(self.x,self.y)
-		if (creat and creat ~= self.owner) then
-			local dmg = creat:damage(tweak(10),self.owner,"fire")
-			if (dmg > 0) and player:can_see_tile(creat.x,creat.y) then output:out(creat:get_name() .. " takes " .. dmg .. " damage from " .. self.owner:get_name() .. "'s fiery aura.") end
+		if (creat and creat ~= self.creator) then
+			local dmg = creat:damage(tweak(10),self.creator,"fire")
+			if (dmg > 0) and player:can_see_tile(creat.x,creat.y) then output:out(creat:get_name() .. " takes " .. dmg .. " damage from " .. self.creator:get_name() .. "'s fiery aura.") end
 		end
     for _,feat in pairs(currMap:get_tile_features(self.x,self.y)) do
       if feat.fireChance and random(1,100) <= feat.fireChance then
@@ -363,7 +363,7 @@ function fireaura:advance()
 	end
 end
 function fireaura:update(dt)
-  if math.floor(calc_distance(self.owner.x,self.owner.y,self.x,self.y)) > 1 then self:delete() end
+  if math.floor(calc_distance(self.creator.x,self.creator.y,self.x,self.y)) > 1 then self:delete() end
 	self.countdown = self.countdown - dt
 	if (self.countdown <= 0) then
 		self.countdown = .25
@@ -395,7 +395,7 @@ end
 function spores:advance()
 	local creat = currMap:get_tile_creature(self.x,self.y)
 	if (creat and creat.id ~= "shroomman") then
-		local dmg = creat:damage(tweak(self.strength),self.caster,"poison")
+		local dmg = creat:damage(tweak(self.strength),self.creator,"poison")
 		if (dmg > 0) then
       if player:can_see_tile(creat.x,creat.y) then
         output:out(creat:get_name() .. " chokes on the spores, taking " .. dmg .. " damage.")
@@ -627,13 +627,13 @@ local ratswarm = {
 function ratswarm:advance()
 	local creat = currMap:get_tile_creature(self.x,self.y)
 	if creat and not creat:is_type('rat') and not creat:is_type('ratling') then
-		local dmg = creat:damage(tweak(creat:get_max_hp()/10),self.caster)
+		local dmg = creat:damage(tweak(creat:get_max_hp()/10),self.creator)
     if (dmg > 0 and player:can_see_tile(self.x,self.y)) then
       output:out("The rat swarm bites " .. creat:get_name() .. " for " .. dmg .. " damage.") self.strength = self.strength-1
       output:sound('ratswarm_damage')
     end
-  elseif creat and creat == self.caster then
-    self.caster.cooldowns['Rat Sarm'] = nil
+  elseif creat and creat == self.creator then
+    self.creator.cooldowns['Rat Sarm'] = nil
     self:delete()
   else --if there's not a creature on your tile
     local startX,startY = (random(1,2) == 1 and 1 or -1),(random(1,2) == 1 and 1 or -1) --move in a random direction
@@ -659,7 +659,7 @@ function ratswarm:advance()
     self:delete()
   end
   --if there's no creature on a nearby tile, then move towards master if seen
-  local line = (creat == false and currMap:get_line(self.x,self.y,self.caster.x,self.caster.y,false,nil,true) or false)
+  local line = (creat == false and currMap:get_line(self.x,self.y,self.creator.x,self.creator.y,false,nil,true) or false)
   if line and #line > 0 then
     self.x,self.y = line[1][1],line[1][2]
   elseif creat == false then --if master's not seen, move in a random direction
@@ -696,7 +696,7 @@ function scarabs:advance()
   if self.strength == 0 then self:delete() return end
 	local creat = currMap:get_tile_creature(self.x,self.y)
 	if (creat) then
-		local dmg = creat:damage(tweak(5),self.caster)
+		local dmg = creat:damage(tweak(5),self.creator)
     if (dmg > 0 and player:can_see_tile(self.x,self.y)) then
       output:out("The scarab swarm bites " .. creat:get_name() .. " for " .. dmg .. " damage.")
       output:sound('squirming')
@@ -878,7 +878,7 @@ function rainbowblast:update(dt)
   if self.countdown <= 0 then
     local creat = currMap:get_tile_creature(self.x,self.y)
     if creat then
-      local dmg = creat:damage(20,self.caster,"magic")
+      local dmg = creat:damage(20,self.creator,"magic")
       if player:can_see_tile(creat.x,creat.y) then output:out("The technicolor magic of the rainbow blasts "  .. creat:get_name() .. " for " .. dmg .. " damage.") end
     end
     for _,feat in pairs(currMap:get_tile_features(self.x,self.y)) do
@@ -907,7 +907,7 @@ function eyelaser:update(dt)
   if self.countdown <= 0 then
     local creat = currMap:get_tile_creature(self.x,self.y)
     if creat then
-      local dmg = creat:damage(20,self.caster,"magic")
+      local dmg = creat:damage(20,self.creator,"magic")
       output:out("The eye laser blasts "  .. creat:get_name() .. " for " .. dmg .. " damage.")
     end
     self:delete()
@@ -933,7 +933,7 @@ function snowstorm:advance()
   end
   local creat = currMap:get_tile_creature(self.x,self.y)
   if creat then
-    local dmg = creat:damage(tweak(5),self.caster,"ice")
+    local dmg = creat:damage(tweak(5),self.creator,"ice")
     if dmg and player:can_see_tile(creat.x,creat.y) then output:out(creat:get_name() .. " takes " .. dmg .. " damage from the snowstorm.") end
   end
 end
@@ -1107,7 +1107,7 @@ local tornado = {
     end
     local creat = currMap:get_tile_creature(self.x,self.y)
     if creat then
-      local dmg = creat:damage(tweak(25),self.caster)
+      local dmg = creat:damage(tweak(25),self.creator)
       if dmg and player:can_sense_creature(creat) then output:out("The tornado deals " .. dmg .. " damage to " .. creat:get_name() .. ".") end
     end
     --Pull creatures 2 tiles out to you
@@ -1161,7 +1161,7 @@ local stormcloud = {
     self:moveTo(self.target.x,self.target.y,.1)
     --self.x,self.y = self.target.x,self.target.y
     if random(1,5) == 1 then
-      local dmg =  self.target:damage(random(5,10),self.caster,"electric")
+      local dmg =  self.target:damage(random(5,10),self.creator,"electric")
       if player:can_see_tile(self.x,self.y) then output:out("A bolt of lightning shoots out of the cloud and strikes " .. self.target:get_name() .. " for " .. dmg .. " damage.") end 
       self.target:give_condition('stunned',2)
     end
@@ -1507,11 +1507,11 @@ function zombieplaguecountdown:advance()
         z.name = "zombie gargoyle"
       end
       currMap:add_creature(z,self.x,self.y)
-      if self.owner then
-        if self.owner.master then
-          z:become_thrall(self.owner.master)
-        elseif self.owner.hp > 1 then
-          z:become_thrall(self.owner)
+      if self.creator then
+        if self.creator.master then
+          z:become_thrall(self.creator.master)
+        elseif self.creator.hp > 1 then
+          z:become_thrall(self.creator)
         end --end owner has master if
       end --end owner if
       if player:can_see_tile(self.x,self.y) then
@@ -1858,7 +1858,7 @@ function fire:advance()
   --Burn creatures on tile:
   local creat = currMap:get_tile_creature(self.x,self.y)
   if (creat and creat.fireImmune ~= true and not creat:has_condition('onfire')) then
-    local dmg = creat:damage(tweak(5),self.caster,"fire")
+    local dmg = creat:damage(tweak(5),self.creator,"fire")
     if dmg > 0 and player:can_see_tile(self.x,self.y) then output:out(creat:get_name() .. " takes " .. dmg .. " damage from fire.") end
     if (dmg> 0 and random(1,100) >= 60) then
       if creat.conditions['onfire'] == nil and player:can_see_tile(creat.x,creat.y) then output:out(creat:get_name() .. " catches on fire!") end

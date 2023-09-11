@@ -193,6 +193,36 @@ function Projectile:hits(target,force_generic)
 				end -- end condition chance
 			end	-- end condition forloop
     end
+    if self.source_item then
+      self.source_item:decrease_all_enchantments('hit')
+    end
+    --Hit effect:
+    if self.hit_effect then
+      local args = self.hit_effect_args or {}
+      local eff = Effect(self.miss_effect,unpack(args))
+      eff.creator = self.source
+      currMap:add_effect(eff,target.x,target.y)
+    end
+    if self.hit_feature then
+      local args = self.hit_feature_args or {}
+      local feat = Feature(self.miss_feature,args)
+      feat.creator = self.source
+      currMap:add_feature(feat,target.x,target.y)
+    end
+  else --miss
+    if self.miss_effect then
+      local args = self.miss_effect_args or {}
+      local eff = Effect(self.miss_effect,unpack(args))
+      eff.creator = self.source
+      currMap:add_effect(eff,target.x,target.y)
+    end
+    if self.miss_feature then
+      local args = self.miss_feature_args or {}
+      local feat = Feature(self.miss_feature,args)
+      feat.creator = self.source
+      currMap:add_feature(feat,target.x,target.y)
+      
+    end
   end
   
   --Handle creating an item if necessary:
@@ -213,9 +243,6 @@ function Projectile:hits(target,force_generic)
     end --end miss item == string
     if dmg then
       it:decrease_all_enchantments('hit')
-      if self.source_item then
-        self.source_item:decrease_all_enchantments('hit')
-      end
     end
   end -- end miss_item if
   
@@ -238,6 +265,7 @@ function Projectile:hits(target,force_generic)
     end
   end
   self:delete()
+  
   return dmg
 end --end hits() function
 

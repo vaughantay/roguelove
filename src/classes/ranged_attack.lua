@@ -82,6 +82,22 @@ function RangedAttack:use(target, attacker, item)
     if item.preserve_on_throw then
       proj.miss_item = item
     end
+    if item.hit_effect then
+      proj.hit_effect = item.hit_effect
+      proj.hit_effect_args = item.hit_effect_args
+    end
+    if item.miss_effect then
+      proj.miss_effect = item.miss_effect
+      proj.miss_effect_args = item.miss_effect_args
+    end
+    if item.hit_feature then
+      proj.hit_feature = item.hit_feature
+      proj.hit_feature_args = item.hit_feature_args
+    end
+    if item.miss_feature then
+      proj.miss_feature = item.miss_feature
+      proj.miss_feature_args = item.miss_feature_args
+    end
     if item.projectile_enchantments then
       for ench,turns in pairs(item.projectile_enchantments) do
         proj:apply_enchantment(ench,turns)

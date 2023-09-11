@@ -125,7 +125,7 @@ spores = Spell({
 			for y=target.y-2,target.y+2,1 do
 				if (x>1 and y> 1 and x<currMap.width and y< currMap.height and currMap[x][y] ~= "#") then
           local spore = Effect('spores')
-          spore.caster = caster
+          spore.creator = caster
 					currMap:add_effect(spore,x,y)
 				end
 			end
@@ -189,7 +189,7 @@ poisoncloud = Spell({
             hasGas.color.a = math.min(255,hasGas.strength*50)
           else
             local gas = Effect('poisongas')
-            gas.caster = caster
+            gas.creator = caster
             currMap:add_effect(gas,x,y)
             if (x ~= target.x or y ~= target.y) then
               gas.strength = 5
@@ -293,7 +293,7 @@ striketheearth = Spell({
 		if player:can_sense_creature(caster) then output:out(caster:get_name() .. " strikes the earth!") end
 		local ripple = Effect('earthquake')
     currMap:add_effect(ripple,caster.x,caster.y)
-		ripple.caster = caster
+		ripple.creator = caster
 		for x=caster.x-5,caster.x+5,1 do
 			for y=caster.y-5,caster.y+5,1 do
 				if (x>1 and y>1 and x<currMap.width and y<currMap.height) then
@@ -911,7 +911,7 @@ sandstorm = Spell({
       for y = target.y-3,target.y+3,1 do
         if currMap:in_map(x,y) and calc_distance(x,y,target.x,target.y) <= 3 and currMap:isClear(x,y,nil,true) and currMap:is_line(x,y,caster.x,caster.y) then
           local sand = Effect('sandstorm')
-          sand.caster = caster
+          sand.creator = caster
           currMap:add_effect(sand,x,y)
         end --end x,y check if
       end --end fory
@@ -944,7 +944,7 @@ scarabs = Spell({
         corpse:delete()
         currMap:add_feature(Feature('chunk',corpse.creature,target.x,target.y),target.x,target.y)
         local scarabs = Effect('scarabs')
-        scarabs.caster = caster
+        scarabs.creator = caster
         currMap:add_effect(scarabs,target.x,target.y)
       else
         if caster == player then output:out("There's no corpse there.") end
@@ -2832,7 +2832,7 @@ summoncloud = Spell({
     flags = {aggressive=true},
     cast = function(self,target,caster)
       local cloud = Effect('stormcloud')
-      cloud.caster = self
+      cloud.creator = self
       cloud.target = target
       target:give_condition('clouded',-1,caster)
       currMap:add_effect(cloud,target.x,target.y)
@@ -3144,7 +3144,7 @@ zombieplague = Spell({
     kills = function(self,possessor,victim)
       if (not possessor.master or possessor.master.id ~= "samedi") and random(1,2) == 1 and not victim:is_type("undead") and not victim:is_type("construct") then
         local zpc = Effect('zombieplaguecountdown')
-        zpc.owner = possessor
+        zpc.creator = possessor
         currMap:add_effect(zpc,victim.x,victim.y)
       end
     end
