@@ -891,40 +891,43 @@ function Creature:get_bonus(bonusType)
       end
     end
   end --end equipment for
-  for skillID,_ in pairs(self.skills) do
-    local skill = possibleSkills[skillID]
-    if skill then
-      local skillB = false
-      if skill.bonuses and skill.bonuses[bonusType] then
-        bonus = bonus + skill.bonuses[bonusType]
-        skillB = true
-      end
-      if skill.bonuses_per_level and skill.bonuses_per_level[bonusType] then
-        bonus = bonus + skill.bonuses_per_level[bonusType] * self.skills[skillID]
-        skillB = true
-      end
-      if skill.bonuses_at_level then
-        for i = self.skills[skillID],1,-1 do
-          if skill.bonuses_at_level[i] and skill.bonuses_at_level[i][bonusType] then
-            bonus = bonus + skill.bonuses_at_level[i][bonusType]
-            skillB = true
-            break
+  if not possibleSkills[bonusType] then --in order to avoid infinite loops, skills cannot grant bonuses to other skills
+    for skillID,skillVal in pairs(self.skills) do
+      local skill = possibleSkills[skillID]
+      if skill then
+        local skillB = false
+        local skillVal = self:get_skill(skillID)
+        if skill.bonuses and skill.bonuses[bonusType] then
+          bonus = bonus + skill.bonuses[bonusType]
+          skillB = true
+        end
+        if skill.bonuses_per_level and skill.bonuses_per_level[bonusType] then
+          bonus = bonus + skill.bonuses_per_level[bonusType] * skillVal
+          skillB = true
+        end
+        if skill.bonuses_at_level then
+          for i = skillVal,1,-1 do
+            if skill.bonuses_at_level[i] and skill.bonuses_at_level[i][bonusType] then
+              bonus = bonus + skill.bonuses_at_level[i][bonusType]
+              skillB = true
+              break
+            end
           end
         end
-      end
-      if skill.bonuses_per_x_levels then
-        for lvl,bonuses in pairs(skill.bonuses_per_x_levels) do
-          if bonuses[bonusType] and self.skills[skillID] % lvl == 0 then
-            bonus = bonus + bonuses[bonusType]
-            skillB = true
+        if skill.bonuses_per_x_levels then
+          for lvl,bonuses in pairs(skill.bonuses_per_x_levels) do
+            if bonuses[bonusType] and skillVal % lvl == 0 then
+              bonus = bonus + bonuses[bonusType]
+              skillB = true
+            end
           end
+        end --end bonuses_per_x_levels
+        if skillB then
+          bcount = bcount + 1
         end
-      end --end bonuses_per_x_levels
-      if skillB then
-        bcount = bcount + 1
-      end
-    end --end skill if
-  end --end skill for
+      end --end skill if
+    end --end skill for
+  end --end bonus type is a skill if
   self.bonus_cache[bonusType] = bonus
 	return bonus
 end
@@ -3099,14 +3102,12 @@ end
 
 ---Returns whether or not the creature has enough points to upgrade the skill
 --@param skill Text. The ID of the skill
---@param val Number. The amount to change the skill by, defaults to 1
 --@param ignore_cost Boolean. If true, just check non-cost requirements
 --@return Boolean. Whether the skill is upgradable or not
-function Creature:can_upgrade_skill(skillID,val,ignore_cost)
-  val = val or 1
+function Creature:can_upgrade_skill(skillID,ignore_cost)
   local currVal = self.skills[skillID]
   local skill = possibleSkills[skillID]
-  if skill.max and self.skills[skillID] and currVal+val > skill.max then
+  if skill.max and currVal and currVal+1 > skill.max then
     return false
   end
   if currVal == false then
@@ -3115,13 +3116,13 @@ function Creature:can_upgrade_skill(skillID,val,ignore_cost)
     currVal = 0
   end
   if skill.upgrade_requires then
-    local ret,text = skill:upgrade_requires(self,val)
+    local ret,text = skill:upgrade_requires(self)
     if ret == false then return false,text end
   end
   
-  --Check costs if increasing skill:
-  if val > 0 and not ignore_cost then
-    local cost = self:get_skill_upgrade_cost(skillID,val)
+  --Check costs:
+  if not ignore_cost then
+    local cost = self:get_skill_upgrade_cost(skillID)
     if cost.point_cost then
       local sType = skill.skill_type or "skill"
       local typeDef = possibleSkillTypes[sType]
@@ -3132,8 +3133,8 @@ function Creature:can_upgrade_skill(skillID,val,ignore_cost)
       end
     end
       
-    if cost.items then
-      for _,item_details in ipairs(cost.items) do
+    if cost.item_cost then
+      for _,item_details in ipairs(cost.item_cost) do
         local amount = (item_details.amount or 1)
         local sortByVal = item_details.sortBy
         local has,_,has_amt = self:has_item(item_details.item,sortByVal)
@@ -3141,8 +3142,8 @@ function Creature:can_upgrade_skill(skillID,val,ignore_cost)
           return false
         end
       end --end item details for
-    end --end cost.items if
-  end --end if val > 0
+    end --end cost.item_cost if
+  end --end if not ignore costs
   return true
 end
 
@@ -3166,27 +3167,32 @@ function Creature:upgrade_skill(skillID,val,ignore_cost)
   end
   local sType = skillDef.skill_type or "skill"
   local typeDef = possibleSkillTypes[sType]
-  if not self:can_upgrade_skill(skillID,val,ignore_cost) then
-    return false
-  end
+
   --Remove points and items:
-  if val > 0 and not ignore_cost then
-    local cost = self:get_skill_upgrade_cost(skillID,val)
-    if cost.point_cost then
-      local sType = skillDef.skill_type or "skill"
-      local typeDef = possibleSkillTypes[sType]
-      local pointID = skillDef.upgrade_stat or (typeDef and typeDef.upgrade_stat) or "upgrade_points_" .. sType
-      self[pointID] = self[pointID] - cost.point_cost
+  if val > 0 then
+    for i = 1,val,1 do
+      if not self:can_upgrade_skill(skillID,ignore_cost) then
+        return false
+      end
+      if not ignore_cost then
+        local cost = self:get_skill_upgrade_cost(skillID,val)
+        if cost.point_cost then
+          local sType = skillDef.skill_type or "skill"
+          local typeDef = possibleSkillTypes[sType]
+          local pointID = skillDef.upgrade_stat or (typeDef and typeDef.upgrade_stat) or "upgrade_points_" .. sType
+          self[pointID] = self[pointID] - cost.point_cost
+        end
+          
+        if cost.item_cost then
+          for _,item_details in pairs(cost.item_cost) do
+            local amount = (item_details.amount or 1)
+            local sortByVal = item_details.sortBy
+            local item = self:has_item(item_details.item,sortByVal)
+            self:delete_item(item,amount)
+          end --end item details for
+        end --end cost.item_cost if
+      end --end costs
     end
-      
-    if cost.items then
-      for _,item_details in ipairs(cost.items) do
-        local amount = (item_details.amount or 1)
-        local sortByVal = item_details.sortBy
-        local item = self:has_item(item_details.item,sortByVal)
-        self:delete_item(item,amount)
-      end --end item details for
-    end --end cost.items if
   end --end if val > 0
   
   val = val*(skillDef.increase_per_point or 1)
@@ -3201,8 +3207,9 @@ function Creature:upgrade_skill(skillID,val,ignore_cost)
       if result == false then return false end
     end
     --Do the skill increase:
+    if skillDef.max and newValue > skillDef.max then newValue = skillDef.max end
     self.skills[skillID] = newValue
-    if skillDef.max and self.skills[skillID] > skillDef.max then self.skills[skillID] = skillDef.max end
+    
     --Grant stat changes
     local statInc = {}
     if skillDef.stats_per_level then
@@ -3246,52 +3253,105 @@ end
 
 ---Returns the cost to upgrade a skill by a given amount
 --@param skillID. String. The skill ID to check
---@param val. Number. The amount of points to boost the skill by (defaults to 1)
 --@param Table. A table. Will potentially have two entries: points for skill points used, and items, a table of items with the format {item=itemID,sortBy="text",amount=1,displayName="text"}
-function Creature:get_skill_upgrade_cost(skillID,val)
+function Creature:get_skill_upgrade_cost(skillID)
   local cost = {}
-  val = val or 1
+
+  local currVal = self:get_skill(skillID,true)
+  local newVal = currVal+1
+  local skill = possibleSkills[skillID]
+  --Check points:
+  local sType = skill.skill_type or "skill"
+  local typeDef = possibleSkillTypes[sType]
+  local pointID = skill.upgrade_stat or (typeDef and typeDef.upgrade_stat) or "upgrade_points_" .. sType
   
-  if val > 0 then
-    local currVal = self.skills[skillID] or 0
-    local skill = possibleSkills[skillID]
-    --Check points:
-    local sType = skill.skill_type or "skill"
-    local typeDef = possibleSkillTypes[sType]
-    local pointID = skill.upgrade_stat or (typeDef and typeDef.upgrade_stat) or "upgrade_points_" .. sType
-    local point_cost = (skill.point_cost or 1)
-    local learn_point_cost = (skill.learn_point_cost or point_cost)
-    local points = (val-(currVal == 0 and 1 or 0))*point_cost+(currVal == 0 and learn_point_cost or 0)
-    if points > 0 then cost.point_cost = points end
+  local point_cost = skill.point_cost or (typeDef and typeDef.point_cost or nil)
+  local learn_point_cost = skill.learn_point_cost or (typeDef and typeDef.learn_point_cost or nil)
+  local point_cost_increase_per_level = skill.point_cost_increase_per_level or (typeDef and typeDef.point_cost_increase_per_level or nil)
+  local point_cost_increase_at_level = skill.point_cost_increase_at_level or (typeDef and typeDef.point_cost_increase_at_level or nil)
+  local point_cost_increase_per_x_levels = skill.point_cost_increase_per_x_levels or (typeDef and typeDef.point_cost_increase_per_x_levels or nil)
   
-    --Check items:
-    local learn_item_cost = skill.learn_item_cost or skill.item_cost
-    if currVal == 0 and learn_item_cost then
-      if not cost.items then cost.items = {} end
-      for _,item_details in ipairs(learn_item_cost) do
-        local amount = (item_details.amount or 1)
-        local index = item_details.item .. (item_details.sortBy or "")
-        if not cost.items[index] then
-          cost.items[index] = {item=item_details.item,sortBy=item_details.sortBy,amount=amount,displayName=item_details.displayName}
-        else
-          cost.items[index].amount = cost.items[index].amount+amount
-        end
-      end --end item cost for
+  local points = 0
+  local level_cost = 0
+  if currVal == 0 and learn_point_cost then
+    points = points + learn_point_cost
+  else
+    if point_cost then
+      points = points + point_cost
     end
-    
-    local item_cost = skill.item_cost
-    if item_cost then
-      if not cost.items then cost.items = {} end
-      for _,item_details in ipairs(item_cost) do
-        local amount = (item_details.amount or 1)
-        local index = item_details.item .. (item_details.sortBy or "")
-        if not cost.items[index] then
-          cost.items[index] = {item=item_details.item,sortBy=item_details.sortBy,amount=amount,displayName=item_details.displayName}
-        else
-          cost.items[index].amount = cost.items[index].amount+amount
+    if point_cost_increase_per_level then
+      level_cost = level_cost + point_cost_increase_per_level*newVal
+    end
+    if point_cost_increase_at_level then
+      for lvl,amt in pairs(point_cost_increase_at_level) do
+        if newVal >= lvl then
+          level_cost = level_cost+amt
         end
-      end --end item cost for
-    end --end if item_cost
+      end
+    end
+    if point_cost_increase_per_x_levels then
+      for lvl,amt in pairs(point_cost_increase_per_x_levels) do
+        level_cost = level_cost + (math.floor(newVal/lvl)*amt)
+      end
+    end
+    if level_cost == 0 and not point_cost then --If no point cost values are set anywhere, default to 1
+      level_cost = 1
+    end
+    points = points + level_cost
+  end --end learn cost if
+  if points > 0 then
+    cost.point_cost = points
+    cost.upgrade_stat = pointID
+    cost.upgrade_stat_name = skill.upgrade_stat_name
+    if not cost.upgrade_stat_name then
+      for _,stInfo in pairs(possibleSkillTypes) do
+        if stInfo.upgrade_stat == pointID then
+          cost.upgrade_stat_name = stInfo.upgrade_stat_name
+        end
+      end
+    end
+  end
+
+  --Check items:
+  local item_cost = skill.item_cost or (typeDef and typeDef.item_cost or nil)
+  local learn_item_cost = skill.learn_item_cost or (typeDef and typeDef.learn_item_cost or nil) or item_cost
+  if currVal == 0 and learn_item_cost then
+    if not cost.item_cost then cost.item_cost = {} end
+    for _,item_details in ipairs(learn_item_cost) do
+      local amount = (item_details.amount or 1)
+      local index = item_details.item .. (item_details.sortBy or "")
+      cost.item_cost[index] = {item=item_details.item,sortBy=item_details.sortBy,amount=amount,displayName=item_details.displayName}
+    end --end item cost for
+  elseif item_cost then
+    if not cost.item_cost then cost.item_cost = {} end
+    for _,item_details in ipairs(item_cost) do
+      local amount = item_details.amount or 0
+      local cost_increase_per_level = item_details.cost_increase_per_level
+      local cost_increase_at_level = item_details.cost_increase_at_level
+      local cost_increase_per_x_levels = item_details.cost_increase_per_x_levels
+      
+      if cost_increase_per_level then
+        amount = amount + cost_increase_per_level*newVal
+      end
+      if cost_increase_at_level then
+        for lvl,amt in pairs(cost_increase_at_level) do
+          if newVal >= lvl then
+            amount = amount+amt
+          end
+        end
+      end
+      if cost_increase_per_x_levels then
+        for lvl,amt in pairs(cost_increase_per_x_levels) do
+          amount = amount + (math.floor(newVal/lvl)*amt)
+        end
+      end
+      
+      if amount == 0 and not item_details.amount then
+        amount = 1
+      end
+      local index = item_details.item .. (item_details.sortBy or "")
+      cost.item_cost[index] = {item=item_details.item,sortBy=item_details.sortBy,amount=amount,displayName=item_details.displayName}
+    end --end item cost for
   end
   
   return cost

@@ -189,15 +189,15 @@ function characterscreen:draw()
               --Create cost text:
               local costText = "" 
               local cost = player:get_skill_upgrade_cost(skillID)
-              if not maxed and (cost.point_cost > 1 or cost.item_cost) then
+              if not maxed and (cost.point_cost > 1 or cost.item_cost or (cost.upgrade_stat and cost.upgrade_stat ~= pointID)) then
                 costText = costText .. " - Cost: "
                 local firstCost = true
                 if cost.point_cost and cost.point_cost > 0 then
-                  costText = costText .. cost.point_cost .. " " .. pointName
+                  costText = costText .. cost.point_cost .. " " .. (cost.upgrade_stat_name or cost.upgrade_stat or pointName)
                   firstCost = false
                 end
                 if cost.item_cost then
-                  for _,item_details in ipairs(cost.item_cost) do
+                  for _,item_details in pairs(cost.item_cost) do
                     local amount = item_details.amount or 1
                     local sortByVal = item_details.sortBy
                     local _,_,has_amt = player:has_item(item_details.item,sortByVal)
@@ -500,8 +500,8 @@ end
 
 function characterscreen:use_learnButton(info)
   if info.skill then
-    if player:can_upgrade_skill(info.skill,1) then
-      player:upgrade_skill(info.skill,1)
+    if player:can_upgrade_skill(info.skill) then
+      player:upgrade_skill(info.skill)
     end
   elseif info.spell then
     if (not info.spell_point_cost or (player.spellPoints and player.spellPoints >= info.spell_point_cost)) and (not info.stat_point_cost or (player.upgrade_points_attribute and player.upgrade_points_attribute >= info.stat_point_cost)) then
