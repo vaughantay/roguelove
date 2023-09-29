@@ -296,17 +296,17 @@ end
 ---Placeholder for the target_requires() callback, used to determine if the attempted target of the spell is acceptable
 --@param target Entity. The attempted target of the spell.
 --@param caster Creature. The creature who's trying to use the spell.
---@param target_number Number. Which target this is
+--@param previous_targets Table. The already-targeted targets of the spell, if applicable
 --@return true
-function Spell:target_requires(target,caster,target_number)
+function Spell:target_requires(target,caster,previous_targets)
   if not target then return true end --If there's no target, then say true because it's either a nontargeted spell or we're just starting to target now
   if possibleSpells[self.id].target_requires then
     if #target == 1 then target = target[1] end --if there's only one target, bypass the loop
     if #target == 0 then
-      return possibleSpells[self.id].target_requires(self,target,caster,(target_number or 1))
+      return possibleSpells[self.id].target_requires(self,target,caster,previous_targets)
     else
       for tnum,t in ipairs(target) do
-        return possibleSpells[self.id].target_requires(self,t,caster,tnum)
+        return possibleSpells[self.id].target_requires(self,t,caster,previous_targets)
       end
     end --end if #target
   end --end if target_requires exists
@@ -322,11 +322,13 @@ function Spell:learn_requires(possessor)
 end
 
 ---Placeholder for the get_target_tiles() function
+--@param target Entity. The potential target of the spell
 --@param possessor Creature. The creature who's trying to use the spell.
+--@param previous_targets Table. The already-targeted targets of the spell, if applicable
 --@return true
-function Spell:get_target_tiles(target,possessor)
+function Spell:get_target_tiles(target,caster,previous_targets)
   if possibleSpells[self.id].get_target_tiles then
-    return possibleSpells[self.id].get_target_tiles(self,target,possessor)
+    return possibleSpells[self.id].get_target_tiles(self,target,caster,previous_targets)
   else
     return {}
   end
@@ -609,11 +611,12 @@ end
 
 ---Gets potential targets of a spell. Uses the spell's own get_potential_targets() function if it has one, or defaults to seen creatures if it doesn't and it's a creature-spell
 --@param caster Creature. The caster of the spell
---@param target_number Number. Which target of the spell it is
-function Spell:get_potential_targets(caster,target_number)
+--@param previous_targets Table. The already-targeted targets of the spell, if applicable
+--@return Table. A list of potential targets
+function Spell:get_potential_targets(caster,previous_targets)
   local targets = {}
   if possibleSpells[self.id].get_potential_targets then
-    targets = possibleSpells[self.id].get_potential_targets(self,caster,target_number)
+    targets = possibleSpells[self.id].get_potential_targets(self,caster,previous_targets)
     if not targets then targets = {} end
     return targets
   end

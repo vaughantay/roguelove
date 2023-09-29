@@ -68,7 +68,6 @@ function initialize_player(creatureID,class,name,gender,pronouns)
   if class then player:apply_class(class) end
 	player.isPlayer = true
   player.playerAlly = true
-  player.hotkeys = {}
 	if gender then player.gender = gender end
   if gender == "custom" then player.pronouns = pronouns end
   if name ~= nil then
@@ -163,9 +162,6 @@ function calc_attack(attacker,target,forceHit,item)
 	local roll = random(1,100)
 	if (roll > 100-critChance or (target.baseType == "creature" and target:does_notice(attacker) == false) and target ~= player) then --critical hit!
 		result = "critical"
-    if attacker.critical_damage then
-      dmg = tweak(attacker.critical_damage)
-    end
 		dmg = tweak(math.ceil(dmg * 1.5))
 	elseif (roll <= hitMod) or forceHit then --hit!
 		result = "hit"
@@ -627,7 +623,7 @@ function move_player(newX,newY,force)
       return false --break here, so turn doesn't pass
     end
   elseif entity then
-    for id, entity in pairs(currMap.contents[newX][newY]) do
+    for id, entity in pairs(currMap:get_contents(newX,newY)) do
       if (entity.baseType == "creature") then
         if (entity.playerAlly == true) then
           currMap:swap(player,entity)
@@ -725,7 +721,7 @@ function setTarget(x,y)
       potential_target = {x=x,y=y}
     end
     if actionResult.target_requires then
-      local canTarget, result = actionResult:target_requires(potential_target,player,#game.targets+1)
+      local canTarget, result = actionResult:target_requires(potential_target,player,game.targets)
       if canTarget ~= false then
         targets[#targets+1] = potential_target
         output.potentialTargets = {}
@@ -768,6 +764,8 @@ function perform_target_action(target_list)
 	end --end main if
   if result ~= false then
     cancel_targeting()
+  else
+    table.remove(game.targets)
   end
   return result
 end

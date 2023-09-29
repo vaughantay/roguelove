@@ -54,6 +54,7 @@ function Creature:init(creatureType,level,tags,info,noTweak,ignoreNewFunc) --TOD
   self.inventory = {}
   self.equipment = {}
   self.equipment_list = {}
+  self.hotkeys = {}
   self.known_recipes = self.known_recipes or {}
   self.forbidden_spell_tags = self.forbidden_spell_tags or self.forbidden_tags or {}
   self.forbidden_item_tags = self.forbidden_item_tags or self.forbidden_tags or {}
@@ -1340,6 +1341,9 @@ end
 --@param target Entity. The entity to check (can be any table with an X and Y coordinate)
 --@return Boolean. Whether they're touching
 function Creature:touching(target)
+  if not target.x or not self.x or not target.y or not self.y then --You're definitely not touching something that doesn't exist in corporeal space
+    return false
+  end
 	if (math.abs(target.x-self.x) <= 1 and math.abs(target.y-self.y) <= 1) then
 		return true
 	end
@@ -1547,9 +1551,6 @@ function Creature:remove(map)
 	self.hp = 0
 	if (target == self) then
 		target = nil
-	end
-	for condition, turns in pairs(self.conditions) do
-		self.conditions[condition] = nil
 	end
   --currMap:set_blocked(self.x,self.y,0)
 end
@@ -3456,7 +3457,7 @@ function Creature:learn_spell(spellID,force)
     if not slots or slots > 0 then
       self:memorize_spell(spellID)
     end
-    return true
+    return newSpell
   end
 end
 
@@ -3692,6 +3693,349 @@ function Creature:has_tag(tag)
     end
   end
   return false
+end
+
+---Transform into another creature. This replaces the original creature with a somewhat modified version of the creature they turn into, but leaves the original self unmodified (which enables the possibility of transfomring back). Differentiated from Creature:evolve() which uses the original creature as the base and modifies it permanently.
+--@param newBody Creature or String. The creature to transform into, or the creature ID if a string
+--@param info Anything. Info to pass to the new() function of the new creature
+--@param modifiers Table. Table containing possible modifiers: 
+--level=number (Level to spawn the new body at)
+--tags=table (Table of tags to pass to the new creature)
+--permanent=true (if true, don't save a reference to the old body as it will not be needed)
+--include_spells=true (if true, move old body's spells over)
+--include_skills=true (if true, move old body's skills over)
+--active_undo=true (if true, give the undo transformation spell to the new body)
+function Creature:transform(newBody,info,modifiers)
+  if self.oldBody then --let's not get into multiple transformations quite yet
+    return false
+  end
+  if type(newBody) == 'string' then
+    newBody = Creature(newBody,(modifiers and modifiers.level or nil),(modifiers and modifiers.tags or nil),info)
+  end
+  if not modifiers.permanent then
+    newBody.oldBody = self
+  end
+  
+  local hpRatio = self.hp/self.max_hp
+  newBody.hp = math.ceil(newBody.max_hp*hpRatio)
+  if self.mp then
+    local mpRatio = self.mp/self.max_mp
+    newBody.mp = math.ceil(newBody.max_mp*mpRatio)
+  end
+  
+  --Conditions and cooldowns:
+  newBody.conditions = self.conditions
+  newBody.cooldowns = self.cooldowns
+  
+  --Identity stuff:
+  newBody.properName = self.properName
+  newBody.gender = self.gender
+  newBody.pronouns = self.pronouns
+  newBody.playerAlly = self.playerAlly
+  newBody.master = self.master
+  
+  --AI stuff:
+  newBody.notices = self.notices
+  newBody.shitlist = self.shitlist
+  newBody.ignoring = self.ignoring
+  newBody.alert = self.alert
+  
+  --Other creature relationship stuff
+  for _,creat in pairs(currMap.creatures) do
+    if creat:can_sense_creature(self) then
+      if creat.notices[self] then creat.notices[newBody] = creat.notices[self] end
+      if creat.shitlist[self] then creat.shitlist[newBody] = true end
+      if creat.ignoring[self] then creat.ignoring[newBody] = newBody end
+    end
+    if creat.master == self then creat.master = newBody end
+  end
+  
+  --Transfer spells and skills
+  if modifiers.include_skills then
+    for skillID,val in pairs(self.skills) do
+      local diff = val-(newBody:get_skill(skillID,true))
+      if diff > 0 then
+        newBody:upgrade_skill(skillID,val,true)
+      end
+    end
+  end
+  if modifiers.include_spells then
+    for _,spellInfo in pairs(self.spells_known) do
+      local bodySpell = newBody:has_spell(spellInfo.id,true,true)
+      if not bodySpell then
+        bodySpell = newBody:learn_spell(spellInfo.id,true)
+      end
+      for upgradeID,val in pairs(spellInfo.applied_upgrades) do
+        local selfVal = bodySpell.applied_upgrades[upgradeID] or 0
+        local diff = val-selfVal
+        while val > 0 do
+          val = val - 1
+          bodySpell:apply_upgrade(upgradeID,true)
+        end
+      end --end upgrade ID
+    end
+  end
+  if modifiers.active_undo then
+    newBody:learn_spell('undotransform',true)
+  end
+  
+  --Inventory and equipment
+  newBody.inventory = self.inventory
+  for slot,details in pairs(self.equipment) do
+    if newBody.equipment[slot] then
+      for _,item in ipairs(details) do
+        newBody:equip_item(item)
+      end
+    end
+  end
+  
+  --Transfer the bodies:
+  if self == player then
+    player = newBody
+    newBody.isPlayer = true
+  end
+  local x,y = self.x,self.y
+  self:remove()
+  currMap:add_creature(newBody,x,y)
+  newBody.faceLeft = self.faceLeft
+  return newBody
+end
+
+--Undo a creature's transformation, returning them to their original form.
+function Creature:undo_transformation()
+  if not self.oldBody then
+    return false
+  end
+  local oldBody = self.oldBody
+  
+  local hpRatio = self.hp/self.max_hp
+  oldBody.hp = math.ceil(oldBody.max_hp*hpRatio)
+  if self.mp then
+    local mpRatio = self.mp/self.max_mp
+    oldBody.mp = math.ceil(oldBody.max_mp*mpRatio)
+  end
+  
+  --Identity stuff:
+  oldBody.playerAlly = self.playerAlly
+  oldBody.master = self.master
+  
+  --AI stuff:
+  oldBody.notices = self.notices
+  oldBody.shitlist = self.shitlist
+  oldBody.ignoring = self.ignoring
+  oldBody.alert = self.alert
+  
+  --Other creature relationship stuff
+  for _,creat in pairs(currMap.creatures) do
+    if creat:can_sense_creature(self) then
+      if creat.notices[self] then creat.notices[oldBody] = creat.notices[self] end
+      if creat.shitlist[self] then creat.shitlist[oldBody] = true end
+      if creat.ignoring[self] then creat.ignoring[oldBody] = oldBody end
+    end
+    if creat.master == self then creat.master = oldBody end
+  end
+  
+  --Inventory and equipment
+  for slot,details in pairs(self.equipment) do
+    if oldBody.equipment[slot] then
+      for _,item in ipairs(details) do
+        oldBody:equip_item(item)
+      end
+    end
+  end
+  
+  if self == player then
+    player = oldBody
+    oldBody.isPlayer = true
+  end
+  local x,y = self.x,self.y
+  self:remove()
+  oldBody.faceLeft = self.faceLeft
+  currMap:add_creature(oldBody,x,y)
+end
+
+---Permanently evolve into another creature. It uses the initial creature as a base, and changes it to keep the highest value of skills, stats, and favor. Factions membership, spells, and favor are combined, and AI-related stuff is overwritten. Generally will be a net positive. This is differentiated from Creature:transform(), which leaves the original creature intact but effectively creates a new body and moves some limited information over to it.
+--@param creature Creature or string. The creature to transform into, or the creature ID if a string
+--@param info Anything. Info to pass to the new() function of the new creature
+--@param include_items Boolean. Whether or not to keep the items and equipment the new creature would normally spawn with
+function Creature:evolve(newCreature,info,include_items)
+  if type(newCreature) == 'string' then
+    newCreature = Creature(newCreature,nil,self.tags,info)
+  end
+  if self.class then
+    newCreature:apply_class(self.class)
+  end
+  
+  --Basic stats:
+  local levelDiff = newCreature.level - self.level
+  while levelDiff > 0 do
+    levelDiff = levelDiff-1
+    self:level_up(true)
+  end
+  self.level = math.max(self.level,newCreature.level)
+  local hp_ratio = self.hp/self.max_hp
+  self.max_hp = math.max(self.max_hp,newCreature.max_hp)
+  self.hp = math.ceil(self.max_hp*hp_ratio)
+  local mp_ratio = (self.mp or 0)/(self.max_mp or 1)
+  self.max_mp = math.max(self.max_mp or 0, newCreature.max_mp or 0)
+  self.mp = math.ceil(newCreature.max_mp*mp_ratio)
+  self.perception = math.max(self.perception,newCreature.perception)
+  local speedMod = self.speed-(possibleMonsters[self.id].speed or 100)
+  self.speed = newCreature.speed+speedMod
+  local armorMod = (self.armor or 0)-(possibleMonsters[self.id].armor or 0)
+  self.armor =(newCreature.armor or 0)+armorMod
+  local stealthMod = (self.stealth or 0)-(possibleMonsters[self.id].stealth or 0)
+  self.stealth = (newCreature.stealth or 0)+stealthMod
+  self.ranged_attack = newCreature.ranged_attack
+  self.critical_chance = newCreature.critical_chance
+  
+  --AI stuff:
+  self.ranged_chance = newCreature.ranged_chance
+  self.memory = newCreature.memory
+  self.aggression = newCreature.aggression
+  self.bravery = newCreature.bravery
+  self.min_distance = newCreature.min_distance
+  self.ignore_distance = newCreature.ignore_distance
+  self.pathType = newCreature.pathType
+  self.run_chance = newCreature.run_chance
+  self.notice_chance = newCreature.notice_chance
+  self.ai_flags = newCreature.ai_flags
+  self.extraSense = newCreature.extraSense
+  self.terrainLimit = newCreature.terrainLimit
+  self.immobile = newCreature.immobile
+  self.guardWanderDistance = newCreature.guardWanderDistance or self.guardWanderDistance
+
+  --Death items
+  self.death_items = newCreature.death_items
+  self.corpse = newCreature.corpse
+  
+  --Weaknesses, resistances and conditions
+  self.weaknesses = newCreature.weaknesses
+  self.resistances = newCreature.resistances
+  self.hit_conditions = newCreature.hit_conditions
+  
+  --Extra stats:
+  if newCreature.extra_stats then
+    for statID,info in pairs(newCreature.extra_stats) do
+      if not self.extra_stats[statID] then
+        self.extra_stats[statID] = info
+      else
+        if not self.extra_stats[statID].max or not info.max then
+          self.extra_stats[statID].max = nil
+          self.extra_stats[statID].value = math.max(self.extra_stats[statID].value or 0,info.value or 0)
+        else
+          local ratio = self.extra_stats[statID].value/self.extra_stats[statID].max
+          self.extra_stats[statID].max = math.max(self.extra_stats[statID].max,info.max)
+          self.extra_stats[statID].value = math.ceil(ratio*self.extra_stats[statID].max)
+        end
+      end
+    end
+  end
+  
+  --Spells:
+  if self.spell_slots and newCreature.spell_slots then
+    self.spell_slots = math.max(self.spell_slots,newCreature.spell_slots)
+  else
+    self.spell_slots = nil
+  end
+  for _,spell in pairs(newCreature.spells_known) do
+    local spellID = spell.id
+    local _,selfSpell = self:has_spell(spellID,true,true)
+    if not selfSpell then
+      selfSpell = self:learn_spell(spellID,true)
+    end
+    for upgradeID,val in pairs(spell.applied_upgrades) do
+      local selfVal = selfSpell.applied_upgrades[upgradeID] or 0
+      local diff = val-selfVal
+      while val > 0 do
+        val = val - 1
+        selfSpell:apply_upgrade(upgradeID,true)
+      end
+    end --end upgrade ID
+  end
+  
+  --Equipment slots and inventory/equipment
+  if self.inventory_space and newCreature.inventory_space then
+    self.inventory_space = math.max(self.inventory_space,newCreature.inventory_space)
+  else
+    self.inventory_space = nil
+  end
+  --Replace old equipment slots with new equipment slots
+  local newEquip = {}
+  for slot,details in pairs(newCreature.equipment) do
+    newEquip[slot] = {slots=details.slots}
+  end
+  if self.include_items then
+    for _,item in ipairs(newCreature:get_inventory()) do
+      self:give_item(item)
+    end
+  end
+  --Equip any potential equipment. TODO: Make it select the best option if there's multiple options
+  for _,item in ipairs(self:get_inventory()) do
+    if item.equippable and not item.equipped then
+      self:equip_item(item)
+    end
+  end
+  
+  --Types and tags:
+  self.types = newCreature.types
+  self.tags = newCreature.tags
+  self.forbidden_spell_tags = newCreature.forbidden_spell_tags or newCreature.forbidden_tags
+  self.forbidden_item_tags = newCreature.forbidden_item_tags or newCreature.forbidden_tags
+  
+  --Factions and Favor:
+  for _,factionID in ipairs(newCreature.factions) do
+    if not self:is_faction_member(factionID) then
+      local faction = currWorld.factions[factionID]
+      if faction then
+        faction:join(self)
+      end
+    end
+  end
+  for faction,favor in pairs(newCreature.favor) do
+    self.favor[faction] = (newCreature.favor[faction] or 0)+favor
+  end
+  if newCreature.enemy_factions then
+    self.enemy_factions = newCreature.enemy_factions or {}
+  end
+  if newCreature.enemy_types then
+    self.enemy_types = newCreature.enemy_types or {}
+  end
+  
+  --Skills:
+  for skillID,val in pairs(newCreature.skills) do
+    self.skills[skillID] = math.max(self.skills[skillID] or 0,val) --we aren't using upgrade_skill because that could increase stats, spells, etc. which we already accounted for in the above
+  end
+  self.stats_per_level = newCreature.stats_per_level
+  self.stats_at_level = newCreature.stats_at_level
+  self.stats_per_x_levels = newCreature.stats_per_x_levels
+  self.skills_per_level = newCreature.skills_per_level
+  self.skills_at_level = newCreature.skills_at_level
+  self.skills_per_x_levels = newCreature.skills_per_x_levels
+  
+  --Identity:
+  self.name = newCreature.name
+  self.description = newCreature.description
+  self.id = newCreature.id
+
+  --Display and sound stuff:
+  self.image_name = newCreature.image_name
+  self.color = newCreature.color
+  self.symbol = newCreature.symbol
+  self.bloodColor = newCreature.bloodColor
+  self.animated=newCreature.animated
+  self.animation_time = newCreature.animation_time
+  self.spritesheet=newCreature.spriteSheet
+  self.image_max=newCreature.image_max
+  self.topdown = newCreature.topDown
+  self.deathSound = newCreature.deathSound
+  self.soundgroup = newCreature.soundgroup
+  self.bossText = newCreature.bossText
+  self.randomAnimation = newCreature.randomAnimation
+  self.reverseAnimation = newCreature.reverseAnimation
+  self.castsLight = newCreature.castsLight
+  self.lightDist = newCreature.lightDist
+  self.lightColor = newCreature.lightColor
 end
 
 ---Get all possible recipes the creature can craft

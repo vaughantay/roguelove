@@ -440,7 +440,7 @@ function mapgen:addRiver(map, tile, noBridges,bridgeData,minDist,clearTiles)
       --Add the water:
       for x=currX-spread,currX+spread,1 do
         if (x>1 and x<map.width) then
-          for id,feature in pairs(map.contents[x][y]) do
+          for id,feature in pairs(map:get_contents(x,y)) do
             if feature.name == "Shallow Water" or feature.name == "Deep Water" then return end --if you run into a lake, stop
           end --end for
           map.collisionMaps['basic'][y][x] = 1
@@ -463,7 +463,7 @@ function mapgen:addRiver(map, tile, noBridges,bridgeData,minDist,clearTiles)
       --Add the water:
       for y=currY-spread,currY+spread,1 do
         if (y>1 and y<map.height) then
-          for id,feature in pairs(map.contents[x][y]) do
+          for id,feature in pairs(map:get_contents(x,y)) do
             if feature.name == "Shallow Water" or feature.name == "Deep Water" then return end --if you run into a lake, stop
           end --end for
           map.collisionMaps['basic'][y][x] = 1

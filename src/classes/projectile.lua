@@ -22,10 +22,6 @@ function Projectile:init(projectile_type,source,target,info)
       self[key] = data[key]
     end
 	end
-  if (data.new ~= nil) then 
-		local r = data.new(self,source,target,(info or nil))
-    if r and (r.x and r.y) then target = r end
-	end
   self.baseType = "projectile"
   self.id = projectile_type
   self.source = source
@@ -45,6 +41,10 @@ function Projectile:init(projectile_type,source,target,info)
     end
     self.angle = calc_angle(source.x,source.y,target.x,target.y)
   end
+  if (data.new ~= nil) then 
+		local r = data.new(self,source,target,(info or nil))
+    if r and (r.x and r.y) then target = r end
+	end
   self:refresh_path()
   self.first_turn=true
 	return self

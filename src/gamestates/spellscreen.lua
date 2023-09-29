@@ -378,6 +378,7 @@ function spellscreen:draw()
       local lastorder = 0
       for stat,info in pairs(spell.stats) do
         info.id = stat
+        if not info.name then info.name = ucfirst(info.id) end
         local display_order = info.display_order
         if display_order then
           lastorder = math.max(lastorder,display_order)

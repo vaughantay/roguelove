@@ -54,7 +54,6 @@
 </ul>
 <h2>Modules</h2>
 <ul class="nowrap">
-  <li><a href="../modules/data.spells_unused.html">data.spells_unused</a></li>
   <li><a href="../modules/gamelogic.html">gamelogic</a></li>
   <li><a href="../modules/input.html">input</a></li>
   <li><a href="../modules/jumper.core.bheap.html">jumper.core.bheap</a></li>
@@ -473,12 +472,16 @@
 	<td class="summary">A generic function for getting a skill and its bonus</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#creature:can_upgrade_skill">creature:can_upgrade_skill (skill, val)</a></td>
+	<td class="name" nowrap><a href="#creature:can_upgrade_skill">creature:can_upgrade_skill (skill, ignore_cost)</a></td>
 	<td class="summary">Returns whether or not the creature has enough points to upgrade the skill</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#creature:update_skill">creature:update_skill (skill, val, ignore_cost)</a></td>
+	<td class="name" nowrap><a href="#creature:upgrade_skill">creature:upgrade_skill (skillID, val, ignore_cost)</a></td>
 	<td class="summary">Changes the skill value</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#creature:get_skill_upgrade_cost">creature:get_skill_upgrade_cost (skillID., Table.)</a></td>
+	<td class="summary">Returns the cost to upgrade a skill by a given amount</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#creature:get_extra_stat">creature:get_extra_stat (stat, noBonus)</a></td>
@@ -533,6 +536,10 @@
 	<td class="summary">Gets a list of all the spells a creature can currently learn from its definition, class, or skills</td>
 	</tr>
 	<tr>
+	<td class="name" nowrap><a href="#creature:get_purchasable_skills">creature:get_purchasable_skills (skillType)</a></td>
+	<td class="summary">Gets a list of all the skills a creature can currently learn from its definition, class, or generally purchasable skills</td>
+	</tr>
+	<tr>
 	<td class="name" nowrap><a href="#creature:get_melee_attacks">creature:get_melee_attacks ()</a></td>
 	<td class="summary">Get all items equipped that can be used for melee attacks</td>
 	</tr>
@@ -547,6 +554,14 @@
 	<tr>
 	<td class="name" nowrap><a href="#creature:has_tag">creature:has_tag (tag)</a></td>
 	<td class="summary">Checks if an creature has a descriptive tag.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#creature:transform">creature:transform (newBody, info, modifiers)</a></td>
+	<td class="summary">Transform into another creature.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#creature:evolve">creature:evolve (creature, info, include_items)</a></td>
+	<td class="summary">Permanently evolve into another creature.</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#creature:get_all_possible_recipes">creature:get_all_possible_recipes (hide_uncraftable)</a></td>
@@ -564,6 +579,10 @@ TODO: Forbidden tags on recipes</td>
 	<tr>
 	<td class="name" nowrap><a href="#creature:learn_recipe">creature:learn_recipe (recipeID)</a></td>
 	<td class="summary">Learn a recipe</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#creature:refresh">creature:refresh ()</a></td>
+	<td class="summary">Restores HP, MP, spells, removes cooldowns and conditions</td>
 	</tr>
 </table>
 
@@ -1527,7 +1546,7 @@ TODO: Forbidden tags on recipes</td>
         <li>
         either nil or Number. The index of the item in the inventory</li>
         <li>
-        either nil or Number. The amount of the item the player has</li>
+        either nil or Number. The amount of the item the creature has</li>
     </ol>
 
 
@@ -1556,7 +1575,7 @@ TODO: Forbidden tags on recipes</td>
         <li>
         either nil or Number. The index of the item in the inventory</li>
         <li>
-        either nil or Number. The amount of the item the player has</li>
+        either nil or Number. The amount of the item the creature has</li>
     </ol>
 
 
@@ -1714,7 +1733,7 @@ TODO: Forbidden tags on recipes</td>
          Number. The y-coordinate
         </li>
         <li><span class="parameter">forceRefresh</span>
-         Boolean. Whether to force actually calculating if a player can see it, versus just looking at the stored values of player sight. Useful only when calling this for the player.
+         Boolean. Whether to force actually calculating if a creature can see it, versus just looking at the stored values of player sight. Useful only when calling this for the player.
         </li>
     </ul>
 
@@ -2883,7 +2902,7 @@ TODO: Forbidden tags on recipes</td>
 </dd>
     <dt>
     <a name = "creature:can_upgrade_skill"></a>
-    <strong>creature:can_upgrade_skill (skill, val)</strong>
+    <strong>creature:can_upgrade_skill (skill, ignore_cost)</strong>
     </dt>
     <dd>
     Returns whether or not the creature has enough points to upgrade the skill
@@ -2894,8 +2913,8 @@ TODO: Forbidden tags on recipes</td>
         <li><span class="parameter">skill</span>
          Text. The ID of the skill
         </li>
-        <li><span class="parameter">val</span>
-         Number. The amount to change the skill by, defaults to 1
+        <li><span class="parameter">ignore_cost</span>
+         Boolean. If true, just check non-cost requirements
         </li>
     </ul>
 
@@ -2910,8 +2929,8 @@ TODO: Forbidden tags on recipes</td>
 
 </dd>
     <dt>
-    <a name = "creature:update_skill"></a>
-    <strong>creature:update_skill (skill, val, ignore_cost)</strong>
+    <a name = "creature:upgrade_skill"></a>
+    <strong>creature:upgrade_skill (skillID, val, ignore_cost)</strong>
     </dt>
     <dd>
     Changes the skill value
@@ -2919,7 +2938,7 @@ TODO: Forbidden tags on recipes</td>
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">skill</span>
+        <li><span class="parameter">skillID</span>
          Text. The ID of the skill
         </li>
         <li><span class="parameter">val</span>
@@ -2927,6 +2946,29 @@ TODO: Forbidden tags on recipes</td>
         </li>
         <li><span class="parameter">ignore_cost</span>
          Boolean. If true, don't pay the cost of the upgrade
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "creature:get_skill_upgrade_cost"></a>
+    <strong>creature:get_skill_upgrade_cost (skillID., Table.)</strong>
+    </dt>
+    <dd>
+    Returns the cost to upgrade a skill by a given amount
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">skillID.</span>
+         String. The skill ID to check
+        </li>
+        <li><span class="parameter">Table.</span>
+         A table. Will potentially have two entries: points for skill points used, and items, a table of items with the format {item=itemID,sortBy="text",amount=1,displayName="text"}
         </li>
     </ul>
 
@@ -3229,6 +3271,36 @@ TODO: Forbidden tags on recipes</td>
 
 
 
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A table of the spells available to purchase
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "creature:get_purchasable_skills"></a>
+    <strong>creature:get_purchasable_skills (skillType)</strong>
+    </dt>
+    <dd>
+    Gets a list of all the skills a creature can currently learn from its definition, class, or generally purchasable skills
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">skillType</span>
+         String. Limit to a particular skill tpyre (optional)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A table of the skills available to purchase
+    </ol>
 
 
 
@@ -3317,6 +3389,64 @@ TODO: Forbidden tags on recipes</td>
 
         Boolean. Whether or not it has the tag.
     </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "creature:transform"></a>
+    <strong>creature:transform (newBody, info, modifiers)</strong>
+    </dt>
+    <dd>
+    Transform into another creature.  This replaces the original creature with a somewhat modified version of the creature they turn into, but leaves the original self unmodified (which enables the possibility of transfomring back). Differentiated from Creature:evolve() which uses the original creature as the base and modifies it permanently.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">newBody</span>
+         Creature or String. The creature to transform into, or the creature ID if a string
+        </li>
+        <li><span class="parameter">info</span>
+         Anything. Info to pass to the new() function of the new creature
+        </li>
+        <li><span class="parameter">modifiers</span>
+         Table. Table containing possible modifiers:
+level=number (Level to spawn the new body at)
+tags=table (Table of tags to pass to the new creature)
+permanent=true (if true, don't save a reference to the old body as it will not be needed)
+include_spells=true (if true, move old body's spells over)
+include_skills=true (if true, move old body's skills over)
+active_undo=true (if true, give the undo transformation spell to the new body)
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "creature:evolve"></a>
+    <strong>creature:evolve (creature, info, include_items)</strong>
+    </dt>
+    <dd>
+    Permanently evolve into another creature.  It uses the initial creature as a base, and changes it to keep the highest value of skills, stats, and favor. Factions membership, spells, and favor are combined, and AI-related stuff is overwritten. Generally will be a net positive. This is differentiated from Creature:transform(), which leaves the original creature intact but effectively creates a new body and moves some limited information over to it.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">creature</span>
+         Creature or string. The creature to transform into, or the creature ID if a string
+        </li>
+        <li><span class="parameter">info</span>
+         Anything. Info to pass to the new() function of the new creature
+        </li>
+        <li><span class="parameter">include_items</span>
+         Boolean. Whether or not to keep the items and equipment the new creature would normally spawn with
+        </li>
+    </ul>
+
 
 
 
@@ -3422,6 +3552,20 @@ TODO: Forbidden tags on recipes
 
 
 </dd>
+    <dt>
+    <a name = "creature:refresh"></a>
+    <strong>creature:refresh ()</strong>
+    </dt>
+    <dd>
+    Restores HP, MP, spells, removes cooldowns and conditions
+
+
+
+
+
+
+
+</dd>
 </dl>
 
 
@@ -3429,7 +3573,7 @@ TODO: Forbidden tags on recipes
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2023-09-08 16:24:54 </i>
+<i style="float:right;">Last updated 2023-09-29 12:16:36 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

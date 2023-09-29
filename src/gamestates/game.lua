@@ -1398,7 +1398,7 @@ function game:update(dt)
   end
   if action == "targeting" and actionResult ~= nil then
     if #output.potentialTargets == 0 then
-      local ptarg = (actionResult.get_potential_targets and actionResult:get_potential_targets(player,(#game.targets+1)) or {})
+      local ptarg = (actionResult.get_potential_targets and actionResult:get_potential_targets(player,game.targets) or {})
       if ptarg then
         output.potentialTargets = ptarg
       elseif actionResult.target_type == "creature" then

@@ -196,7 +196,7 @@ function output:setCursor(x,y,force,allow_current_creature)
   if Gamestate.current() == game and action == "targeting" and actionResult ~= nil and actionResult.get_target_tiles ~= nil then
     local x,y = x,y
     if #self.targetLine > 0 then x,y = self.targetLine[#self.targetLine].x,self.targetLine[#self.targetLine].y end --draw the target box around the last time, not the actual pointed to tile (if they're different)
-    self.targetTiles = actionResult:get_target_tiles({x=x,y=y},player)
+    self.targetTiles = actionResult:get_target_tiles({x=x,y=y},player,game.targets) or {}
   end
 end
 

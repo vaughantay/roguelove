@@ -411,6 +411,8 @@ function featuremaker:new(args)
   self.shake = args.shake
   self.after = args.after
   self.avoidPlayer = args.avoidPlayer
+  self.avoidCreatures = args.avoidCreatures
+  self.requiresClear = args.requiresClear
 end
 function featuremaker:update(dt)
   self.countdown = self.countdown - dt
@@ -427,7 +429,14 @@ function featuremaker:update(dt)
     self.countdown = self.speed
     local tileID = next(self.tiles)
     local tile = self.tiles[tileID]
-    if self.avoidPlayer and player.x == tile.x and player.y == tile.y then
+    if self.avoidCreatures and currMap:tile_has_creature(tile.x,tile.y) then
+      table.remove(self.tiles,tileID)
+      return
+    elseif self.avoidPlayer and player.x == tile.x and player.y == tile.y then
+      table.remove(self.tiles,tileID)
+      return
+    end
+    if self.requiresClear and not currMap:isClear(tile.x,tile.y,nil,true,true) then
       table.remove(self.tiles,tileID)
       return
     end
