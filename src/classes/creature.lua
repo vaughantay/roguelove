@@ -533,15 +533,17 @@ end
 function Creature:damage(amt,attacker,damage_type,armor_piercing,noSound,item)
   amt = math.ceil(amt) --just in case! to prevent fractional damage
   require "data.damage_types"
-  damage_type = damage_type or "physical"
+  damage_type = damage_type or gamesettings.default_damage_type
   
   --Apply damage weaknesses, resistances, and armor
-  amt = amt + self:get_weakness(amt,damage_type)
-  amt = amt - self:get_resistance(amt,damage_type)
-  if armor_piercing ~= true then
+  if damage_type then
+    amt = amt + self:get_weakness(amt,damage_type)
+    amt = amt - self:get_resistance(amt,damage_type)
+  end
+  if armor_piercing ~= true and (not damage_type or not damage_types[damage_type] or not damage_types[damage_type].armor_piercing) then
     local totalArmor = (self.armor or 0)
     totalArmor = totalArmor + self:get_bonus('armor')
-    totalArmor = totalArmor + self:get_bonus(damage_type .. '_armor')
+    if damage_type then totalArmor = totalArmor + self:get_bonus(damage_type .. '_armor') end
     if type(armor_piercing) == "number" then
       totalArmor = totalArmor - armor_piercing
     end
@@ -555,7 +557,10 @@ function Creature:damage(amt,attacker,damage_type,armor_piercing,noSound,item)
       local count = 0
       local dmg = 0
       for _,val in pairs(ret) do --add up all returned damage values
-        if type(val) == "number" then count = count + 1 dmg = dmg + val end
+        if type(val) == "number" then
+          count = count + 1
+          dmg = dmg + val
+        end
       end
     if count > 0 then amt = math.ceil(dmg/count) end --final damage is average of all returned damage values
     end
@@ -564,6 +569,20 @@ function Creature:damage(amt,attacker,damage_type,armor_piercing,noSound,item)
     elseif not player:can_see_tile(self.x,self.y) and (not attacker or not player:can_see_tile(attacker.x,attacker.y)) then
       amt = math.ceil(amt/4)
     end --if you're far away from the player
+    if amt > 0 and damage_type and damage_types[damage_type] and damage_types[damage_type].damages then
+      local ret = damage_types[damage_type].damages(self,attacker,amt)
+      if type(ret) == "number" then
+        amt = ret
+      elseif ret == false then
+        return 0
+      end
+      if not noSound and player:can_see_tile(self.x,self.y) then
+        output:sound(damage_type .. 'damage')
+      end
+    end
+    if amt <= 0 then
+      return 0
+    end
 		self:updateHP(-amt)
     self.fear = self.fear + math.ceil(100*(amt/self:get_max_hp())) --increase fear by % of MHP you just got damaged by
     self.alert = self.memory
@@ -590,17 +609,6 @@ function Creature:damage(amt,attacker,damage_type,armor_piercing,noSound,item)
       self.lastAttackerWeapon = item
     else
       self.lastAttackerWeapon = nil --This is done so if you hit someone, then they die from a non-attack, we'll still call you the killer. But not your weapon
-    end
-    if (self.hp < 1) then
-      if damage_type == "explosive" then
-        self.explosiveDeath = true
-      end
-    end
-    if amt > 0 and damage_type and damage_types[damage_type] then
-      damage_types[damage_type](self,attacker)
-      if not noSound and player:can_see_tile(self.x,self.y) then
-        output:sound(damage_type .. 'damage')
-      end
     end
     if self == player and self.hp > 0 then
       output:shake(math.max(math.min((amt/self.hp)*25,25),2),.5)
@@ -1026,7 +1034,8 @@ function Creature:attack(target,forceHit,ignore_callbacks)
         if count > 0 then dmg = math.ceil(amt/count) end --final damage is average of all returned damage values
       end
 			dmg = target:damage(dmg,self,self.damage_type,self:get_armor_piercing())
-			if dmg > 0 then txt = txt .. ucfirst(self:get_name()) .. " hits " .. target:get_name() .. " for " .. dmg .. (self.damage_type and " " .. self.damage_type or "") .. " damage."
+      local dtype = (self.damage_type and " " .. (damage_types[self.damage_type] and damage_types[self.damage_type].name or self.damage_type) or "")
+			if dmg > 0 then txt = txt .. ucfirst(self:get_name()) .. " hits " .. target:get_name() .. " for " .. dmg .. dtype .. " damage."
       else txt = txt .. ucfirst(self:get_name()) .. " hits " .. target:get_name() .. " for no damage." end
       local xMod,yMod = get_unit_vector(self.x,self.y,target.x,target.y)
       --target.xMod,target.yMod = xMod*3,yMod*3

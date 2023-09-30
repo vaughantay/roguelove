@@ -56,6 +56,7 @@ gamesettings = {
   --default_ranged_damage_stats={}, -- will apply extra damage of the stat/skill * its value
   --default_ranged_accuracy_stats={ranged=1}, -- will apply % chance to hit of the stat/skill * its value
   --default_dodge_stats={agility=5}, --will apply % chance to dodge of the stat/skill * its value
+  --default_damage_type="physical",
   
   --Inventory and equipment:
   --inventory=true,
