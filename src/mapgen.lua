@@ -1079,35 +1079,66 @@ function mapgen:populate_creatures_in_room(room,map,decID)
     --Calculate density
     local density = (dec and dec.creature_density) or mapTypes[map.mapType].creature_density or branch.creature_density or gamesettings.creature_density
     local creatMax = math.ceil(clearSpace*(density/100))-current_creats
+    
+    --Calculate spawn points, because we'll use that as the max creature number if it's more than the regular number
+    local creature_spawn_points = {}
+    if map.creature_spawn_points and #map.creature_spawn_points > 0 then
+      for i,sp in ipairs(map.creature_spawn_points) do
+        if not sp.used and not sp.boss and map.tile_info[sp.x][sp.y].room == room and not map:tile_has_feature(sp.x,sp.y,'door') and not map:tile_has_feature(sp.x,sp.y,'gate') and not map:tile_has_feature(sp.x,sp.y,'exit') and not map:get_tile_creature(sp.x,sp.y) and not map.tile_info[sp.x][sp.y].noCreatures then
+          creature_spawn_points[#creature_spawn_points+1] = sp
+        end
+      end
+    end
+    --creatMax = math.max(creatMax,#creature_spawn_points)
     --Do the actual spawning
     if creatMax > 0 then
+      local newCreats = {}
       local creats_spawned = 0
       local tries = 0
       local min_level = map:get_min_level()
       local max_level = map:get_max_level()
       while creats_spawned < creatMax and tries < 100 do
-        tries = 0
+        tries = 0 --tries are calculated later on
+        local placed = false
         local nc = mapgen:generate_creature(min_level,max_level,creature_list,passedTags)
         if nc == false then break end
         
-        local placed = false
-        local cx,cy = random(room.minX,room.maxX),random(room.minY,room.maxY)
-        
-        --Find a good spot to spawn:
-        while map:is_passable_for(cx,cy,nc.pathType) == false or map:tile_has_feature(cx,cy,'door') or map:tile_has_feature(cx,cy,'gate') or map:tile_has_feature(cx,cy,'exit') or not map:isClear(cx,cy,nc.pathType) or map.tile_info[cx][cy].noCreatures do
-          cx,cy = random(room.minX,room.maxX),random(room.minY,room.maxY)
-          tries = tries+1
-          if tries > 100 then break end
+        --Spawn in designated spawn points first:
+        local sptries = 0
+        while (#creature_spawn_points > 0) and sptries < 100 do
+          sptries = sptries + 1
+          local spk = get_random_key(creature_spawn_points)
+          local sp = creature_spawn_points[spk]
+          if map:isClear(sp.x,sp.y,nc.pathType) then
+            if random(1,4) == 1 then nc:give_condition('asleep',random(10,100)) end
+            local creat = map:add_creature(nc,sp.x,sp.y)
+            newCreats[#newCreats+1] = creat
+            placed = creat
+            sp.used = true
+            table.remove(creature_spawn_points,spk)
+            break
+          end
         end
         
-        --Place the actual creature:
-        if tries ~= 100 then 
-          if random(1,4) == 1 then nc:give_condition('asleep',random(10,100)) end
-          local creat = map:add_creature(nc,cx,cy)
-          creat.origin_room = room
-          placed = creat
-          creats_spawned = creats_spawned+1
-        end --end tries if
+        --If not spawned at a spawn point, find a spot to spawn:
+        if not placed then
+          local cx,cy = random(room.minX,room.maxX),random(room.minY,room.maxY)
+          while map:is_passable_for(cx,cy,nc.pathType) == false or map:tile_has_feature(cx,cy,'door') or map:tile_has_feature(cx,cy,'gate') or map:tile_has_feature(cx,cy,'exit') or not map:isClear(cx,cy,nc.pathType) or map.tile_info[cx][cy].noCreatures do
+            cx,cy = random(room.minX,room.maxX),random(room.minY,room.maxY)
+            tries = tries+1
+            if tries > 100 then break end
+          end
+          
+          --Place the actual creature:
+          if tries ~= 100 then 
+            if random(1,4) == 1 then nc:give_condition('asleep',random(10,100)) end
+            local creat = map:add_creature(nc,cx,cy)
+            creat.origin_room = room
+            placed = creat
+            newCreats[#newCreats+1] = creat
+            creats_spawned = creats_spawned+1
+          end --end tries if
+        end
         
         --Place group spawns:
         if placed and (nc.group_spawn or nc.group_spawn_max) then
@@ -1127,13 +1158,16 @@ function mapgen:populate_creatures_in_room(room,map,decID)
               local creat = mapgen:generate_creature(min_level,max_level,{nc.id},passedTags)
               map:add_creature(creat,cx,cy)
               nc.origin_room = room
+              newCreats[#newCreats+1] = creat
               creats_spawned = creats_spawned+0.5 --a group spawned creature only counts as half a creature for the purposes of creature totals, so group spawns won't eat up all the creature slots but also won't overwhelm the map
             end
           end
         end --end group spawn if  
       end
+      return newCreats
     end
   end --end if creature list
+  return false
 end
 
 ---Spawn items in a room, using a roomDecorator if desired
@@ -1196,33 +1230,74 @@ function mapgen:populate_items_in_room(room,map,decID)
     --Calculate density
     local density = (dec and dec.item_density) or mapTypes[map.mapType].item_density or branch.item_density or gamesettings.item_density
     local itemMax = math.ceil(clearSpace*(density/100))-current_items
+    
+    --Calculate spawn points, because we'll use that as the max item number if it's more than the regular number
+    local item_spawn_points = {}
+    if map.item_spawn_points and #map.item_spawn_points > 0 then
+      for i,sp in ipairs(map.item_spawn_points) do
+        if not sp.used and map.tile_info[sp.x][sp.y].room == room and not map.tile_info[sp.x][sp.y].noItems and not map:tile_has_feature(sp.x,sp.y,'exit') and ((sp.inventory and #sp:get_inventory() < (sp.inventory_space or 1)) or (map:isClear(sp.x,sp.y,nil,true) and #map:get_tile_items(sp.x,sp.y) == 0)) then
+          item_spawn_points[#item_spawn_points+1] = sp
+        end
+      end
+    end
+    itemMax = math.max(itemMax,#item_spawn_points)
     --Do the actual spawning
     if itemMax > 0 then
+      local newItems = {}
       local min_level = map:get_min_level()
       local max_level = map:get_max_level()
       for i=1,itemMax,1 do
         local ni = mapgen:generate_item(min_level,max_level,item_list,passedTags)
         if ni == false then break end
-        
         local placed = false
-        local ix,iy = random(room.minX,room.maxX),random(room.minY,room.maxY)
         
-        --Find a good spot to spawn:
-        local tries = 0
-        while map:isClear(ix,iy) == false or map:tile_has_feature(ix,iy,"exit") or map.tile_info[ix][iy].noItems do
-          ix,iy = random(room.minX,room.maxX),random(room.minY,room.maxY)
-          tries = tries+1
-          if tries > 100 then break end
+        --Spawn in designated spawn points first:
+        local itries = 0
+        while (#item_spawn_points > 0) and itries < 100 do
+          itries = itries + 1
+          local spk = get_random_key(item_spawn_points)
+          local sp = item_spawn_points[spk]
+          
+          newItems[#newItems+1] = ni
+          ni.origin_room = room
+          placed = ni
+          itries=0
+          if sp.inventory then
+            sp:give_item(ni)
+            if #sp:get_inventory() >= (sp.inventory_space or 1) then
+              sp.used = true
+              table.remove(item_spawn_points,spk)
+            end
+          else
+            map:add_item(ni,sp.x,sp.y)
+            sp.used = true
+            table.remove(item_spawn_points,spk)
+          end
+          break
         end
         
-        --Place the actual item:
-        if tries ~= 100 then 
-          map:add_item(ni,ix,iy)
-          ni.origin_room = room
-        end --end tries if
+        --If not spawned at a spawn point, find a spot to spawn:
+        if not placed then
+          local ix,iy = random(room.minX,room.maxX),random(room.minY,room.maxY)
+          local tries = 0
+          while map:isClear(ix,iy) == false or map:tile_has_feature(ix,iy,"exit") or map.tile_info[ix][iy].noItems do
+            ix,iy = random(room.minX,room.maxX),random(room.minY,room.maxY)
+            tries = tries+1
+            if tries > 100 then break end
+          end
+          
+          --Place the actual item:
+          if tries ~= 100 then 
+            map:add_item(ni,ix,iy)
+            newItems[#newItems+1] = ni
+            ni.origin_room = room
+          end --end tries if
+        end
       end
+      return newItems
     end
-  end --end if creature list
+  end --end if item list
+  return false
 end
 
 function mapgen:get_content_list_from_tags(content_type,tags,forbiddenTags)

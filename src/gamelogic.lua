@@ -500,8 +500,8 @@ function generate_boss(silent)
   --Place the actual boss:
   local placed = false
   local x,y = currMap.stairsDown.x,currMap.stairsDown.y
-  if currMap.spawn_points and #currMap.spawn_points > 0 then
-    for i,sp in ipairs(currMap.spawn_points) do
+  if currMap.creature_spawn_points and #currMap.creature_spawn_points > 0 then
+    for i,sp in ipairs(currMap.creature_spawn_points) do
       if sp.boss and currMap.boss:can_move_to(sp.x,sp.y) then
         local currCreat = currMap:get_tile_creature(sp.x,sp.y)
         if currCreat then

@@ -1,4 +1,4 @@
----@classmod ranged_attack
+---@classmod RangedAttack
 RangedAttack = Class{}
 
 ---Initiate a ranged attack from its definition. You shouldn't use this function, the game uses it at loadtime to instantiate the ranged attacks.

@@ -12,6 +12,7 @@ function Map:init(width,height,gridOnly)
     self.sightblock_cache, self.creature_cache, self.feature_cache, self.effect_cache = {},{},{},{}
     self.boss=nil
     self.stairsUp,self.stairsDown = {x=0,y=0},{x=0,y=0}
+    self.creature_spawn_points, self.item_spawn_points = {},{}
   end
   self.width,self.height=width,height
 	for x = 1, width, 1 do
@@ -435,6 +436,12 @@ function Map:add_feature(feature,x,y,args)
   if possibleFeatures[feature.id].placed then possibleFeatures[feature.id].placed(feature,self,args) end
   if feature.castsLight then self.lights[feature] = feature end
   self.feature_cache[#self.feature_cache+1] = feature
+  if feature.item_spawn_point then
+    self.item_spawn_points[#self.item_spawn_points+1] = feature
+  end
+  if feature.creature_spawn_point then
+    self.creature_spawn_points[#self.creature_spawn_points+1] = feature
+  end
   return feature --return the feature so if it's created when this function is called, you can still access it
 end
 
@@ -1128,7 +1135,6 @@ function Map:populate_creatures(creatTotal,forceGeneric)
     local specialCreats = self:get_creature_list()
     local min_level = self:get_min_level()
     local max_level = self:get_max_level()
-    local allSpawnsUsed = false
 		for creat_amt=1,creatTotal,1 do
       if creat_amt > creatTotal then break end --creatTotal is decreased when group spawning happens, but the for loop still tries to run to its original value, so we're checking here to make sure whether or not it should still be running
 			local nc = mapgen:generate_creature(min_level,max_level,specialCreats,passedTags)
@@ -1136,28 +1142,34 @@ function Map:populate_creatures(creatTotal,forceGeneric)
       local placed = false
       
       --Spawn in designated spawn points first:
-      if not allSpawnsUsed and self.spawn_points and #self.spawn_points > 0 then
-        for i,sp in ipairs(self.spawn_points) do
-          if not sp.used and not sp.boss then
-            if self:is_passable_for(sp.x,sp.y,nc.pathType) and not self:tile_has_feature(sp.x,sp.y,'door') and not self:tile_has_feature(sp.x,sp.y,'gate') and not self:tile_has_feature(sp.x,sp.y,'exit') and self:isClear(sp.x,sp.y,nc.pathType) then
-              if random(1,4) == 1 then nc:give_condition('asleep',random(10,100)) end
-              local creat = self:add_creature(nc,sp.x,sp.y)
-              newCreats[#newCreats+1] = creat
-              placed = creat
-              break
-            else
-              sp.used = true
-              if i == #self.spawn_points then
-                allSpawnsUsed = true
-              end
-            end
+      local creature_spawn_points = {}
+      if self.creature_spawn_points and #self.creature_spawn_points > 0 then
+        for i,sp in ipairs(self.creature_spawn_points) do
+          if not sp.used and not sp.boss and not self:tile_has_feature(sp.x,sp.y,'door') and not self:tile_has_feature(sp.x,sp.y,'gate') and not self:tile_has_feature(sp.x,sp.y,'exit') and not self:get_tile_creature(sp.x,sp.y) and not self.tile_info[sp.x][sp.y].noCreatures then
+            creature_spawn_points[#creature_spawn_points+1] = sp
           end
         end
       end
+        
+      local sptries = 0
+      while (#creature_spawn_points > 0) and sptries < 100 do
+        sptries = sptries + 1
+        local spk = get_random_key(creature_spawn_points)
+        local sp = creature_spawn_points[spk]
+        if self:isClear(sp.x,sp.y,nc.pathType) then
+          if random(1,4) == 1 then nc:give_condition('asleep',random(10,100)) end
+          local creat = self:add_creature(nc,sp.x,sp.y)
+          newCreats[#newCreats+1] = creat
+          placed = creat
+          sp.used = true
+          table.remove(creature_spawn_points,spk)
+          break
+        end
+      end
       
-      --If we weren't able to spawn in a spawn point, spawn randomly
-      local cx,cy = random(2,self.width-1),random(2,self.height-1)
-      if placed == false then
+      --If not spawned at a spawn point, find a spot to spawn:
+      if not placed then
+        local cx,cy = random(2,self.width-1),random(2,self.height-1)
         local tries = 0
         while self:is_passable_for(cx,cy,nc.pathType) == false or self:tile_has_feature(cx,cy,'door') or self:tile_has_feature(cx,cy,'gate') or self:tile_has_feature(cx,cy,'exit') or not self:isClear(cx,cy,nc.pathType) or self.tile_info[cx][cy].noCreatures do
           cx,cy = random(2,self.width-1),random(2,self.height-1)
@@ -1253,16 +1265,54 @@ function Map:populate_items(itemTotal,forceGeneric)
     for item_amt = 1,itemTotal,1 do
       local ni = mapgen:generate_item(min_level,max_level,specialItems,passedTags)
       if ni == false then break end
-      local ix,iy = random(2,self.width-1),random(2,self.height-1)
-      local tries = 0
-      while self:isClear(ix,iy) == false or self:tile_has_feature(ix,iy,"exit") or self.tile_info[ix][iy].noItems do
-        ix,iy = random(2,self.width-1),random(2,self.height-1)
-        tries = tries+1
-        if tries > 100 then break end
+      local placed = false
+      
+      --Spawn in designated spawn points first:
+      local item_spawn_points = {}
+      if self.item_spawn_points and #self.item_spawn_points > 0 then
+        for i,sp in ipairs(self.item_spawn_points) do
+          if not sp.used and not self.tile_info[sp.x][sp.y].noItems and not self:tile_has_feature(sp.x,sp.y,'exit') and ((sp.inventory and #sp:get_inventory() < (sp.inventory_space or 1)) or (self:isClear(sp.x,sp.y,nil,true) and #self:get_tile_items(sp.x,sp.y) == 0)) then
+            item_spawn_points[#item_spawn_points+1] = sp
+          end
+        end
       end
-      if tries ~= 100 then 
-        newItems[#newItems+1] = self:add_item(ni,ix,iy)
-      end --end tries if
+      
+      local itries = 0
+        while (#item_spawn_points > 0) and itries < 100 do
+          itries = itries + 1
+          local spk = get_random_key(item_spawn_points)
+          local sp = item_spawn_points[spk]
+          
+          newItems[#newItems+1] = ni
+          ni.origin_room = room
+          placed = ni
+          itries=0
+          if sp.inventory then
+            sp:give_item(ni)
+            if #sp:get_inventory() >= (sp.inventory_space or 1) then
+              sp.used = true
+              table.remove(item_spawn_points,spk)
+            end
+          else
+            map:add_item(ni,sp.x,sp.y)
+            sp.used = true
+            table.remove(item_spawn_points,spk)
+          end
+          break
+        end
+      
+      if not placed then
+        local ix,iy = random(2,self.width-1),random(2,self.height-1)
+        local tries = 0
+        while self:isClear(ix,iy) == false or self:tile_has_feature(ix,iy,"exit") or self.tile_info[ix][iy].noItems or #self:get_tile_items(ix,iy) ~= 0 do
+          ix,iy = random(2,self.width-1),random(2,self.height-1)
+          tries = tries+1
+          if tries > 100 then break end
+        end
+        if tries ~= 100 then 
+          newItems[#newItems+1] = self:add_item(ni,ix,iy)
+        end --end tries if
+      end
     end
     return newItems
 	end --end if not noItems
@@ -1391,8 +1441,13 @@ function Map:cleanup()
     end --end fory
   end --end forx
   --Clear spawn points:
-  if self.spawn_points then
-    for _,sp in pairs(self.spawn_points) do
+  if self.creature_spawn_points then
+    for _,sp in pairs(self.creature_spawn_points) do
+      sp.used=nil
+    end
+  end
+  if self.item_spawn_points then
+    for _,sp in pairs(self.item_spawn_points) do
       sp.used=nil
     end
   end
