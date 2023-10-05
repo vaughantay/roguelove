@@ -22,7 +22,7 @@ playerClasses = {
     equipment={{item="dagger",enchantment="blessed",enchantment_turns=5,displayName="Blessed Dagger"}}, --These items will be equipped on game start
     learns_spells={{spell="smite",level=2}}, --These spells will be automatically granted once a certain level is reached
     skill_purchases={{skill='alchemy',point_cost=2}},
-    spell_purchases={{spell="demondamager",level=1,stat_point_cost=5},{spell="summonangel",level=1,spell_point_cost=2}, {spell="smite",level=1,spell_point_cost=2}}, --These spells will show up as options to learn (requiring spending points on them)
+    spell_purchases={{spell="demondamager",level=1,stat_point_cost=5},{spell="summonangel",level=1,point_cost=2}, {spell="smite",level=1,point_cost=2}}, --These spells will show up as options to learn (requiring spending points on them)
     spell_choices={}, --These spells will show up as options when you reach their level, and you can choose one of them
     weaknesses={}, --These will be added to the characters' base weaknesses
     resistances={holy=25}, --These will be added the the characters' base resistances

@@ -122,7 +122,7 @@ function Spell:use(target, caster, ignoreCooldowns, ignoreMP)
   end
   --Cast the actual spell:
   if possibleSpells[self.id].cast then
-    if #target == 1 then target = target[1] end --if being passed only a single target, just set that as the target and don't loop
+    if target and #target == 1 then target = target[1] end --if being passed only a single target, just set that as the target and don't loop
     local result = nil
     if not target or #target == 0 or self.cast_accepts_multiple_targets then
       local status, r = pcall(possibleSpells[self.id].cast,self,target,caster)
@@ -526,8 +526,9 @@ function Spell:can_upgrade(upgrade,level)
     end
     --Then check costs:
     if self.free_upgrades < 1 then
-      local pointCost = details.spell_point_cost or 1
-      if (possessor.spellPoints or 0) + (self.spellPoints or 0) < pointCost then
+      local pointCost = details.point_cost or 1
+      local upgrade_stat = self.upgrade_stat or "spellPoints"
+      if (possessor[upgrade_stat] or 0) + (self.spellPoints or 0) < pointCost then
         return false,returnText
       end
       if details.item_cost then
@@ -574,17 +575,18 @@ function Spell:apply_upgrade(upgradeID,force)
       if self.free_upgrades > 0 then --if you have upgrade points, use those first rather than the spell point and item costs
         self.free_upgrades = self.free_upgrades - 1
       else
-        local spell_point_cost = stats.spell_point_cost or 1
+        local point_cost = stats.point_cost or 1
         if self.spellPoints then
-          if self.spellPoints < spell_point_cost then
-            spell_point_cost = spell_point_cost - self.spellPoints
+          if self.spellPoints < point_cost then
+            point_cost = point_cost - self.spellPoints
             self.spellPoints = 0
           else
-            self.spellPoints = self.spellPoints - spell_point_cost
-            spell_point_cost = 0
+            self.spellPoints = self.spellPoints - point_cost
+            point_cost = 0
           end
         end
-        self.possessor.spellPoints = self.possessor.spellPoints - spell_point_cost
+        local upgrade_stat = self.upgrade_stat or "spellPoints"
+        self.possessor.spellPoints = self.possessor[upgrade_stat] - point_cost
         if stats.item_cost then
           for _,item_details in pairs(stats.item_cost) do
             local amount = item_details.amount or 1

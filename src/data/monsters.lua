@@ -633,18 +633,17 @@ local vampireHero = {
   description = "A bloodsucking monster of the night.",
   symbol = "v",
   types={"undead","intelligent","vampire"},
-  extra_stats={blood = {name="Blood",description="The amount of blood in your body. Used to power vampiric abilities.",value=50,max=50,bar_color={r=155,g=0,b=0,a=255}}},
+  extra_stats={blood = {name="Blood",description="The amount of blood in your body. Used to power vampiric abilities.",value=100,bar_color={r=155,g=0,b=0,a=255}}},
   forbidden_tags={'holy','healing','food'},
   spells={"vampirism"},
   possible_inventory={{item="blood",chance=100,amount=5}},
-  learns_spells={{spell="smite",level=2}}, --These spells will be automatically granted once a certain level is reached
-  spell_purchases={{spell="vanish",level=5,cost=2}, {spell="auraoffear",level=2,cost=2}},
+  spell_purchases={{spell="batform",level=1,point_cost=3,upgrade_stat="upgrade_points_vampirism"}, {spell="auraoffear",level=5,point_cost=1,upgrade_stat="upgrade_points_vampirism"}},
   hit_conditions={{condition="bleeding",crit_chance=100,turns=5}},
   favor={lightchurch=-1000}, --List of favor scores the character starts with
   nameType = "human",
   max_hp = 50,
   level = 1,
-  skills={strength=5,agility=5,toughness=5,bloodpotency=1,bloodpool=100,bloodmetabolism=1},
+  skills={strength=5,agility=5,toughness=5,bloodpotency=1,bloodpool=10,bloodmetabolism=1},
   skills_per_x_levels={[5]={bloodpotency=1}},
   stealth = 10,
   perception = 8,
@@ -659,7 +658,6 @@ local vampireHero = {
   image_varieties=3,
   neverSpawn=true,
   playerSpecies=true,
-  weaknesses={fire=50,holy=50},
-  resistances={dark=50},
+  weaknesses={fire=50}, --other weaknesses and resistances are applied from the undead creature type
 }
 possibleMonsters['player_vampire'] = vampireHero

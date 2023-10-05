@@ -2,9 +2,10 @@ possibleSkills = {}
 possibleSkillTypes = {}
 
   
-possibleSkillTypes['attribute']={name="Attributes",upgrade_stat="upgrade_points_attribute",upgrade_stat_name="Attribute Points"}
-possibleSkillTypes['skill']={name="Skills",upgrade_stat="upgrade_points_skill",upgrade_stat_name="Skill Points"}
-possibleSkillTypes['perk']={name="Perks",upgrade_stat="upgrade_points_perk",upgrade_stat_name="Perk Points",always_learnable=true}
+possibleSkillTypes['attribute']={name="Attributes",upgrade_stat="upgrade_points_attribute",upgrade_stat_name="Attribute Point"}
+possibleSkillTypes['skill']={name="Skills",upgrade_stat="upgrade_points_skill",upgrade_stat_name="Skill Point"}
+possibleSkillTypes['vampirism']={name="Vampiric Powers",upgrade_stat="upgrade_points_vampirism",upgrade_stat_name="Blood Point"}
+possibleSkillTypes['perk']={name="Perks",upgrade_stat="upgrade_points_perk",upgrade_stat_name="Perk Point",always_learnable=true}
 
 --Attributes:
 local strength = {
@@ -151,7 +152,7 @@ local bloodpool = {
 }
 function bloodpool:update(posssesor,val)
   if posssesor.extra_stats.blood then
-    posssesor.extra_stats.blood.max = posssesor.extra_stats.blood.max + val
+    posssesor.extra_stats.blood.max = (posssesor.extra_stats.blood.max or 0) + val
   else
     posssesor.extra_stats.blood = {name="Blood",description="The amount of blood in your body. Used to power vampiric abilities.",value=round(val/2),max=val,bar_color={r=155,g=0,b=0,a=255}}
   end

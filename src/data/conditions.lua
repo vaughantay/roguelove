@@ -1808,6 +1808,24 @@ spindashing = Condition({
     name = "Starved for Blood",
     bonuses={hit_chance=-25,strength=-5,dodge_chance=-25}
   }),
+
+  batform = Condition({
+    name = "Bat Form",
+    bonuses={blood_consumption=1},
+    advance = function(self,possessor)
+      if possessor.id ~= "vampirebat" then
+        possessor:cure_condition('batform')
+      elseif possessor.extra_stats.blood and possessor.extra_stats.blood.value < 1 then
+        possessor:cure_condition('batform')
+      end
+    end,
+    cured = function(self,possessor)
+      if player:can_sense_creature(possessor) then
+        output:out(possessor:get_name() .. " turns back into their normal form.")
+      end
+      possessor:undo_transformation()
+    end
+  }),
   
   --Basic conditions assumed to exist by the base game:
   

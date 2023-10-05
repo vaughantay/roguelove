@@ -1392,8 +1392,10 @@ function Creature:die(killer)
         if self.killer == player then
           update_stat('kills')
           update_stat('kills_as_creature',player.id)
-          update_stat('kills_as_class',player.class)
-          update_stat('kills_as_creature_class_combo',player.id .. "_" .. player.class)
+          if player.class then
+            update_stat('kills_as_class',player.class)
+            update_stat('kills_as_creature_class_combo',player.id .. "_" .. player.class)
+          end
           update_stat('creature_kills',self.id)
           update_stat('branch_kills',currMap.branch)
           update_stat('map_kills',currMap.id)
@@ -1402,8 +1404,10 @@ function Creature:die(killer)
         else
           update_stat('ally_kills')
           update_stat('ally_kills_as_creature',player.id)
-          update_stat('ally_kills_as_class',player.class)
-          update_stat('ally_kills_as_creature_class_combo',player.id .. "_" .. player.class)
+          if player.class then
+            update_stat('ally_kills_as_class',player.class)
+            update_stat('ally_kills_as_creature_class_combo',player.id .. "_" .. player.class)
+          end
           update_stat('allied_creature_kills',self.killer.id)
           update_stat('creature_kills_by_ally',self.id)
           output:out(self.killer:get_name() .. " kills " .. self:get_name() .. "!" .. (xpgain > 0 and " You gain " .. xpgain .. " XP!" or ""))
@@ -3317,9 +3321,11 @@ function Creature:get_skill_upgrade_cost(skillID)
       for _,stInfo in pairs(possibleSkillTypes) do
         if stInfo.upgrade_stat == pointID then
           cost.upgrade_stat_name = stInfo.upgrade_stat_name
+          break
         end
       end
     end
+    cost.upgrade_stat_plural_name = skill.upgrade_stat_plural_name or cost.upgrade_stat_name .. "s"
   end
 
   --Check items:
@@ -3463,48 +3469,48 @@ function Creature:learn_spell(spellID,force)
     self.spells_known[#self.spells_known+1] = newSpell
     newSpell.possessor = self
     local slots = self:get_free_spell_slots()
-    if not slots or slots > 0 then
-      self:memorize_spell(spellID)
+    if not slots or slots > 0 or newSpell.forgettable == false or newSpell.freeSlot then
+      self:memorize_spell(newSpell)
     end
     return newSpell
   end
 end
 
 ---Remove a spell from a creature's spell "inventory"
---@param spellID String. The ID of the spell to forget
+--@param spell Spell. The spell to forget
 --@param force Boolean. If true, remove the spell even if it's normally not supposed to be forgettable
-function Creature:forget_spell(spellID,force)
+function Creature:unmemorize_spell(spell,force)
+  local spellID = spell.id
   local index = self:has_spell(spellID,true)
-  local spellDef = self.spells[index]
-  if spellDef and index and (force or spellDef.forgettable or (gamesettings.spells_forgettable_by_default and spellDef.forgettable ~= false)) then
+  if spell and index and (force or spell.forgettable or (gamesettings.spells_forgettable_by_default and spell.forgettable ~= false)) then
     table.remove(self.spells,index)
     for hkid,hkinfo in pairs(self.hotkeys) do
-      if hkinfo.type == "spell" and hkinfo.hotkeyItem == spellDef then
+      if hkinfo.type == "spell" and hkinfo.hotkeyItem == spell then
         self.hotkeys[hkid] = nil
-        spellDef.hotkey = nil
+        spell.hotkey = nil
       end
     end
   end
 end
 
 ---Add a spell to a creature's spell "inventory"
---@param spellID String. The ID of the spell to memorize
+--@param spell Spell. The spell to memorize
 --@param force Boolean. If true, add the spell even if it overfills the slots
-function Creature:memorize_spell(spellID,force)
+function Creature:memorize_spell(spell,force)
+  local spellID = spell.id
   local index = self:has_spell(spellID,true,true)
-  local spellDef = self.spells_known[index]
   local slots = self:get_free_spell_slots()
-  if spellDef and index and not self:has_spell(spellID,true) and (force or spellDef.freeSlot or (not slots or slots > 0)) then
-    self.spells[#self.spells+1] = spellDef
-    if self.hotkeys then
+  if spell and index and not self:has_spell(spellID,true) and (force or spell.freeSlot or spell.forgettable == false or (not slots or slots > 0)) then
+    self.spells[#self.spells+1] = spell
+    if self.hotkeys and spell.target_type ~= "passive" then
       for i=1,10,1 do
         if not self.hotkeys[i] then
-          self.hotkeys[i] = {type="spell",hotkeyItem=spellDef}
-          spellDef.hotkey=i
+          self.hotkeys[i] = {type="spell",hotkeyItem=spell}
+          spell.hotkey=i
           break
         end
       end
-    end --end hotkey iff
+    end --end hotkey if
   end
 end
 
@@ -3514,6 +3520,7 @@ end
 --@return Text. The reason it can't be learned (or nil if it can)
 function Creature:can_learn_spell(spellID)
   local spell = possibleSpells[spellID]
+  if not spell then return false end
   --Check level:
   if spell.level_requirement and self.level < spell.level_requirement then
     return false,"You're not a high enough level to learn this ability."
@@ -3577,17 +3584,20 @@ end
 --@return Table. A table of the spells available to purchase
 function Creature:get_purchasable_spells()
   local spell_purchases = {}
+  local IDs = {}
   if self.class and playerClasses[self.class].spell_purchases then
     for _,info in ipairs(playerClasses[self.class].spell_purchases) do
-      if (not info.level or info.level <= self.level) and self:can_learn_spell(info.spell) then
+      if not IDs[info.spell] and (not info.level or info.level <= self.level) and self:can_learn_spell(info.spell) then
         spell_purchases[#spell_purchases+1] = info
+        IDs[info.spell] = true
       end --end level check if
     end --end spell purchase list for
   end --end if player class has spell purchases
   if possibleMonsters[self.id].spell_purchases then
     for _,info in ipairs(possibleMonsters[self.id].spell_purchases) do
-      if (not info.level or info.level <= self.level) and self:can_learn_spell(info.spell) then
+      if not IDs[info.spell] and (not info.level or info.level <= self.level) and self:can_learn_spell(info.spell) then
         spell_purchases[#spell_purchases+1] = info
+        IDs[info.spell] = true
       end --end level check if
     end --end spell purchase list for
   end --end if player definition has spell purchases
@@ -3595,11 +3605,18 @@ function Creature:get_purchasable_spells()
     local skillDef = possibleSkills[skill]
     if skillDef and skillDef.spell_purchases then
       for _,info in pairs(skillDef.spell_purchases) do
-        if (not info.level or info.level <= skillRank) and self:can_learn_spell(info.spell) then
+        if not IDs[info.spell] and (not info.level or info.level <= skillRank) and self:can_learn_spell(info.spell) then
           spell_purchases[#spell_purchases+1] = info
+          IDs[info.spell] = true
         end
       end --end spell_purchases for
     end --end skilldef if
+  end
+  for spellID,spinfo in pairs(possibleSpells) do
+    if not IDs[spellID] and spinfo.always_learnable and self:can_learn_spell(spellID) then
+      spell_purchases[#spell_purchases+1] = {spell=spellID,point_cost=spinfo.learn_point_cost or 1,upgrade_stat=spinfo.upgrade_stat,upgrade_stat_name=spinfo.upgrade_stat_name,upgrade_stat_plural_name=spinfo.upgrade_stat_plural_name}
+      IDs[spellID] = true
+    end
   end --end skill for
   return spell_purchases
 end

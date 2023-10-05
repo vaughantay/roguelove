@@ -22,7 +22,7 @@ creatureTypes = {
     description = "A once-living creature, now animated by dark magic.",
     friendly_types = {},
     enemy_types = {},
-    weaknesses = {holy=50,fire=50},
+    weaknesses = {holy=50},
     resistances = {unholy=50,poison=100}
   }
 }

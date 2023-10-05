@@ -864,7 +864,7 @@ function storescreen:mousepressed(x,y,button)
       end --end button coordinate if
     end --end button for
   else --Buying/selling screen:
-    if x > self.actionButton.minX and x < self.actionButton.maxX and y > self.actionButton.minY and y < self.actionButton.maxY then
+    if self.actionButton and x > self.actionButton.minX and x < self.actionButton.maxX and y > self.actionButton.minY and y < self.actionButton.maxY then
       if self.screen == "Buy" then
         return self:player_buys()
       else

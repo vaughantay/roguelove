@@ -901,12 +901,12 @@ function newgame:get_stat_text(whichSpecies,whichClass)
   if creature.extra_stats or class.extra_stats then
     if creature.extra_stats then
       for stat_id,stat in pairs(creature.extra_stats) do
-        desc = desc .. stat.name .. ": " .. stat.value .. (stat.max and " (" .. stat.max .. " max)") .. "\n"
+        desc = desc .. stat.name .. ": " .. stat.value .. (stat.max and " (" .. stat.max .. " max)" or "") .. "\n"
       end
     end
     if class.extra_stats then
       for stat_id,stat in pairs(class.extra_stats) do
-        desc = desc .. stat.name .. ": " .. stat.value .. (stat.max and " (" .. stat.max .. " max)") .. "\n"
+        desc = desc .. stat.name .. ": " .. stat.value .. (stat.max and " (" .. stat.max .. " max)" or "") .. "\n"
       end
     end
   end

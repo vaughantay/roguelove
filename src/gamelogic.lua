@@ -188,8 +188,10 @@ function turn_logic()
   --Update stats:
   update_stat('turns')
   update_stat('turns_as_creature',player.id)
-  update_stat('turns_as_class',player.class)
-  update_stat('turns_as_creature_class_combo',player.id .. "_" .. player.class)
+  if player.class then
+    update_stat('turns_as_class',player.class)
+    update_stat('turns_as_creature_class_combo',player.id .. "_" .. player.class)
+  end
   update_stat('turns_on_branch',currMap.branch)
   update_stat('turns_on_map',currMap.id)
   

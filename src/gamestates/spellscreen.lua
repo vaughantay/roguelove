@@ -414,13 +414,27 @@ function spellscreen:draw()
       local upgrades = spell:get_possible_upgrades()
       if count(upgrades) > 0 then
         love.graphics.printf("Upgrades:",printX,printY,window2w,"left")
+        local upgrade_stat = spell.upgrade_stat or "spellPoints"
+        local upgrade_stat_name = (upgrade_stat == "spellPoints" and "Ability Point" or false)
+        local points_available = player[upgrade_stat] or 0
+        if not upgrade_stat_name then
+          for _,stInfo in pairs(possibleSkillTypes) do
+            if stInfo.upgrade_stat == upgrade_stat then
+              upgrade_stat_name = stInfo.upgrade_stat_name
+              break
+            end
+          end
+          if not upgrade_stat_name then upgrade_stat_name = upgrade_stat end
+        end
         if spell.free_upgrades > 0 then
           printY=printY+fontSize
-          love.graphics.printf(spell.free_upgrades .. " Free Upgrade" .. (spell.free_upgrades > 1 and "s" or "") .. " Available",printX,printY,window2w,"left")
+          love.graphics.printf(spell.free_upgrades .. " Free Upgrade" .. (spell.free_upgrades > 1 and "s available" or " available"),printX,printY,window2w,"left")
         end
+        printY=printY+fontSize
+        love.graphics.printf(points_available .. " " .. upgrade_stat_name ..(points_available > 1 and "s available" or " available"),printX,printY,window2w,"left")
         if spell.spellPoints > 0 then
           printY=printY+fontSize
-          love.graphics.printf(spell.spellPoints .. " Ability Point" .. (spell.spellPoints > 1 and "s" or "") .. " Available",printX,printY,window2w,"left")
+          love.graphics.printf(spell.spellPoints .. " " .. upgrade_stat_name .. (spell.spellPoints > 1 and "s" or "") .. " available specifically for this ability",printX,printY,window2w,"left")
         end
         printY=printY+fontSize+5
         local buttonY = 1
@@ -457,21 +471,21 @@ function spellscreen:draw()
           local name = (level_details.name or details.name or ucfirst(id))
           local description = (level_details.description or details.description or nil)
           local i = 1
-          local spell_point_cost = level_details.spell_point_cost or 1
+          local point_cost = level_details.point_cost or 1
           local statText = ""
           for stat,amt in pairs(level_details) do
-            if type(amt) ~= "boolean" and type(amt) ~= "table" and stat ~= "spell_point_cost" then
+            if type(amt) ~= "boolean" and type(amt) ~= "table" and stat ~= "point_cost" then
               local statName = (spell.stats and spell.stats[stat] and spell.stats[stat].name or ucfirst(stat))
               statName = string.gsub(statName,'_',' ')
               statText = statText .. "\n\t" .. statName .. (type(amt) == "number" and (amt < 0 and " " or " +") or ": ") .. amt .. (spell.stats and spell.stats[stat] and spell.stats[stat].is_percentage and "%" or "")
             end
           end --end stat for
           local costText = ""
-          if spell_point_cost > 0 or level_details.item_cost then
+          if point_cost > 0 or level_details.item_cost then
             costText = " - Cost: "
             local firstCost = true
-            if spell_point_cost > 0 then
-              costText = costText .. spell_point_cost .. " ability point" .. (spell_point_cost > 1 and "s" or "")
+            if point_cost > 0 then
+              costText = costText .. point_cost .. " " .. upgrade_stat_name .. (point_cost > 1 and "s" or "")
               firstCost = false
             end
             if level_details.item_cost then
@@ -539,7 +553,7 @@ function spellscreen:buttonpressed(key)
       if self.buttons.memorize and self.sidebarCursorY == self.buttons.memorize.buttonNum then
         return self:memorize_spell(self.cursorY)
       elseif self.buttons.forget and self.sidebarCursorY == self.buttons.forget.buttonNum then
-        return self:forget_spell(self.cursorY)
+        return self:unmemorize_spell(self.cursorY)
       elseif self.buttons.use and self.sidebarCursorY == self.buttons.use.buttonNum then
         return self:cast_spell(self.cursorY)
       elseif self.buttons.hotkey and self.sidebarCursorY == self.buttons.hotkey.buttonNum then
@@ -645,7 +659,7 @@ function spellscreen:mousepressed(x,y,button)
       if self.buttons.memorize and x > self.buttons.memorize.minX and x < self.buttons.memorize.maxX and y > self.buttons.memorize.minY and y < self.buttons.memorize.maxY then
         return self:memorize_spell(self.cursorY)
       elseif self.buttons.forget and x > self.buttons.forget.minX and x < self.buttons.forget.maxX and y > self.buttons.forget.minY and y < self.buttons.forget.maxY then
-        return self:forget_spell(self.cursorY)
+        return self:unmemorize_spell(self.cursorY)
       elseif self.buttons.use and x > self.buttons.use.minX and x < self.buttons.use.maxX and y > self.buttons.use.minY and y < self.buttons.use.maxY then
         return self:cast_spell(self.cursorY)
       elseif self.buttons.hotkey and x > self.buttons.hotkey.minX and x < self.buttons.hotkey.maxX and y > self.buttons.hotkey.minY and y < self.buttons.hotkey.maxY then
@@ -793,9 +807,9 @@ function spellscreen:perform_upgrade(upgradeID)
   end
 end
 
-function spellscreen:forget_spell(spellIndex)
+function spellscreen:unmemorize_spell(spellIndex)
   local spell = self.spellList[spellIndex].spell
-  player:forget_spell(spell.id)
+  player:unmemorize_spell(spell)
   self.playerSpells = player:get_spells()
   self.unmemorized = player:get_unmemorized_spells()
   self.spellList = {}
@@ -805,7 +819,7 @@ end
 function spellscreen:memorize_spell(spellIndex)
   local spell = self.spellList[spellIndex].spell
   if spell then
-    player:memorize_spell(spell.id)
+    player:memorize_spell(spell)
     self.playerSpells = player:get_spells()
     self.unmemorized = player:get_unmemorized_spells()
     self.spellList = {}

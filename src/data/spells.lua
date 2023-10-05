@@ -61,7 +61,7 @@ blast = {
     damage={{min_damage=2,max_damage=3},{min_damage=5,max_damage=7,skill_requirements={magic=5}},name="Damage"},
     confusion={{confusion_chance=10,min_confusion=4,max_confusion=6, item_cost={{item='dart',amount=2}}},{confusion_chance=15,min_confusion=2,max_confusion=4},name="Confusion"},
     stun={{stun_chance=10,min_stun=2,max_stun=3},{stun_chance=15,min_stun=1,max_stun=2},name="Stunning"},
-    amnesia={{amnesia=true,spell_point_cost=2},name="Amnesia",description="Causes the target to forget they ever saw you.",playerOnly=true}, --Value set to true will just display the name and description
+    amnesia={{amnesia=true,point_cost=2},name="Amnesia",description="Causes the target to forget they ever saw you.",playerOnly=true}, --Value set to true will just display the name and description
   },
   stat_bonuses_from_skills={
     max_damage={magic={[10]=5}}
@@ -969,10 +969,17 @@ vampirism = {
   unlearnable = true, --If true, this spell will not show up in spell books or factions to be learned unless explicitly put there
   forgettable=false,
   freeSlot=true,
-  tags={'unholy','physical'},
+  tags={'unholy','physical','vampire'},
+  upgrade_stat="upgrade_points_vampirism",
+  stats = {
+    health_absorbed={value=25,name="Damage Converted to Health/Blood",is_percentage=true},
+  },
+  possible_upgrades = {
+    health_absorbed={{health_absorbed=25},{health_absorbed=25},{health_absorbed=25},name="Health Absorbed"}
+  },
 	damages = function(self,possessor,target,damage)
     if (random(1,2) == 1 and not target:is_type('bloodless')) or target:has_condition('bleeding') then
-      local hp = tweak(math.ceil(damage*(random(2,6)/10)))
+      local hp = tweak(damage*(self:get_stat('health_absorbed')/100))
       if player:can_see_tile(possessor.x,possessor.y) and hp > 0 then
         output:out(possessor:get_name() .. " drains some blood from " .. target:get_name() .. ", regaining " .. hp .. " HP!")
         if possessor.extra_stats.blood then
@@ -989,12 +996,38 @@ vampirism = {
     if possessor == player and possessor.extra_stats.blood then
       local turns = math.max(possessor:get_skill('bloodmetabolism'),1)
       if currGame.stats.turns % turns == 0 then
-        possessor.extra_stats.blood.value = math.max(possessor.extra_stats.blood.value-1,0)
+        local val = 1 + possessor:get_bonus('blood_consumption')
+        possessor.extra_stats.blood.value = math.max(possessor.extra_stats.blood.value-val,0)
       end
       if possessor.extra_stats.blood.value < 1 then
         possessor:give_condition('bloodstarved',-1)
       else
         possessor:cure_condition('bloodstarved',-1)
+      end
+    end
+  end
+},
+
+batform = {
+  name = "Bat Form",
+	description = "You temporarily transform into a vampire bat. While in bat form, your blood pool will drain more quickly.",
+	target_type = "self",
+  unlearnable = true, --If true, this spell will not show up in spell books or factions to be learned unless explicitly put there
+  forgettable=false,
+  freeSlot=true,
+  tags={'vampire','physical'},
+  cast = function(self,target,caster)
+    if player:can_sense_creature(caster) then
+      output:out(caster:get_name() .. (caster:is_type('intelligent') and " shouts \"Bat!\" and " or "") .. " turns into a bat.")
+    end
+    caster:give_condition('batform',-1)
+    local bat = caster:transform('vampirebat',nil,{level=caster.level,active_undo=true})
+    bat.extra_stats.blood = caster.extra_stats.blood
+    bat.skills.bloodpotency = caster.skills.bloodpotency
+    for skillID,val in pairs(caster.skills) do
+      local skill = possibleSkills[skillID]
+      if skill.skill_type == "vampirism" then
+        bat.skills[skillID] = val
       end
     end
   end
@@ -1198,13 +1231,15 @@ heal_other = {
     cooldown = 5,
     description = "Practice the healing arts on a nearby creature. If cast on an unfriendly creature, there's a chance they will become friendly towards you.",
     flags={friendly=true},
+    always_learnable = true,
+    learn_point_cost = 3,
     cast = function(self,target,caster)
-      if target == caster then output:out("You can't use this ability to heal yourself. That's too selfish for an orc.") return false end
+      if target == caster then output:out("You can't use this ability to heal yourself. That's too selfish.") return false end
       if target.hp < target:get_max_hp() then
         if caster:touching(target) then
           local amt = math.max(5,math.ceil(target:get_max_hp() *.05))
           if player:can_see_tile(caster.x,caster.y) then
-            output:out(caster:get_name() .. " heals " .. target:get_name() .. " for amt damage.")
+            output:out(caster:get_name() .. " heals " .. target:get_name() .. " for " .. amt .. " damage.")
             output:sound('heal_other')
           end
           target:updateHP(amt)
@@ -1249,6 +1284,7 @@ possibleSpells['undotransform'] = {
   description = "Transform back into your regular self.",
   target_type="self",
   freeSlot=true,
+  forgettable=false,
   cast = function(self,target,caster)
     caster:undo_transformation()
   end

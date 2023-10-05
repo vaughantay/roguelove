@@ -175,10 +175,11 @@ function characterscreen:draw()
           love.graphics.printf((typeDef and typeDef.name .. ":" or ucfirst(sType) .. ":"),padding,printY,math.floor(width/uiScale)-padding,"center")
           printY=printY+fontSize
           local pointID = typeDef and typeDef.upgrade_stat or "upgrade_points_" .. sType
-          local pointName = typeDef and typeDef.upgrade_stat_name or (ucfirst(sType) .. " Points")
+          local pointName = typeDef and typeDef.upgrade_stat_name or (ucfirst(sType) .. " Point")
+          local pluralName = typeDef and typeDef.upgrade_stat_plural_name or pointName .. "s"
           local points = player[pointID] or 0
           if points > 0 then
-            love.graphics.printf("You have " .. points .. " " .. pointName .. " available.",padding,printY,math.floor(width/uiScale)-padding,"center")
+            love.graphics.printf(points .. " " .. (points == 1 and pointName or pluralName) .. " available.",padding,printY,math.floor(width/uiScale)-padding,"center")
             printY=printY+fontSize
           end
           for _,skillInfo in pairs(list) do
@@ -193,7 +194,7 @@ function characterscreen:draw()
                 costText = costText .. " - Cost: "
                 local firstCost = true
                 if cost.point_cost and cost.point_cost > 0 then
-                  costText = costText .. cost.point_cost .. " " .. (cost.upgrade_stat_name or cost.upgrade_stat or pointName)
+                  costText = costText .. cost.point_cost .. " " .. (cost.point_cost == 1 and (cost.upgrade_stat_name or cost.upgrade_stat or pointName) or (cost.upgrade_stat_plural_name or cost.upgrade_stat or pluralName))
                   firstCost = false
                 end
                 if cost.item_cost then
@@ -270,31 +271,44 @@ function characterscreen:draw()
       printY = printY + fontSize*2
       love.graphics.printf("Abilities Available to Learn:",padding,printY,math.floor(width/uiScale)-padding,"center")
       printY = printY+fontSize
-      love.graphics.printf((player.spellPoints or 0) .. " Ability Points Available",padding,printY,math.floor(width/uiScale)-padding,"center")
+      love.graphics.printf((player.spellPoints or 0) .. " Ability Point" .. (player.spellPoints == 1 and " available" or "s available"),padding,printY,math.floor(width/uiScale)-padding,"center")
       printY = printY+fontSize*2
       for _,info in ipairs(self.spell_purchases) do
         local spell = possibleSpells[info.spell]
         local canLearn,noLearnText = player:can_learn_spell(info.spell)
         if not player:has_spell(info.spell,true,true) then
-          local spCost = (info.spell_point_cost and info.spell_point_cost .. " Ability Points" or "")
-          local costText = spCost
-          local text = spell.name .. (spell.target_type == "passive" and " (Passive)" or "") .. " - " .. spell.description .. costText
+          local points = info.point_cost or 0
+          local upgrade_stat = info.upgrade_stat or "spellPoints"
+          local upgrade_stat_name = info.upgrade_stat_name or (upgrade_stat == "spellPoints" and "Ability Point" or nil)
+          if not upgrade_stat_name then
+            for _,stInfo in pairs(possibleSkillTypes) do
+              if stInfo.upgrade_stat == upgrade_stat then
+                upgrade_stat_name = stInfo.upgrade_stat_name
+                break
+              end
+            end
+            if not upgrade_stat_name then upgrade_stat_name = upgrade_stat end
+          end
+          local upgrade_stat_plural_name = info.upgrade_stat_plural_name or upgrade_stat_name .. "s"
+          local player_has = player[upgrade_stat] or 0
+          local costText = (points and points > 0 and points .. " " .. (points == 1 and upgrade_stat_name or upgrade_stat_plural_name) .. (upgrade_stat ~= "spellPoints" and " (You have " .. player_has .. ")" or "") or nil)
+          local text = spell.name .. (spell.target_type == "passive" and " (Passive)" or "") .. (costText and " - " .. costText or "") .. "\n" .. spell.description
           local buttonMouse = false
           if self.learnButtons[buttonY] and mouseX > self.learnButtons[buttonY].minX and mouseX < self.learnButtons[buttonY].maxX and mouseY > self.learnButtons[buttonY].minY-self.scrollY and mouseY < self.learnButtons[buttonY].maxY-self.scrollY then
             buttonMouse = true
           end
-          if not canLearn or spellPoints < (info.spell_point_cost or 0) then
+          if not canLearn or player_has < points then
             setColor(100,100,100,255)
           end
           self.learnButtons[buttonY] = output:button(padding,printY,60,false,((buttonMouse or self.cursorY == buttonY) and "hover" or false),"Learn",true)
           self.learnButtons[buttonY].info = info
-          if not canLearn or spellPoints < (info.spell_point_cost or 0) then
+          if not canLearn or player_has < points then
             setColor(255,255,255,255)
           end
           if noLearnText then
             text = text .. "\n" .. noLearnText
-          elseif spellPoints < (info.spell_point_cost or 0) then
-            text = text .. "\nYou don't have enough ability points to learn this ability."
+          elseif player_has < points then
+            text = text .. "\nYou don't have enough " .. upgrade_stat_plural_name .. " to learn this ability."
           end
           love.graphics.printf(text,padding+65,printY,math.floor(width/uiScale)-padding-65-32,"left")
           local _, wrappedtext = fonts.textFont:getWrap(text, math.floor(width/uiScale)-padding-65-32)
@@ -504,9 +518,11 @@ function characterscreen:use_learnButton(info)
       player:upgrade_skill(info.skill)
     end
   elseif info.spell then
-    if (not info.spell_point_cost or (player.spellPoints and player.spellPoints >= info.spell_point_cost)) and (not info.stat_point_cost or (player.upgrade_points_attribute and player.upgrade_points_attribute >= info.stat_point_cost)) then
+    if (not info.point_cost or info.point_cost > 0 or player[info.upgrade_stat or "spellPoints"] >= info.point_cost) then
       player:learn_spell(info.spell)
-      if info.spell_point_cost then player.spellPoints = player.spellPoints - info.spell_point_cost end
+      if info.point_cost and info.point_cost > 0 then
+        player[info.upgrade_stat or "spellPoints"] = player[info.upgrade_stat or "spellPoints"] - info.point_cost
+      end
     end
   end
 end
