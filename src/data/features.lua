@@ -2526,15 +2526,20 @@ function exit:new(args)
   self.oneway = args.oneway
   self.locked = args.locked
   self.exitName = args.exitName or "Exit"
+  self.color = args.color
+  self.image_name = args.image_name
 end
 function exit:placed(map)
   local tileset = tilesets[map.tileset] or {}
-  self.color = tileset.floorColor or tileset.textColor or self.color
+  self.color = tileset.wallColor or tileset.textColor or {r=255,g=255,b=255,a=255}
   local matches = (map.branch == self.branch)
   self.name = (matches and self.exitName .. " to " .. (currWorld.branches[self.branch].depthName or "Depth") .. " " .. self.depth or self.exitName .. " to " .. currWorld.branches[self.branch].name)
   if matches and self.depth < map.depth then self.symbol = "<" end
   self.actions.exit.text = (matches and (self.depth < map.depth and "Go up" or "Go down") or "Enter " .. currWorld.branches[self.branch].name)
   map.exits[#map.exits+1] = self
+  if not self.image_name then
+    self.image_name = "stairs" .. (self.depth < map.depth and "up" or "down")
+  end
   print('placed exit to ' .. self.branch .. ' ' .. self.depth .. ' at ',self.x,self.y)
 end
 function exit:action(entity,action)

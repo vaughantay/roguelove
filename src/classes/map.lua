@@ -1220,6 +1220,7 @@ end
 function Map:populate_items(itemTotal,forceGeneric)
   local mapTypeID,branchID = self.mapType,self.branch
   local mapType,branch = mapTypes[mapTypeID],currWorld.branches[branchID]
+  local newItems = {}
   
   --If itemTotal is blank, set itemTotal based on the desired density
   if not itemTotal then
@@ -1240,12 +1241,7 @@ function Map:populate_items(itemTotal,forceGeneric)
       end --end if room.decotrator
     end --end room for
   end --end if self.rooms
-  
-  --Do special code if the mapType has it:
-  if mapType.populate_items and not forceGeneric then
-    return mapType.populate_items(self,itemTotal)
-  end
-  
+
   local passedTags = nil
   if mapType.passedTags then
     if mapType.noBranchItems or mapType.noBranchContent or not branch.passedTags then
@@ -1256,63 +1252,81 @@ function Map:populate_items(itemTotal,forceGeneric)
   else --if the mapType doesn't have passedTags, fall back to the branch's items
     passedTags = branch.passedTags --if branch doesn't have creatures, this will set it to nil and just use regular items
   end
+  local item_list = self:get_item_list()
   
+  --Spawn in designated spawn points first:
+  local item_spawn_points = {}
+  if self.item_spawn_points and #self.item_spawn_points > 0 then
+    for i,sp in ipairs(self.item_spawn_points) do
+      if not sp.used and not self.tile_info[sp.x][sp.y].noItems and not self:tile_has_feature(sp.x,sp.y,'exit') and ((sp.inventory and #sp:get_inventory() < (sp.inventory_space or 1)) or (self:isClear(sp.x,sp.y,nil,true) and #self:get_tile_items(sp.x,sp.y) == 0)) then
+        item_spawn_points[#item_spawn_points+1] = sp
+      end
+    end
+  end
+  
+  for spk,sp in pairs(item_spawn_points) do
+    if sp.baseType == "feature" and possibleFeatures[sp.id].populate_items then
+      possibleFeatures[sp.id].populate_items(sp,self)
+      goto continue
+    end
+    
+    local sp_item_list = {}
+    local sp_passedTags = merge_tables(passedTags,(sp.passedTags or {}))
+    
+    --Create item list:
+    if sp.items then
+      sp_item_list = sp.items or {}
+    end --end if items
+    if sp.itemTags or sp.contentTags or sp.forbiddenTags then
+      local tags = sp.itemTags or sp.contentTags or dec.itemTags or dec.contentTags or {}
+      local forbidden = sp.forbiddenTags
+      local tagged_items = mapgen:get_content_list_from_tags('item',tags,forbidden)
+      sp_item_list = merge_tables(sp_item_list,tagged_items)
+    elseif not sp.items then --if there's no item list or tag list set, just use the item list of the room
+      sp_item_list = item_list
+    end
+    
+    ::gen_item::
+    local ni = mapgen:generate_item(min_level,max_level,sp_item_list,sp_passedTags)
+    newItems[#newItems+1] = ni
+    
+    if sp.inventory then
+      sp:give_item(ni)
+      if #sp:get_inventory() >= (sp.inventory_space or 1) then
+        sp.used = true
+      else
+        goto gen_item
+      end
+    else
+      self:add_item(ni,sp.x,sp.y)
+      sp.used = true
+    end
+    ::continue::
+  end
+  
+  --Do special code if the mapType has it:
+  if mapType.populate_items and not forceGeneric then
+    return mapType.populate_items(self,itemTotal,item_list,passedTags)
+  end
+  
+  --Generate items on floor:
   if not self.noItems and itemTotal > 0 then
-    local newItems = {}
-    local specialItems = self:get_item_list()
     local min_level = self:get_min_level()
     local max_level = self:get_max_level()
     for item_amt = 1,itemTotal,1 do
-      local ni = mapgen:generate_item(min_level,max_level,specialItems,passedTags)
+      local ni = mapgen:generate_item(min_level,max_level,item_list,passedTags)
       if ni == false then break end
-      local placed = false
       
-      --Spawn in designated spawn points first:
-      local item_spawn_points = {}
-      if self.item_spawn_points and #self.item_spawn_points > 0 then
-        for i,sp in ipairs(self.item_spawn_points) do
-          if not sp.used and not self.tile_info[sp.x][sp.y].noItems and not self:tile_has_feature(sp.x,sp.y,'exit') and ((sp.inventory and #sp:get_inventory() < (sp.inventory_space or 1)) or (self:isClear(sp.x,sp.y,nil,true) and #self:get_tile_items(sp.x,sp.y) == 0)) then
-            item_spawn_points[#item_spawn_points+1] = sp
-          end
-        end
+      local ix,iy = random(2,self.width-1),random(2,self.height-1)
+      local tries = 0
+      while self:isClear(ix,iy) == false or self:tile_has_feature(ix,iy,"exit") or self.tile_info[ix][iy].noItems or #self:get_tile_items(ix,iy) ~= 0 do
+        ix,iy = random(2,self.width-1),random(2,self.height-1)
+        tries = tries+1
+        if tries > 100 then break end
       end
-      
-      local itries = 0
-        while (#item_spawn_points > 0) and itries < 100 do
-          itries = itries + 1
-          local spk = get_random_key(item_spawn_points)
-          local sp = item_spawn_points[spk]
-          
-          newItems[#newItems+1] = ni
-          ni.origin_room = room
-          placed = ni
-          itries=0
-          if sp.inventory then
-            sp:give_item(ni)
-            if #sp:get_inventory() >= (sp.inventory_space or 1) then
-              sp.used = true
-              table.remove(item_spawn_points,spk)
-            end
-          else
-            map:add_item(ni,sp.x,sp.y)
-            sp.used = true
-            table.remove(item_spawn_points,spk)
-          end
-          break
-        end
-      
-      if not placed then
-        local ix,iy = random(2,self.width-1),random(2,self.height-1)
-        local tries = 0
-        while self:isClear(ix,iy) == false or self:tile_has_feature(ix,iy,"exit") or self.tile_info[ix][iy].noItems or #self:get_tile_items(ix,iy) ~= 0 do
-          ix,iy = random(2,self.width-1),random(2,self.height-1)
-          tries = tries+1
-          if tries > 100 then break end
-        end
-        if tries ~= 100 then 
-          newItems[#newItems+1] = self:add_item(ni,ix,iy)
-        end --end tries if
-      end
+      if tries ~= 100 then 
+        newItems[#newItems+1] = self:add_item(ni,ix,iy)
+      end --end tries if
     end
     return newItems
 	end --end if not noItems

@@ -636,7 +636,7 @@ function mapgen:addGenericStairs(build,width,height)
       for x=startX-upDist,startX+upDist,1 do
         if breakOut then break end
         for y=startY-upDist,startY+upDist,1 do
-          if x > 1 and y > 1 and x < width and y < height and build:isEmpty(x,y) and calc_distance(x,y,build.stairsDown.x,build.stairsDown.y) > math.min(width,height) then
+          if x > 1 and y > 1 and x < width and y < height and build:isEmpty(x,y) then
             build.stairsUp = {x=x,y=y}
             placedup = true
           end --end if
@@ -1178,6 +1178,7 @@ function mapgen:populate_items_in_room(room,map,decID)
   decID = decID or room.decorator
   local dec = roomDecorators[decID]
   local item_list = {}
+  local newItems = {}
   
   if dec and (dec.item_repopulate_limit or dec.repopulate_limit) then
     local spawns = (room.item_populated_count or 0)
@@ -1187,15 +1188,11 @@ function mapgen:populate_items_in_room(room,map,decID)
     room.item_populated_count = (room.item_populated_count or 0) + 1
   end
   
+  --Create list of items
   if not decID or not dec then
     item_list = map:get_item_list()
   else
-    --If there's a special function, use that instead
-    if dec.populate_items then
-      return dec.populate_items(room,map)
-    end
-    
-    --Add up list of items
+    --Create the list
     if dec.items then
       item_list = dec.items or {}
     end --end if items
@@ -1207,15 +1204,74 @@ function mapgen:populate_items_in_room(room,map,decID)
     end --end if item or tags listed in room decorator 
   end --end if decid
   
-  --Now that we have a list, start working:
+  --Info for items (passed tags and levels):
+  local passedTags = (dec and dec.passedTags or {})
+  local mapPassed = map:get_content_tags('passed')
+  passedTags = merge_tables(passedTags, mapPassed)
+  local min_level = map:get_min_level()
+  local max_level = map:get_max_level()
+  
+  --Spawn in designated spawn points first:
+  local item_spawn_points = {}
+  if map.item_spawn_points and #map.item_spawn_points > 0 then
+    for i,sp in ipairs(map.item_spawn_points) do
+      if not sp.used and map.tile_info[sp.x][sp.y].room == room and not map.tile_info[sp.x][sp.y].noItems and not map:tile_has_feature(sp.x,sp.y,'exit') and ((sp.inventory and #sp:get_inventory() < (sp.inventory_space or 1)) or (map:isClear(sp.x,sp.y,nil,true) and #map:get_tile_items(sp.x,sp.y) == 0)) then
+        item_spawn_points[#item_spawn_points+1] = sp
+      end
+    end
+  end
+  
+  for spk,sp in pairs(item_spawn_points) do
+    if sp.baseType == "feature" and possibleFeatures[sp.id].populate_items then
+      possibleFeatures[sp.id].populate_items(sp,map,room)
+      goto continue
+    end
+    
+    local sp_item_list = {}
+    local sp_passedTags = merge_tables(passedTags,(sp.passedTags or {}))
+    
+    --Create item list:
+    if sp.items then
+      sp_item_list = sp.items or {}
+    end --end if items
+    if sp.itemTags or sp.contentTags or sp.forbiddenTags then
+      local tags = sp.itemTags or sp.contentTags or dec.itemTags or dec.contentTags or {}
+      local forbidden = sp.forbiddenTags
+      local tagged_items = mapgen:get_content_list_from_tags('item',tags,forbidden)
+      sp_item_list = merge_tables(sp_item_list,tagged_items)
+    elseif not sp.items then --if there's no item list or tag list set, just use the item list of the room
+      sp_item_list = item_list
+    end
+    
+    ::gen_item::
+    local ni = mapgen:generate_item(min_level,max_level,sp_item_list,sp_passedTags)
+    newItems[#newItems+1] = ni
+    ni.origin_room = room
+    
+    if sp.inventory then
+      sp:give_item(ni)
+      if #sp:get_inventory() >= (sp.inventory_space or 1) then
+        sp.used = true
+      else
+        goto gen_item
+      end
+    else
+      map:add_item(ni,sp.x,sp.y)
+      sp.used = true
+    end
+    ::continue::
+  end
+  
+  --If there's a special item population function for this room decorator, just use that
+    if dec.populate_items then
+      return dec.populate_items(room,map,item_list,passedTags)
+    end
+  
+  --Spawn items in room from list:
   if item_list and #item_list > 0 then
     local branch = currWorld.branches[map.branch]
     
-    --Passed tags:
-    local passedTags = (dec and dec.passedTags or {})
-    local mapPassed = map:get_content_tags('passed')
-    passedTags = merge_tables(passedTags ,mapPassed)
-    
+    --Spawn items in empty space:
     local clearSpace = 0
     local current_items = 0
     
@@ -1231,73 +1287,29 @@ function mapgen:populate_items_in_room(room,map,decID)
     local density = (dec and dec.item_density) or mapTypes[map.mapType].item_density or branch.item_density or gamesettings.item_density
     local itemMax = math.ceil(clearSpace*(density/100))-current_items
     
-    --Calculate spawn points, because we'll use that as the max item number if it's more than the regular number
-    local item_spawn_points = {}
-    if map.item_spawn_points and #map.item_spawn_points > 0 then
-      for i,sp in ipairs(map.item_spawn_points) do
-        if not sp.used and map.tile_info[sp.x][sp.y].room == room and not map.tile_info[sp.x][sp.y].noItems and not map:tile_has_feature(sp.x,sp.y,'exit') and ((sp.inventory and #sp:get_inventory() < (sp.inventory_space or 1)) or (map:isClear(sp.x,sp.y,nil,true) and #map:get_tile_items(sp.x,sp.y) == 0)) then
-          item_spawn_points[#item_spawn_points+1] = sp
-        end
-      end
-    end
-    itemMax = math.max(itemMax,#item_spawn_points)
     --Do the actual spawning
     if itemMax > 0 then
-      local newItems = {}
-      local min_level = map:get_min_level()
-      local max_level = map:get_max_level()
       for i=1,itemMax,1 do
         local ni = mapgen:generate_item(min_level,max_level,item_list,passedTags)
         if ni == false then break end
-        local placed = false
-        
-        --Spawn in designated spawn points first:
-        local itries = 0
-        while (#item_spawn_points > 0) and itries < 100 do
-          itries = itries + 1
-          local spk = get_random_key(item_spawn_points)
-          local sp = item_spawn_points[spk]
+        local ix,iy = random(room.minX,room.maxX),random(room.minY,room.maxY)
+        local tries = 0
+        while map:isClear(ix,iy) == false or map:tile_has_feature(ix,iy,"exit") or map.tile_info[ix][iy].noItems do
+          ix,iy = random(room.minX,room.maxX),random(room.minY,room.maxY)
+          tries = tries+1
+          if tries > 100 then break end
+        end
           
+        --Place the actual item:
+        if tries ~= 100 then 
+          map:add_item(ni,ix,iy)
           newItems[#newItems+1] = ni
           ni.origin_room = room
-          placed = ni
-          itries=0
-          if sp.inventory then
-            sp:give_item(ni)
-            if #sp:get_inventory() >= (sp.inventory_space or 1) then
-              sp.used = true
-              table.remove(item_spawn_points,spk)
-            end
-          else
-            map:add_item(ni,sp.x,sp.y)
-            sp.used = true
-            table.remove(item_spawn_points,spk)
-          end
-          break
-        end
-        
-        --If not spawned at a spawn point, find a spot to spawn:
-        if not placed then
-          local ix,iy = random(room.minX,room.maxX),random(room.minY,room.maxY)
-          local tries = 0
-          while map:isClear(ix,iy) == false or map:tile_has_feature(ix,iy,"exit") or map.tile_info[ix][iy].noItems do
-            ix,iy = random(room.minX,room.maxX),random(room.minY,room.maxY)
-            tries = tries+1
-            if tries > 100 then break end
-          end
-          
-          --Place the actual item:
-          if tries ~= 100 then 
-            map:add_item(ni,ix,iy)
-            newItems[#newItems+1] = ni
-            ni.origin_room = room
-          end --end tries if
-        end
+        end --end tries if
       end
-      return newItems
     end
   end --end if item list
-  return false
+  return newItems
 end
 
 function mapgen:get_content_list_from_tags(content_type,tags,forbiddenTags)
@@ -1358,6 +1370,7 @@ end
 --@param map Map. The map to create the room on.
 --@param rectChance Number. Chance that the room will be a rectangle rather than any other room type
 function mapgen:generate_room(minX,minY,maxX,maxY,map,rectChance)
+  rectChance = rectChance or 50
   local ret
   if love.math.random(1,100) <= rectChance and roomTypes.rectangle then
     ret = roomTypes.rectangle(minX,minY,maxX,maxY,map)
@@ -1370,5 +1383,30 @@ function mapgen:generate_room(minX,minY,maxX,maxY,map,rectChance)
       map.tile_info[floor.x][floor.y].room = ret
     end
   end
+  if ret.walls then
+    for _,wall in pairs(ret.walls) do
+      map.tile_info[wall.x][wall.y].room = ret
+    end
+  end
+  if not ret.midX or not ret.midY then
+    ret.midX,ret.midY = ret.minX+round((ret.maxX-ret.minX)/2),ret.minY+round((ret.maxY-ret.minY)/2)
+  end
   return ret
+end
+
+---Determines whether you can place a room in a location
+--@param minX Number. The minimum X value of the room.
+--@param minY Number. The minimum Y value of the room.
+--@param maxX Number. The maximum X value of the room.
+--@param maxY Number. The maximum Y value of the room.
+--@param map Map. The map to create the room on.
+function mapgen:can_place_room(minX,minY,maxX,maxY,map)
+  for x=minX,maxX,1 do
+    for y=minY,maxY,1 do
+      if not map:in_map(x,y) or map.tile_info[x][y].room or map.tile_info[x][y].room == false then
+        return false
+      end
+    end
+  end
+  return true
 end
