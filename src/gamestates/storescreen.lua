@@ -21,7 +21,9 @@ function storescreen:enter(previous,whichStore)
       self.faction = currWorld.factions[self.store.faction]
       self.playerMember = player:is_faction_member(self.store.faction)
       self.costMod = self.faction:get_cost_modifier(player)
+      self.faction.contacted = true
     end
+    self.store.contacted = true
     self:refresh_lists()
   end
 end

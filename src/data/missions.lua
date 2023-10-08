@@ -3,12 +3,12 @@ possibleMissions = {}
 local killtownies = {
   name = "Kill Townies",
   description = "Those weaklings in town have forgotten that life is nasty, brutish, and short. Remind them that safety is an illusion by killing 5 townspeople.",
-  finished_description = "The weaklings have been reminded what fear is."
+  finished_description = "The weaklings have been reminded what fear is.",
+  finish_text = "The townspeople have been reminded what fear is."
 }
 function killtownies:start()
   local godname = currWorld.factions['barbariangod'].name
-  output:out(godname .. " roars in approval.")
-  return godname .. " roars in approval."
+  return true,godname .. " roars in approval."
 end
 function killtownies:kills(killer,victim)
   if killer == player and victim.id == "townsperson" then
@@ -36,9 +36,7 @@ function killtownies:can_finish()
   return false,"You still need to kill " .. 5-townies .. " townspeople."
 end
 function killtownies:finish()
-  output:out("The townspeople have been reminded what fear is.")
   player.favor.barbariangod = player.favor.barbariangod + 100
-  return "The townspeople have been reminded what fear is."
 end
 possibleMissions['killtownies'] = killtownies
 
@@ -46,10 +44,9 @@ local killdemons = {
   name = "Kill Demons",
   description = "Prove you have what it takes to be a demonslayer. Kill 5 demons.",
   finished_description = "You have proven your worth as a demonslayer, but many unholy beasts still infest this world.",
+  finish_text = "You have done a holy service to the world.",
+  start_text = "You pledge to kill 5 demons."
 }
-function killdemons:start()
-  return "You pledge to kill 5 demons."
-end
 function killdemons:kills(killer,victim)
   if killer == player and victim:is_type('demon') then
     local demons = update_mission_status('killdemons',1)
@@ -76,9 +73,7 @@ function killdemons:can_finish()
   return false,"You still need to kill " .. 5-demons .. " demons."
 end
 function killdemons:finish()
-  output:out("You have done a holy service to the world.")
   player.favor.lightchurch = player.favor.lightchurch + 100
-  return "You have done a holy service to the world."
 end
 possibleMissions['killdemons'] = killdemons
 
@@ -136,6 +131,6 @@ function findtreasure:finish()
     favor = 100
     player.favor[source.id] = player.favor[source.id]+favor
   end
-  return "You turn in " .. treasure:get_name() .. (favor and " for " .. favor .. " favor." or ".")
+  return true,"You turn in " .. treasure:get_name() .. (favor and " for " .. favor .. " favor." or ".")
 end
 possibleMissions['findtreasure'] = findtreasure

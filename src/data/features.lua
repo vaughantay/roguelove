@@ -2435,6 +2435,7 @@ possibleFeatures['gravestone'] = gravestone
 local store = {
   name="Store",
   description = "A storefront.",
+  image_name="store",
   symbol="^",
   alwaysDisplay=true,
   color={r=0,g=0,b=255,a=255},
@@ -2461,11 +2462,12 @@ local store = {
     self.store = whichStore
     self.name = whichStore.name
     self.actions.enter.text = "Shop at " .. whichStore.name
+    self.image_name = whichStore.image_name or self.image_name
+    self.color = whichStore.color or self.color
     if whichStore.map_description then self.description = whichStore.map_description end
   end,
   placed = function(self)
     self.store.isPlaced = true
-    print('placed store ' .. self.name .. ' at ',self.x,self.y)
   end,
   enter = function(self,creature)
     if creature == player then self:action(player) end
@@ -2478,6 +2480,7 @@ possibleFeatures['store'] = store
 
 local factionHQ = {
   name="Faction HQ",
+  image_name="store",
   description = "The HQ of a faction.",
   symbol="^",
   alwaysDisplay=true,
@@ -2493,6 +2496,8 @@ local factionHQ = {
     self.faction = whichFac
     self.name = whichFac.name
     self.actions.enter.text = (whichFac.enter_text or "Enter") .. " " .. whichFac.name
+    self.image_name = whichFac.image_name or self.image_name
+    self.color = whichFac.color or self.color
     if whichFac.map_description then self.description = whichFac.map_description end
     if whichFac.map_name then self.name = whichFac.map_name end
   end,

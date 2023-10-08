@@ -782,7 +782,7 @@ function Creature:get_description(noInfo)
     if (self.isPlayer ~= true) then
       if (self.playerAlly == true) then desc = desc .. "\n" .. ucfirst(self:get_pronoun('n')) .. " is under your command."
       elseif self.notices[player] and self.ignoring[player] then desc = desc .. "\n" .. ucfirst(self:get_pronoun('n')) .. " is ignoring you."
-      elseif self.notices[player] and not self.shitlist[player] then desc = desc .. "\n" .. ucfirst(self:get_pronoun('n')) .. (self:is_friend(player) and " is friendly towards you." or " is watching you suspiciously.")
+      elseif self.notices[player] and not self.shitlist[player] then desc = desc .. "\n" .. ucfirst(self:get_pronoun('n')) .. (self:is_friend(player) and " is friendly towards you." or " is aware of you but not hostile.")
       elseif (self.notices[player] and self.shitlist[player]) then desc = desc .. "\n" .. ucfirst(self:get_pronoun('n')) .. " is hostile towards you."
       else desc = desc .. "\n" .. ucfirst(self:get_pronoun('n')) .. " has not noticed you." end
       if self:get_fear() > self:get_bravery() then desc = desc .. "\n" .. ucfirst(self:get_pronoun('n')) .. " is afraid, and will try to run from enemies if possible." end

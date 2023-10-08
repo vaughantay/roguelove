@@ -90,11 +90,18 @@ function initialize_world()
   for id,store in pairs(possibleStores) do
     local s = Store(id)
     stores[#stores+1] = s
+    if store.start_contacted then
+      s.contacted = true
+    end
   end
   --Generate Factions:
   local factions = currWorld.factions
   for id,fac in pairs(possibleFactions) do
-    factions[id] = Faction(id)
+    local f = Faction(id)
+    factions[id] = f
+    if fac.start_contacted then
+      f.contacted = true
+    end
   end
   --Generate dungeon branches:
   local branches = currWorld.branches
@@ -385,10 +392,10 @@ function goToMap(depth,branch,force)
     currGame.autoSave=true
     player.sees = nil
     run_all_events_of_type('enter_map')
-    player:callbacks('enter_map')
+    player:callbacks('enter_map',currMap)
     if firstTime then
       run_all_events_of_type('enter_map_first_time')
-      player:callbacks('enter_map_first_time')
+      player:callbacks('enter_map_first_time',currMap)
     end
     if currMap.generate_boss_on_entry then
       generate_boss(true) --TODO: don't generate it near the player maybe?
@@ -862,8 +869,9 @@ end
 function start_mission(missionID,startVal,source,values,skipFunc)
   local mission = possibleMissions[missionID]
   local ret = true
+  local text = nil
   if not skipFunc and mission and mission.start then
-    ret = mission.start(startVal)
+    ret,text = mission.start(startVal)
   end
   if ret ~= false then --If the mission isn't pre-defined or doesn't have a finish() code
     set_mission_status(missionID,startVal or 0)
@@ -875,8 +883,12 @@ function start_mission(missionID,startVal,source,values,skipFunc)
         set_mission_data(missionID,i,v)
       end
     end
+    if not text then text = mission.start_text end
+    if mission and text then
+      output:out(text)
+    end
   end
-  return ret
+  return ret,text
 end
 
 ---Gets the status of a given mission.
@@ -937,8 +949,9 @@ end
 function finish_mission(missionID,endVal,skipFunc)
   local mission = possibleMissions[missionID]
   local ret = true
+  local text = nil
   if not skipFunc and mission and mission.finish then
-    ret = mission.finish(endVal)
+    ret,text = mission:finish(endVal)
   end
   if ret ~= false then --If the mission isn't pre-defined or doesn't have a finish() code
     if not currGame.finishedMissions[missionID] then currGame.finishedMissions[missionID] = currGame.missionStatus[missionID] end
@@ -946,7 +959,39 @@ function finish_mission(missionID,endVal,skipFunc)
     currGame.finishedMissions[missionID].repetitions = (currGame.finishedMissions[missionID].repetitions or 0)+1
     currGame.missionStatus[missionID] = nil
   end
-  return ret
+  if mission then
+    if not text then text = mission.finish_text end
+    output:out("Mission Complete: " .. mission.name .. "." .. (text and " " .. text or ""))
+  end
+  return ret,text
+end
+
+---Marks a mission as failed, removing it from the active mission table. Also runs the mission's fail() code if it's a pre-defined mission.
+--@param missionID String. The ID of the mission. Can either be a pre-defined mission, or you can use any ad-hoc value if you want to use this to track something that's not an actual mission.
+--@param endVal Anything. A value you want to store in the finished missions table (eg to determine how the mission ended if it has multiple endings). (Optional)
+--@param skipFunc Boolean. Whether to skip the fail() function (assuming the mission actually has one) (Optional)
+--@return Anything. Either false if the mission didn't fail, the returned value of the fail() function if there was one, or true.
+function fail_mission(missionID,endVal,skipFunc)
+  local mission = possibleMissions[missionID]
+  local ret = true
+  local text = nil
+  if not skipFunc and mission and mission.fail then
+    ret,text = mission:fail(endVal)
+  end
+  if ret ~= false then --If the mission isn't pre-defined or doesn't have a finish() code
+    if not mission.delete_on_fail then
+      if not currGame.finishedMissions[missionID] then currGame.finishedMissions[missionID] = currGame.missionStatus[missionID] end
+      currGame.finishedMissions[missionID].status = endVal or 'failed'
+      currGame.finishedMissions[missionID].repetitions = (currGame.finishedMissions[missionID].repetitions or 0)+1
+    end
+    currGame.missionStatus[missionID] = nil
+  end
+  if mission then
+    if not text then text = mission.fail_text end
+    text = "Mission Failed: " .. mission.name .. "." .. (text and " " .. text or "")
+    output:out(text)
+  end
+  return ret,text
 end
 
 ---Checks whether an event can fire

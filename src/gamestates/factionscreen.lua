@@ -20,6 +20,7 @@ function factionscreen:enter(_,whichFac)
     self:refresh_store_lists()
     self.lineCountdown = .5
     self.navButtons = {}
+    self.faction.contacted = true
   end
 end
 
@@ -890,12 +891,12 @@ function factionscreen:buttonpressed(key)
           if currGame.missionStatus[missionID] then
             local mission = possibleMissions[missionID]
             if mission.can_finish and mission:can_finish(player) then
-              local useText = finish_mission(missionID)
-              if type(useText) == "string" then self.outText = useText end
+              local ret,useText = finish_mission(missionID)
+              if useText then self.outText = useText end
             end
           else
-            local useText = start_mission(missionID,missionData.starting_status,self.faction,missionData.starting_data)
-            if type(useText) == "string" then self.outText = useText end
+            local ret,useText = start_mission(missionID,missionData.starting_status,self.faction,missionData.starting_data)
+            if useText then self.outText = useText end
           end
         end
       elseif self.screen == "Spells" then
@@ -1246,12 +1247,12 @@ function factionscreen:mousepressed(x,y,button)
         if currGame.missionStatus[missionID] then
           local mission = possibleMissions[missionID]
           if mission.can_finish and mission:can_finish(player) then
-            local useText = finish_mission(missionID)
-            if type(useText) == "string" then self.outText = useText end
+            local ret, useText = finish_mission(missionID)
+            if useText then self.outText = useText end
           end
         else
-          local useText = start_mission(missionID,missionData.starting_status,self.faction,missionData.starting_data)
-          if type(useText) == "string" then self.outText = useText end
+          local ret, useText = start_mission(missionID,missionData.starting_status,self.faction,missionData.starting_data)
+          if useText then self.outText = useText end
         end --end active or not if
       end--end button coordinate if
     end--end button for
