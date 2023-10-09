@@ -59,7 +59,7 @@ blast = {
   },
   possible_upgrades={
     damage={{min_damage=2,max_damage=3},{min_damage=5,max_damage=7,skill_requirements={magic=5}},name="Damage"},
-    confusion={{confusion_chance=10,min_confusion=4,max_confusion=6, item_cost={{item='dart',amount=2}}},{confusion_chance=15,min_confusion=2,max_confusion=4},name="Confusion"},
+    confusion={{confusion_chance=10,min_confusion=4,max_confusion=6},{confusion_chance=15,min_confusion=2,max_confusion=4},name="Confusion"},
     stun={{stun_chance=10,min_stun=2,max_stun=3},{stun_chance=15,min_stun=1,max_stun=2},name="Stunning"},
     amnesia={{amnesia=true,point_cost=2},name="Amnesia",description="Causes the target to forget they ever saw you.",playerOnly=true}, --Value set to true will just display the name and description
   },

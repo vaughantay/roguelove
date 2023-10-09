@@ -80,4 +80,6 @@ gamesettings = {
   --mp=true, --If true, uses MP
   --spells_forgettable_by_default=true, --If true, spells can be "forgotten" from the spell screen, unless the spell's forgettable flag is explicitly set to false. If not set to true, spells can be forgotten if their forgettable flag is true
   --spells_locked_by_default=true --If true, spells cannot be forgotten/memorized from the spellscreen at will
+  --default_spell_point_cost_increase_per_upgrade=1, --increases the point cost of spell upgrades by this for every upgrade applied to the spell
+  --default_spell_item_cost_increase_per_upgrade=1, --increases the item cost of spell upgrades by this for every upgrade applied to the spell
 }

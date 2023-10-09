@@ -452,7 +452,7 @@ function spellscreen:draw()
           if self.sidebarCursorY==buttonY+mod and printY-self.descScrollY < self.descStartY then
             self:descScrollUp()
           end
-          local canUpgrade,noText = spell:can_upgrade(id,level)
+          local canUpgrade,noText = spell:can_upgrade(id)
           if not canUpgrade then
             setColor(100,100,100,255)
           elseif not selected then
@@ -468,28 +468,29 @@ function spellscreen:draw()
           local buttonW = 34
           local details = spell.possible_upgrades[id]
           local level_details = spell.possible_upgrades[id][level]
+          local cost = spell:get_upgrade_cost(id)
           local name = (level_details.name or details.name or ucfirst(id))
           local description = (level_details.description or details.description or nil)
           local i = 1
-          local point_cost = level_details.point_cost or 1
+          local point_cost = cost.point_cost
           local statText = ""
           for stat,amt in pairs(level_details) do
-            if type(amt) ~= "boolean" and type(amt) ~= "table" and stat ~= "point_cost" then
+            if type(amt) ~= "boolean" and type(amt) ~= "table" and stat ~= "point_cost" and stat ~= "item_cost" then
               local statName = (spell.stats and spell.stats[stat] and spell.stats[stat].name or ucfirst(stat))
               statName = string.gsub(statName,'_',' ')
               statText = statText .. "\n\t" .. statName .. (type(amt) == "number" and (amt < 0 and " " or " +") or ": ") .. amt .. (spell.stats and spell.stats[stat] and spell.stats[stat].is_percentage and "%" or "")
             end
           end --end stat for
           local costText = ""
-          if point_cost > 0 or level_details.item_cost then
+          if point_cost > 0 or cost.item_cost then
             costText = " - Cost: "
             local firstCost = true
             if point_cost > 0 then
               costText = costText .. point_cost .. " " .. upgrade_stat_name .. (point_cost > 1 and "s" or "")
               firstCost = false
             end
-            if level_details.item_cost then
-              for _,item_details in ipairs(level_details.item_cost) do
+            if cost.item_cost then
+              for _,item_details in pairs(cost.item_cost) do
                 local amount = item_details.amount or 1
                 local sortByVal = item_details.sortBy
                 local _,_,has_amt = player:has_item(item_details.item,sortByVal)

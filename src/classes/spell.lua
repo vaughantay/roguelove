@@ -448,7 +448,7 @@ function Spell:get_possible_upgrades(use_requirements)
   for id,details in pairs(self.possible_upgrades) do
     local current_upgrade_level = self.applied_upgrades[id] or 0
     local max_upgrade_level = #details
-    if current_upgrade_level < max_upgrade_level and (self.possessor == player or not details.playerOnly) and (not use_requirements or self:can_upgrade(id,current_upgrade_level+1)) then
+    if current_upgrade_level < max_upgrade_level and (self.possessor == player or not details.playerOnly) and (not use_requirements or self:can_upgrade(id)) then
       local level = current_upgrade_level + 1
       upgrades[id] = level
     end
@@ -457,11 +457,11 @@ function Spell:get_possible_upgrades(use_requirements)
 end
 
 ---Determines whether you're able to perform an upgrade
---@param upgradeID String. The ID of the upgrade
---@param level Number. The level of the upgrade
-function Spell:can_upgrade(upgrade,level)
+--@param upgrade String. The ID of the upgrade
+function Spell:can_upgrade(upgrade)
+  local level = (self.applied_upgrades[upgrade] or 0)+1
   local details = (self.possible_upgrades and self.possible_upgrades[upgrade] and self.possible_upgrades[upgrade][level])
-  local broad_details= (self.possible_upgrades and self.possible_upgrades[upgrade]) --Details of the upgrade path in general
+  local broad_details = (self.possible_upgrades and self.possible_upgrades[upgrade]) --Details of the upgrade path in general
   local possessor = self.possessor
   local canDo = true
   local returnText = false
@@ -526,13 +526,14 @@ function Spell:can_upgrade(upgrade,level)
     end
     --Then check costs:
     if self.free_upgrades < 1 then
-      local pointCost = details.point_cost or 1
-      local upgrade_stat = self.upgrade_stat or "spellPoints"
+      local cost = self:get_upgrade_cost(upgrade)
+      local pointCost = cost.point_cost
+      local upgrade_stat = cost.upgrade_stat or "spellPoints"
       if (possessor[upgrade_stat] or 0) + (self.spellPoints or 0) < pointCost then
         return false,returnText
       end
-      if details.item_cost then
-        for _,item_details in ipairs(details.item_cost) do
+      if cost.item_cost then
+        for _,item_details in ipairs(cost.item_cost) do
           local amount = item_details.amount or 1
           local sortByVal = item_details.sortBy
           local _,_,has_amt = self.possessor:has_item(item_details.item,sortByVal)
@@ -549,6 +550,50 @@ function Spell:can_upgrade(upgrade,level)
   return false
 end
 
+---Gets the costs associated with a spell upgrade
+--@param upgradeID String. The ID of the upgrade
+function Spell:get_upgrade_cost(upgradeID)
+  local cost = {}
+  local currLvl = self.applied_upgrades[upgradeID] or 0
+  local details = (self.possible_upgrades and self.possible_upgrades[upgradeID] and self.possible_upgrades[upgradeID][currLvl+1])
+  local broad_details = (self.possible_upgrades and self.possible_upgrades[upgradeID]) --Details of the upgrade path in general
+  local possessor = self.possessor
+  
+  --Increase upgrade costs based on applied upgrades
+  local applied_upgrades = 0
+  for _,lvl in pairs(self.applied_upgrades) do
+    applied_upgrades = applied_upgrades + lvl
+  end
+  local point_cost_increase_per_level = (self.point_cost_increase_per_upgrade or gamesettings.default_spell_point_cost_increase_per_upgrade or 0)
+  local point_increase = applied_upgrades*point_cost_increase_per_level
+  
+  local pointCost = details.point_cost or broad_details.point_cost or self.upgrade_point_cost or 1
+  if pointCost ~= 0 then pointCost = pointCost + point_increase end
+  cost.point_cost = pointCost
+  cost.upgrade_stat = self.upgrade_stat
+  cost.upgrade_stat_name = self.upgrade_stat_name
+  if self.upgrade_stat and not self.upgrade_stat_name then
+    for _,stInfo in pairs(possibleSkillTypes) do
+      if stInfo.upgrade_stat == self.upgrade_stat then
+        cost.upgrade_stat_name = stInfo.upgrade_stat_name
+        break
+      end
+    end
+  end
+  local item_cost = details.item_cost or broad_details.item_cost or self.upgrade_item_cost
+  if item_cost then
+    cost.item_cost = {}
+    for _,item_details in ipairs(item_cost) do
+      local item_cost_increase_per_level = (item_details.cost_increase_per_upgrade or self.item_cost_increase_per_upgrade or gamesettings.default_spell_item_cost_increase_per_upgrade or 0)
+      local amount = (item_details.amount or 1)+(applied_upgrades*item_cost_increase_per_level)
+      local sortByVal = item_details.sortBy
+      local index = item_details.item .. (item_details.sortBy or "")
+      cost.item_cost[index] = {item=item_details.item,sortBy=item_details.sortBy,amount=amount,displayName=item_details.displayName}
+    end --end item_cost for
+  end --end if item_cost
+  return cost
+end
+
 ---Applies an upgrade to a spell
 --@param upgradeID String. The ID of the upgrade to apply
 --@param force Boolean. If true, ignore upgrade requirements
@@ -556,7 +601,7 @@ end
 function Spell:apply_upgrade(upgradeID,force)
   local upgrades = self:get_possible_upgrades()
   local level = upgrades[upgradeID]
-  if level and (force or self:can_upgrade(upgradeID,level)) then
+  if level and (force or self:can_upgrade(upgradeID)) then
     local stats = self.possible_upgrades[upgradeID][level]
     for stat,value in pairs(stats) do
       if self[stat] then
@@ -570,12 +615,12 @@ function Spell:apply_upgrade(upgradeID,force)
         end
       end
     end
-    self.applied_upgrades[upgradeID] = level
     if self.possessor then
       if self.free_upgrades > 0 then --if you have upgrade points, use those first rather than the spell point and item costs
         self.free_upgrades = self.free_upgrades - 1
       else
-        local point_cost = stats.point_cost or 1
+        local cost = self:get_upgrade_cost(upgradeID)
+        local point_cost = cost.point_cost
         if self.spellPoints then
           if self.spellPoints < point_cost then
             point_cost = point_cost - self.spellPoints
@@ -585,10 +630,10 @@ function Spell:apply_upgrade(upgradeID,force)
             point_cost = 0
           end
         end
-        local upgrade_stat = self.upgrade_stat or "spellPoints"
+        local upgrade_stat = cost.upgrade_stat or "spellPoints"
         self.possessor.spellPoints = self.possessor[upgrade_stat] - point_cost
-        if stats.item_cost then
-          for _,item_details in pairs(stats.item_cost) do
+        if cost.item_cost then
+          for _,item_details in pairs(cost.item_cost) do
             local amount = item_details.amount or 1
             local sortByVal = item_details.sortBy
             local item = self.possessor:has_item(item_details.item,sortByVal)
@@ -597,6 +642,7 @@ function Spell:apply_upgrade(upgradeID,force)
         end
       end --end if upgrade points or not
     end --end if self possessor
+    self.applied_upgrades[upgradeID] = level
     return true
   end
   return false
