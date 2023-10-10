@@ -1183,7 +1183,7 @@ bloodshield = Condition({
 outforblood = Condition({
     name = "Out for Blood",
     removal_type="attack",
-    bonuses={bravery=15,damage=100,critical_chance=5,hit_chance=5,speed=10},
+    bonuses={bravery=15,damage_percent=100,critical_chance=5,hit_chance=5,speed=10},
     apply = function(self,possessor)
       if possessor.id == "bloodmage" then possessor.image_name = "bloodmage" .. possessor.image_variety .. "outforblood" .. (possessor == player and "possessed" or "") end
     end,

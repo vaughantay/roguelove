@@ -58,6 +58,18 @@ local fireweapon = {
 }
 enchantments['fireweapon'] = fireweapon
 
+local iceweapon = {
+  name = "Frozen",
+  prefix = "frozen",
+  description = "Does extra ice damage.",
+  extra_damage = {damage_type="ice",damage_percent=50},
+  removal_type="hit",
+  tags={"ice","magic"},
+  itemTypes={"weapon","ammo","throwable"},
+  apply_to_projectile=true
+}
+enchantments['iceweapon'] = iceweapon
+
 local accurate = {
   name = "Accurate",
   suffix = "of Accuracy",

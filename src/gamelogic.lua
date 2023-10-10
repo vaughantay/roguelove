@@ -759,7 +759,7 @@ function perform_target_action(target_list)
   local result = false
   if (actionResult ~= nil) then
     if actionResult.baseType == "spell" then --spells can take multiple targets, so pass it to the spell to decide
-      result = actionResult:use(target_list,player,actionIgnoreCooldown,actionIgnoreMP)
+      result = actionResult:use(target_list,player,actionIgnoreCooldown,actionignoreCost)
     else
       result = actionResult:use(target_list[1],player,actionItem) --TODO: make ranged attacks accept multiple targets?
     end
@@ -784,7 +784,7 @@ function cancel_targeting()
   actionResult = nil
   actionItem = nil
   actionIgnoreCooldown = nil
-  actionIgnoreMP = nil
+  actionignoreCost = nil
   game.targets = {}
   action="moving"
   output:setCursor(0,0)

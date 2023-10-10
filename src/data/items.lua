@@ -261,7 +261,7 @@ function scroll:target(target,user)
   actionResult=self
   actionItem=self
   actionIgnoreCooldown = true
-  actionIgnoreMP = true
+  actionignoreCost = true
   game.targets = {}
 end
 function scroll:use(target,user)
@@ -287,7 +287,7 @@ function scroll:use(target,user)
     actionResult=self
     actionItem=self
     actionIgnoreCooldown = true
-    actionIgnoreMP = true
+    actionignoreCost = true
     game.targets = {}
   end
 end

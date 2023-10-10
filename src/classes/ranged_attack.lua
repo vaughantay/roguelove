@@ -37,7 +37,7 @@ function RangedAttack:use(target, attacker, item)
     if attacker == player then output:out("You can't use a ranged attack on yourself. You're too close.") end
     return false
   end
-  if not attacker:callbacks('use_ranged_ability',target,self) then return false end
+  if not attacker:callbacks('use_ranged_ability',target,self,item) then return false end
   if (item and (item.charges or (item.usesAmmo and not item.max_charges))) or (not item and attacker.ranged_charges) then --if it's not an infinite attack
     if item and item.charges and item.charges > 0 then
       item.charges = item.charges - 1
@@ -131,7 +131,7 @@ function RangedAttack:use(target, attacker, item)
   for id,data in pairs(attacker.active_spells) do
     if data.spell.deactivate_on_ranged_attack or data.spell.deactivate_on_all_actions then
       local t = data.target
-      local mp = data.ignoreMP
+      local mp = data.ignoreCost
       local cd = data.ignoreCooldowns
       data.spell:finish(t, attacker, cd, mp)
     end

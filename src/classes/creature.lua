@@ -621,7 +621,7 @@ function Creature:damage(amt,attacker,damage_type,armor_piercing,noSound,item)
     for id,data in pairs(self.active_spells) do
       if data.spell.deactivate_on_damage_chance and random(1,100) <= data.spell.deactivate_on_damage_chance then
         local t = data.target
-        local mp = data.ignoreMP
+        local mp = data.ignoreCost
         local cd = data.ignoreCooldowns
         data.spell:finish(t, self, cd, mp)
       end
@@ -1071,7 +1071,7 @@ function Creature:attack(target,forceHit,ignore_callbacks)
     for id,data in pairs(self.active_spells) do
       if data.spell.deactivate_on_attack or data.spell.deactivate_on_all_actions then
         local t = data.target
-        local mp = data.ignoreMP
+        local mp = data.ignoreCost
         local cd = data.ignoreCooldowns
         data.spell:finish(t, self, cd, mp)
       end
@@ -1154,7 +1154,7 @@ function Creature:advance(skip_conditions)
   if self.active_spells then
     for id,data in pairs(self.active_spells) do
       local spell = data.spell
-      spell:advance_active(data.target,self,data.ignoreColldowns,data.ignoreMP)
+      spell:advance_active(data.target,self,data.ignoreColldowns,data.ignoreCost)
     end
   end
   local totalTime = os.clock()-startTime
@@ -1301,7 +1301,7 @@ function Creature:moveTo(x,y, skip_callbacks,noTween)
         for id,data in pairs(self.active_spells) do
           if data.spell.deactivate_on_move or data.spell.deactivate_on_all_actions then
             local t = data.target
-            local mp = data.ignoreMP
+            local mp = data.ignoreCost
             local cd = data.ignoreCooldowns
             data.spell:finish(t, self, cd, mp)
           end
@@ -1462,7 +1462,7 @@ function Creature:die(killer)
     --Deactivate all active spells:
     for id,data in pairs(self.active_spells) do
       local t = data.target
-      local mp = data.ignoreMP
+      local mp = data.ignoreCost
       local cd = data.ignoreCooldowns
       data.spell:finish(t, self, cd, mp)
     end
@@ -1652,15 +1652,15 @@ function Creature:give_item(item)
     item:identify() --If this instance of the item is already identified, run identify() so that ALL instances of this item are now identified
   end
   if (item.stacks == true) then
-     local _,inv_id = self:has_item(item.id,(item.sortBy and item[item.sortBy]),item.enchantments,item.level,true)
-    if inv_id then
-      local max_stack = item.max_stack
-      local space_in_stack = (max_stack and max_stack - self.inventory[inv_id].amount or nil)
+    local has_item,inv_id = self:has_item(item.id,(item.sortBy and item[item.sortBy]),item.enchantments,item.level)
+    if inv_id and (not has_item.max_stack or has_item.amount < has_item.max_stack) then
+      local max_stack = has_item.max_stack
+      local space_in_stack = (max_stack and max_stack - has_item.amount or nil)
       if not max_stack or space_in_stack >= item.amount then
-        self.inventory[inv_id].amount = self.inventory[inv_id].amount + item.amount
-        item = self.inventory[inv_id]
+        has_item.amount = has_item.amount + item.amount
+        item = has_item
       else --if picking up would cause too big of a stack
-        self.inventory[inv_id].amount = max_stack
+        has_item.amount = max_stack
         local new_stack_amt = item.amount - space_in_stack
         item.amount = new_stack_amt
         return self:give_item(item) --run this again, so it'll look at the next stack
@@ -1754,14 +1754,15 @@ end
 --@param sortBy Text. What the "sortBy" value you're checking is (optional)
 --@param enchantments Table. The table of echantments to match (optional)
 --@param level Number. The level of the item (optional)
---@param ignore_full_stack Boolean. If true, don't send an item if it's already fully stacked (optional)
 --@return either Boolean or Item. False, or the specific item they have in their inventory
 --@return either nil or Number. The index of the item in the inventory
 --@return either nil or Number. The amount of the item the creature has
-function Creature:has_item(itemID,sortBy,enchantments,level,ignore_full_stack)
+function Creature:has_item(itemID,sortBy,enchantments,level)
   enchantments = enchantments or {}
+  local item,index,amount = false,nil,0
+  local largestAmt = 0
 	for id, it in ipairs(self.inventory) do
-		if (itemID == it.id) and (not level or it.level == level) and (not it.sortBy or sortBy == it[it.sortBy]) and (not it.max_stack or it.amount < it.max_stack) then
+		if (itemID == it.id) and (not level or it.level == level) and (not it.sortBy or sortBy == it[it.sortBy]) then
       local matchEnch = true
       --Compare enchantments:
       if (enchantments and count(enchantments) or 0) == (it.enchantments and count(it.enchantments) or 0) then
@@ -1776,11 +1777,17 @@ function Creature:has_item(itemID,sortBy,enchantments,level,ignore_full_stack)
       end
       
       if matchEnch == true then
-        return it,id,it.amount
+        amount = amount + it.amount
+        if not item or it.amount > largestAmt and (not it.max_stack or it.amount < it.max_stack) then --we want to select the largest stack of items that's not a maxed-out stack of items
+          if not it.max_stack or it.amount < it.max_stack then --don't set largest amount to a full stack
+            largestAmt = it.amount
+          end
+          item,index = it,id
+        end
       end
 		end
 	end --end inventory for
-	return false,nil,0
+	return item,index,amount
 end
 
 ---Check if a creature has a specific item
@@ -3680,7 +3687,7 @@ function Creature:get_ranged_attacks()
   end
   for _, equip in pairs(self.equipment_list) do
     if equip.ranged_attack then
-      local charges = equip.charges
+      local charges = equip.charges or 0
       if equip.usesAmmo and (not equip.max_charges or equip.max_charges == 0) then --if it's a use-ammo-from-inventory item, then show the total amount of ammo in inventory
         for _,ammo in ipairs(equip:get_possible_ammo(self)) do
           charges = charges+ammo.amount

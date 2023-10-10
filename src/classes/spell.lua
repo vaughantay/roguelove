@@ -47,12 +47,93 @@ function Spell:get_description(no_reqtext)
     return self.description .. (no_reqtext and "" or reqtext)
 end
 
+---Returns all the stats of the spell
+--@return String. The stats of the spell
+function Spell:get_info()
+  local statText = ""
+  if self.charges then
+    statText = statText .. "Charges: " .. self.charges .. (self.max_charges and "/" .. self.max_charges or "") .. "\n"
+  end
+  if self.cost then
+    statText = statText .. "MP Cost: " .. self.mp_cost .. "\n"
+  end
+  if self.mp_cost_per_turn then
+    statText = statText .. "MP Cost per Turn: " .. self.mp_cost_per_turn .. "\n"
+  end
+  if self.stat_cost then
+    for stat,cost in pairs(self.stat_cost) do
+      local name = (self.possessor and self.possessor.extra_stats[stat].name or ucfirst(stat))
+      statText = statText .. name .. " Cost: " .. cost .. "\n"
+    end
+  end
+  if self.item_cost then
+    for _,item_details in pairs(self.item_cost) do
+      local amount = (item_details.amount or 1)
+      local has_amt
+      if self.possessor then 
+        _,_,has_amt = self.possessor:has_item(item_details.item,item_details.sortBy)
+      end
+      local name = ucfirst((item_details.displayName or possibleItems[item_details.item].name))
+      statText = statText .. name .. " Cost: " .. amount .. (type(has_amt) == "number" and " (You have " .. has_amt .. ")" or "") .. "\n"
+    end
+  end
+  if self.max_active_turns then
+    statText = statText .. "Max Active Turns: " .. self.max_active_turns .. "\n"
+  end
+  if self.cooldown then
+    statText = statText .. "Cooldown: " .. self.cooldown .. " Turns" .. "\n"
+  end
+  if self.min_range then
+    statText = statText .. "Min Range: " .. self.range .. "\n"
+  end
+  if self.range then
+    statText = statText .. "Max Range: " .. self.range .. "\n"
+  end
+  if self.deactivate_on_damage_chance then
+    statText = statText .. "Chance of Deactivation when Damaged: " .. self.deactivate_on_damage_chance .. "%" .. "\n"
+  end
+  if self.stats then
+    local tempstats = {}
+    local stats = {}
+    local unsorted = {}
+    local lastorder = 0
+    for stat,info in pairs(self.stats) do
+      info.id = stat
+      if not info.name then info.name = ucfirst(info.id) end
+      local display_order = info.display_order
+      if display_order then
+        lastorder = math.max(lastorder,display_order)
+        table.insert(tempstats,display_order,info)
+      else
+        table.insert(unsorted,info)
+      end
+    end
+    sort_table(unsorted,'name')
+    for i,info in ipairs(unsorted) do
+      table.insert(tempstats,info)
+      lastorder = math.max(lastorder,#tempstats)
+    end
+    for i=1,lastorder,1 do
+      if tempstats[i] then
+        stats[#stats+1] = tempstats[i]
+      end
+    end
+    for i,stat in pairs(stats) do
+      local value = self:get_stat(stat.id)
+      if value ~= false and stat.hide ~= true and (value ~= 0 or stat.hide_when_zero ~= true) then
+        statText = statText .. stat.name .. (type(value) ~= "boolean" and ": " .. value .. (stat.is_percentage and "%" or "") or "") .. (stat.description and " (" .. stat.description .. ")" or "") .. "\n"
+      end
+    end
+  end
+  return statText
+end
+
 ---Start targeting a spell (unless it's a self-only spell, in which case it just goes ahead and casts it).
 --@param target Entity. The target of the spell.
 --@param caster Creature. The caster of the spell.
 --@param ignoreCooldowns Boolean. If set to true, this will ignore whether or not the spell is on a cooldown.
 --@return Boolean. Whether the spell was successfully able to be cast/targeted or not.
-function Spell:target(target,caster, ignoreCooldowns, ignoreMP)
+function Spell:target(target,caster, ignoreCooldowns, ignoreCost)
   if self.active then --If the spell is already active, don't cast it
     if self.no_manual_deactivate then
       output:out("That ability can't be manually deactivated.")
@@ -60,13 +141,13 @@ function Spell:target(target,caster, ignoreCooldowns, ignoreMP)
     end
     local data = caster.active_spells[self.id]
     local t = data.target
-    local mp = data.ignoreMP
+    local mp = data.ignoreCost
     local cd = data.ignoreCooldowns
     return self:finish(t, caster, cd, mp)
   end
   
   --First, check whether we can use the spell:
-  local canUse, result = self:can_use(target,caster,ignoreCooldowns,ignoreMP)
+  local canUse, result = self:can_use(target,caster,ignoreCooldowns,ignoreCost)
   if canUse == false then
     if caster == player and result then
       output:out(result)
@@ -93,9 +174,9 @@ end
 --@param target Entity. The target of the spell.
 --@param caster Creature. The caster of the spell.
 --@param ignoreCooldowns Boolean. If set to true, this will ignore whether or not the spell is on a cooldown.
---@param ignoreMP Boolean. If set to true, this will make the spell not use MP when cast
+--@param ignoreCost Boolean. If set to true, this will make the spell not use MP when cast
 --@return Boolean. Whether the spell was successfully able to be cast or not.
-function Spell:use(target, caster, ignoreCooldowns, ignoreMP)
+function Spell:use(target, caster, ignoreCooldowns, ignoreCost)
   if self.active then --If the spell is already active, don't cast it
     if self.no_manual_deactivate then
       output:out("That ability can't be manually deactivated.")
@@ -103,12 +184,12 @@ function Spell:use(target, caster, ignoreCooldowns, ignoreMP)
     end
     local data = caster.active_spells[self.id]
     local t = data.target
-    local mp = data.ignoreMP
+    local mp = data.ignoreCost
     local cd = data.ignoreCooldowns
     return self:finish(t, caster, cd, mp)
   end
   --First, check all requirements:
-  local canUse, result = self:can_use(target,caster,ignoreCooldowns,ignoreMP)
+  local canUse, result = self:can_use(target,caster,ignoreCooldowns,ignoreCost)
   if canUse == false then
     if caster == player and result then
       output:out(result)
@@ -150,7 +231,7 @@ function Spell:use(target, caster, ignoreCooldowns, ignoreMP)
       for id,data in pairs(caster.active_spells) do
         if data.spell.deactivate_on_cast or data.spell.deactivate_on_all_actions then
           local t = data.target
-          local mp = data.ignoreMP
+          local mp = data.ignoreCost
           local cd = data.ignoreCooldowns
           data.spell:finish(t, caster, cd, mp)
         end
@@ -162,17 +243,34 @@ function Spell:use(target, caster, ignoreCooldowns, ignoreMP)
       if ((self.cooldown and self.cooldown > 0) or (caster ~= player and self.AIcooldown and self.AIcooldown > 0)) and not ignoreCooldowns and not self.toggled then --Don't add cooldown to a toggled spell, add it when the spell is finished
         caster.cooldowns[self.name] = (caster ~= player and self.AIcooldown or self.cooldown)
       end
-      --Decrease MP
-      if not ignoreMP and caster.mp and self.cost then
-        caster.mp = caster.mp - self.cost
-      end
-      --Decrease charges
-      if not ignoreMP and self.charges then
-        self.charges = self.charges - 1
+      --Account for the cost of the spell
+      if not ignoreCost then 
+        if caster.mp and self.mp_cost then
+          caster.mp = caster.mp - self.mp_cost
+        end
+        if self.charges then
+          self.charges = self.charges - 1
+        end
+        if self.stat_cost then
+          for stat,cost in pairs(self.stat_cost) do
+            if caster.extra_stats[stat] then
+              caster.extra_stats[stat].value = caster.extra_stats[stat].value - cost
+            else
+              caster[stat] = caster[stat] - cost
+            end
+          end
+        end
+        if self.item_cost then
+          for _,item_details in pairs(self.item_cost) do
+            local amount = (item_details.amount or 1)
+            local item = caster:has_item(item_details.item,item_details.sortBy)
+            caster:delete_item(item,amount)
+          end
+        end
       end
       --If it's a toggled spell, save necessary info to the caster
       if self.toggled then
-        caster.active_spells[self.id] = {caster=caster,target=target,ignoreMP=ignoreMP,ignoreCooldowns=ignoreCooldowns,turns=0,spell=self}
+        caster.active_spells[self.id] = {caster=caster,target=target,ignoreCost=ignoreCost,ignoreCooldowns=ignoreCooldowns,turns=0,spell=self}
         self.active = true
       end
     end --end false/nil if
@@ -184,23 +282,41 @@ end
 --@param target Entity. The target of the spell.
 --@param caster Creature. The caster of the spell.
 --@param ignoreCooldowns Boolean. If set to true, this will ignore whether or not the spell is on a cooldown.
---@param ignoreMP Boolean. If set to true, this will make the spell not use MP when cast
+--@param ignoreCost Boolean. If set to true, this will make the spell not use MP when cast
 --@return Boolean. Whether the spell can be used right now
-function Spell:can_use(target, caster, ignoreCooldowns, ignoreMP)
+function Spell:can_use(target, caster, ignoreCooldowns, ignoreCost)
   local req, reqtext = self:requires(caster)
   local targ, targtext = self:target_requires(target,player)
   if req == false then
     return false,(reqtext or "You can't use that ability right now.")
 	elseif (not ignoreCooldowns and caster.cooldowns[self.name]) then
 		return false,"You can't use that ability again for another " .. caster.cooldowns[self.name] .. " turns."
-  elseif not ignoreMP and caster.mp and self.cost and self.cost > caster.mp then
+  elseif not ignoreCost and caster.mp and self.mp_cost and self.mp_cost > caster.mp then
 		return false,"You don't have enough magic points to use that ability."
-  elseif not ignoreMP and self.charges and self.charges < 1 then
+  elseif not ignoreCost and self.charges and self.charges < 1 then
 		return false,"You're out of charges for that ability."
   elseif targ == false then
     return false,targtext or "You've selected an invalid target for this ability."
   elseif caster:callbacks('casts',target,self,ignoreCooldowns) == false then --We're hoping the callback itself will provide any necessary feedback
     return false
+  end
+  if self.stat_cost then
+    for stat,cost in pairs(self.stat_cost) do
+      if caster.extra_stats[stat] and caster.extra_stats[stat].value < cost then
+        return false,"You don't have enough " .. caster.extra_stats[stat].name .. " to use that ability."
+      elseif caster[stat] and caster[stat] < cost then
+        return false,"You don't have enough " .. stat .. " to use that ability."
+      end
+    end
+  end
+  if self.item_cost then
+    for _,item_details in pairs(self.item_cost) do
+      local amount = (item_details.amount or 1)
+      local has,_,has_amt = caster:has_item(item_details.item,item_details.sortBy)
+      if not has or has_amt < amount then
+        return false,"You don't have enough " .. (item_details.displayName or (amount > 1 and possibleItems[item_details.item].pluralName or possibleItems[item_details.item].name)) .. " to use that ability."
+      end
+    end
   end
   return true
 end
@@ -209,17 +325,17 @@ end
 --@param target Entity. The target of the spell.
 --@param caster Creature. The caster of the spell.
 --@param ignoreCooldowns Boolean. If set to true, this will ignore whether or not the spell is on a cooldown.
---@param ignoreMP Boolean. If set to true, this will make the spell not use MP when cast
+--@param ignoreCost Boolean. If set to true, this will make the spell not use MP when cast
 --@return Boolean. False if the spell ends, true otherwise
-function Spell:advance_active(target,caster, ignoreCooldowns, ignoreMP)
+function Spell:advance_active(target,caster, ignoreCooldowns, ignoreCost)
   local data = caster.active_spells[self.id]
   target = target or data.target
   ignoreCooldowns = ignoreCooldowns or data.ignoreCooldowns
-  ignoreMP = ignoreMP or data.ignoreMP
+  ignoreCost = ignoreCost or data.ignoreCost
   --First check to see if we have enough MP:
-  if not ignoreMP and self.cost_per_turn then
-    if caster.mp < self.cost_per_turn then
-      self:finish(target, caster, ignoreCooldowns, ignoreMP)
+  if not ignoreCost and self.mp_cost_per_turn then
+    if caster.mp < self.mp_cost_per_turn then
+      self:finish(target, caster, ignoreCooldowns, ignoreCost)
       return false
     end
   end
@@ -236,12 +352,12 @@ function Spell:advance_active(target,caster, ignoreCooldowns, ignoreMP)
   end
   --The below should only run if the cast was successful:
   --Decrease MP
-  if self.cost_per_turn then caster.mp = caster.mp - self.cost_per_turn end
+  if self.mp_cost_per_turn then caster.mp = caster.mp - self.mp_cost_per_turn end
   --Increment turn count
     data.turns = (data.turns or 0) + 1
   --if turn count is too high, turn it off
   if self.max_active_turns and data.turns >= self.max_active_turns then
-    self:finish(target, caster, ignoreCooldowns, ignoreMP)
+    self:finish(target, caster, ignoreCooldowns, ignoreCost)
     return false
   end
   return true
@@ -251,12 +367,12 @@ end
 --@param target Entity. The target of the spell.
 --@param caster Creature. The caster of the spell.
 --@param ignoreCooldowns Boolean. If set to true, this will ignore whether or not the spell is on a cooldown.
---@param ignoreMP Boolean. If set to true, this will make the spell not use MP when cast
-function Spell:finish(target,caster, ignoreCooldowns, ignoreMP)
+--@param ignoreCost Boolean. If set to true, this will make the spell not use MP when cast
+function Spell:finish(target,caster, ignoreCooldowns, ignoreCost)
   local data = caster.active_spells[self.id]
   target = target or data.target
   ignoreCooldowns = ignoreCooldowns or data.ignoreCooldowns
-  ignoreMP = ignoreMP or data.ignoreMP
+  ignoreCost = ignoreCost or data.ignoreCost
   if possibleSpells[self.id].finish then
     local status,r = pcall(possibleSpells[self.id].finish,self,target,caster)
     if not status then
@@ -605,7 +721,17 @@ function Spell:apply_upgrade(upgradeID,force)
     local stats = self.possible_upgrades[upgradeID][level]
     for stat,value in pairs(stats) do
       if self[stat] then
-        self[stat] = (type(value) == "number" and self[stat] + value or value)
+        if stat == "stat_cost" then
+          for scost, val in pairs(value) do
+            self.stat_cost[scost] = (self.stat_cost[scost] or 0) + val
+          end
+        elseif stat == "item_cost" then
+          for _,item_details in pairs(value) do
+            --TODO: rework all item_costs?
+          end
+        else
+          self[stat] = (type(value) == "number" and self[stat] + value or value)
+        end
       elseif self.stats and self.stats[stat] then
         self.stats[stat].value = (type(value) == "number" and self.stats[stat].value + value or value)
         local bonusName = self.stats[stat].apply_to_bonus

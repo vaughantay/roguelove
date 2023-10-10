@@ -346,64 +346,8 @@ function spellscreen:draw()
     end
     
     --Print stats
-    local statText = ""
-    if spell.charges then
-      statText = statText .. "Charges: " .. spell.charges .. (spell.max_charges and "/" .. spell.max_charges or "") .. "\n"
-    end
-    if spell.cost then
-      statText = statText .. "MP Cost: " .. spell.cost .. "\n"
-    end
-    if spell.cost_per_turn then
-      statText = statText .. "MP Cost per Turn: " .. spell.cost_per_turn .. "\n"
-    end
-    if spell.max_active_turns then
-      statText = statText .. "Max Active Turns: " .. spell.max_active_turns .. "\n"
-    end
-    if spell.cooldown then
-      statText = statText .. "Cooldown: " .. spell.cooldown .. " Turns" .. "\n"
-    end
-    if spell.min_range then
-      statText = statText .. "Min Range: " .. spell.range .. "\n"
-    end
-    if spell.range then
-      statText = statText .. "Max Range: " .. spell.range .. "\n"
-    end
-    if spell.deactivate_on_damage_chance then
-      statText = statText .. "Chance of Deactivation when Damaged: " .. spell.deactivate_on_damage_chance .. "%" .. "\n"
-    end
-    if spell.stats then
-      local tempstats = {}
-      local stats = {}
-      local unsorted = {}
-      local lastorder = 0
-      for stat,info in pairs(spell.stats) do
-        info.id = stat
-        if not info.name then info.name = ucfirst(info.id) end
-        local display_order = info.display_order
-        if display_order then
-          lastorder = math.max(lastorder,display_order)
-          table.insert(tempstats,display_order,info)
-        else
-          table.insert(unsorted,info)
-        end
-      end
-      sort_table(unsorted,'name')
-      for i,info in ipairs(unsorted) do
-        table.insert(tempstats,info)
-        lastorder = math.max(lastorder,#tempstats)
-      end
-      for i=1,lastorder,1 do
-        if tempstats[i] then
-          stats[#stats+1] = tempstats[i]
-        end
-      end
-      for i,stat in pairs(stats) do
-        local value = spell:get_stat(stat.id)
-        if value ~= false and stat.hide ~= true and (value ~= 0 or stat.hide_when_zero ~= true) then
-          statText = statText .. stat.name .. (type(value) ~= "boolean" and ": " .. value .. (stat.is_percentage and "%" or "") or "") .. (stat.description and " (" .. stat.description .. ")" or "") .. "\n"
-        end
-      end
-    end
+    local statText = spell:get_info()
+    
     love.graphics.printf(statText,printX,printY,window2w,"left")
     local _, slines = fonts.textFont:getWrap(statText,window2w)
     local sHeight = (#slines+1)*fontSize
@@ -431,7 +375,7 @@ function spellscreen:draw()
           love.graphics.printf(spell.free_upgrades .. " Free Upgrade" .. (spell.free_upgrades > 1 and "s available" or " available"),printX,printY,window2w,"left")
         end
         printY=printY+fontSize
-        love.graphics.printf(points_available .. " " .. upgrade_stat_name ..(points_available > 1 and "s available" or " available"),printX,printY,window2w,"left")
+        love.graphics.printf(points_available .. " " .. upgrade_stat_name .. (points_available > 1 and "s available" or " available"),printX,printY,window2w,"left")
         if spell.spellPoints > 0 then
           printY=printY+fontSize
           love.graphics.printf(spell.spellPoints .. " " .. upgrade_stat_name .. (spell.spellPoints > 1 and "s" or "") .. " available specifically for this ability",printX,printY,window2w,"left")

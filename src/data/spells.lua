@@ -961,6 +961,65 @@ deadlypremonition = {
       end
     end
   },
+  
+--Mystic archer abilities:
+firearrows = {
+	name = "Fire Arrows",
+	description = "Applies fire to your ranged weapon attacks.",
+	target_type = "self",
+	flags = {aggressive=true},
+  tags={'fire','buff','magic'},
+  toggled=true,
+  freeSlot=true,
+  mysticarrow=true,
+  cast = function(self,target,caster)
+    if caster == player then
+      output:out("You feel a slight warmth in your hands.")
+    end
+    for _, spell in pairs(caster:get_spells()) do
+      if spell ~= self and spell.active and spell.mysticarrow then
+        spell:finish(target,caster)
+      end
+    end
+	end,
+  use_ranged_ability=function(self,attacker,target,ranged_attack,item)
+    if self.active == true then
+      if item:apply_enchantment('fireweapon',1) then
+        attacker.mp = attacker.mp - 1
+      end
+    end
+  end
+},
+
+icearrows = {
+	name = "Ice Arrows",
+	description = "Applies ice to your ranged weapon attacks.",
+	target_type = "self",
+	flags = {aggressive=true},
+  tags={'ice','buff','magic'},
+  toggled=true,
+  freeSlot=true,
+  mysticarrow=true,
+  cast = function(self,target,caster)
+    if caster == player then
+      output:out("You feel a slight chill in your hands.")
+    end
+    for _, spell in pairs(caster:get_spells()) do
+      if spell ~= self and spell.active and spell.mysticarrow then
+        spell:finish(target,caster)
+      end
+    end
+	end,
+  use_ranged_ability=function(self,attacker,target,ranged_attack,item)
+    if self.active == true then
+      if item:apply_enchantment('iceweapon',1) then
+        attacker.mp = attacker.mp - 1
+      end
+    end
+  end
+},
+  
+--Vampire abilities:
 
 vampirism = {
 	name = "Vampirism",
@@ -1032,6 +1091,26 @@ batform = {
     end
   end
 },
+
+outforblood = {
+    name = "Out for Blood",
+    target_type = "self",
+    description = "Increases the damage you deal in combat and the chance of a critical hit.",
+    sound="bleeding",
+    freeSlot=true,
+    forgettable=false,
+    stat_cost={blood=10},
+    possible_upgrades = {
+      cost={{stat_cost={blood=-1}}},
+    },
+    cast = function(self,target,caster)
+      caster:give_condition('outforblood',25)
+      if player:can_see_tile(caster.x,caster.y) then
+        output:out(caster:get_name() .. " gives " .. caster:get_pronoun('o') .. "self bloodrage.")
+        output:sound('haste')
+      end
+    end
+  },
 
 slimesplit = {
 	name = "Mitosis",

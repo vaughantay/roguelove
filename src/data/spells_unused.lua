@@ -1409,7 +1409,7 @@ circleofprotection = Spell({
     cooldown = 20,
     sound="writing",
     cast = function(self,target,caster)
-      if caster.magic < self.cost then
+      if caster.magic < self.mp_cost then
         if caster == player then output:out("You don't have enough piety to create a circle of protection.") end
         return false
       end
@@ -1425,7 +1425,7 @@ circleofprotection = Spell({
       end
     end,
     requires = function(self,caster)
-      if caster.magic < self.cost then
+      if caster.magic < self.mp_cost then
         return false,"You don't have enough piety to create a circle of protection."
       end
     end
@@ -2072,26 +2072,6 @@ bloodbond = Spell({
         target:give_condition('bloodbond',-1)
         caster.bloodbond = target
         target.bloodbond = caster
-      else
-        if caster == player then output:out("You're not healthy enough to cast that spell. It would kill you!") end
-        return false
-      end
-    end
-  }),
-
-outforblood = Spell({
-    name = "Out for Blood",
-    target_type = "self",
-    description = "Increases the damage you deal in combat and the chance of a critical hit.\nCost: 10 HP",
-    sound="bleeding",
-    cast = function(self,target,caster)
-      if caster.hp > 10 then
-        caster:damage(10,caster,"bloodmagic")
-        caster:give_condition('outforblood',25)
-        if player:can_see_tile(caster.x,caster.y) then
-          output:out(caster:get_name() .. " gives " .. caster:get_pronoun('o') .. "self bloodrage.")
-          output:sound('haste')
-        end
       else
         if caster == player then output:out("You're not healthy enough to cast that spell. It would kill you!") end
         return false

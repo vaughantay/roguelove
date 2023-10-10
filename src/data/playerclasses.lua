@@ -130,6 +130,7 @@ playerClasses = {
     description="An archer with elemental powers.",
     skills={ranged=10}, --The skills that this character will start with (in addition to default skills)
     items={{item="arrow",amount=100}}, --These items will be granted on game start
+    spells={'firearrows','icearrows'},
     equipment={{item="bow"}}
   },
   gunslinger = {

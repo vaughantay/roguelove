@@ -637,7 +637,7 @@ local vampireHero = {
   forbidden_tags={'holy','healing','food'},
   spells={"vampirism"},
   possible_inventory={{item="blood",chance=100,amount=5}},
-  spell_purchases={{spell="batform",level=1,point_cost=3,upgrade_stat="upgrade_points_vampirism"}, {spell="auraoffear",level=5,point_cost=1,upgrade_stat="upgrade_points_vampirism"}},
+  spell_purchases={{spell="batform",level=1,point_cost=3,upgrade_stat="upgrade_points_vampirism"}, {spell="auraoffear",level=5,point_cost=1,upgrade_stat="upgrade_points_vampirism"}, {spell="outforblood",level=3,point_cost=1,upgrade_stat="upgrade_points_vampirism"}},
   hit_conditions={{condition="bleeding",crit_chance=100,turns=5}},
   favor={lightchurch=-1000}, --List of favor scores the character starts with
   nameType = "human",

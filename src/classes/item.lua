@@ -256,7 +256,7 @@ function Item:use(target,user,ignoreCooldowns)
     for id,data in pairs(user.active_spells) do
     if data.spell.deactivate_on_item or data.spell.deactivate_on_all_actions then
       local t = data.target
-      local mp = data.ignoreMP
+      local mp = data.ignoreCost
       local cd = data.ignoreCooldowns
       data.spell:finish(t, user, cd, mp)
     end
