@@ -4,7 +4,6 @@ function characterscreen:enter()
   self.yModPerc = 100
   tween(0.2,self,{yModPerc=0})
   output:sound('stoneslideshort',2)
-  self.statButtons = {}
   self.skillButtons = {}
   self.learnButtons = {}
   self.cursorY = 0
@@ -212,7 +211,11 @@ function characterscreen:draw()
               local req, reqtext = player:can_upgrade_skill(skillID)
               love.graphics.printf(skillText .. (reqtext and " (" .. reqtext .. ")" or ""),(req and printXbuttoned or printX),printY,width-padding,"left")
               if req then
-                self.skillButtons[buttonY] = output:tinybutton(printX,printY,true,(self.cursorY==buttonY or nil),"+",true)
+                local buttonMouse = false
+                if self.skillButtons[buttonY] and mouseX > self.skillButtons[buttonY].minX and mouseX < self.skillButtons[buttonY].maxX and mouseY > self.skillButtons[buttonY].minY-self.scrollY and mouseY < self.skillButtons[buttonY].maxY-self.scrollY then
+                  buttonMouse = true
+                end
+                self.skillButtons[buttonY] = output:tinybutton(printX,printY,true,((self.cursorY==buttonY or buttonMouse) and "hover" or false),"+",true)
                 self.skillButtons[buttonY].skill = skillID
                 buttonY = buttonY+1
               end
@@ -251,7 +254,11 @@ function characterscreen:draw()
                   end --end item cost if
                 end
                 local skillText = skill.name .. costText .. (skill.description and "\n\t" .. skill.description or "")
-                self.learnButtons[buttonY] = output:tinybutton(printX,printY,true,(self.cursorY==buttonY or nil),"+",true)
+                local buttonMouse = false
+                if self.learnButtons[buttonY] and mouseX > self.learnButtons[buttonY].minX and mouseX < self.learnButtons[buttonY].maxX and mouseY > self.learnButtons[buttonY].minY-self.scrollY and mouseY < self.learnButtons[buttonY].maxY-self.scrollY then
+                  buttonMouse = true
+                end
+                self.learnButtons[buttonY] = output:tinybutton(printX,printY,true,((self.cursorY==buttonY or buttonMouse) and "hover" or false),"+",true)
                 self.learnButtons[buttonY].info = skillInfo
                 buttonY = buttonY+1
                 love.graphics.printf(skillText,printXbuttoned,printY,width-padding,"left")
@@ -404,7 +411,7 @@ function characterscreen:buttonpressed(key)
   key = input:parse_key(key)
   if key == "north" then
     if self.screen == "character" then
-      local whichButton = self.learnButtons[self.cursorY-1] or self.skillButtons[self.cursorY-1] or self.statButtons[self.cursorY-1] or nil
+      local whichButton = self.learnButtons[self.cursorY-1] or self.skillButtons[self.cursorY-1] or nil
       if whichButton and whichButton.minY > self.screenStartY+self.scrollY then
         self.cursorY = self.cursorY-1
       elseif self.scrollY > 0 then
@@ -417,7 +424,7 @@ function characterscreen:buttonpressed(key)
     end
   elseif key == "south" then
     if self.screen == "character" then
-      local whichButton = self.statButtons[self.cursorY+1] or (self.cursorY+1 > #self.statButtons and self.skillButtons[self.cursorY+1] or (self.cursorY+1 > #self.skillButtons and self.learnButtons[self.cursorY+1])) or nil
+      local whichButton = self.skillButtons[self.cursorY+1] or (self.cursorY+1 > #self.skillButtons and self.learnButtons[self.cursorY+1]) or nil
       if whichButton and whichButton.maxY < height+self.scrollY then
         self.cursorY = self.cursorY+1
       else
@@ -438,8 +445,6 @@ function characterscreen:buttonpressed(key)
         self.screen = "missions"
         self.scrollY=0
       end
-    elseif self.statButtons[self.cursorY] then
-      self:use_statButton(self.statButtons[self.cursorY].stat)
     elseif self.skillButtons[self.cursorY] then
       self:use_skillButton(self.skillButtons[self.cursorY].skill)
     elseif self.learnButtons[self.cursorY] then
@@ -460,18 +465,13 @@ function characterscreen:mousepressed(x,y,button)
   if button == 2 or (x > self.closebutton.minX and x < self.closebutton.maxX and y > self.closebutton.minY and y < self.closebutton.maxY) then
     return self:switchBack()
   end
-  for id,button in ipairs(self.statButtons) do
-    if x > button.minX and x < button.maxX and y > button.minY and y < button.maxY then
-      return self:use_statButton(button.stat)
-    end
-  end
   for id,button in pairs(self.skillButtons) do
-    if x > button.minX and x < button.maxX and y > button.minY and y < button.maxY then
+    if x > button.minX and x < button.maxX and y > button.minY-self.scrollY and y < button.maxY-self.scrollY then
       return self:use_skillButton(button.skill)
     end
   end
   for id,button in pairs(self.learnButtons) do
-    if x > button.minX and x < button.maxX and y > button.minY and y < button.maxY then
+    if x > button.minX and x < button.maxX and y > button.minY-self.scrollY and y < button.maxY-self.scrollY then
       self:use_learnButton(button.info)
     end
   end
@@ -487,23 +487,6 @@ function characterscreen:mousepressed(x,y,button)
     self.screen = "missions"
     self.cursorX,self.cursorY=3,0
     self.scrollY=0
-  end
-end
-
-function characterscreen:use_statButton(stat)
-  player.upgrade_points_attribute = player.upgrade_points_attribute - 1
-  if player[stat] then
-    player[stat] = player[stat]+1
-  elseif player.extra_stats[stat] then
-    local estat = player.extra_stats[stat]
-    if estat.max then
-      estat.max = estat.max+(estat.increase_per_point or 1)
-    else
-      estat.value = estat.value+(estat.increase_per_point or 1)
-    end
-  end
-  if player.upgrade_points_attribute < 1 then
-    self.statButtons = {}
   end
 end
 

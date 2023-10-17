@@ -7,6 +7,28 @@ possibleSkillTypes['skill']={name="Skills",upgrade_stat="upgrade_points_skill",u
 possibleSkillTypes['vampirism']={name="Vampiric Powers",upgrade_stat="upgrade_points_vampirism",upgrade_stat_name="Blood Point"}
 possibleSkillTypes['perk']={name="Perks",upgrade_stat="upgrade_points_perk",upgrade_stat_name="Perk Point",always_learnable=true}
 
+
+--[[
+local skill = {
+  name = "Name",
+  description = "Desc",
+  skill_type = "attribute", --If blank, defaults to "skill"
+  max=10, --the maximum possible level attainable in this skill
+  learns_spells={{spell="smite",level=2}}, --Spells that will be automatically granted when reaching a certain level of the skill
+  spell_purchases={{spell='teleportother',level=4}}, --Spells that will be available to purchase when reaching a certain level of the skill
+  spell_choices={},
+  stats_per_level={spellPoints=1,max_mp=5},
+  stats_per_x_levels={[5]={spell_slots=1}},
+  stats_at_level={[1]={spell_slots=1,max_mp=10}},
+  bonuses={max_hp=1000}, --bonuses applied from having this skill
+  bonuses_per_level={strength=10},
+  bonuses_at_level={[2]={agility=100}},
+  bonuses_per_x_levels={[3]={toughness=10}},
+  upgrade_stat=statID --Defaults to the upgrade_stat of the skill's type, or to upgrade_points_[skill_type] if the skill's type's upgrade_stat is undefined
+}
+possibleSkills['stat'] = stat
+]]
+
 --Attributes:
 local strength = {
   name = "Strength",
@@ -40,26 +62,20 @@ function toughness:level_up(possessor)
 end
 possibleSkills['toughness'] = toughness
 
---[[
-local skill = {
-  name = "Name",
-  description = "Desc",
-  skill_type = "attribute", --If blank, defaults to "skill"
-  max=10, --the maximum possible level attainable in this skill
-  learns_spells={{spell="smite",level=2}}, --Spells that will be automatically granted when reaching a certain level of the skill
-  spell_purchases={{spell='teleportother',level=4}}, --Spells that will be available to purchase when reaching a certain level of the skill
-  spell_choices={},
-  stats_per_level={spellPoints=1,max_mp=5},
-  stats_per_x_levels={[5]={spell_slots=1}},
-  stats_at_level={[1]={spell_slots=1,max_mp=10}},
-  bonuses={max_hp=1000}, --bonuses applied from having this skill
-  bonuses_per_level={strength=10},
-  bonuses_at_level={[2]={agility=100}},
-  bonuses_per_x_levels={[3]={toughness=10}},
-  upgrade_stat=statID --Defaults to the upgrade_stat of the skill's type, or to upgrade_points_[skill_type] if the skill's type's upgrade_stat is undefined
+local fury = {
+  name = "Fury",
+  description = "The amount of fury you can feel. Every point increases the amount you can hold by 10.",
+  skill_type="attribute",
+  increase_per_point=10
 }
-possibleSkills['stat'] = stat
-]]
+function fury:update(posssesor,val)
+  if posssesor.extra_stats.fury then
+    posssesor.extra_stats.fury.max = (posssesor.extra_stats.fury.max or 0) + val
+  else
+    posssesor.extra_stats.fury = {name="Fury",value=0,min=0,max=val,increase_per_level=10,bar_color={r=255,g=255,b=0,a=255}}
+  end
+end
+possibleSkills['fury'] = fury
 
 --Skills:
 local melee = {

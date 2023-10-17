@@ -950,8 +950,7 @@ local revolver = {
   usesAmmo="bullet",
   color={r=98,g=73,b=22,a=255},
   tags={'ranged'},
-  value=10,
-  reload_limit_per_turn=1
+  value=10
 }
 possibleItems['revolver'] = revolver
 
@@ -1072,25 +1071,6 @@ function bullet:new()
   self.amount = tweak(10)
 end
 possibleItems['bullet'] = bullet
-
-local speedloader = {
-  name = "speedloader",
-  pluralName = "speedloaders",
-  description = "A speedloader, used to quickly load all chambers of a revolver at once.",
-  symbol = ")",
-  itemType="ammo",
-  equippable=true,
-  equipSlot="ammo",
-  ammoType = "bullet",
-  projectile_name = "bullet",
-  ammo_name = "bullet",
-  tags={"sharp"},
-  stacks=true,
-  color={r=33,g=33,b=33,a=33},
-  value=1,
-  charges_granted=6
-}
-possibleItems['speedloader'] = speedloader
 
 local firebullet = {
   name = "fire bullet",

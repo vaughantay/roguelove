@@ -1156,6 +1156,11 @@ strengthened = Condition({
     end
   }),
 
+guaranteedcrit = Condition({
+    name = "Guaranteed Critical Hit",
+    bonuses={critical_chance=1000,hit_chance=1000}
+  }),
+
 instorm = Condition({
     name = "Caught in the Storm",
     bonuses={speed=-25,hit_chance=-5,dodge_chance=-5,perception=-100,stealth=15,notice_chance=-10},

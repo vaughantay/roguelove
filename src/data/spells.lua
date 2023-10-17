@@ -1038,7 +1038,7 @@ vampirism = {
   },
 	damages = function(self,possessor,target,damage)
     if (random(1,2) == 1 and not target:is_type('bloodless')) or target:has_condition('bleeding') then
-      local hp = tweak(damage*(self:get_stat('health_absorbed')/100))
+      local hp = tweak(damage*math.ceil(self:get_stat('health_absorbed')/100))
       if player:can_see_tile(possessor.x,possessor.y) and hp > 0 then
         output:out(possessor:get_name() .. " drains some blood from " .. target:get_name() .. ", regaining " .. hp .. " HP!")
         if possessor.extra_stats.blood then
@@ -1202,9 +1202,11 @@ sporedeath = {
 
 passiverage = {
     name = "Anger Management Problems",
-    description = "You're very angry. Your fury builds in battle, eventually exploding into a terrible rage.",
+    description = "You're very angry. As you take damage, your fury builds, eventually exploding into a terrible rage.",
     target_type="passive",
     tags={'physical'},
+    freeSlot=true,
+    forgettable=false,
     damaged = function(self,possessor, attacker,amt,dtype)
       local perc = math.ceil((amt/possessor:get_max_hp())*100)*2
       if possessor.extra_stats.fury then
@@ -1215,6 +1217,39 @@ passiverage = {
       end
     end
   },
+  
+  activerage = {
+    name = "Willful Rage",
+    description = "You can rage at will.",
+    cooldown=25,
+    target_type="self",
+    tags={'physical'},
+    freeSlot=true,
+    forgettable=false,
+    cast = function(self,target,caster)
+      if player:can_sense_creature(caster) then
+        output:out(caster:get_name() .. " enters a rage!")
+      end
+      caster:give_condition('enraged',-1)
+    end
+  },
+  
+  ragefulsmack = {
+    name = "Raging Smackdown",
+    description = "Your anger fills your swings with power! Perform an attack that's guaranteed to critically hit.",
+    cooldown=5,
+    range=1,
+    stat_cost={fury=10},
+    target_type="creature",
+    tags={'physical'},
+    freeSlot=true,
+    forgettable=false,
+    cast = function(self,target,caster)
+      caster:give_condition('guaranteedcrit',1)
+      print(caster:get_critical_chance())
+      caster:attack(target)
+    end
+  },
 
 yawp = {
     name = "Barbaric Yawp",
@@ -1222,8 +1257,11 @@ yawp = {
     target_type="self",
     sound="yawp",
     cooldown=10,
+    stat_cost={fury=10},
     flags={aggressive=true,defensive=true,fleeing=true},
     tags={'physical'},
+    freeSlot=true,
+    forgettable=false,
     cast = function(self,target,caster)
       currMap:add_effect(Effect('soundwavemaker',{r=100,g=100,b=100},5),caster.x,caster.y)
       if player:can_see_tile(caster.x,caster.y) then output:out(caster:get_name() .. " sounds " .. caster:get_pronoun('p') .. " barbaric yawp over the roofs of the world.") end

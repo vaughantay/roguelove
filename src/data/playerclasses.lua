@@ -22,7 +22,7 @@ playerClasses = {
     equipment={{item="dagger",enchantment="blessed",enchantment_turns=5,displayName="Blessed Dagger"}}, --These items will be equipped on game start
     learns_spells={{spell="smite",level=2}}, --These spells will be automatically granted once a certain level is reached
     skill_purchases={{skill='alchemy',point_cost=2}},
-    spell_purchases={{spell="demondamager",level=1,stat_point_cost=5},{spell="summonangel",level=1,point_cost=2}, {spell="smite",level=1,point_cost=2}}, --These spells will show up as options to learn (requiring spending points on them)
+    spell_purchases={{spell="demondamager",level=1,point_cost=5},{spell="summonangel",level=1,point_cost=2}, {spell="smite",level=1,point_cost=2}}, --These spells will show up as options to learn (requiring spending points on them)
     spell_choices={}, --These spells will show up as options when you reach their level, and you can choose one of them
     weaknesses={}, --These will be added to the characters' base weaknesses
     resistances={holy=25}, --These will be added the the characters' base resistances
@@ -47,16 +47,16 @@ playerClasses = {
   barbarian = {
     name="Barbarian",
     description="You too are not a bit tamed, you too are untranslatable.",
-    skills={strength=10,toughness=5,melee=10}, --The skills that this character will start with (in addition to default skills)
+    skills={strength=10,toughness=5,melee=10,fury=10}, --The skills that this character will start with (in addition to default skills)
     equipment={{item="club"},{item="loincloth"}}, --These items will be equipped on game start
-    spells={"yawp","passiverage"}, --These are spells the character will start with
+    spells={"passiverage"}, --These are spells the character will start with
     learns_spells={{spell="auraoffear",level=5}}, --These spells will be automatically granted once a certain level is reached
+    spell_purchases={{spell="activerage"},{spell="yawp"},{spell="ragefulsmack"}},
     favor={village=-1,barbariangod=100}, --List of favor scores the character starts with
     factions={"barbariangod"}, --List of factions the character begins as a member of
     stat_modifiers={max_hp=25,armor=2}, --These values will be added to the characters' base stats
     skills_per_level={strength=2}, --Stat increase per level
     stats_per_x_levels={[3]={armor=1}},
-    extra_stats={fury={name="Fury",value=0,min=0,max=100,increase_per_level=10,bar_color={r=255,g=255,b=0,a=255}}},
     starting_branch="wilderness",
     placed = function(creature,map)
       for x=2,map.width,1 do
@@ -137,7 +137,7 @@ playerClasses = {
     name="Gunslinger",
     description="A rootin' tootin' shootin' menace.",
     skills={ranged=10}, --The skills that this character will start with (in addition to default skills)
-    items={{item="bullet",amount=100},{item="firebullet",amount=10},{item="explosivebullet",amount=10},{item="speedloader",amount=5}}, --These items will be granted on game start
+    items={{item="bullet",amount=100},{item="firebullet",amount=10},{item="explosivebullet",amount=10}}, --These items will be granted on game start
     equipment={{item="revolver"},{item="revolver"}}
   }
 }
