@@ -120,7 +120,6 @@ function Creature:init(creatureType,level,tags,info,noTweak,ignoreNewFunc) --TOD
     for slot,count in pairs(gamesettings.default_equipment_slots) do
       self.equipment[slot] = {slots=count}
     end
-    self.equipment.list = {}
   end
   if data.spells then
     for _,spellID in ipairs(data.spells) do

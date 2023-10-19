@@ -2003,8 +2003,12 @@ function ContextualMenu:init(x,y,printX,printY)
       spellY = spellY+fontPadding
     end
   end
+  if self.creature then
+    self.entries[#self.entries+1] = {name="Examine " .. self.creature:get_name(),y=spellY,action="examine",creature=self.creature}
+    spellY = spellY+fontPadding
+  end
   if self.creature and totalstats.creature_kills and totalstats.creature_kills[self.creature.id] then
-    self.entries[#self.entries+1] = {name="View in Monsterpedia",y=spellY,action="monsterpedia"}
+    self.entries[#self.entries+1] = {name="View " .. ucfirst(possibleMonsters[self.creature.id].name) .. " in Monsterpedia",y=spellY,action="monsterpedia"}
     spellY = spellY+fontPadding
   end
   local items = currMap:get_tile_items(self.target.x,self.target.y)
@@ -2114,7 +2118,11 @@ function ContextualMenu:click(x,y)
         advance_turn()
       end
     elseif useItem.action == "examine" then
-      Gamestate.switch(examine_item,useItem.item)
+      if useItem.item then
+        Gamestate.switch(examine_item,useItem.item)
+      elseif useItem.creature then
+        Gamestate.switch(examine_creature,useItem.creature)
+      end
     elseif useItem.action == "pickup" then
       local items = currMap:get_tile_items(self.target.x,self.target.y)
       if #items == 1 then

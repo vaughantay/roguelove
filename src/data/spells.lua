@@ -1246,7 +1246,6 @@ passiverage = {
     forgettable=false,
     cast = function(self,target,caster)
       caster:give_condition('guaranteedcrit',1)
-      print(caster:get_critical_chance())
       caster:attack(target)
     end
   },
