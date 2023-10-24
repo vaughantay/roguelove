@@ -796,7 +796,8 @@ function Spell:get_potential_targets(caster,previous_targets)
   end
   if self.target_type == "creature" then
     for _,creat in pairs(caster:get_seen_creatures()) do
-      if caster:does_notice(creat) and (self.range == nil or calc_distance(caster.x,caster.y,creat.x,creat.y) <= self.range) then
+      local dist = ((self.range or self.min_range) and calc_distance(caster.x,caster.y,creat.x,creat.y) or 0)
+      if caster:does_notice(creat) and (self.range == nil or calc_distance(caster.x,caster.y,creat.x,creat.y) <= self.range) and (self.min_range == nil or dist >= self.min_range) then
         targets[#targets+1] = {x=creat.x,y=creat.y}
       end --end range if
     end --end creature for

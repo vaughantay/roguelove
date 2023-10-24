@@ -141,7 +141,7 @@ function output:setCursor(x,y,force,allow_current_creature)
   end
   
   --If you're targeting a creature-targeting spell, snap to nearest creature
-  if force ~= true and Gamestate.current() == game and action == "targeting" and actionResult and (actionResult.target_type == "creature" or #output.potentialTargets > 0) then
+  if force ~= true and Gamestate.current() == game and action == "targeting" and actionResult and (actionResult.target_type == "creature" or #output.potentialTargets > 0) and not actionResult.free_aim then
     local nearest = nil
     local nearestDist = nil
     if actionResult.target_type == "creature" then

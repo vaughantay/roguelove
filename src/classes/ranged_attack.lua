@@ -9,8 +9,9 @@ function RangedAttack:init(data)
 		self[key] = data[key]
 	end
   self.baseType = "ranged"
-  if (not data.target_type) then self.target_type = "creature" end
-  if (data.projectile == nil) then self.projectile = true end
+  if not data.target_type then self.target_type = "creature" end
+  if data.projectile == nil then self.projectile = true end
+  if data.free_aim == nil then self.free_aim = true end
 	return self
 end
 
@@ -213,4 +214,18 @@ function RangedAttack:recharge(possessor,item)
     end --end passive or not if
   end --end item or not if
   return true
+end
+
+---Gets potential targets of a ranged attack. Defaults to seen creatures
+--@param attacker Creature. The user of the ranged attack
+--@return Table. A list of potential targets
+function RangedAttack:get_potential_targets(attacker)
+  local targets = {}
+  for _,creat in pairs(attacker:get_seen_creatures()) do
+    local dist = ((self.range or self.min_range) and calc_distance(attacker.x,attacker.y,creat.x,creat.y) or 0)
+    if attacker:does_notice(creat) and (self.range == nil or dist <= self.range) and (self.min_range == nil or dist >= self.min_range) then
+      targets[#targets+1] = {x=creat.x,y=creat.y}
+    end --end range if
+  end --end creature for
+  return targets
 end

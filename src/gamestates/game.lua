@@ -1346,8 +1346,8 @@ function game:update(dt)
     currMap:refresh_lightMap(true)
   end]]
   
-  --Untarget if targeting self or unseen creature
-	if (target == player or (target and player:can_sense_creature(target) == false)) then target = nil end
+  --Untarget if targeting self or unseen or dead creature
+	if target == player or (target and (player:can_sense_creature(target) == false or target.hp < 1)) then target = nil end
   player.target = target
   if self.contextualMenu and not player:can_see_tile(self.contextualMenu.target.x,self.contextualMenu.target.y) then
     self.contextualMenu = nil
@@ -1370,7 +1370,7 @@ function game:update(dt)
         local tileX,tileY = output:coordinates_to_tile(x,y)
         if (currMap[tileX] ~= nil and currMap[tileX][tileY] ~= nil) then
           local retarget = true
-          if action == "targeting" and actionResult ~= nil and (actionResult.get_potential_targets ~= nil or actionResult.target_type == "creature") and #output.potentialTargets > 0 then
+          if action == "targeting" and actionResult ~= nil and (actionResult.get_potential_targets ~= nil or actionResult.target_type == "creature") and #output.potentialTargets > 0 and not actionResult.free_aim then
             retarget = false
             for _,t in ipairs(output.potentialTargets) do
               if tileX == t.x and tileY == t.y then
@@ -1736,6 +1736,7 @@ function game:buttonpressed(key,scancode,isRepeat)
       local attackName = ""
       local min_range,range=nil,nil
       local projectile=nil
+      local free_aim = true
       local i = 1
       for _,attack_instance in ipairs(player:get_ranged_attacks()) do
         local attack = rangedAttacks[attack_instance.attack]
@@ -1750,6 +1751,9 @@ function game:buttonpressed(key,scancode,isRepeat)
           end
           if attack.projectile then
             projectile=true
+          end
+          if attack.free_aim == false then
+            free_aim = false
           end
         end
       end --end ranged attack for
@@ -1774,10 +1778,12 @@ function game:buttonpressed(key,scancode,isRepeat)
       allAttacks.min_range,allAttacks.range = min_range,range
       allAttacks.projectile=projectile
       allAttacks.target_type="creature"
+      allAttacks.free_aim = free_aim
       allAttacks.baseType = "ranged"
+      allAttacks.get_potential_targets = RangedAttack.get_potential_targets
       actionResult=allAttacks
       game.targets = {}
-      if (output.cursorX == 0 or output.cursorY == 0) and target then
+      if target then
         output:setCursor(target.x,target.y,true)
       else
         output:setCursor(player.x,player.y,true)

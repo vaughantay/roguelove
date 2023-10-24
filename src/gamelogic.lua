@@ -722,6 +722,8 @@ function setTarget(x,y)
     if actionResult.target_type == "creature" then
       if creat then
         potential_target = creat
+      elseif actionResult.free_aim then
+        potential_target = {x=x,y=y}
       else
         output:out("You must target a creature with this ability.")
         return false
