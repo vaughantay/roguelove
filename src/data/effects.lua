@@ -2244,6 +2244,10 @@ function featuremaker:update(dt)
       table.remove(self.tiles,tileID)
       return
     end
+    if currMap:tile_has_feature(tile.x,tile.y,self.feature) then
+      table.remove(self.tiles,tileID)
+      return
+    end
     local f = Feature(self.feature)
     f.x,f.y = tile.x,tile.y
     if self.replace then
