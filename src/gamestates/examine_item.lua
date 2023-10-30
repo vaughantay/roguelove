@@ -1,5 +1,4 @@
 examine_item = {}
---TODO: Add scrolling for long descriptions
 
 function examine_item:enter(previous,item,container)
   if previous ~= hotkey and previous ~= splitstack and previous ~= nameitem then
@@ -16,7 +15,7 @@ function examine_item:enter(previous,item,container)
     self.width = round(width/2)
     self.x = round(width/2-self.width/2)
     self.height = self:calculate_height()
-    self.y = round(height/2-self.height/2)
+    self.y = round(height/2-self.height/2-(prefs['noImages'] and 0 or output:get_tile_size())/2)
     self.yModPerc = 100
     tween(0.2,self,{yModPerc=0})
     output:sound('stoneslideshort',2)
@@ -285,14 +284,35 @@ function examine_item:draw()
     end
   end --end if has_item
   printY=buttonY+(count(self.buttons) > 1 and 40 or 0)
+  local startY = printY
   love.graphics.line(self.x+padding,printY,self.x+padding+self.width,printY)
+  --Create a "stencil" that stops 
+  love.graphics.push()
+  local function stencilFunc()
+    love.graphics.rectangle("fill",self.x,startY,self.width,self.height)
+  end
+  love.graphics.stencil(stencilFunc,"replace",1)
+  love.graphics.setStencilTest("greater",0)
+  love.graphics.translate(0,-self.scroll)
+  local scrollPadding = (self.scrollMax == 0 and 0 or output:get_tile_size())
   printY=printY+padding
-  love.graphics.printf(desc,self.x+padding,printY,self.width,"center")
+  love.graphics.printf(desc,self.x+padding,printY,self.width-scrollPadding,"center")
   printY=printY+descH
-  love.graphics.printf(info,self.x+padding,printY,self.width,"center")
+  love.graphics.printf(info,self.x+padding,printY,self.width-scrollPadding,"center")
   printY=printY+infoH
+  love.graphics.setStencilTest()
+  love.graphics.pop()
   if printY > self.height then
-    --TODO: add scrolling
+    if self.cursorY == #self.buttons.values+1 then
+      setColor(50,50,50,255)
+      love.graphics.rectangle("fill",self.x+self.width-padding,startY+round(output:get_tile_size()/2),output:get_tile_size(),self.height-startY)
+      setColor(255,255,255,255)
+    end
+    self.scrollMax = math.ceil((printY-self.height+padding))
+    local scrollAmt = self.scroll/self.scrollMax
+    self.scrollPositions = output:scrollbar(self.x+self.width-padding,startY+round(output:get_tile_size()/2),self.y+self.height+padding,scrollAmt,true)
+  else
+    self.scrollMax = 0
   end
   self.closebutton = output:closebutton(self.x+round(padding/2),self.y+round(padding/2),nil,true)
   love.graphics.pop()
@@ -495,7 +515,7 @@ function examine_item:calculate_height()
   printY=printY+descH
   printY=printY+infoH
   printY=printY+padding
-  return math.min(height,printY)
+  return math.min(height-(prefs['noImages'] and 0 or output:get_tile_size()),printY)
 end
 
 function examine_item:buttonpressed(key)
@@ -531,9 +551,17 @@ function examine_item:buttonpressed(key)
       Gamestate.switch(nameitem,self.item)
     end
 	elseif (key == "north") then
-    self.cursorY = math.max(self.cursorY-1,1)
+    if self.cursorY < #self.buttons.values+1 or self.scroll == 0 then
+      self.cursorY = math.max(self.cursorY-1,1)
+    else
+      self:scrollUp()
+    end
 	elseif (key == "south") then
-    self.cursorY = math.min(self.cursorY+1,#self.buttons.values)
+    if self.cursorY < #self.buttons.values+1 then
+      self.cursorY = math.min(self.cursorY+1,#self.buttons.values+1)
+    else
+      self:scrollDown()
+    end
   elseif key == "west" then
     self.cursorX = self.cursorX - 1
     if self.cursorX < 1 then
@@ -545,13 +573,15 @@ function examine_item:buttonpressed(key)
       end
     end
   elseif key == "east" then
-    self.cursorX = self.cursorX + 1
-    if self.cursorX > #self.buttons.values[self.cursorY] then
-      if self.cursorY < #self.buttons.values then
-      self.cursorY = math.min(self.cursorY+1,#self.buttons.values)
-      self.cursorX = 1
-      else
-        self.cursorX = #self.buttons.values[self.cursorY]
+    if self.cursorY ~= #self.buttons.values+1 then
+      self.cursorX = self.cursorX + 1
+      if self.buttons.values[self.cursorY] and self.cursorX > #self.buttons.values[self.cursorY] then
+        if self.cursorY < #self.buttons.values+1 then
+          self.cursorY = math.min(self.cursorY+1,#self.buttons.values+1)
+          self.cursorX = 1
+        else
+          self.cursorX = #self.buttons.values[self.cursorY]
+        end
       end
     end
   elseif key == "use" and self.has_item then

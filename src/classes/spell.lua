@@ -54,7 +54,7 @@ function Spell:get_info()
   if self.charges then
     statText = statText .. "Charges: " .. self.charges .. (self.max_charges and "/" .. self.max_charges or "") .. "\n"
   end
-  if self.cost then
+  if self.mp_cost then
     statText = statText .. "MP Cost: " .. self.mp_cost .. "\n"
   end
   if self.mp_cost_per_turn then

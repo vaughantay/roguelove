@@ -301,9 +301,10 @@ function spellscreen:draw()
     if not selected then
       setColor(255,255,255,255)
     end
-    
-    self.descStartY=printY
+    self.descStartY=printY+2
+    love.graphics.line(printX,self.descStartY,printX+window2w,self.descStartY)
     printY=printY+fontSize
+    local scrollPad = (self.descScrollMax == 0 and 0 or output:get_tile_size())
     --Stencil and scroll:
     local function stencilFunc()
       love.graphics.rectangle("fill",printX-8,self.descStartY,window2w+8,height-padY-self.descStartY)
@@ -336,8 +337,8 @@ function spellscreen:draw()
           love.graphics.draw((info.enabled and images.uicheckboxchecked or images.uicheckbox),printX,printY)
         end
         local setText = info.name .. (info.description and " (" .. info.description .. ")" or "")
-        love.graphics.printf(setText,printX+boxW,printY,window2w,"left")
-        local _, slines = fonts.textFont:getWrap(setText,window2w)
+        love.graphics.printf(setText,printX+boxW,printY,window2w-scrollPad,"left")
+        local _, slines = fonts.textFont:getWrap(setText,window2w-scrollPad)
         local sHeight = #slines*settingH
         self.settingsButtons[buttonY] = {minX=printX-8,minY=printY-8,maxX=printX+32-8,maxY=printY+settingH-8}
         self.settingsButtons[buttonY].settingID = settingID
@@ -348,8 +349,8 @@ function spellscreen:draw()
     --Print stats
     local statText = spell:get_info()
     
-    love.graphics.printf(statText,printX,printY,window2w,"left")
-    local _, slines = fonts.textFont:getWrap(statText,window2w)
+    love.graphics.printf(statText,printX,printY,window2w-scrollPad,"left")
+    local _, slines = fonts.textFont:getWrap(statText,window2w-scrollPad)
     local sHeight = (#slines+1)*fontSize
     printY = printY+sHeight
     
@@ -357,7 +358,7 @@ function spellscreen:draw()
     if spell.possible_upgrades then
       local upgrades = spell:get_possible_upgrades()
       if count(upgrades) > 0 then
-        love.graphics.printf("Upgrades:",printX,printY,window2w,"left")
+        love.graphics.printf("Upgrades:",printX,printY,window2w-scrollPad,"left")
         local upgrade_stat = spell.upgrade_stat or "spellPoints"
         local upgrade_stat_name = (upgrade_stat == "spellPoints" and "Ability Point" or false)
         local points_available = player[upgrade_stat] or 0
@@ -372,13 +373,13 @@ function spellscreen:draw()
         end
         if spell.free_upgrades > 0 then
           printY=printY+fontSize
-          love.graphics.printf(spell.free_upgrades .. " Free Upgrade" .. (spell.free_upgrades > 1 and "s available" or " available"),printX,printY,window2w,"left")
+          love.graphics.printf(spell.free_upgrades .. " Free Upgrade" .. (spell.free_upgrades > 1 and "s available" or " available"),printX,printY,window2w-scrollPad,"left")
         end
         printY=printY+fontSize
-        love.graphics.printf(points_available .. " " .. upgrade_stat_name .. (points_available > 1 and "s available" or " available"),printX,printY,window2w,"left")
+        love.graphics.printf(points_available .. " " .. upgrade_stat_name .. (points_available > 1 and "s available" or " available"),printX,printY,window2w-scrollPad,"left")
         if spell.spellPoints > 0 then
           printY=printY+fontSize
-          love.graphics.printf(spell.spellPoints .. " " .. upgrade_stat_name .. (spell.spellPoints > 1 and "s" or "") .. " available specifically for this ability",printX,printY,window2w,"left")
+          love.graphics.printf(spell.spellPoints .. " " .. upgrade_stat_name .. (spell.spellPoints > 1 and "s" or "") .. " available specifically for this ability",printX,printY,window2w-scrollPad,"left")
         end
         printY=printY+fontSize+5
         local buttonY = 1
@@ -445,8 +446,8 @@ function spellscreen:draw()
             end --end item cost if
           end
           local upText = name .. costText .. (description and "\n" .. description or "") .. (noText and "\n(" .. noText  .. ")" or "") .. statText
-          love.graphics.printf(upText,printX+buttonW,printY,window2w-padding,"left")
-          local _, dlines = fonts.textFont:getWrap(upText,window2w-padding)
+          love.graphics.printf(upText,printX+buttonW,printY,window2w-padding-scrollPad,"left")
+          local _, dlines = fonts.textFont:getWrap(upText,window2w-padding-scrollPad)
           local dHeight = (#dlines+1)*fontSize
           printY = printY+dHeight
           self.upgradeButtons[buttonY].textMaxY = printY
@@ -463,7 +464,7 @@ function spellscreen:draw()
     if printY > height-padding then
       self.descScrollMax = math.ceil((printY-(self.descStartY+(love.graphics:getHeight()/uiScale-self.descStartY))+padding))
       local scrollAmt = self.descScrollY/self.descScrollMax
-      self.descScrollPositions = output:scrollbar(sidebarX+window2w,self.y+padY,height-padY,scrollAmt,true)
+      self.descScrollPositions = output:scrollbar(sidebarX+window2w,self.descStartY,height-padY,scrollAmt,true)
     end
   end
   

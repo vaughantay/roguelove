@@ -160,7 +160,7 @@ function inventory:sort()
 
   --Do extra slots that are not part of the standard equipment order:
   for slot,eq in pairs(self.entity.equipment) do
-    if not in_table(slot,equipOrder) and slot ~= "list" then
+    if not in_table(slot,equipOrder) then
       equipSlotWidth = math.max(equipSlotWidth,fonts.textFont:getWidth((self.entity.equipment[slot].name or ucfirst(slot)) .. ":"))
       for id,equip in ipairs(eq) do
         self.equipment[#self.equipment+1] = {item=equip,y=equipPrintY,slotName=(self.entity.equipment[slot].name or ucfirst(slot)),slotID=slot}

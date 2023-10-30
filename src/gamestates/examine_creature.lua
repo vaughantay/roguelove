@@ -45,7 +45,6 @@ function examine_creature:draw()
   printY = printY + #tlines*fontSize
   local startY = printY
   self.startY = startY
-  local lastY = 0
   local scrollPad = (self.scrollPositions and 24 or 0)
   
   --Display the screens:
@@ -57,7 +56,7 @@ function examine_creature:draw()
   love.graphics.stencil(stencilFunc,"replace",1)
   love.graphics.setStencilTest("greater",0)
   love.graphics.translate(0,-self.scrollY)
-  local statStart = startY
+  local statStart = startY+fontSize
   local text = "HP: " .. creat.hp .. "/" .. creat:get_max_hp()
   if creat.max_mp then text = text .. "\nMP: " .. creat.mp .. "/" .. creat:get_max_mp() end
   text = text .. "\nSight Radius: " .. creat:get_stat('perception')
@@ -105,8 +104,6 @@ function examine_creature:draw()
     text = text .. "\nHit Conditions: " .. context
   end
 
-  text = text .. "\n"
-
   --Skills:
   local skillVals = {}
   for skillID, value in pairs(creat:get_skills()) do
@@ -151,7 +148,7 @@ function examine_creature:draw()
     if list then
       sort_table(list,'name')
       local typeDef = possibleSkillTypes[sType]
-      text = text .. "\n" .. (typeDef and typeDef.name .. ":" or ucfirst(sType) .. ":")
+      text = text .. "\n\n" .. (typeDef and typeDef.name .. ":" or ucfirst(sType) .. ":")
       for _,skillInfo in pairs(list) do
         local skillID,value = skillInfo.skillID, skillInfo.value
         local skill = possibleSkills[skillID]
@@ -160,41 +157,59 @@ function examine_creature:draw()
         end
       end --end for skillInfo
     end --end if list
-    text = text .. "\n"
   end --end ordered list for
 
   local abilities = ""
   if count(creat.spells) > 0 then
     local i = 1
     for id, ability in pairs(creat.spells) do
-      abilities = abilities .. "\n\t" .. possibleSpells[ability].name .. (possibleSpells[ability].target_type == "passive" and " (Passive)" or "") .. " - " .. possibleSpells[ability].description
+      abilities = abilities .. "\n\t" .. ability.name .. (ability.target_type == "passive" and " (Passive)" or "") .. " - " .. ability.description
       i = i + 1
     end
-    text = text .. "\nSpecial Abilities:" .. abilities .. "\n"
+    text = text .. "\n\nSpecial Abilities:" .. abilities
   end
   
   --Equipment:
-  local equipment = ""
-  for slot,eq in pairs(creat.equipment) do
-    equipment = equipment .. "\n\t" .. (creat.equipment[slot].name or ucfirst(slot)) .. ": "
-    for id,equip in ipairs(eq) do
-      if id ~= 1 then equipment = equipment .. ", " end
-      equipment = equipment .. equip:get_name(true,nil,true)
-    end --end slot for
-  end --end if not in_table slot,equiporder
-  text = text .. (equipment ~= "" and "Equipment:" .. equipment or "")
+  if not creat.noEquip then
+    local equipOrder = gamesettings.default_equipment_order
+    self.equipment = {}
+    self.equipment_labels = {}
+    for _,s in ipairs(equipOrder) do
+      local slot = creat.equipment[s]
+      if slot then
+        self.equipment[#self.equipment+1] = slot
+        self.equipment_labels[#self.equipment_labels+1] = slot.name or ucfirst(s)
+      end
+    end
+    for slotName,slot in pairs(creat.equipment) do
+      if not in_table(slotName,equipOrder) then
+        self.equipment[#self.equipment+1] = slot
+        self.equipment_labels[#self.equipment_labels+1] = slot.name or ucfirst(slotName)
+      end
+    end
+    local equipment = ""
+    for i,eq in ipairs(self.equipment) do
+      if #eq > 0 then
+        equipment = equipment .. "\n\t" .. self.equipment_labels[i] .. ": "
+        for id,equip in ipairs(eq) do
+          if id ~= 1 then equipment = equipment .. ", " end
+          equipment = equipment .. equip:get_name(true,nil,true)
+        end
+      end --end slot for
+    end --end if not in_table slot,equiporder
+    text = text .. (equipment ~= "" and "\n\nEquipment:" .. equipment or "")
+  end
   
-  love.graphics.printf(text,printX,statStart,(width-scrollPad),"left")
+  love.graphics.printf(text,printX,statStart,round((width-scrollPad-printX-padding)/uiScale),"left")
   local _,tlines = fonts.textFont:getWrap(text,(width-scrollPad))
-  local printY = statStart+(#tlines+1)*fontSize
-  self.rightYmax = printY+fontSize-love.graphics:getHeight()
+  printY = statStart+(#tlines+2)*fontSize
   love.graphics.setStencilTest()
   love.graphics.pop()
   --Scrollbars
-  if lastY*uiScale > height-padding then
-    self.scrollMax = math.ceil((lastY-(startY+(height/uiScale-startY))+padding))
+  if printY > (height/uiScale-startY) then
+    self.scrollMax = math.ceil((printY-(height/uiScale)+padding))
     local scrollAmt = self.scrollY/self.scrollMax
-    self.scrollPositions = output:scrollbar(math.floor(width/uiScale-padding),screenStartY,math.floor((height-padding)/uiScale),scrollAmt,true)
+    self.scrollPositions = output:scrollbar(math.floor(width/uiScale-padding),padding,math.floor((height-padding)/uiScale),scrollAmt,true)
   else
     self.scrollMax = 0
   end
@@ -203,57 +218,11 @@ function examine_creature:draw()
 end
 
 function examine_creature:buttonpressed(key)
-  local height = love.graphics.getHeight()
-  local uiScale = prefs['uiScale'] or 1
-  height = round(height/uiScale)
   key = input:parse_key(key)
   if key == "north" then
-    if self.screen == "character" then
-      local whichButton = self.learnButtons[self.cursorY-1] or self.skillButtons[self.cursorY-1] or self.statButtons[self.cursorY-1] or nil
-      if whichButton and whichButton.minY > self.screenStartY+self.scrollY then
-        self.cursorY = self.cursorY-1
-      elseif self.scrollY > 0 then
-        self:scrollUp()
-      else
-        self.cursorY = 0
-      end
-    else
-      self:scrollUp()
-    end
+    self:scrollUp()
   elseif key == "south" then
-    if self.screen == "character" then
-      local whichButton = self.statButtons[self.cursorY+1] or (self.cursorY+1 > #self.statButtons and self.skillButtons[self.cursorY+1] or (self.cursorY+1 > #self.skillButtons and self.learnButtons[self.cursorY+1])) or nil
-      if whichButton and whichButton.maxY < height+self.scrollY then
-        self.cursorY = self.cursorY+1
-      else
-        self:scrollDown()
-      end
-    else
-      self:scrollDown()
-    end
-  elseif key == "enter" or key == "wait" then
-    if self.cursorY == 0 then
-      if self.cursorX == 1 then
-        self.screen = "character"
-        self.scrollY=0
-      elseif self.cursorX == 2 then
-        self.screen = "factions"
-        self.scrollY=0
-      elseif self.cursorX == 3 then
-        self.screen = "missions"
-        self.scrollY=0
-      end
-    elseif self.statButtons[self.cursorY] then
-      self:use_statButton(self.statButtons[self.cursorY].stat)
-    elseif self.skillButtons[self.cursorY] then
-      self:use_skillButton(self.skillButtons[self.cursorY].skill)
-    elseif self.learnButtons[self.cursorY] then
-      self:use_learnButton(self.learnButtons[self.cursorY].info)
-    end
-  elseif key == "east" then
-    if self.cursorY == 0 then self.cursorX = math.min(self.cursorX+1,3) end
-  elseif key == "west" then
-    if self.cursorY == 0 then self.cursorX = math.max(self.cursorX-1,1) end
+    self:scrollDown()
   elseif key == "escape" then
     self:switchBack()
   end
@@ -264,34 +233,6 @@ function examine_creature:mousepressed(x,y,button)
   x,y = x/uiScale,y/uiScale
   if button == 2 or (x > self.closebutton.minX and x < self.closebutton.maxX and y > self.closebutton.minY and y < self.closebutton.maxY) then
     return self:switchBack()
-  end
-  for id,button in ipairs(self.statButtons) do
-    if x > button.minX and x < button.maxX and y > button.minY and y < button.maxY then
-      return self:use_statButton(button.stat)
-    end
-  end
-  for id,button in pairs(self.skillButtons) do
-    if x > button.minX and x < button.maxX and y > button.minY and y < button.maxY then
-      return self:use_skillButton(button.skill)
-    end
-  end
-  for id,button in pairs(self.learnButtons) do
-    if x > button.minX and x < button.maxX and y > button.minY and y < button.maxY then
-      self:use_learnButton(button.info)
-    end
-  end
-  if x > self.charButton.minX and x < self.charButton.maxX and y > self.charButton.minY and y < self.charButton.maxY then
-    self.screen = "character"
-    self.cursorX,self.cursorY=1,0
-    self.scrollY=0
-  elseif x > self.factionButton.minX and x < self.factionButton.maxX and y > self.factionButton.minY and y < self.factionButton.maxY then
-    self.screen = "factions"
-    self.cursorX,self.cursorY=2,0
-    self.scrollY=0
-  elseif x > self.missionButton.minX and x < self.missionButton.maxX and y > self.missionButton.minY and y < self.missionButton.maxY then
-    self.screen = "missions"
-    self.cursorX,self.cursorY=3,0
-    self.scrollY=0
   end
 end
 

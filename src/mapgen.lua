@@ -196,7 +196,7 @@ function mapgen:generate_creature(min_level,max_level,list,tags,allowAll)
   end
 end
 
----Initializes and creates a new item at the given level. The item itself must then actually be added to the map using Map:add_item() TODO: enchantments are basically guaranteed to be applied
+---Initializes and creates a new item at the given level. The item itself must then actually be added to the map using Map:add_item()
 --@param min_level The lower level limit of the desired item
 --@param max_level The upper level limit of the desired item
 --@param list Table. A list of possible items to pull from
