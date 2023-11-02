@@ -1,6 +1,6 @@
 inventory = {}
---TODO: Scrolling for equipment
 --TODO: Test for non-player inventory
+--TODO: Right-clicking on items
 
 function inventory:enter(previous,whichFilter,action,entity,container)
   if previous == game or previous == multiselect then
@@ -8,6 +8,8 @@ function inventory:enter(previous,whichFilter,action,entity,container)
     self.cursorX = 1
     self.scroll=0
     self.scrollMax=0
+    self.sideScroll = 0
+    self.sideScrollMax = 0
     self.yHold = 1
     self.xHold = 1
     self.text = nil
@@ -22,6 +24,7 @@ function inventory:enter(previous,whichFilter,action,entity,container)
   self.inventory_space = (self.entity.inventory_space and self.entity:get_stat('inventory_space') or false)
   self.free_space = self.entity:get_free_inventory_space()
   self.biggestY=0
+  self.biggestSideY = 0
   self.action=action or self.action
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
   local uiScale = (prefs['uiScale'] or 1)
@@ -54,7 +57,7 @@ function inventory:sort()
   for i,item in ipairs(self.entity.inventory) do
     if not self.entity:is_equipped(item) then
       local filter_info = self.filter
-      if (filter_info == nil) or ((not filter_info.filter or item[filter_info.filter] == true) and (not filter_info.itemType or item.itemType == filter_info.itemType) and (not filter_info.subType or item.subType == filter_info.subType)) then
+      if (filter_info == nil) or ((not filter_info.filter or item[filter_info.filter] == true) and (not filter_info.itemType or item.itemType == filter_info.itemType) and (not filter_info.equipSlot or filter_info.equipSlot == item.equipSlot) and (not filter_info.subType or item.subType == filter_info.subType)) then
         local iType = item.itemType or "other"
         local subType = item.subType or ""
         if not sorted[iType .. subType] then
@@ -375,6 +378,13 @@ function inventory:draw()
   local equipCutoff=height-padding
   local equipPrintY = padding
   local equipPrintX = sidebarX+padX
+  love.graphics.push()
+  local function equipStencilFunc()
+    love.graphics.rectangle("fill",equipPrintX,equipPrintY,width-equipPrintX,equipCutoff-equipPrintY)
+  end
+  love.graphics.stencil(equipStencilFunc,"replace",1)
+  love.graphics.setStencilTest("greater",0)
+  love.graphics.translate(0,-self.sideScroll)
   local doneEquips = {}
   local slotWidth = self.equipSlotWidth
   for i,equip in ipairs(self.equipment) do
@@ -388,7 +398,7 @@ function inventory:draw()
       love.graphics.rectangle("fill",equipPrintX+slotWidth+3,equip.y,width-equipPrintX-padding,16)
       setColor(255,255,255,255)
     else]]
-    if (self.cursorY == i and self.cursorX == 2) or (Gamestate.current() == inventory and mouseX > equipPrintX+3 and mouseX < width-padding and mouseY > equip.y and mouseY < equip.maxY) then
+    if (self.cursorY == i and self.cursorX == 2) or (Gamestate.current() == inventory and mouseX > equipPrintX+3 and mouseX < width-padding and mouseY+self.sideScroll > equip.y and mouseY+self.sideScroll < equip.maxY) then
       setColor(100,100,100,125)
       love.graphics.rectangle("fill",equipPrintX+slotWidth,equip.y,width-equipPrintX-padding,equipH)
       setColor(255,255,255,255)
@@ -404,6 +414,15 @@ function inventory:draw()
       end
     end
     setColor(255,255,255,255)
+    self.biggestSideY = equip.y+equipH
+  end
+  love.graphics.setStencilTest()
+  love.graphics.pop()
+  
+  if self.biggestSideY > height then
+    self.sideScrollMax = self.biggestSideY-(height-padding*2)
+    local scrollAmt = self.sideScroll/self.sideScrollMax
+    self.sideScrollPositions = output:scrollbar(width-padding,equipPrintY,math.floor(height)-(prefs['noImages'] and 24 or 16),scrollAmt,true)
   end
   
   --[[love.graphics.line(sidebarX,equipCutoff,width,equipCutoff)
@@ -522,7 +541,7 @@ function inventory:buttonpressed(key)
           self.xHold = self.cursorX
           self.cursorX = 3]]
         else --selecting an empty slot
-          self.filter = {filter="equippable",itemType=self.equipment[self.cursorY].slotID,appliedFromEquipment=true} --Filter for items that fit in this slot
+          self.filter = {filter="equippable",equipSlot=self.equipment[self.cursorY].slotID,appliedFromEquipment=true} --Filter for items that fit in this slot
           self:sort()
         end
       --[[else --buttons for manipulating items
@@ -570,6 +589,9 @@ function inventory:buttonpressed(key)
           end --end if slot exists here if
         end --end equipment for
       end --end if item exists at next slot if
+      while self.equipment[self.cursorY] and self.equipment[self.cursorY].y-self.sideScroll < padding and self.sideScroll > 0 do
+        self:sideScrollUp()
+      end
 		end
 	elseif (key == "south") and not self.selectedItem then
     if self.cursorY == 0 then
@@ -593,6 +615,9 @@ function inventory:buttonpressed(key)
       if self.equipment[self.cursorY+1] then
         self.cursorY = self.cursorY+1
       end --end next slot exists if
+      while self.equipment[self.cursorY].y+prefs['fontSize']-self.sideScroll >= round(love.graphics.getHeight()/uiScale)-32 and self.sideScroll < self.sideScrollMax do
+        self:sideScrollDown()
+      end
 		end --end which cursorX if
   elseif key == "west" then
     if self.cursorY == 0 then
@@ -747,13 +772,13 @@ function inventory:mousepressed(x,y,button)
     end --end inventory for
   elseif x > equipPrintX and x < width-padding then
     for i,item in ipairs(self.equipment) do
-      if y > item.y and y < item.maxY then
+      if y+self.sideScroll > item.y and y+self.sideScroll < item.maxY then
         self.cursorY = i
         self.cursorX = 2
         if item.item then
           Gamestate.switch(examine_item,item.item,self.container)
         else
-          self.filter = {filter="equippable",itemType=item.slotID,appliedFromEquipment=true} --Filter for items that fit in this slot
+          self.filter = {filter="equippable",equipSlot=item.slotID,appliedFromEquipment=true} --Filter for items that fit in this slot
           self:sort()
         end
         return
@@ -865,10 +890,21 @@ function inventory:splitStack(item,amount)
 end
 
 function inventory:wheelmoved(x,y)
+  local mouseX,mouseY = love.mouse.getPosition()
+  local uiScale = (prefs['uiScale'] or 1)
+  mouseX,mouseY = mouseX/uiScale, mouseY/uiScale
   if y > 0 then
-    self:scrollUp()
+    if mouseX < self.sidebarX then
+      self:scrollUp()
+    else
+      self:sideScrollUp()
+    end
 	elseif y < 0 then
-    self:scrollDown()
+    if mouseX < self.sidebarX then
+      self:scrollDown()
+    else
+      self:sideScrollDown()
+    end
   end
 end
 
@@ -879,6 +915,15 @@ end
 function inventory:scrollDown()
   self.scroll = self.scroll or 0
   self.scroll = math.min(self.scroll + prefs['fontSize'],self.scrollMax)
+end
+
+function inventory:sideScrollUp()
+  self.sideScroll = math.max(self.sideScroll - prefs['fontSize'],0)
+end
+
+function inventory:sideScrollDown()
+  self.sideScroll = self.sideScroll or 0
+  self.sideScroll = math.min(self.sideScroll + prefs['fontSize'],self.sideScrollMax)
 end
 
 function inventory:update(dt)
@@ -908,6 +953,22 @@ function inventory:update(dt)
         self:scrollUp()
       elseif y>elevator.endY then
         self:scrollDown()
+      end
+    end --end clicking on arrow
+  end
+  if (love.mouse.isDown(1)) and self.sideScrollPositions then
+    local upArrow = self.sideScrollPositions.upArrow
+    local downArrow = self.sideScrollPositions.downArrow
+    local elevator = self.sideScrollPositions.elevator
+    if x>upArrow.startX and x<upArrow.endX and y>upArrow.startY and y<upArrow.endY then
+      self:sideScrollUp()
+    elseif x>downArrow.startX and x<downArrow.endX and y>downArrow.startY and y<downArrow.endY then
+      self:sideScrollDown()
+    elseif x>elevator.startX and x<elevator.endX and y>upArrow.endY and y<downArrow.startY then
+      if y<elevator.startY then
+        self:sideScrollUp()
+      elseif y>elevator.endY then
+        self:sideScrollDown()
       end
     end --end clicking on arrow
   end
