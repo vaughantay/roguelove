@@ -289,7 +289,7 @@ function examine_item:draw()
   --Create a "stencil" that stops 
   love.graphics.push()
   local function stencilFunc()
-    love.graphics.rectangle("fill",self.x,startY,self.width,self.height)
+    love.graphics.rectangle("fill",self.x,startY,self.width+output:get_tile_size(),self.height)
   end
   love.graphics.stencil(stencilFunc,"replace",1)
   love.graphics.setStencilTest("greater",0)
@@ -302,13 +302,13 @@ function examine_item:draw()
   printY=printY+infoH
   love.graphics.setStencilTest()
   love.graphics.pop()
-  if printY > self.height then
+  if printY > self.y+self.height then
     if self.cursorY == #self.buttons.values+1 then
       setColor(50,50,50,255)
       love.graphics.rectangle("fill",self.x+self.width-padding,startY+round(output:get_tile_size()/2),output:get_tile_size(),self.height-startY)
       setColor(255,255,255,255)
     end
-    self.scrollMax = math.ceil((printY-self.height+padding))
+    self.scrollMax = math.ceil(printY-(self.y+self.height))
     local scrollAmt = self.scroll/self.scrollMax
     self.scrollPositions = output:scrollbar(self.x+self.width-padding,startY+round(output:get_tile_size()/2),self.y+self.height+padding,scrollAmt,true)
   else
@@ -533,7 +533,6 @@ function examine_item:buttonpressed(key)
     elseif self.buttons.values[self.cursorY][self.cursorX] == "equip" then
       self:switchBack()
       if self.container then
-        self.container:drop_item(self.item)
         player:pickup(self.item)
       end
       inventory:equipItem(self.item)
@@ -549,6 +548,9 @@ function examine_item:buttonpressed(key)
       Gamestate.switch(splitstack,self.item)
     elseif self.buttons.values[self.cursorY][self.cursorX] == "name" then
       Gamestate.switch(nameitem,self.item)
+    elseif self.buttons.values[self.cursorY][self.cursorY] == "recharge" then
+      self:switchBack()
+      inventory:reloadItem(self.item)
     end
 	elseif (key == "north") then
     if self.cursorY < #self.buttons.values+1 or self.scroll == 0 then

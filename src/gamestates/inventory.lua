@@ -1,6 +1,6 @@
 inventory = {}
 --TODO: Test for non-player inventory
---TODO: Right-clicking on items
+--TODO: Pickup from containers from right-click menu
 
 function inventory:enter(previous,whichFilter,action,entity,container)
   if previous == game or previous == multiselect then
@@ -498,6 +498,7 @@ function inventory:draw()
     self.maxButtonCursorX = buttonCursorX
     if item ~= self.selectedItem then setColor(255,255,255,255) end
   end--]]
+  if self.inventoryMenu then self.inventoryMenu:draw() end
   self.closebutton = output:closebutton(14,14,nil,true)
   love.graphics.pop()
 end
@@ -508,117 +509,135 @@ function inventory:buttonpressed(key)
   key = input:parse_key(key)
   local padding = self.padding
 	if (key == "escape") then
-    self:switchBack()
+    if self.inventoryMenu then
+      self.inventoryMenu = nil
+    else
+      self:switchBack()
+    end
 	elseif (key == "enter") or key == "wait" then
-    if self.cursorY == 0 then --sorting buttons
-      if self.filterButtons[self.cursorX] then
-        self.filter = self.filterButtons[self.cursorX]
-        self:sort()
-        if self.action and self.action ~= "drop" then self.action = nil end
+    if self.inventoryMenu then
+      if self.inventoryMenu.selectedItem then
+        self.inventoryMenu:click()
       end
     else
-      if self.cursorX == 1 then --selecting an item from the list
-        if self.inventory[self.cursorY] and self.inventory[self.cursorY].item then
-          --self.selectedItem = self.inventory[self.cursorY].item
-          --self.xHold = self.cursorX
-          --self.cursorX = 3
-          if self.action == "drop" then
-            return self:dropItem(self.inventory[self.cursorY].item)
-          elseif self.action == "equip" then
-            return self:equipItem(self.inventory[self.cursorY].item)
-          elseif self.action == "use" then
-            return self:useItem(self.inventory[self.cursorY].item)
-          elseif self.action == "throw" then
-            return self:throwItem(self.inventory[self.cursorY].item)
-          else
-            Gamestate.switch(examine_item,self.inventory[self.cursorY].item,self.container)
-          end
-        end --end item exists if
-      elseif self.cursorX == 2 then --selecting an item from the equipped list
-        if self.equipment[self.cursorY].item then
-          Gamestate.switch(examine_item,self.equipment[self.cursorY].item,self.container)
-          --[[self.selectedItem = self.equipment[self.cursorY].item
-          self.xHold = self.cursorX
-          self.cursorX = 3]]
-        else --selecting an empty slot
-          self.filter = {filter="equippable",equipSlot=self.equipment[self.cursorY].slotID,appliedFromEquipment=true} --Filter for items that fit in this slot
+      if self.cursorY == 0 then --sorting buttons
+        if self.filterButtons[self.cursorX] then
+          self.filter = self.filterButtons[self.cursorX]
           self:sort()
+          if self.action and self.action ~= "drop" then self.action = nil end
         end
-      --[[else --buttons for manipulating items
-        if self.buttons.xValues[self.cursorX] == "use" then
-          self:useItem()
-         elseif self.buttons.xValues[self.cursorX] == "equip" then
-          self:equipItem()
-        elseif self.buttons.xValues[self.cursorX] == "drop" then
-          self:dropItem()
-        elseif self.buttons.xValues[self.cursorX] == "throw" then
-          self:throwItem()
-        elseif self.buttons.xValues[self.cursorX] == "hotkey" then
-          if self.selectedItem then Gamestate.switch(hotkey,self.selectedItem) end
-        end --]]
-      end --end cursorX == 1 if
-    end --end cursorY == 0 if
-	elseif (key == "north") and not self.selectedItem then
-    if self.cursorY == 1 then
-      self.cursorX = 1
-      self.cursorY = 0
-		elseif self.cursorX == 1 and self.cursorY > 1 then
-			if self.inventory[self.cursorY-1] and not self.inventory[self.cursorY-1].header then
-        self.cursorY = self.cursorY-1
       else
-        for i = self.cursorY-1,1,-1 do
-          if self.inventory[i] and not self.inventory[i].header then
-            self.cursorY = i
-            break
-          elseif i == 1 then
-            self.cursorY = 0
-          end --end if item exists here if
-        end --end equipment for
-      end --end if item exists at next slot if
-      while self.inventory[self.cursorY] and self.inventory[self.cursorY].y+self.itemStartY-self.scroll < self.itemStartY and self.scroll > 0 do
-        self:scrollUp()
-      end
-    elseif self.cursorX == 2 and self.cursorY > 1 then
-      if self.equipment[self.cursorY-1] and self.equipment[self.cursorY-1].item then
-        self.cursorY = self.cursorY-1
-      else
-        for i = self.cursorY-1,1,-1 do
-          if self.equipment[i] then
-            self.cursorY = i
-            break
-          end --end if slot exists here if
-        end --end equipment for
-      end --end if item exists at next slot if
-      while self.equipment[self.cursorY] and self.equipment[self.cursorY].y-self.sideScroll < padding and self.sideScroll > 0 do
-        self:sideScrollUp()
-      end
-		end
-	elseif (key == "south") and not self.selectedItem then
-    if self.cursorY == 0 then
-      self.cursorX = 1
+        if self.cursorX == 1 then --selecting an item from the list
+          if self.inventory[self.cursorY] and self.inventory[self.cursorY].item then
+            --self.selectedItem = self.inventory[self.cursorY].item
+            --self.xHold = self.cursorX
+            --self.cursorX = 3
+            if self.action == "drop" then
+              return self:dropItem(self.inventory[self.cursorY].item)
+            elseif self.action == "equip" then
+              return self:equipItem(self.inventory[self.cursorY].item)
+            elseif self.action == "use" then
+              return self:useItem(self.inventory[self.cursorY].item)
+            elseif self.action == "throw" then
+              return self:throwItem(self.inventory[self.cursorY].item)
+            else
+              Gamestate.switch(examine_item,self.inventory[self.cursorY].item,self.container)
+            end
+          end --end item exists if
+        elseif self.cursorX == 2 then --selecting an item from the equipped list
+          if self.equipment[self.cursorY].item then
+            Gamestate.switch(examine_item,self.equipment[self.cursorY].item,self.container)
+            --[[self.selectedItem = self.equipment[self.cursorY].item
+            self.xHold = self.cursorX
+            self.cursorX = 3]]
+          else --selecting an empty slot
+            self.filter = {filter="equippable",equipSlot=self.equipment[self.cursorY].slotID,appliedFromEquipment=true} --Filter for items that fit in this slot
+            self:sort()
+          end
+        --[[else --buttons for manipulating items
+          if self.buttons.xValues[self.cursorX] == "use" then
+            self:useItem()
+           elseif self.buttons.xValues[self.cursorX] == "equip" then
+            self:equipItem()
+          elseif self.buttons.xValues[self.cursorX] == "drop" then
+            self:dropItem()
+          elseif self.buttons.xValues[self.cursorX] == "throw" then
+            self:throwItem()
+          elseif self.buttons.xValues[self.cursorX] == "hotkey" then
+            if self.selectedItem then Gamestate.switch(hotkey,self.selectedItem) end
+          end --]]
+        end --end cursorX == 1 if
+      end --end cursorY == 0 if
     end
-		if self.cursorX == 1 and (self.inventory[self.cursorY+1] ~= nil) then
-			if not self.inventory[self.cursorY+1].header then
-        self.cursorY = self.cursorY+1
-      else
-        for i = self.cursorY+1,#self.inventory,1 do
-          if not self.inventory[i].header then
-            self.cursorY = i
-            break
-          end --end if item exists here if
-        end --end equipment for
-      end --endif item exists and next slot if
-      while self.inventory[self.cursorY].y+self.itemStartY+prefs['fontSize']-self.scroll >= round(love.graphics.getHeight()/uiScale)-32 and self.scroll < self.scrollMax do
-        self:scrollDown()
+	elseif (key == "north") then
+    if self.inventoryMenu then
+      self.inventoryMenu:scrollUp()
+    else
+      if self.cursorY == 1 then
+        self.cursorX = 1
+        self.cursorY = 0
+      elseif self.cursorX == 1 and self.cursorY > 1 then
+        if self.inventory[self.cursorY-1] and not self.inventory[self.cursorY-1].header then
+          self.cursorY = self.cursorY-1
+        else
+          for i = self.cursorY-1,1,-1 do
+            if self.inventory[i] and not self.inventory[i].header then
+              self.cursorY = i
+              break
+            elseif i == 1 then
+              self.cursorY = 0
+            end --end if item exists here if
+          end --end equipment for
+        end --end if item exists at next slot if
+        while self.inventory[self.cursorY] and self.inventory[self.cursorY].y+self.itemStartY-self.scroll < self.itemStartY and self.scroll > 0 do
+          self:scrollUp()
+        end
+      elseif self.cursorX == 2 and self.cursorY > 1 then
+        if self.equipment[self.cursorY-1] and self.equipment[self.cursorY-1].item then
+          self.cursorY = self.cursorY-1
+        else
+          for i = self.cursorY-1,1,-1 do
+            if self.equipment[i] then
+              self.cursorY = i
+              break
+            end --end if slot exists here if
+          end --end equipment for
+        end --end if item exists at next slot if
+        while self.equipment[self.cursorY] and self.equipment[self.cursorY].y-self.sideScroll < padding and self.sideScroll > 0 do
+          self:sideScrollUp()
+        end
       end
-    elseif self.cursorX == 2 and self.cursorY < #self.equipment then
-      if self.equipment[self.cursorY+1] then
-        self.cursorY = self.cursorY+1
-      end --end next slot exists if
-      while self.equipment[self.cursorY].y+prefs['fontSize']-self.sideScroll >= round(love.graphics.getHeight()/uiScale)-32 and self.sideScroll < self.sideScrollMax do
-        self:sideScrollDown()
+    end
+	elseif (key == "south") then
+    if self.inventoryMenu then
+      self.inventoryMenu:scrollDown()
+    else
+      if self.cursorY == 0 then
+        self.cursorX = 1
       end
-		end --end which cursorX if
+      if self.cursorX == 1 and (self.inventory[self.cursorY+1] ~= nil) then
+        if not self.inventory[self.cursorY+1].header then
+          self.cursorY = self.cursorY+1
+        else
+          for i = self.cursorY+1,#self.inventory,1 do
+            if not self.inventory[i].header then
+              self.cursorY = i
+              break
+            end --end if item exists here if
+          end --end equipment for
+        end --endif item exists and next slot if
+        while self.inventory[self.cursorY].y+self.itemStartY+prefs['fontSize']-self.scroll >= round(love.graphics.getHeight()/uiScale)-32 and self.scroll < self.scrollMax do
+          self:scrollDown()
+        end
+      elseif self.cursorX == 2 and self.cursorY < #self.equipment then
+        if self.equipment[self.cursorY+1] then
+          self.cursorY = self.cursorY+1
+        end --end next slot exists if
+        while self.equipment[self.cursorY].y+prefs['fontSize']-self.sideScroll >= round(love.graphics.getHeight()/uiScale)-32 and self.sideScroll < self.sideScrollMax do
+          self:sideScrollDown()
+        end
+      end --end which cursorX if
+    end
   elseif key == "west" then
     if self.cursorY == 0 then
       if self.cursorX > 1 then
@@ -692,21 +711,18 @@ function inventory:mousepressed(x,y,button)
   local padding = self.padding
   local maxFilterX = self.sidebarX-padding
   x,y = round(x/uiScale),round(y/uiScale)
-  if button == 2 or (x > self.closebutton.minX and x < self.closebutton.maxX and y > self.closebutton.minY and y < self.closebutton.maxY) then
+  if (x > self.closebutton.minX and x < self.closebutton.maxX and y > self.closebutton.minY and y < self.closebutton.maxY) then
     self:switchBack()
   end
-  --[[Item use buttons:
-  if self.buttons.use and x > self.buttons.use.minX and x < self.buttons.use.maxX and y > self.buttons.use.minY and y < self.buttons.use.maxY then
-    return self:useItem()
-  elseif self.buttons.equip and self.selectedItem and x > self.buttons.equip.minX and x < self.buttons.equip.maxX and y > self.buttons.equip.minY and y < self.buttons.equip.maxY then
-    return self:equipItem()
-  elseif self.buttons.drop and self.selectedItem and x > self.buttons.drop.minX and x < self.buttons.drop.maxX and y > self.buttons.drop.minY and y < self.buttons.drop.maxY then
-    return self:dropItem()
-  elseif self.buttons.throw and self.selectedItem and x > self.buttons.throw.minX and x < self.buttons.throw.maxX and y > self.buttons.throw.minY and y < self.buttons.throw.maxY then
-    return self:throwItem()
-  elseif self.buttons.hotkey and self.selectedItem and x > self.buttons.hotkey.minX and x < self.buttons.hotkey.maxX and y > self.buttons.hotkey.minY and y < self.buttons.hotkey.maxY then
-    if self.selectedItem then Gamestate.switch(hotkey,self.selectedItem) end
-  end --]]
+  if self.inventoryMenu then
+    if x >= self.inventoryMenu.x and x <= self.inventoryMenu.maxX and y >= self.inventoryMenu.y and y <= self.inventoryMenu.maxY then
+      self.inventoryMenu:click(x,y)
+      return
+    else --if you click outside the menu, close it
+      self.inventoryMenu = nil
+      return
+    end
+  end
   
   --Filter buttons:
   if self.filterButtons[1] and y > self.filterButtons[1].minY and y < self.filterButtons[1].maxY then
@@ -755,18 +771,23 @@ function inventory:mousepressed(x,y,button)
         self.cursorY = i
         self.cursorX = 1
         if item.item then
-          if self.action == "drop" then
-            return self:dropItem(item.item)
-          elseif self.action == "equip" then
-            return self:equipItem(item.item)
-          elseif self.action == "use" then
-            return self:useItem(item.item)
-          elseif self.action == "throw" then
-            return self:throwItem(item.item)
-          else
-            Gamestate.switch(examine_item,item.item,self.container)
+          if button == 1 then
+            if self.action == "drop" then
+              return self:dropItem(item.item)
+            elseif self.action == "equip" then
+              return self:equipItem(item.item)
+            elseif self.action == "use" then
+              return self:useItem(item.item)
+            elseif self.action == "throw" then
+              return self:throwItem(item.item)
+            else
+              Gamestate.switch(examine_item,item.item,self.container)
+            end
+            return
+          elseif button == 2 then
+            self.inventoryMenu = InventoryMenu(x,y,item.item)
+            return
           end
-          return
         end
       end
     end --end inventory for
@@ -776,7 +797,12 @@ function inventory:mousepressed(x,y,button)
         self.cursorY = i
         self.cursorX = 2
         if item.item then
-          Gamestate.switch(examine_item,item.item,self.container)
+          if button == 1 then
+            Gamestate.switch(examine_item,item.item,self.container)
+          elseif button == 2 then
+            self.inventoryMenu = InventoryMenu(x,y,item.item)
+            return
+          end
         else
           self.filter = {filter="equippable",equipSlot=item.slotID,appliedFromEquipment=true} --Filter for items that fit in this slot
           self:sort()
@@ -788,7 +814,6 @@ function inventory:mousepressed(x,y,button)
 end
 
 function inventory:useItem(item)
-  item = item or self.selectedItem
   if item then
     local canUse,text = self.entity:can_use_item(item,item.useVerb)
     if canUse then
@@ -811,7 +836,6 @@ function inventory:useItem(item)
 end
 
 function inventory:equipItem(item)
-  item = item or self.selectedItem
   if item then
     if self.entity:is_equipped(item) then
       local use,response = self.entity:unequip(item)
@@ -826,9 +850,7 @@ function inventory:equipItem(item)
 end
 
 function inventory:dropItem(item)
-  item = item or self.selectedItem
   local drop,response = self.entity:drop_item(item)
-  --self.selectedItem = nil
   if drop ~= false then
     self.cursorX=1
     self:sort()
@@ -846,7 +868,6 @@ function inventory:dropItem(item)
 end
 
 function inventory:throwItem(item)
-  item = item or self.selectedItem
   if item and item.throwable then
     item:target(self.entity.target,self.entity)
     self:switchBack()
@@ -854,7 +875,6 @@ function inventory:throwItem(item)
 end
 
 function inventory:reloadItem(item)
-  item = item or self.selectedItem
   if item and item.charges and (item.max_charges and item.max_charges > 0) then
     local ammo_list = item:get_possible_ammo(self.entity)
     if item.charges == 0 and #ammo_list > 1 then
@@ -875,7 +895,6 @@ function inventory:reloadItem(item)
 end
 
 function inventory:splitStack(item,amount)
-  item = item or self.selectedItem
   if item and item.stacks and amount > 0 and amount < item.amount then
     local oldOwner = item.owner
     item.owner = nil --This is done because item.owner is the creature who owns the item, and Item:clone() does a deep copy of all tables, which means it will create a copy of the owner, which owns a copy of the item, which is owned by another copy of the owner which owns another copy of the item etc etc leading to a crash
@@ -893,17 +912,25 @@ function inventory:wheelmoved(x,y)
   local mouseX,mouseY = love.mouse.getPosition()
   local uiScale = (prefs['uiScale'] or 1)
   mouseX,mouseY = mouseX/uiScale, mouseY/uiScale
-  if y > 0 then
-    if mouseX < self.sidebarX then
-      self:scrollUp()
-    else
-      self:sideScrollUp()
+  if self.inventoryMenu then
+    if y > 0 then
+      self.inventoryMenu:scrollUp()
+    elseif y < 0 then
+      self.inventoryMenu:scrollDown()
     end
-	elseif y < 0 then
-    if mouseX < self.sidebarX then
-      self:scrollDown()
-    else
-      self:sideScrollDown()
+  else
+    if y > 0 then
+      if mouseX < self.sidebarX then
+        self:scrollUp()
+      else
+        self:sideScrollUp()
+      end
+    elseif y < 0 then
+      if mouseX < self.sidebarX then
+        self:scrollDown()
+      else
+        self:sideScrollDown()
+      end
     end
   end
 end
@@ -939,7 +966,11 @@ function inventory:update(dt)
 	if (x ~= output.mouseX or y ~= output.mouseY) then -- only do this if the mouse has moved
     output.mouseX,output.mouseY = x,y
 	end
-  --Scrollbars:
+  --Inventory menu:
+  if self.inventoryMenu and x >= self.inventoryMenu.x and x <= self.inventoryMenu.maxX and y >= self.inventoryMenu.y and y <= self.inventoryMenu.maxY then
+    self.inventoryMenu:mouseSelect(x,y)
+  end
+    --Scrollbars:
   if (love.mouse.isDown(1)) and self.scrollPositions then
     local upArrow = self.scrollPositions.upArrow
     local downArrow = self.scrollPositions.downArrow
@@ -988,4 +1019,150 @@ function inventory:switchBack()
   tween(0.2,self,{yModPerc=100})
   output:sound('stoneslideshortbackwards',2)
   Timer.after(0.2,function() self.switchNow=true end)
+end
+
+InventoryMenu = Class{}
+
+function InventoryMenu:init(printX,printY,item)
+  if not item then return nil end
+  self.x,self.y=(printX and printX or self.x)+22,(printY and printY or self.y)+20
+  self.width = math.max(300,fonts.descFont:getWidth(self.creature and self.creature:get_name(true) or ""))
+  self.maxX=self.x+self.width
+  self.item = item
+  local fontPadding = prefs['descFontSize']+2
+  -- Make the box:
+  self.entries = {}
+  local spellY = self.y+fontPadding
+  
+  self.entries[#self.entries+1] = {name="Examine",y=spellY,action="examine"}
+  spellY = spellY+fontPadding
+  if item.usable==true then
+    self.entries[#self.entries+1] = {name=item.useVerb and ucfirst(item.useVerb) or "Use",y=spellY,action="use"}
+    spellY = spellY+fontPadding
+  end
+  if item.throwable==true then
+    self.entries[#self.entries+1] = {name="Throw",y=spellY,action="throw"}
+    spellY = spellY+fontPadding
+  end
+  if item.equippable==true then
+    local equipped = player:is_equipped(item)
+    self.entries[#self.entries+1] = {name=(equipped and "Unequip" or "Equip"),y=spellY,action="equip"}
+    spellY = spellY+fontPadding
+  end
+  if item.charges and (item.max_charges and item.max_charges > 0) then -- recharge
+    self.entries[#self.entries+1] = {name="Reload/Recharge",y=spellY,action="reload"}
+    spellY = spellY+fontPadding
+  end
+  if item.equippable==true and not item.stacks then --rename
+    self.entries[#self.entries+1] = {name="Rename",y=spellY,action="rename"}
+    spellY = spellY+fontPadding
+  end
+  if item.stacks==true and item.amount and item.amount > 1 then --split stack
+    self.entries[#self.entries+1] = {name="Split Stack",y=spellY,action="splitstack"}
+    spellY = spellY+fontPadding
+  end
+  if item.equippable == true or item.usable == true or item.throwable == true then --hotkey
+    local hotkey = item.hotkey
+    self.entries[#self.entries+1] = {name=(hotkey and "Change Hotkey" or "Assign Hotkey"),y=spellY,action="hotkey"}
+    spellY = spellY+fontPadding
+  end
+  if not item.undroppable then -- drop
+    self.entries[#self.entries+1] = {name="Drop",y=spellY,action="drop"}
+    spellY = spellY+fontPadding
+  end
+  self.maxY = spellY
+  self.height = spellY-self.y
+end
+
+function InventoryMenu:mouseSelect(mouseX,mouseY)
+  local fontPadding = prefs['descFontSize']
+  if mouseX>=self.x and mouseX<=self.maxX and mouseY>=self.y and mouseY<=self.maxY then
+    for iid,item in ipairs(self.entries) do
+      if mouseY>item.y-1 and mouseY<item.y+fontPadding then
+        self.selectedItem = iid
+        break
+      end
+    end
+  end
+end
+
+function InventoryMenu:draw()
+  love.graphics.setFont(fonts.descFont)
+  local fontPadding = prefs['descFontSize']+2
+  setColor(0,0,0,185)
+  love.graphics.rectangle("fill",self.x,self.y,self.width+1,self.height-1)
+  setColor(255,255,255,255)
+  love.graphics.rectangle("line",self.x,self.y,self.width+2,self.height)
+  
+  if self.selectedItem then
+    setColor(100,100,100,185)
+    love.graphics.rectangle("fill",self.x,self.entries[self.selectedItem].y,self.width+1,fontPadding)
+    setColor(255,255,255,255)
+  end
+  if self.item then
+    love.graphics.print(self.item:get_name(true),self.x,self.y)
+    love.graphics.line(self.x,self.y+fontPadding,self.x+self.width+1,self.y+fontPadding)
+  end
+  for _,item in ipairs(self.entries) do
+    love.graphics.print(item.name,self.x,item.y)
+  end
+  love.graphics.setFont(fonts.textFont)
+end
+
+function InventoryMenu:click(x,y)
+  local fontPadding = prefs['descFontSize']
+  local useItem = nil
+  if self.selectedItem then
+    useItem = self.entries[self.selectedItem]
+  else  
+    for _,item in ipairs(self.entries) do
+      if y>item.y-1 and y<item.y+fontPadding then
+        useItem = item
+        break
+      end
+    end
+  end
+  if useItem then
+    if useItem.action == "use" then
+      inventory:useItem(self.item)
+    elseif useItem.action == "examine" then
+      Gamestate.switch(examine_item,self.item)
+    elseif useItem.action == "throw" then
+      inventory:throwItem(self.item)
+    elseif useItem.action == "equip" then
+      if inventory.container then
+        player:pickup(self.item)
+      end
+      inventory:equipItem(self.item)
+    elseif useItem.action == "reload" then
+      inventory:reloadItem(self.item)
+    elseif useItem.action == "rename" then
+      Gamestate.switch(nameitem,self.item)
+    elseif useItem.action == "splitstack" then
+      Gamestate.switch(splitstack,self.item)
+    elseif useItem.action == "hotkey" then
+      Gamestate.switch(hotkey,self.item)
+    elseif useItem.action == "drop" then
+      inventory:dropItem(self.item)
+    elseif useItem.action == "pickup" then
+      player:pickup(self.item)
+    end
+    inventory.inventoryMenu = nil
+  end
+end
+
+function InventoryMenu:scrollUp()
+  if self.selectedItem then
+    self.selectedItem = self.selectedItem - 1
+    if self.selectedItem < 1 then self.selectedItem = nil end
+  end
+end
+
+function InventoryMenu:scrollDown()
+  if self.selectedItem then
+    self.selectedItem = self.selectedItem + 1
+    if self.selectedItem > #self.entries then self.selectedItem = #self.entries end
+  else --if there's no selected item, set it to the first one
+    self.selectedItem = 1
+  end
 end
