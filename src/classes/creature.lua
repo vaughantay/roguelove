@@ -531,7 +531,6 @@ end
 --@return Number. The final damage done.
 function Creature:damage(amt,attacker,damage_type,armor_piercing,noSound,item)
   amt = math.ceil(amt) --just in case! to prevent fractional damage
-  require "data.damage_types"
   damage_type = damage_type or gamesettings.default_damage_type
   
   --Apply damage weaknesses, resistances, and armor
@@ -549,7 +548,7 @@ function Creature:damage(amt,attacker,damage_type,armor_piercing,noSound,item)
     amt = amt - totalArmor
   end
 
-  if (amt < 1) then amt = 1 end
+  if (amt < 0) then amt = 0 end
   local bool,ret = self:callbacks('damaged',attacker,amt,damage_type,is_melee)
 	if (bool ~= false) then
     if #ret > 0 then --handle possible returned damage values
@@ -1004,8 +1003,8 @@ function Creature:attack(target,forceHit,ignore_callbacks)
   --Basic attack:
   if target.baseType == "feature" and self:touching(target) then
     local dmg = target:damage(self:get_damage(),self,self.damage_type)
-    self:decrease_all_enchantments('attack')
-    if dmg > 0 then
+    self:decrease_all_conditions('attack')
+    if dmg ~= false or dmg > 0 then
       self:decrease_all_conditions('hit')
     end
     return dmg
@@ -1479,14 +1478,14 @@ function Creature:die(killer)
     end --end bridge if
   
     if (absorbs == false) then
-      if self.corpse == nil and not self:is_type('ghost') and not self:is_type('bloodless') then
+      if self.corpse == nil and not self:is_type('bloodless') then
         local chunk = currMap:add_feature(Feature('chunk',self),self.x,self.y)
       end --put a chunk in, no matter what
-      if (self.corpse == nil and not self:is_type('ghost') and self.isPlayer ~= true) then
+      if self.corpse == nil then
         local corpse = Feature('corpse',self,self.x,self.y)
         currMap:add_feature(corpse,self.x,self.y)
         corpse:refresh_image_name()
-      elseif not self:is_type("ghost") and self.isPlayer ~= true and self.corpse then
+      elseif self.corpse then
         local corpse = Feature(self.corpse,self,self.x,self.y)
         currMap:add_feature(corpse,self.x,self.y)
       end --end special corpse vs regular corpse if
@@ -1505,7 +1504,7 @@ end
 ---Make a creature explode.
 function Creature:explode()
 	-- EXPLODE!
-	if not self:is_type('ghost') then
+	if not self:is_type('incorporeal') then
     self.exploded = true
     if self == player then
       update_stat('explosions')
@@ -1631,7 +1630,7 @@ function Creature:pickup(item,tileOnly)
     return false,pickupText
   end
   local x,y = self.x,self.y
-  if ((tileOnly ~= true and not self:touching(item)) or (tileOnly == true and (item.x ~= x or item.y ~= y))) then return false end
+  if ((tileOnly ~= true and not self:touching(item)) or (tileOnly == true and (item.x ~= x or item.y ~= y))) and (not item.owner or not item.owner.inventory_accessible_anywhere) then return false end
   if item.owner then
     if player:can_sense_creature(self) then
       output:out(pickupText or self:get_name() .. " takes " .. item:get_name() .. " from " .. item.owner:get_name() .. ".")
@@ -2160,7 +2159,7 @@ function Creature:is_friendly_type(target)
       if target:is_type(ctype) then return true end
     end
   end
-  if self.types then --Check through the enemy types for all your creature types
+  if self.types then --Check through the friend types for all your creature types
     for _,ctype in ipairs(self.types) do
       if creatureTypes[ctype] and creatureTypes[ctype].friendly_types then
         for _,ct in ipairs(creatureTypes[ctype].friendly_types) do
@@ -2491,7 +2490,7 @@ function Creature:update(dt) --for charging, and other special effects
       if (self.zoomResult and self.zoomResult.use) then
         self.zoomResult:use(self.zoomTo,self) --if you're charging, do whatever is at the end of the charge
       else --if you're not charging, get hurt and hurt whoever you ran into
-        if self.zoomTo and currMap[self.zoomTo.x][self.zoomTo.y] == "#" and not self:touching(self.zoomFrom) then
+        if self.zoomTo and currMap[self.zoomTo.x][self.zoomTo.y] == "#" and dist > 1 then
           local dmg = self:damage(tweak((self.max_hp/random(10,20)*dist)),self.lastAttacker) --get damaged
           if player:can_see_tile(self.x,self.y) then
             output:out(self:get_name() .. " slams into a wall, taking " .. dmg .. " damage!")
@@ -3412,7 +3411,7 @@ end
 --@param noEquip Boolean. If true, ignore spells granted by equipment.
 --@return Table. A list of the creature's spells
 function Creature:get_spells(noEquip)
-  if noEquip or #self.equipment_list == 0 then
+  if noEquip or count(self.equipment_list) == 0 then
     return self.spells
   end
   local spells = {}

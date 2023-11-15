@@ -28,6 +28,7 @@ function Projectile:init(projectile_type,source,target,info)
 	self.x,self.y = source.x,source.y
   self.xMod,self.yMod=0,0
   self.target = target
+  self.time_per_tile = self.time_per_tile or .02
   self.timer = 0
   self.path = nil
   self.stopsInput = (self.stopsInput == nil and true or self.stopsInput)
@@ -159,7 +160,9 @@ function Projectile:hits(target,force_generic)
   local dmg = false
   local playersees = player:can_see_tile(target.x,target.y)
   if target and (target.baseType == "creature"  or (target.baseType == "feature" and (target.attackable or target.damage))) then
-    dmg = target:damage(tweak(self:get_damage()),self.source,self.damage_type,self.armor_piercing,nil,self.source_item)
+    if self.damage and self.damage > 0 then
+      dmg = target:damage(tweak(self:get_damage()),self.source,self.damage_type,self.armor_piercing,nil,self.source_item)
+    end
     if playersees then
       local txt = (type(self.miss_item) == "table" and self.miss_item:get_name() or "The " .. self.name) .. " hits " .. target:get_name()
       if dmg and dmg > 0 then
@@ -221,7 +224,6 @@ function Projectile:hits(target,force_generic)
       local feat = Feature(self.miss_feature,args)
       feat.creator = self.source
       currMap:add_feature(feat,target.x,target.y)
-      
     end
   end
   

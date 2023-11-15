@@ -274,6 +274,7 @@ function load_data()
   require "data.branches"
   require "data.creaturetypes"
   require "data.conditions"
+  require "data.damage_types"
   require "data.effects"
   require "data.enchantments"
   require "data.events"

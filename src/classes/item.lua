@@ -742,7 +742,7 @@ end
 --@param wielder Creature. The creature wielding the weapon.
 --@return Number. The armor piercing value.
 function Item:get_armor_piercing(wielder)
-	return (self.armor_piercing or 0) + (wielder and wielder:get_bonus('armor_piercing') or 0)
+	return (self.armor_piercing or 0) + self:get_enchantment_bonus('armor_piercing') + (wielder and wielder:get_bonus('armor_piercing') or 0)
 end
 
 ---Returns the accuracy (modifier to the hit roll) of a weapon.
@@ -772,8 +772,8 @@ end
 ---Checks the value of an item
 --@return Number. The value of the item
 function Item:get_value()
-  if not self.value then return 0 end
-  return self.value+self:get_enchantment_bonus('value')
+  local base = (self.value or 0)
+  return base + round(base*(self:get_enchantment_bonus('value_percent')/100)) + self:get_enchantment_bonus('value')
 end
 
 ---Checks if an item has a descriptive tag.

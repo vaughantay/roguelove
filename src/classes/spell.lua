@@ -801,6 +801,9 @@ function Spell:get_potential_targets(caster,previous_targets)
         targets[#targets+1] = {x=creat.x,y=creat.y}
       end --end range if
     end --end creature for
+    if self.can_target_self then
+      targets[#targets+1] = {x=caster.x,y=caster.y}
+    end
     return targets
   end --end creature if
   return {}

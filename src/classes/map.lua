@@ -104,7 +104,7 @@ function Map:isEmpty(x,y,ignoreCreats,lookAtBaseTile)
   if lookAtBaseTile == true and type(self[x][y]) == "table" then return false end
   if ignoreCreats ~= true and self:get_tile_creature(x,y) then return false end --if there's a creature there, it's not clear
 	for id, entity in pairs(self.contents[x][y]) do
-		if entity.baseType == "feature" then
+		if entity.baseType == "feature" and not entity.noDisp then
 			return false
 		end
 	end
@@ -435,7 +435,7 @@ function Map:add_feature(feature,x,y,args)
   feature.x,feature.y = x,y
   if possibleFeatures[feature.id].placed then possibleFeatures[feature.id].placed(feature,self,args) end
   if feature.castsLight then self.lights[feature] = feature end
-  self.feature_cache[#self.feature_cache+1] = feature
+  self.feature_cache[x .. ',' .. y] = nil
   if feature.item_spawn_point then
     self.item_spawn_points[#self.item_spawn_points+1] = feature
   end

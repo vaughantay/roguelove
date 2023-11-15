@@ -391,7 +391,7 @@ function Faction:get_buy_list(creat)
   for id,item in ipairs(creat.inventory) do
     if self.buys_items and self.buys_items[item.id] then
       buying[#buying+1]={item=item,moneyCost=self.buys_items[item.id].moneyCost,favorCost=self.buys_items[item.id].favorCost}
-    elseif self.buys_tags and item.value then
+    elseif self.buys_tags and item:get_value() > 0 then
       for _,tag in ipairs(self.buys_tags) do
         if item:has_tag(tag) or item.itemType == tag then
           buying[#buying+1]={item=item,favorCost=math.max(math.floor((item:get_value()*(self.buy_markup or 1))/(self.money_per_favor or 10)),1),moneyCost=(not self.only_buys_favor and math.max(item:get_value()*(self.buy_markup or 1),1) or nil)}

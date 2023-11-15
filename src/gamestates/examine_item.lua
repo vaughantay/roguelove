@@ -266,7 +266,7 @@ function examine_item:draw()
       buttonX = buttonX+buttonWidth+25
       buttonCursorX = buttonCursorX+1
     end
-  elseif (gamesettings.can_pickup_adjacent_items and player:touching(item)) or (player.x == item.x and player.y == item.y) then
+  elseif (gamesettings.can_pickup_adjacent_items and player:touching(item)) or (player.x == item.x and player.y == item.y) or (self.container.inventory_accessible_anywhere) then
     if player:get_free_inventory_space() > (item.size or 1) then
       local useText = "Take (" .. input:get_button_name("pickup") .. ")"
       local buttonWidth = fonts.buttonFont:getWidth(useText)+25
@@ -448,7 +448,7 @@ function examine_item:calculate_height()
       buttonY = buttonY+40
     end
     printY=buttonY+40
-  elseif self.container and player:touching(self.container) then
+  elseif self.container and (player:touching(self.container) or self.container.inventory_accessible_anywhere)then
     if player:get_free_inventory_space() > (item.size or 1) then
       local useText = "Take (" .. input:get_button_name("pickup") .. ")"
       local buttonWidth = fonts.buttonFont:getWidth(useText)+25
@@ -498,7 +498,7 @@ function examine_item:calculate_height()
       buttonX = buttonX+buttonWidth+25
       buttonCursorX = buttonCursorX+1
     end
-  elseif (gamesettings.can_pickup_adjacent_items and player:touching(item)) or (player.x == item.x and player.y == item.y) then
+  elseif (gamesettings.can_pickup_adjacent_items and player:touching(item)) or (player.x == item.x and player.y == item.y)  or (self.container.inventory_accessible_anywhere) then
     if player:get_free_inventory_space() > (item.size or 1) then
       local useText = "Take (" .. input:get_button_name("pickup") .. ")"
       local buttonWidth = fonts.buttonFont:getWidth(useText)+25

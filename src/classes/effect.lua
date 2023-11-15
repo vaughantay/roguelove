@@ -33,7 +33,7 @@ function Effect:init(effect_type, ...)
   end
   if self.image_varieties then
     self.image_variety = random(1,self.image_varieties)
-    self.image_name = self.id .. self.image_variety
+    self.image_name = (self.image_base or self.id) .. self.image_variety
   end
 	return self
 end
@@ -103,6 +103,7 @@ function Effect:update(dt)
         self.image_frame = imageNum
       else
         local image_base = (self.image_base or (effects[self.id].image_name or self.id))
+        self.image_name = image_base .. imageNum
       end
       --Change the light color, if necessary
       if self.lightColors then

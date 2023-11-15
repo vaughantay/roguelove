@@ -179,7 +179,7 @@ function mapgen:generate_creature(min_level,max_level,list,tags,allowAll)
   local noCreatures = true
   for _,cid in pairs(list) do
     local creat = (type(cid) == "table" and cid or possibleMonsters[cid] or nil)
-    if creat and not creat.isBoss and not creat.neverSpawn and ((creat.level >= min_level and creat.level <= max_level) or (creat.max_level and (creat.max_level >= min_level or creat.max_level <= max_level))) then 
+    if creat and not creat.isBoss and not creat.neverSpawn and (((not min_level or creat.level >= min_level) and (not max_level or creat.level <= max_level)) or (creat.max_level and ((not min_level or creat.max_level >= min_level) or (not max_level or creat.max_level <= max_level)))) then 
       noCreatures = false break
     end
   end
@@ -189,8 +189,10 @@ function mapgen:generate_creature(min_level,max_level,list,tags,allowAll)
   while (1 == 1) do -- endless loop, broken by the "return"
     local n = get_random_element(list)
     local creat = (type(n) == "table" and n or possibleMonsters[n])
-    if creat and not creat.isBoss and not creat.neverSpawn and random(1,100) >= (creat.rarity or 0) and ((creat.level >= min_level and creat.level <= max_level) or (creat.max_level and (creat.max_level >= min_level or creat.max_level <= max_level))) then
-      local level = random(math.max(creat.level,min_level),math.min(creat.max_level or creat.level,max_level))
+    if creat and not creat.isBoss and not creat.neverSpawn and random(1,100) >= (creat.rarity or 0) and (((not min_level or creat.level >= min_level) and (not max_level or creat.level <= max_level)) or (creat.max_level and ((not min_level or creat.max_level >= min_level) or (not max_level or creat.max_level <= max_level)))) then
+      local min = math.max(creat.level,(min_level or creat.level))
+      local max = math.min((creat.max_level or creat.level),(max_level or creat.max_level or creat.level))
+      local level = random(min,max)
       return Creature(n,level,tags)
     end
   end
@@ -211,7 +213,7 @@ function mapgen:generate_item(min_level,max_level,list,tags,allowAll)
   local noItems = true
   for _,iid in pairs(list) do
     local item = (type(iid) == "string" and possibleItems[iid] or iid)
-    if not item.neverSpawn and (not item.level or ((item.level >= min_level and item.level <= max_level) or (item.max_level and (item.max_level >= min_level or item.max_level <= max_level))))  then 
+    if not item.neverSpawn and (not item.level or (((not min_level or item.level >= min_level) and (not max_level or item.level <= max_level)) or (item.max_level and ((not min_level or item.max_level >= min_level) or (not max_level or item.max_level <= max_level)))))  then 
       noItems = false break
     end
   end
@@ -221,7 +223,7 @@ function mapgen:generate_item(min_level,max_level,list,tags,allowAll)
   while (1 == 1) do -- endless loop, broken by the "return"
     local n = (list == possibleItems and get_random_key(list) or get_random_element(list))
     local item = (type(n) == "table" and n or possibleItems[n])
-    if item and not item.neverSpawn and random(1,100) >= (item.rarity or 0) and (not item.level or ((item.level >= min_level and item.level <= max_level) or (item.max_level and (item.max_level >= min_level or item.max_level <= max_level)))) then
+    if item and not item.neverSpawn and random(1,100) >= (item.rarity or 0) and (not item.level or (((not min_level or item.level >= min_level) and (not max_level or item.level <= max_level)) or (item.max_level and ((not min_level or item.max_level >= min_level) or (not max_level or item.max_level <= max_level))))) then
       newItem = n
       break
     end

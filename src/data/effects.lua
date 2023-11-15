@@ -2365,8 +2365,8 @@ local conditionanimation = {
   noDesc = true,
   color={r=0,g=0,b=0,a=0},
   symbol = "",
-  description = "",
-  remove_on_cleanup=true,
+  description = "a",
+  remove_on_cleanup=true
 }
 function conditionanimation:new(info)
   --Don't add multiples of the same animation:
@@ -2383,6 +2383,7 @@ function conditionanimation:new(info)
   self.image_name = self.image_base .. (not info.spritesheet and "1" or "")
   self.sequence = info.sequence
   self.reverse = info.reverse
+  self.reversing = info.reversing
   self.speed = info.speed or 0.25
   self.countdown = self.speed
   self.symbol = info.symbol or ""
@@ -2408,7 +2409,7 @@ function conditionanimation:advance()
   else
     self.seen = false
   end
-  if not self.owner:has_condition(self.condition) then
+  if not self.owner:has_condition(self.condition) or self.owner.hp < 1 then
     self:delete()
   end
 end
@@ -2427,6 +2428,8 @@ function conditionanimation:update(dt)
       if (not self.reversing and currNum == self.image_max) or (self.reversing and currNum == 1) then
         if self.reverse then
           self.reversing = not self.reversing
+        elseif self.reversing then
+          imageNum = self.image_max
         else
           imageNum = 1
         end
