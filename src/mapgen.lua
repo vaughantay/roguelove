@@ -121,7 +121,7 @@ function mapgen:generate_map(branchID, depth,force)
       local upStairs = Feature('exit',{branch=build.branch,depth=build.depth-1})
       build:change_tile(upStairs,build.stairsUp.x,build.stairsUp.y)
     end
-    if build.depth < branch.max_depth then
+    if branch.infinite_depth or build.depth < branch.max_depth then
       local downStairs = Feature('exit',{branch=build.branch,depth=build.depth+1})
       build:change_tile(downStairs,build.stairsDown.x,build.stairsDown.y)
     end
