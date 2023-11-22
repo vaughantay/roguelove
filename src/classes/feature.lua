@@ -212,6 +212,14 @@ function Feature:action(activator,actionID)
   return false
 end
 
+---Check if a feature's action's requirements are met
+--@param activator Creature. The creature activating the feature.
+--@param actionID Text. The ID of the action (optional, only if a feature has multiple actions available).
+function Feature:action_requires(activator,actionID)
+  if possibleFeatures[self.id].action_requires then return possibleFeatures[self.id].action_requires(self,activator,actionID) end
+  return true
+end
+
 ---Perform a feature's cleanup() callback, if applicable.
 --@param map Map. The map the feature is on
 function Feature:cleanup(map)

@@ -192,7 +192,7 @@ function Store:get_buy_list(creat)
   for id,item in ipairs(creat.inventory) do
     if self.buys_items and self.buys_items[item.id] then
       buying[#buying+1]={item=item,cost=self.buys_items[item.id]}
-    elseif self.buys_tags and item.value then
+    elseif self.buys_tags and item:get_value() > 0 then
       for _,tag in ipairs(self.buys_tags) do
         if item:has_tag(tag) or item.itemType == tag then
           buying[#buying+1]={item=item,cost=math.max(math.floor((item:get_value()*(self.buy_markup or 1))/(self.currency_item and (self.money_per_currency_item or 10) or 1)),1)}

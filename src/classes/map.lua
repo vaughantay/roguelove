@@ -79,7 +79,7 @@ end
 --@return Boolean. Whether the tile is clear
 function Map:isClear(x,y,ctype,ignoreCreats,ignore_safety,projectile)
   if x < 2 or y < 2 or x >= self.width or y >= self.height then return false end
-	if (self[x][y] == "#") then return false end --if there's a wall there, it's not clear
+	if self:isWall(x,y) then return false end --if there's a wall there, it's not clear
   if ignoreCreats ~= true and self:get_tile_creature(x,y) then return false end --if there's a creature there, it's not clear
   if ctype ~= nil then return self:is_passable_for(x,y,ctype,false,ignore_safety,projectile) end --if you're asking about a specific creature type, pass it off
   --Otherwise, generic:
@@ -109,6 +109,53 @@ function Map:isEmpty(x,y,ignoreCreats,lookAtBaseTile)
 		end
 	end
 	return true
+end
+
+
+---Determines if a tile is a wall
+--@param x Number. The x-coordinate to check
+--@param y Number. The y-coordinate to check
+--@return boolean. Whether or not it is a wall tile
+function Map:isWall(x,y)
+  if not self:in_map(x,y) then return false end
+  if self[x][y] == "#" then return true end
+  if type(self[x][y]) == "table" and self[x][y].wall == true then return true end
+  for _,f in pairs(self:get_contents(x,y)) do
+    if f.wall then return true end
+  end
+  return false
+end
+
+---Determines if a tile's base is a floor. Does NOT check if the space is actually open
+--@param x Number. The x-coordinate to check
+--@param y Number. The y-coordinate to check
+--@return boolean. Whether or not it is a floor tile
+function Map:isFloor(x,y)
+  if not self:in_map(x,y) then return false end
+  if self[x][y] == "." then return true end
+  if type(self[x][y]) == "table" and self[x][y].floor == true then return true end
+  for _,f in pairs(self:get_contents(x,y)) do
+    if f.floor then return true end
+  end
+  return false
+end
+
+---Checks if the tile_info of a tile has a certain tag set, or if any of the features in that tile have that tag set
+--@param x Number. The x-coordinate to check
+--@param y Number. The y-coordinate to check
+--@param tag String. The tag to look for
+--@return boolean. Whether or not it has the tag
+function Map:tile_has_tag(x,y,tag)
+  if not self:in_map(x,y) then return false end
+  if self.tile_info[x][y][tag] then return true end
+  if type(self[x][y]) == "table" and self[x][y][tag] or (self[x][y].tags and in_table(tag,self[x][y].tags)) then
+    return true
+  end
+  for _,f in pairs(self:get_contents(x,y)) do
+    if f[tag] or (f.tags and in_table(tag,f.tags)) then
+      return true
+    end
+  end
 end
 
 ---Gets contents of a map tile
@@ -297,7 +344,7 @@ function Map:get_tile_actions(x,y,user,noAdjacent)
     for id, entity in pairs(self:get_tile_features(x,y)) do
       if entity.actions then
         for id,act in pairs(entity.actions) do
-          if not act.requires or act.requires(entity,user) then
+          if entity:action_requires(user,id) then
             actions[#actions+1] = {id=id,entity=entity,text=act.text,description=act.description,order=act.order,image=act.image,image_color=act.image_color,noDirection=act.noDirection}
           end --end requires if
         end --end action for
@@ -309,7 +356,7 @@ function Map:get_tile_actions(x,y,user,noAdjacent)
         for id, entity in pairs(self:get_tile_features(x2,y2)) do
           if entity.actions then
             for id,act in pairs(entity.actions) do
-              if not act.requires or act.requires(entity,user) then
+              if (not act.noAdjacent or (x2 == x and y2 == y)) and entity:action_requires(user,id) then
                 actions[#actions+1] = {id=id,entity=entity,text=act.text,description=act.description,order=act.order,image=act.image,image_color=act.image_color,noDirection=act.noDirection}
               end --end requires if
             end --end action for
@@ -1171,7 +1218,7 @@ function Map:populate_creatures(creatTotal,forceGeneric)
       if not placed then
         local cx,cy = random(2,self.width-1),random(2,self.height-1)
         local tries = 0
-        while self:is_passable_for(cx,cy,nc.pathType) == false or self:tile_has_feature(cx,cy,'door') or self:tile_has_feature(cx,cy,'gate') or self:tile_has_feature(cx,cy,'exit') or not self:isClear(cx,cy,nc.pathType) or self.tile_info[cx][cy].noCreatures do
+        while self:is_passable_for(cx,cy,nc.pathType) == false or self:tile_has_tag(cx,cy,'door') or self:tile_has_feature(cx,cy,'exit') or not self:isClear(cx,cy,nc.pathType) or self.tile_info[cx][cy].noCreatures do
           cx,cy = random(2,self.width-1),random(2,self.height-1)
           tries = tries+1
           if tries > 100 then break end
@@ -1195,7 +1242,7 @@ function Map:populate_creatures(creatTotal,forceGeneric)
         for i=1,spawn_amt,1 do
           local tries = 1
           local cx,cy = random(x-tries,x+tries),random(y-tries,y+tries)
-          while self:is_passable_for(cx,cy,nc.pathType) == false or self:tile_has_feature(cx,cy,'door') or self:tile_has_feature(cx,cy,'gate') or self:tile_has_feature(cx,cy,'exit') or not self:isClear(cx,cy,nc.pathType) or self.tile_info[cx][cy].noCreatures do
+          while self:is_passable_for(cx,cy,nc.pathType) == false or self:tile_has_tag(cx,cy,'door') or self:tile_has_feature(cx,cy,'exit') or not self:isClear(cx,cy,nc.pathType) or self.tile_info[cx][cy].noCreatures do
             cx,cy = random(x-tries,x+tries),random(y-tries,y+tries)
             tries = tries + 1
             if tries > 10 then break end
