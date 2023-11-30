@@ -752,7 +752,7 @@ function mapgen:make_blob(map,startX,startY,feature,decay,includeWalls)
     end --end feature if
     for x=point.x-1,point.x+1,1 do
       for y=point.y-1,point.y+1,1 do
-        if x > 1 and x < map.width and y > 1 and y < map.height and (x == point.x or y == point.y) and not (x==point.x and y==point.y) and (includeWalls or map[x][y] ~= "#") and doneHolder[x .. "," .. y] ~= true and random(1,100) <= point.spreadChance then
+        if x > 1 and x < map.width and y > 1 and y < map.height and (x == point.x or y == point.y) and not (x==point.x and y==point.y) and (includeWalls or not map:isWall(x,y)) and doneHolder[x .. "," .. y] ~= true and random(1,100) <= point.spreadChance then
           points[#points+1] = {x=x,y=y,spreadChance=point.spreadChance-decay}
         end --end bounds check
       end --end fory
@@ -916,7 +916,7 @@ function mapgen:contourBomb(map,tiles,iterations)
     for x=tile.x-size,tile.x+size,1 do
       for y=tile.y-size,tile.y+size,1 do
         if calc_distance(x,y,tile.x,tile.y) < size and x > 1 and y > 1 and x<map.width and y<map.height then
-          if map[x][y] ~= "." then
+          if not map:isFloor(x,y) then
             tiles[#tiles+1] = {x=x,y=y}
             newTiles[#tiles+1] = {x=x,y=y}
           end --end checking if this one's been done before

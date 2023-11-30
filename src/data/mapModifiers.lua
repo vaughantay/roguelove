@@ -36,7 +36,7 @@ local forest = function(map)
   if random(1,3) == 1 then --Turn unconnected walls into lakes
     for x=2,map.width-1,1 do
       for y=2,map.height-1,1 do
-        if (map[x][y] == "#" and floodFill[x][y] == nil) then
+        if (map:isWall(x,y) and floodFill[x][y] == nil) then
           --[[local neighbors = 0
           for ix=x-1,x+1,1 do
             for iy=y-1,y+1,1 do
@@ -63,7 +63,7 @@ local forest = function(map)
       local xMod,yMod = random(1,20000),random(1,20000)
       for x=2,map.width-1,1 do
         for y=2,map.height-1,1 do
-          if map[x][y] ~= "#" and love.math.noise((x+xMod)*.10,(y+yMod)*.10,seed) > .65 then
+          if not map:isWall(x,y) and love.math.noise((x+xMod)*.10,(y+yMod)*.10,seed) > .65 then
             map[x][y] = Feature('shallowwater',nil,x,y)
           end
         end --end fory
@@ -72,7 +72,7 @@ local forest = function(map)
       local lakes = tweak(math.ceil(math.max(map.height/10,map.width/10)))
       for i=1,lakes,1 do
         local x,y = random(2,map.width-1),random(2,map.height-1)
-        while map[x][y] == "#" do
+        while map:isWall(x,y) do
           x,y = random(2,map.width-1),random(2,map.height-1)
         end
         local tiles = mapgen:make_blob(map,x,y,'shallowwater')
@@ -126,7 +126,7 @@ local cave = function(build,hazard)
   for i=1,lakes,1 do
     local tries = 0
     local x,y = random(2,build.width-1),random(2,build.height-1)
-    while build[x][y] == "#" and tries < 100 do
+    while build:isWall(x,y) and tries < 100 do
       x,y = random(2,build.width-1),random(2,build.height-1)
       tries = tries + 1
     end
@@ -307,12 +307,12 @@ local dungeon = function(build,rooms,hallways)
     local placed = false
     while placed == false do
       x,y = random(2,width-1),random(2,height-1)
-      if build[x][y] == "#" and build[x][y+1] == "." then
+      if build:isWall(x,y) and build:isFloor(x,y+1) then
         placed = true
-      elseif build[x][y] == "#" and build[x+1][y] == "." then
+      elseif build:isWall(x,y) and  build:isFloor(x+1,y) then
         x=x+1
         placed = true
-      elseif build[x][y] == "#" and build[x-1][y] == "." then
+      elseif build:isWall(x,y) and  build:isFloor(x-1,y) then
         x=x-1
         placed = true
       end

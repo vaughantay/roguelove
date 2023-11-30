@@ -100,7 +100,7 @@ end
 --@return Boolean. Whether the tile is clear
 function Map:isEmpty(x,y,ignoreCreats,lookAtBaseTile)
   if x < 2 or y < 2 or x >= self.width or y >= self.height then return false end
-	if (self[x][y] == "#") then return false end --if there's a wall there, it's not clear
+	if self:isWall(x,y) then return false end --if there's a wall there, it's not clear
   if lookAtBaseTile == true and type(self[x][y]) == "table" then return false end
   if ignoreCreats ~= true and self:get_tile_creature(x,y) then return false end --if there's a creature there, it's not clear
 	for id, entity in pairs(self.contents[x][y]) do
@@ -721,10 +721,10 @@ function Map:refresh_tile_image(x,y)
   elseif self[x][y] == "." then
     name = "floor"
   elseif self[x][y] == "#" then
-    if self[x][y-1] and self[x][y-1] ~= "#" then directions = directions .. "n" end
-    if self[x][y+1] and self[x][y+1] ~= "#" then directions = directions .. "s" end
-    if self[x+1] and self[x+1][y] ~= "#" then directions = directions .. "e" end
-    if self[x-1] and self[x-1][y] ~= "#" then directions = directions .. "w" end
+    if self[x][y-1] and not self:isWall(x,y-1) then directions = directions .. "n" end
+    if self[x][y+1] and not self:isWall(x,y+1) then directions = directions .. "s" end
+    if self[x+1] and not self:isWall(x+1,y) then directions = directions .. "e" end
+    if self[x-1] and not self:isWall(x-1,y) then directions = directions .. "w" end
     if tileset.southOnly then
       if directions:find('s') then name = 'walls' else name = 'wall' end
     elseif tileset.tilemap then --if all wall tiles are in a single image (uses quads)
