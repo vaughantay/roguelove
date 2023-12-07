@@ -46,16 +46,10 @@ function newgame:draw()
   love.graphics.translate(0,math.floor(-((self.blackAmt and self.blackAmt/255 or 0/255))*height/2))
 
   -- Define some coordinates:
-  local nameBoxX=math.floor(width/2)-256+48-(prefs['noImages'] and 32 or 0)
-  local nameBoxY = 32
-  local nameBoxWidth = 512-128+(prefs['noImages'] and 96 or 0)
-  local selectBoxX = math.floor(width/3)+85
-  local selectBoxWidth = math.floor(width/3)-170
-  local pronounY = nameBoxY+32
   local screen = self:getScreen()
   local fontSize = 24
   
-  --Species and class print:
+  --Print the screen:
   if screen == "species" or screen == "classes" then
     setColor(255,255,255,255)
     love.graphics.setFont(fonts.graveFontSmall)
@@ -77,7 +71,7 @@ function newgame:draw()
     output:draw_window(classBoxX-windowPadding,classBoxY-windowPadding,classBoxX+classBoxW,classBoxY+classBoxH)
     output:draw_window(descBoxX-windowPadding,descBoxY-windowPadding,descBoxX+descBoxW,descBoxY+descBoxH)
     self.classDescSplit = descBoxX-windowPadding
-  
+
     --***Screen 1 - Species:
     if screen == "species" then
       local printY = classBoxY
@@ -285,162 +279,166 @@ function newgame:draw()
   --6: Copy/Paste buttons
   --7: Game Modifiers
   if screen == "name" then
+    local nameBoxX = 16
+    local printY = 32
+    local sideW = math.max(round(width/uiScale/2),512)
+    local nameBoxWidth = math.min(sideW-116-nameBoxX-16,512)
     --Delete scroll info from previous screens:
     self.classScrollPositions = nil
     self.maxClassScroll = 0
     self.classScrollY=0
-    self.descScrollPositions = nil
-    self.maxDescScroll=0
-    self.descScrollY=0
     setColor(255,255,255,255)
     love.graphics.setFont(fonts.graveFontSmall)
-    local w = fonts.graveFontSmall:getWidth("Name: ")
-    love.graphics.print("Name: ",nameBoxX-w,nameBoxY)
+    love.graphics.printf("Name:",nameBoxX,printY,nameBoxWidth,"center")
+    printY=printY+24
+    self.nameBox = {minX=nameBoxX,maxX=nameBoxX+nameBoxWidth,minY=printY,maxY=printY+24}
     if self.cursorY == 1 and self.cursorX == 1 then
       setColor(50,50,50,255)
-      love.graphics.rectangle('fill',nameBoxX,nameBoxY,nameBoxWidth,24)
+      love.graphics.rectangle('fill',nameBoxX,printY,nameBoxWidth,24)
       setColor(255,255,255,255)
-      love.graphics.printf(self.player.name,nameBoxX,nameBoxY,nameBoxWidth,"center")
+      love.graphics.printf(self.player.name,nameBoxX,printY,nameBoxWidth,"center")
       if self.lineOn then
         local w = fonts.graveFontSmall:getWidth(self.player.name)
         local lineX = nameBoxX+math.ceil(nameBoxWidth/2+w/2)
-        love.graphics.line(lineX,nameBoxY+4,lineX,nameBoxY+21)
+        love.graphics.line(lineX,printY+4,lineX,printY+21)
       end
-    elseif mouseY > 32 and mouseY < 56 and self.randomNameButton and (mouseY < self.randomNameButton.minY or mouseY > self.randomNameButton.maxY or mouseX < self.randomNameButton.minX or mouseX > self.randomNameButton.maxX) then
+    elseif mouseY > self.nameBox.minY and mouseY < self.nameBox.maxY and mouseX > self.nameBox.minX and mouseX < self.nameBox.maxX then
       setColor(33,33,33,255)
-      love.graphics.rectangle('fill',nameBoxX,nameBoxY,nameBoxWidth,24)
+      love.graphics.rectangle('fill',nameBoxX,printY,nameBoxWidth,24)
       setColor(255,255,255,255)
-      love.graphics.printf(self.player.name,nameBoxX,nameBoxY,nameBoxWidth,"center")
+      love.graphics.printf(self.player.name,nameBoxX,printY,nameBoxWidth,"center")
     else
-      love.graphics.printf(self.player.name,nameBoxX,nameBoxY,nameBoxWidth,"center")
+      love.graphics.printf(self.player.name,nameBoxX,printY,nameBoxWidth,"center")
     end
-    love.graphics.rectangle('line',nameBoxX,nameBoxY,nameBoxWidth,24)
+    love.graphics.rectangle('line',nameBoxX,printY,nameBoxWidth,24)
     
     --Randomize button:
     --function output:button(x,y,width,small,special,text,useScaling)
-    self.randomNameButton = output:button(nameBoxX+nameBoxWidth+16,nameBoxY,100,nil,(self.cursorY == 1 and self.cursorX == 2 and "hover" or nil),"Randomize",true)
+    self.randomNameButton = output:button(nameBoxX+nameBoxWidth+16,printY,100,nil,(self.cursorY == 1 and self.cursorX == 2 and "hover" or nil),"Randomize",true)
+    
+    printY=printY+32
     
     --Draw Pronouns:
     love.graphics.setFont(fonts.graveFontSmall)
     local w = fonts.graveFontSmall:getWidth("Pronouns: ")
-    love.graphics.print("Pronouns: ",nameBoxX-w,pronounY)
+    love.graphics.print("Pronouns: ",nameBoxX,printY)
     self.pronouns = {}
     local custom = self.player.pronouns and {n=self.player.pronouns.n,o=self.player.pronouns.o,p=self.player.pronouns.p} or {n="he",o="them",p="her"}
     local pnounlist = {male={n="he",o="him",p="his"},female={n="she",o="her",p="her"},neuter={n="it",o="it",p="its"},other={n="they",o="them",p="their"},custom=custom}
-    if self.cursorY == 2 or (mouseY > pronounY and mouseY < pronounY+24) then
-      local genderX = 1
-      local printX = nameBoxX
+    local genderX = 1
+    if self.cursorY == 2 or (mouseY > printY and mouseY < printY+24) then
+      local printX = nameBoxX+w
       local pnouns = ucfirst(pnounlist[self.player.gender].n) .. "/" .. ucfirst(pnounlist[self.player.gender].o) .. "/" .. ucfirst(pnounlist[self.player.gender].p)
       w = fonts.graveFontSmall:getWidth(pnouns)
-      if (self.cursorX == genderX and (mouseY < pronounY or mouseY > pronounY+24)) or (mouseY > pronounY and mouseY < pronounY+24 and mouseX > printX and mouseX < printX+w) then
+      if (self.cursorX == genderX and (mouseY < printY or mouseY > printY+24)) or (mouseY > printY and mouseY < printY+24 and mouseX > printX and mouseX < printX+w) then
         setColor(50,50,50,255)
-        love.graphics.rectangle("fill",printX,pronounY,w,24)
+        love.graphics.rectangle("fill",printX,printY,w,24)
         setColor(255,255,255,255)
       end
-      love.graphics.print(pnouns,printX,pronounY)
-      self.pronouns[1] = {gender=self.player.gender,minX = printX,maxX = printX+w,minY=pronounY,maxY=pronounY+24}
+      love.graphics.print(pnouns,printX,printY)
+      self.pronouns[1] = {gender=self.player.gender,minX = printX,maxX = printX+w,minY=printY,maxY=printY+24}
       printX=printX+w+12
       if self.player.gender ~= "male" then
         genderX = genderX+1
         pnouns = "He"
         w = fonts.graveFontSmall:getWidth(pnouns)
-        if (self.cursorX == genderX and (mouseY < pronounY or mouseY > pronounY+24)) or (mouseY > pronounY and mouseY < pronounY+24 and mouseX > printX and mouseX < printX+w+12) then
+        if (self.cursorX == genderX and (mouseY < printY or mouseY > printY+24)) or (mouseY > printY and mouseY < printY+24 and mouseX > printX and mouseX < printX+w+12) then
           setColor(50,50,50,255)
-          love.graphics.rectangle("fill",printX,pronounY,w,24)
+          love.graphics.rectangle("fill",printX,printY,w,24)
           setColor(255,255,255,255)
         end
-        love.graphics.print(pnouns,printX,pronounY)
-        self.pronouns[#self.pronouns+1] = {gender="male",minX = printX,maxX = printX+w+12,minY=pronounY,maxY=pronounY+24}
+        love.graphics.print(pnouns,printX,printY)
+        self.pronouns[#self.pronouns+1] = {gender="male",minX = printX,maxX = printX+w+12,minY=printY,maxY=printY+24}
         printX = printX+w+12
       end
       if self.player.gender ~= "female" then
         genderX = genderX+1
         pnouns = "She"
         w = fonts.graveFontSmall:getWidth(pnouns)
-        if (self.cursorX == genderX and (mouseY < pronounY or mouseY > pronounY+24)) or (mouseY > pronounY and mouseY < pronounY+24 and mouseX > printX and mouseX < printX+w+12) then
+        if (self.cursorX == genderX and (mouseY < printY or mouseY > printY+24)) or (mouseY > printY and mouseY < printY+24 and mouseX > printX and mouseX < printX+w+12) then
           setColor(50,50,50,255)
-          love.graphics.rectangle("fill",printX,pronounY,w,24)
+          love.graphics.rectangle("fill",printX,printY,w,24)
           setColor(255,255,255,255)
         end
-        love.graphics.print(pnouns,printX,pronounY)
-        self.pronouns[#self.pronouns+1] = {gender="female",minX = printX,maxX = printX+w+12,minY=pronounY,maxY=pronounY+24}
+        love.graphics.print(pnouns,printX,printY)
+        self.pronouns[#self.pronouns+1] = {gender="female",minX = printX,maxX = printX+w+12,minY=printY,maxY=printY+24}
         printX = printX+w+12
       end
       if self.player.gender ~= "neuter" then
         genderX = genderX+1
         pnouns = "It"
         w = fonts.graveFontSmall:getWidth(pnouns)
-        if (self.cursorX == genderX and (mouseY < pronounY or mouseY > pronounY+24)) or (mouseY > pronounY and mouseY < pronounY+24 and mouseX > printX and mouseX < printX+w+12) then
+        if (self.cursorX == genderX and (mouseY < printY or mouseY > printY+24)) or (mouseY > printY and mouseY < printY+24 and mouseX > printX and mouseX < printX+w+12) then
           setColor(50,50,50,255)
-          love.graphics.rectangle("fill",printX,pronounY,w,24)
+          love.graphics.rectangle("fill",printX,printY,w,24)
           setColor(255,255,255,255)
         end
-        love.graphics.print(pnouns,printX,pronounY)
-        self.pronouns[#self.pronouns+1] = {gender="neuter",minX = printX,maxX = printX+w+12,minY=pronounY,maxY=pronounY+24}
+        love.graphics.print(pnouns,printX,printY)
+        self.pronouns[#self.pronouns+1] = {gender="neuter",minX = printX,maxX = printX+w+12,minY=printY,maxY=printY+24}
         printX = printX+w+12
       end
       if self.player.gender ~= "other" then 
         genderX = genderX+1
         pnouns = "They"
         w = fonts.graveFontSmall:getWidth(pnouns)
-        if (self.cursorX == genderX and (mouseY < pronounY or mouseY > pronounY+24)) or (mouseY > pronounY and mouseY < pronounY+24 and mouseX > printX and mouseX < printX+w+12) then
+        if (self.cursorX == genderX and (mouseY < printY or mouseY > printY+24)) or (mouseY > printY and mouseY < printY+24 and mouseX > printX and mouseX < printX+w+12) then
           setColor(50,50,50,255)
-          love.graphics.rectangle("fill",printX,pronounY,w,24)
+          love.graphics.rectangle("fill",printX,printY,w,24)
           setColor(255,255,255,255)
         end
-        love.graphics.print(pnouns,printX,pronounY)
-        self.pronouns[#self.pronouns+1] = {gender="other",minX = printX,maxX = printX+printX+w+12,minY=pronounY,maxY=pronounY+24}
+        love.graphics.print(pnouns,printX,printY)
+        self.pronouns[#self.pronouns+1] = {gender="other",minX = printX,maxX = printX+printX+w+12,minY=printY,maxY=printY+24}
         printX = printX+w+12
       end
       genderX = genderX+1
       pnouns = "Custom"
       w = fonts.graveFontSmall:getWidth(pnouns)
-      if (self.cursorX == genderX and (mouseY < pronounY or mouseY > pronounY+24)) or (mouseY > pronounY and mouseY < pronounY+24 and mouseX > printX and mouseX < printX+w+12) then
+      if (self.cursorX == genderX and (mouseY < printY or mouseY > printY+24)) or (mouseY > printY and mouseY < printY+24 and mouseX > printX and mouseX < printX+w+12) then
         setColor(50,50,50,255)
-        love.graphics.rectangle("fill",printX,pronounY,w,24)
+        love.graphics.rectangle("fill",printX,printY,w,24)
         setColor(255,255,255,255)
       end
-      love.graphics.print(pnouns,printX,pronounY)
-      self.pronouns[#self.pronouns+1] = {gender="custom",minX = printX,maxX = printX+printX+w+12,minY=pronounY,maxY=pronounY+24}
+      love.graphics.print(pnouns,printX,printY)
+      self.pronouns[#self.pronouns+1] = {gender="custom",minX = printX,maxX = printX+printX+w+12,minY=printY,maxY=printY+24}
       printX = printX+w+12
     else
       local pnouns = ucfirst(pnounlist[self.player.gender].n) .. "/" .. ucfirst(pnounlist[self.player.gender].o) .. "/" .. ucfirst(pnounlist[self.player.gender].p)
       w = fonts.graveFontSmall:getWidth(pnouns)
-      self.pronouns[1] = {gender=self.player.gender,minX = nameBoxX,maxX = nameBoxX+w,minY=pronounY,maxY=pronounY+24}
-      love.graphics.print(pnouns,nameBoxX,pronounY)
+      self.pronouns[1] = {gender=self.player.gender,minX = nameBoxX,maxX = nameBoxX+w,minY=printY,maxY=printY+24}
+      love.graphics.print(pnouns,nameBoxX+w,printY)
     end
     --Tutorial Checkbox:
-    local printY = 100
+    printY = printY+50
     local padding = (prefs['noImages'] and 16 or 32)
     love.graphics.setFont(fonts.graveFontSmall)
-    local textWidth = fonts.graveFontSmall:getWidth("Tutorial Messages?")
-    if self.cursorY == 3 then
+    local textWidth = fonts.graveFontSmall:getWidth("Tutorial Messages? (Y)")
+    local tutX = round(sideW/2-textWidth/2)
+    if self.cursorY == 3 and self.cursorX == 1 then
       setColor(100,100,100,255)
-      love.graphics.rectangle('fill',nameBoxX,printY,nameBoxWidth,24)
+      love.graphics.rectangle('fill',tutX-32,printY,textWidth+64,24)
       setColor(255,255,255,255)
-    elseif (mouseY > printY and mouseY < printY+24 and mouseX > nameBoxX and mouseX < nameBoxX+nameBoxWidth) then
+    elseif (mouseY > printY and mouseY < printY+24 and mouseX > tutX and mouseX < tutX+textWidth) then
       setColor(50,50,50,255)
-      love.graphics.rectangle('fill',nameBoxX,printY,nameBoxWidth,24)
+      love.graphics.rectangle('fill',tutX-32,printY,textWidth+64,24)
       setColor(255,255,255,255)
     end
     if prefs['noImages'] then
-      love.graphics.print((self.tutorial and "(Y)" or "(N)"),math.floor(width/2-textWidth/2-padding*2),printY)
+      love.graphics.print((self.tutorial and "(Y)" or "(N)"),tutX,printY)
     else
-      love.graphics.draw((self.tutorial and images.uicheckboxchecked or images.uicheckbox),math.floor(width/2-textWidth/2-padding/2),math.floor(printY+padding/8))
+      love.graphics.draw((self.tutorial and images.uicheckboxchecked or images.uicheckbox),tutX-16,math.floor(printY+padding/8))
     end
-    love.graphics.print("Tutorial Messages?",math.floor(width/2-textWidth/2+padding/2),printY)
+    love.graphics.print("Tutorial Messages?",tutX+16,printY)
     self.tutorialBox = {minX=nameBoxX, maxX=nameBoxX+nameBoxWidth, minY=printY, maxY=printY+24}
     printY = printY+padding
     
     --Begin Button:
-    self.beginButton = output:button(math.floor(width/2-75),printY,150,false,(self.cursorY == 4 and "hover" or nil),nil,true)
-    love.graphics.printf("BEGIN",math.floor(width/4),printY,width/2,"center")
+    self.beginButton = output:button(math.floor(sideW/2-75),printY,150,false,((self.cursorY == 4  and self.cursorX == 1) and "hover" or nil),"BEGIN",true)
     printY = printY+64
     
     --Seed info:
     local seedWidth = fonts.textFont:getWidth("Seed: 100000000000")
-    local seedX = math.ceil(width/2-seedWidth/2)
-    if self.cursorY == 5 then
+    local seedX = math.ceil(sideW/2-seedWidth/2)
+    if self.cursorY == 5  and self.cursorX == 1  then
       setColor(50,50,50,255)
       love.graphics.rectangle('fill',seedX,printY,seedWidth,prefs['fontSize']+2)
       local w = fonts.textFont:getWidth("Seed: " .. (self.seed or ""))
@@ -462,10 +460,71 @@ function newgame:draw()
     printY = self.seedBox.maxY+16
 
     --Copy/paste buttons:
-    self.copyButton = output:button(math.floor(width/2-74),printY,64,false,((self.cursorY == 6 and self.cursorX == 1) and "hover" or nil),"Copy",true)
-    self.pasteButton = output:button(math.ceil(width/2),printY,64,false,((self.cursorY == 6 and self.cursorX == 2) and "hover" or nil),"Paste",true)
+    self.copyButton = output:button(math.floor(sideW/2-74),printY,64,false,((self.cursorY == 6 and self.cursorX == 1) and "hover" or nil),"Copy",true)
+    self.pasteButton = output:button(math.ceil(sideW/2),printY,64,false,((self.cursorY == 6 and self.cursorX == 2) and "hover" or nil),"Paste",true)
     --Cheats button:
-    self.cheatsButton = output:button(math.ceil(width/2)-64,printY+42,136,false,(self.cursorY == 7 and "hover" or nil),"Game Modifiers",true)
+    self.cheatsButton = output:button(math.ceil(sideW/2)-64,printY+42,136,false,((self.cursorY == 7  and self.cursorX == 1) and "hover" or nil),"Game Modifiers",true)
+    
+    self.maxX = {[1]=2,[2]=genderX,[6]=2}
+    
+    --Display character info:
+    local windowPadding=8
+    local descBoxX = math.ceil(width/uiScale/2)
+    local descBoxY = 32
+    local descBoxH = height-descBoxY-48
+    local descBoxW = width-descBoxX-windowPadding*2-32
+    local maxDescLines = math.floor(descBoxH/prefs['fontSize'])
+    self.classDescSplit = descBoxX
+    output:draw_window(descBoxX-windowPadding,descBoxY-windowPadding,descBoxX+descBoxW+windowPadding,descBoxY+descBoxH+windowPadding)
+    
+    local desc = self:get_stat_text()
+    local class = (self.player.class and playerClasses[self.player.class] or nil)
+    local creature = possibleMonsters[(self.player.species or gamesettings.default_player)]
+    love.graphics.setFont(fonts.textFont)
+    local className = ucfirst(creature.name) .. (class and " " .. ucfirst(class.name) or "")
+    local _, tlines = fonts.textFont:getWrap(className,descBoxW)
+    local _,dlines = fonts.textFont:getWrap(desc,descBoxW)
+    local descYpad = (#tlines+2)*prefs['fontSize']
+    local finalTextHeight = descYpad+(#dlines+2)*prefs['fontSize']
+    local finalY = descBoxY+finalTextHeight
+    local totalLines = #tlines+#dlines+4
+    if totalLines > maxDescLines then
+      _, tlines = fonts.textFont:getWrap(className,descBoxW-64)
+      _,dlines = fonts.textFont:getWrap(desc,descBoxW-32)
+      descYpad = (#tlines+2)*prefs['fontSize']
+      finalTextHeight = descYpad+(#dlines+2)*prefs['fontSize']
+      finalY = descBoxY+finalTextHeight
+      local totalLines = #tlines+#dlines+4
+      love.graphics.push()
+      --Create a "stencil" that stops stuff from being drawn outside borders
+      local function stencilFunc()
+        love.graphics.rectangle("fill",descBoxX,descBoxY,descBoxW+32,descBoxH+32)
+      end
+      love.graphics.stencil(stencilFunc,"replace",1)
+      love.graphics.setStencilTest("greater",0)
+      love.graphics.translate(0,-self.descScrollY*prefs['fontSize'])
+      love.graphics.printf(className,descBoxX+32,descBoxY,descBoxW-64,"center")
+      love.graphics.printf(desc,descBoxX+2,descBoxY+descYpad,descBoxW-32,"left")
+      love.graphics.setStencilTest()
+      love.graphics.pop()
+      local oldMax = self.maxDescScroll
+      self.maxDescScroll = totalLines-maxDescLines+1
+      if oldMax ~= self.maxDescScroll then self.descScrollY=0 end
+      local scrollAmt = (self.descScrollY)/self.maxDescScroll
+      if self.cursorX > (self.maxX and self.maxX[self.cursorY] or 1) then
+        setColor(50,50,50,255)
+        love.graphics.rectangle("fill",descBoxX+descBoxW-6+4,descBoxY,24,descBoxH+24)
+        setColor(255,255,255,255)
+      end
+      self.descScrollPositions = output:scrollbar(descBoxX+descBoxW-6,descBoxY,descBoxY+descBoxH+24,scrollAmt,true)
+    else
+      love.graphics.printf(className,descBoxX,descBoxY,descBoxW,"center")
+      love.graphics.printf(desc,descBoxX+2,descBoxY+descYpad,descBoxW,"left")
+      self.descScrollPositions = nil
+      self.maxDescScroll=0
+      self.descScrollY=0
+    end
+    love.graphics.setFont(fonts.graveFontSmall)
   end
   
   --close button:
@@ -501,7 +560,9 @@ function newgame:buttonpressed(key)
         self:refresh_class_list()
       end
     else
-      if self.cursorY == 0 then -- not selecting anyting
+      if self.cursorX > (self.maxX and self.maxX[self.cursorY] or 1) then
+        self.cursorX = self.cursorX - 1
+      elseif self.cursorY == 0 then -- not selecting anyting
         self.cursorY = 4 --select button
       elseif self.cursorY == 1 and self.cursorX == 1 then -- name entry
         self.cursorY = 2
@@ -543,11 +604,11 @@ function newgame:buttonpressed(key)
       self.seed = newSeed
     end
   elseif key == "north" then
-    if self.cursorX == 2 and (screen == "species" or screen == "classes") then
+    if (self.cursorX == 2 and (screen == "species" or screen == "classes")) or (screen == "name" and self.cursorX > (self.maxX and self.maxX[self.cursorY] or 1)) then
       self:descScrollUp()
     elseif self.cursorY > 1 then
       self.cursorY = self.cursorY - 1
-      if self.cursorY == 2 and screen == "name" then
+      if screen == "name" then
         self.cursorX = 1
       end
       if self.classScrollPositions and self.cursorY-self.classScrollY < 1 then
@@ -555,15 +616,15 @@ function newgame:buttonpressed(key)
       end
     end
   elseif key == "south" then
-    if (screen == "species" and self.cursorX == 1 and self.cursorY < #self.species) or (screen == "classes" and self.cursorX == 1 and self.cursorY < #self.classes) or (screen == "name" and self.cursorY <= 6) then
+    if (screen == "species" and self.cursorX == 1 and self.cursorY < #self.species) or (screen == "classes" and self.cursorX == 1 and self.cursorY < #self.classes) or (screen == "name" and self.cursorY <= 6 and self.cursorX <= (self.maxX and self.maxX[self.cursorY] or 1)) then
       self.cursorY = self.cursorY + 1
-      if self.cursorY == 2 and screen == "name" then
+      if screen == "name" then
         self.cursorX = 1
       end
       if self.classScrollPositions and self.cursorY-self.classScrollY > self.maxClassLines then
         self:classScrollDown()
       end
-    elseif self.cursorX == 2 and (screen == "species" or screen == "classes") then
+    elseif (self.cursorX == 2 and (screen == "species" or screen == "classes")) or (screen == "name" and self.cursorX > (self.maxX and self.maxX[self.cursorY] or 1)) then
       self:descScrollDown()
     end
   elseif key == "west" then
@@ -571,7 +632,7 @@ function newgame:buttonpressed(key)
   elseif key == "east" then
     if screen == "species" or screen == "classes" and self.descScrollPositions then
       self.cursorX = 2
-    elseif screen == "name" then
+    elseif screen == "name" and self.cursorX < (self.maxX and self.maxX[self.cursorY] or 1)+1 then
       self.cursorX = self.cursorX + 1
     end
   elseif tonumber(key) and self.cursorY == 5 and screen == "name" then
@@ -580,15 +641,7 @@ function newgame:buttonpressed(key)
       self.seed = newSeed
     end --end seed bounds check
   elseif origKey == "escape" then
-    if screen == "species" then
-      Gamestate.switch(menu)
-    elseif screen == "classes" then
-      self.player.species=nil
-      self.cursorY = 1
-    elseif screen == "name" then
-      self.player.class=nil
-      self.cursorY = 1
-    end
+    self:goBack()
   end --end key if
 end
 
@@ -598,32 +651,22 @@ function newgame:mousepressed(x,y,button)
   local screen = self:getScreen()
   if self.blackAmt then return false end
   if button == 2 then
-    Gamestate.switch(menu)
+    self:goBack()
     return
   end
   local width = love.graphics.getWidth()
   local nameBoxX=math.floor(width/2)-256+48-(prefs['noImages'] and 32 or 0)
   local nameBoxWidth = 512-128+(prefs['noImages'] and 96 or 0)
   if x > self.closebutton.minX and x < self.closebutton.maxX and y > self.closebutton.minY and y < self.closebutton.maxY then
-     if screen == "species" then
-      Gamestate.switch(menu)
-    elseif screen == "classes" then
-      self.player.species=nil
-      self.cursorY = 1
-      self.cursorX = 1
-    elseif screen == "name" then
-      self.player.class=nil
-      self.cursorY = 1
-      self.cursorX = 1
-    end
+    self:goBack()
     return
   end
   
   --Name Selection:
   if self.randomNameButton and y >= self.randomNameButton.minY and y <= self.randomNameButton.maxY and x >= self.randomNameButton.minX and x <= self.randomNameButton.maxX then
     self:randomize_player_name()
-  elseif y > 32 and y<56 then
-    self.cursorY = 1
+  elseif self.nameBox and y > self.nameBox.minY and y<self.nameBox.maxY and x>self.nameBox.minX and x<self.nameBox.maxX then
+    self.cursorY,self.cursorX = 1,1
   end
   
   --Pronoun Selection:
@@ -724,10 +767,6 @@ function newgame:update(dt)
   if self.cursorY < 0 then self.cursorY = 0 end
   if self.cursorX < 1 then
     self.cursorX = 1
-  elseif self.pronouns and self.cursorY == 2 and self.cursorX > #self.pronouns then
-    self.cursorX = #self.pronouns
-  elseif self.cursorX > 2 and self.cursorY ~= 2 then
-    self.cursorX = 2
   end
 	local x,y = love.mouse.getPosition()
   x,y = x/uiScale,y/uiScale
@@ -839,6 +878,19 @@ end
 
 function newgame:descScrollDown()
   self.descScrollY = math.min(self.descScrollY+1,(self.maxDescScroll or 0))
+end
+
+function newgame:goBack()
+  local screen = self:getScreen()
+  if screen == "species" then
+    Gamestate.switch(menu)
+  elseif screen == "classes" then
+    self.player.species=nil
+    self.cursorY = 1
+  elseif screen == "name" then
+    self.player.class=nil
+    self.cursorY = 1
+  end
 end
 
 function newgame:refresh_class_list()
