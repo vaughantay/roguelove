@@ -450,6 +450,16 @@ function spellscreen:draw()
               local statName = (spell.stats and spell.stats[stat] and spell.stats[stat].name or ucfirst(stat))
               statName = string.gsub(statName,'_',' ')
               statText = statText .. "\n\t" .. statName .. (type(amt) == "number" and (amt < 0 and " " or " +") or ": ") .. amt .. (spell.stats and spell.stats[stat] and spell.stats[stat].is_percentage and "%" or "")
+            elseif stat == "stat_cost" then
+              for statID,cost in pairs(amt) do
+                local name = (self.possessor and self.possessor.extra_stats[statID].name or ucfirst(statID))
+                statText = statText .. "\n\t" .. name .. " Cost: " .. (cost > 0 and "+" or "" ) .. cost .. "\n"
+              end
+            elseif stat == "items_consumed" then
+              for itemID,cost in pairs(amt) do
+                local name = ucfirst(possibleItems[itemID].name)
+                statText = statText .. "\n\t" .. name .. " Cost: " .. (cost > 0 and "+" or "" ) .. cost .. "\n"
+              end
             end
           end --end stat for
           local costText = ""

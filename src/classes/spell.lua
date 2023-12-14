@@ -66,14 +66,13 @@ function Spell:get_info()
       statText = statText .. name .. " Cost: " .. cost .. "\n"
     end
   end
-  if self.item_cost then
-    for _,item_details in pairs(self.item_cost) do
-      local amount = (item_details.amount or 1)
+  if self.items_consumed then
+    for itemID,amount in pairs(self.items_consumed) do
       local has_amt
       if self.possessor then 
-        _,_,has_amt = self.possessor:has_item(item_details.item,item_details.sortBy)
+        _,_,has_amt = self.possessor:has_item(itemID)
       end
-      local name = ucfirst((item_details.displayName or possibleItems[item_details.item].name))
+      local name = ucfirst(possibleItems[itemID].name)
       statText = statText .. name .. " Cost: " .. amount .. (type(has_amt) == "number" and " (You have " .. has_amt .. ")" or "") .. "\n"
     end
   end
@@ -260,10 +259,9 @@ function Spell:use(target, caster, ignoreCooldowns, ignoreCost)
             end
           end
         end
-        if self.item_cost then
-          for _,item_details in pairs(self.item_cost) do
-            local amount = (item_details.amount or 1)
-            local item = caster:has_item(item_details.item,item_details.sortBy)
+        if self.items_consumed then
+          for itemID,amount in pairs(self.items_consumed) do
+            local item = caster:has_item(itemID)
             caster:delete_item(item,amount)
           end
         end
@@ -309,12 +307,11 @@ function Spell:can_use(target, caster, ignoreCooldowns, ignoreCost)
       end
     end
   end
-  if self.item_cost then
-    for _,item_details in pairs(self.item_cost) do
-      local amount = (item_details.amount or 1)
-      local has,_,has_amt = caster:has_item(item_details.item,item_details.sortBy)
+  if self.items_consumed then
+    for itemID,amount in pairs(self.items_consumed) do
+      local has,_,has_amt = caster:has_item(itemID)
       if not has or has_amt < amount then
-        return false,"You don't have enough " .. (item_details.displayName or (amount > 1 and possibleItems[item_details.item].pluralName or possibleItems[item_details.item].name)) .. " to use that ability."
+        return false,"You don't have enough " .. (amount > 1 and possibleItems[item_details.item].pluralName or possibleItems[item_details.item].name) .. " to use that ability."
       end
     end
   end
@@ -725,9 +722,9 @@ function Spell:apply_upgrade(upgradeID,force)
           for scost, val in pairs(value) do
             self.stat_cost[scost] = (self.stat_cost[scost] or 0) + val
           end
-        elseif stat == "item_cost" then
-          for _,item_details in pairs(value) do
-            --TODO: rework all item_costs?
+        elseif stat == "items_consumed" then
+          for itemID,val in pairs(value) do
+            self.items_consumed[itemID] = (self.items_consumed[itemID] or 0) + val
           end
         else
           self[stat] = (type(value) == "number" and self[stat] + value or value)
