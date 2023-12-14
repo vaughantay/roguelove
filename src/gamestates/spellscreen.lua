@@ -78,10 +78,6 @@ function spellscreen:draw()
     love.graphics.printf(spellPoints .. " ability point" .. (spellPoints == 1 and " available" or "s available"),padding,printY,window1w,"center")
     printY = printY+fontSize
   end
-  if spellSlots and spellSlots > 0 then
-    love.graphics.printf(spellSlots .. " open spell slot" .. (spellSlots == 1 and "" or "s"),padding,printY,window1w,"center")
-    printY = printY+round(fontSize*1.5)
-  end
   self.startY = printY
   
   --Display filter buttons:
@@ -102,6 +98,7 @@ function spellscreen:draw()
 	local spells = {}
   local line=1
   local mousedSpell = nil
+  local slotcount = 0
   if self.unmemorized and #self.unmemorized > 0 then
     love.graphics.printf("Memorized Spells",x+padX,printY,window1w-x-padX,"center")
     printY=printY+round(fontSize*1.5)
@@ -138,18 +135,47 @@ function spellscreen:draw()
     else
       setColor((active and (upgrade and 200 or 100) or 255),255,(upgrade and 0 or (active and 100 or 255)),255)
     end --end cooldowns if
-    local fullText = (spell.hotkey and spell.hotkey .. ") " or "") .. name .. (player.cooldowns[name] and " (" .. player.cooldowns[name] .. " turns to recharge)" or "") .. (target_type == "passive" and " (Passive)" or "") .. (active and " (Active)" or "") .. (upgrade and " (+)" or "")
+    if not spell.freeSlot then
+      slotcount = slotcount + 1
+    end
+    local fullText = (spell.freeSlot and "-) " or slotcount .. ") ") .. name .. (player.cooldowns[name] and " (" .. player.cooldowns[name] .. " turns to recharge)" or "") .. (target_type == "passive" and " (Passive)" or "") .. (active and " (Active)" or "") .. (upgrade and " (+)" or "")
 		love.graphics.print(fullText,x+padX,printY)
     setColor(255,255,255,255)
 		line = line+1
     self.spellList[i] = {minY=printY,maxY=printY+fontSize+2,spell=spell}
     printY = printY+fontSize+2
 	end
+  if spellSlots and spellSlots > 0 then
+    love.graphics.printf("Free Slots",x+padX,printY,window1w-x-padX,"center")
+    printY=printY+round(fontSize*1.5)
+    for i=1,spellSlots,1 do
+      local slot = i+count(playerSpells)
+      local moused = (mouseX > printX and mouseX < window1w and mouseY+self.scrollY > printY and mouseY+self.scrollY < printY+fontSize+2)
+      --Draw the highlight box:
+      if (self.cursorY == slot) then
+        setColor(100,100,100,255)
+        love.graphics.rectangle("fill",x+padX,printY,window1w-padX*2,fontSize+2)
+        setColor(255,255,255,255)
+      elseif moused then
+        setColor(100,100,100,125)
+        love.graphics.rectangle("fill",x+padX,printY,window1w-padX*2,fontSize+2)
+        setColor(255,255,255,255)
+        mousedSpell = slot
+      end
+      slotcount = slotcount + 1
+      local fullText = slotcount .. ") -"
+      love.graphics.print(fullText,x+padX,printY)
+      setColor(255,255,255,255)
+      line = line+1
+      self.spellList[slot] = {minY=printY,maxY=printY+fontSize+2,spell=nil}
+      printY = printY+fontSize+2
+    end
+  end
   if self.unmemorized and #self.unmemorized > 0 then
     love.graphics.printf("Unmemorized Spells",x+padX,printY,window1w-x-padX,"center")
     printY=printY+round(fontSize*1.5)
     for i, spell in pairs(self.unmemorized) do
-      local index = #playerSpells+i
+      local index = #playerSpells+i+(spellSlots or 0)
       local moused = (mouseX > printX and mouseX < window1w and mouseY+self.scrollY > printY and mouseY+self.scrollY < printY+fontSize+2)
       local spellID = spell.id
       spells[index] = spellID
@@ -189,7 +215,7 @@ function spellscreen:draw()
   local spellEntry = (self.spellList[self.cursorY] or self.spellList[mousedSpell])
   self.buttons = {}
   self.upgradebuttons = {}
-  if spellEntry ~= nil then
+  if spellEntry ~= nil and spellEntry.spell then
     local spell = spellEntry.spell
     love.graphics.push()
     --Draw the actual spell info:
@@ -491,7 +517,7 @@ function spellscreen:buttonpressed(key)
       self.cursorX = 1
     end
 	elseif (key == "enter") or key == "wait" then
-    if self.cursorX == 1 and self.spellList[self.cursorY] then
+    if self.cursorX == 1 and self.spellList[self.cursorY] and self.spellList[self.cursorY].spell then
       self:select_spell(self.cursorY)
     elseif self.cursorX == 2 then
       local spell = self.spellList[self.cursorY].spell
@@ -579,7 +605,7 @@ function spellscreen:buttonpressed(key)
       end
     end
   elseif (key == "east") then
-    if self.spellList[self.cursorY] then self:select_spell(self.cursorY) end
+    if self.spellList[self.cursorY] and self.spellList[self.cursorY].spell then self:select_spell(self.cursorY) end
   elseif (key == "west") then
     self.cursorX = 1
 	end
@@ -592,7 +618,7 @@ function spellscreen:mousepressed(x,y,button)
   if x > self.x and x < self.sidebarX-(self.scrollPositions and self.padding or 0) then
     self.cursorX = 1 --if a spell is selected, unselect it
     for index,coords in ipairs(self.spellList) do
-      if y+self.scrollY > coords.minY and y+self.scrollY < coords.maxY then
+      if coords.spell and y+self.scrollY > coords.minY and y+self.scrollY < coords.maxY then
         self:select_spell(index)
       end
     end
