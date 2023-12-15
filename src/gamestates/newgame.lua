@@ -632,7 +632,7 @@ function newgame:buttonpressed(key)
   elseif key == "east" then
     if screen == "species" or screen == "classes" and self.descScrollPositions then
       self.cursorX = 2
-    elseif screen == "name" and self.cursorX < (self.maxX and self.maxX[self.cursorY] or 1)+1 then
+    elseif screen == "name" and self.cursorX < (self.maxX and self.maxX[self.cursorY] or 1)+(self.descScrollPositions and 1 or 0) then
       self.cursorX = self.cursorX + 1
     end
   elseif tonumber(key) and self.cursorY == 5 and screen == "name" then
