@@ -37,14 +37,18 @@ end
 --@param no_reqtext Boolean. If true, don't show the text that explains why you can't use the ability.
 --@return String. The description of the spell.
 function Spell:get_description(no_reqtext)
-  local req, reqtext = self:requires(player)
-  if reqtext then
-    reqtext = "\n\nYou can't use this ability right now:\n" .. reqtext
-  else
-    if req == false then reqtext = "\n\nYou can't use this ability right now."
-    else reqtext = "" end
-  end
+  if self.possessor then
+    local req, reqtext = self:requires(player)
+    if reqtext then
+      reqtext = "\n\nYou can't use this ability right now:\n" .. reqtext
+    else
+      if req == false then reqtext = "\n\nYou can't use this ability right now."
+      else reqtext = "" end
+    end
     return self.description .. (no_reqtext and "" or reqtext)
+  else
+    return self.description
+  end
 end
 
 ---Returns all the stats of the spell
@@ -202,7 +206,7 @@ function Spell:use(target, caster, ignoreCooldowns, ignoreCost)
   end
   --Cast the actual spell:
   if possibleSpells[self.id].cast then
-    if target and #target == 1 then target = target[1] end --if being passed only a single target, just set that as the target and don't loop
+    if target and #target == 1 and not self.cast_accepts_multiple_targets then target = target[1] end --if being passed only a single target, just set that as the target and don't loop
     local result = nil
     if not target or #target == 0 or self.cast_accepts_multiple_targets then
       local status, r = pcall(possibleSpells[self.id].cast,self,target,caster)
@@ -284,7 +288,7 @@ end
 --@return Boolean. Whether the spell can be used right now
 function Spell:can_use(target, caster, ignoreCooldowns, ignoreCost)
   local req, reqtext = self:requires(caster)
-  local targ, targtext = self:target_requires(target,player)
+  local targ, targtext = self:target_requires(target,caster)
   if req == false then
     return false,(reqtext or "You can't use that ability right now.")
 	elseif (not ignoreCooldowns and caster.cooldowns[self.name]) then

@@ -27,6 +27,9 @@ function Feature:init(feature_type,info,x,y)
 	if (possibleFeatures[feature_type].new ~= nil) then 
 		possibleFeatures[feature_type].new(self,(info or nil),x,y)
 	end
+  if self.max_hp and not self.hp then
+    self.hp = self.max_hp
+  end
   self.id = self.id or feature_type
 	self.baseType = "feature"
   if self.image_varieties and not self.image_name then
@@ -141,6 +144,7 @@ function Feature:damage(amt,source,damage_type,force)
     return possibleFeatures[self.id].damage(self,amt,source,damage_type)
   elseif self.attackable then
     if self.hp then
+      if not self.max_hp then self.max_hp = self.hp end
       self.hp = self.hp - amt
       local p = Effect('dmgpopup',self.x,self.y)
       p.symbol = "-" .. amt

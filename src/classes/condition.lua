@@ -39,9 +39,28 @@ end
 --@param turns Number. The number of turns to apply the condition.
 --@return Boolean. Whether the application was successful or not.
 function Condition:apply(possessor,applier,turns)
-	if (self.applied ~= nil) then
-		return self:applied(possessor,applier,turns)
-	end
+  if (self.applied ~= nil) then
+    return self:applied(possessor,applier,turns)
+  end
+end
+
+---Checks immune_creature_types of the condition, and the condition's can_apply() callback, if it exists
+--@param possessor Creature. The creature who's afflicted with the condition
+--@param applier Creature. The creature who inflicts the condition
+--@param turns Number. The number of turns to apply the condition.
+--@return Boolean. Whether the application was successful or not.
+function Condition:can_apply(possessor,applier,turns)
+  if self.immune_creature_types then
+    for _,ctype in ipairs(self.immune_creature_types) do
+      if possessor:is_type(ctype) then
+        return false
+      end
+    end
+  end
+  if (self.requires ~= nil) then
+    return self:requires(possessor,applier,turns)
+  end
+  return true
 end
 
 ---Wrapper for the cured() callback

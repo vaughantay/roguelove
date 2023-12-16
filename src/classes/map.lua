@@ -468,7 +468,7 @@ end
 --@param feature Feature. A specific feature object, NOT its ID. Usually a new feature, called using Feature('featureID')
 --@param x Number. The x-coordinate
 --@param y Number. The y-coordinate
---@param args Anything. Arguments to pass to the feature's new() code
+--@param args Anything. Arguments to pass to the feature's placed() code
 --@return Feature. The feature added
 function Map:add_feature(feature,x,y,args)
   if not feature or type(feature) ~= "table"  or feature.baseType ~= "feature" then
@@ -496,14 +496,16 @@ end
 --@param effect Effect. A specific effect object, NOT its ID. Usually a new effect, called using Effect('effectID')
 --@param x Number. The x-coordinate
 --@param y Number. The y-coordinate
+--@param args Anything. Arguments to pass to the feature's placed() code
 --@return Effect. The effect added
-function Map:add_effect(effect,x,y)
+function Map:add_effect(effect,x,y,args)
   if not effect or type(effect) ~= "table" or effect.baseType ~= "effect" then
     output:out("Error: Tried to add non-existent effect to map " .. self:get_name())
     print("Tried to add non-existent effect to map " .. self:get_name())
     return false
   end
   effect.x,effect.y = x,y
+  if effects[effect.id].placed then effects[effect.id].placed(effect,self,args) end
 	self.effects[effect] = effect
   if effect.castsLight then self.lights[effect] = effect end
   self.effect_cache[#self.effect_cache+1] = effect
@@ -1192,7 +1194,7 @@ function Map:populate_creatures(creatTotal,forceGeneric)
       local creature_spawn_points = {}
       if self.creature_spawn_points and #self.creature_spawn_points > 0 then
         for i,sp in ipairs(self.creature_spawn_points) do
-          if not sp.used and not sp.boss and not self:tile_has_feature(sp.x,sp.y,'door') and not self:tile_has_feature(sp.x,sp.y,'gate') and not self:tile_has_feature(sp.x,sp.y,'exit') and not self:get_tile_creature(sp.x,sp.y) and not self.tile_info[sp.x][sp.y].noCreatures then
+          if not sp.used and not sp.boss and not self:tile_has_tag(sp.x,sp.y,'door') and not self:tile_has_feature(sp.x,sp.y,'exit') and not self:get_tile_creature(sp.x,sp.y) and not self.tile_info[sp.x][sp.y].noCreatures then
             creature_spawn_points[#creature_spawn_points+1] = sp
           end
         end

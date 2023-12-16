@@ -120,6 +120,9 @@ function RangedAttack:use(target, attacker, item)
       end
       item:decrease_all_enchantments('attack')
     end
+    if item.projectile_color then
+      proj.color = copy_table(item.projectile_color)
+    end
     proj.source_item = item
   end --end if item
   --Apply cooldown:

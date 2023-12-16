@@ -535,6 +535,13 @@ function Creature:damage(amt,attacker,damage_type,armor_piercing,noSound,item)
   
   --Apply damage weaknesses, resistances, and armor
   if damage_type then
+    if self:is_healed_by_damage_type(damage_type) then
+      self:updateHP(amt)
+      return 0
+    end
+    if self:is_immune_to_damage_type(damage_type) then
+      return 0
+    end
     amt = amt + self:get_weakness(amt,damage_type)
     amt = amt - self:get_resistance(amt,damage_type)
   end
@@ -548,8 +555,10 @@ function Creature:damage(amt,attacker,damage_type,armor_piercing,noSound,item)
     amt = amt - totalArmor
   end
 
-  if (amt < 0) then amt = 0 end
-  local bool,ret = self:callbacks('damaged',attacker,amt,damage_type,is_melee)
+  if (amt < 0) then
+    return 0
+  end
+  local bool,ret = self:callbacks('damaged',attacker,amt,damage_type)
 	if (bool ~= false) then
     if #ret > 0 then --handle possible returned damage values
       local count = 0
@@ -635,12 +644,30 @@ end
 --@param turns Number. How many turns the condition should last.
 --@param applier Entity. Who applied the condition. (optional)
 --@param force Boolean. Whether to force-apply the condition. (optional)
+--@param stack Boolean. If true, add the new turns to the current turns (if applicable). If false, sets the turns to turns passed
 --@return Boolean. Whether the condition was applied
-function Creature:give_condition(name,turns,applier,force)
-  local ap = ap
-	if conditions[name] and (force or conditions[name]:apply(self,applier,turns) ~= false) then
-    self.conditions[name]=(type(ap) == "number" and ap or turns)
-    return true
+function Creature:give_condition(name,turns,applier,force,stack)
+	if not conditions[name] then return false end
+  
+  --Check condition type immunities first:
+  if conditions[name].types then
+    for _,contype in ipairs(conditions[name].types) do
+      if self:is_immune_to_condition_type(contype) then
+        return false
+      end
+    end
+  end
+
+  if force or conditions[name]:can_apply(self,applier,turns) ~= false then
+    local result = conditions[name]:apply(self,applier,turns)
+    if force or result ~= false then
+      local addition = 0
+      if turns ~= -1 and (stack or conditions[name].turns_stack == true) then
+        addition = self.conditions[name]
+      end
+      self.conditions[name] = turns+addition
+      return true
+    end
   end
 	return false
 end
@@ -656,10 +683,10 @@ end
 
 ---Check if a creature has a condition
 --@param condition String. The ID of the condition to check
---@return Boolean. Whether the creature has the condition.
+--@return Number or False. The number of turns left in the condition if it has it, or false if it doesn't
 function Creature:has_condition(condition)
   if self.conditions[condition] then
-    return true
+    return self.conditions[condition]
   else
     return false
   end
@@ -962,6 +989,54 @@ function Creature:get_weakness(amt,damageType)
   local increase = math.floor(amt*((weakness+bonus)/100))
   return increase
 end --end get_resistance function
+
+---Checks whether a creature has blanket immunity to a damage type
+--@param damageType String. The damage type.
+--@return Boolean. Whether or not they have immunity to that damage type
+function Creature:is_immune_to_damage_type(damageType)
+  if self.damage_type_immunities and in_table(damageType,self.damage_type_immunities) then
+    return true
+  end
+  for _,ctID in pairs(self.types) do
+    local ctype = creatureTypes[ctID] 
+    if ctype and ctype.damage_type_immunities and in_table(damageType,ctype.damage_type_immunities) then
+      return true
+    end
+  end
+  return false
+end
+
+---Checks whether a creature is healed by a damage type
+--@param damageType String. The damage type.
+--@return Boolean. Whether or not they are healed by that damage type
+function Creature:is_healed_by_damage_type(damageType)
+  if self.damage_type_healing and in_table(damageType,self.damage_type_healing) then
+    return true
+  end
+  for _,ctID in pairs(self.types) do
+    local ctype = creatureTypes[ctID] 
+    if ctype and ctype.damage_type_healing and in_table(damageType,ctype.damage_type_healing) then
+      return true
+    end
+  end
+  return false
+end
+
+---Checks whether a creature has immunity to a condition type
+--@param conditionType String. The condition type.
+--@return Boolean. Whether or not they have immunity to that condition type
+function Creature:is_immune_to_condition_type(conditionType)
+  if self.condition_type_immunities and in_table(conditionType,self.condition_type_immunities) then
+    return true
+  end
+  for _,ctID in pairs(self.types) do
+    local ctype = creatureTypes[ctID]
+    if ctype and ctype.condition_type_immunities and in_table(conditionType,ctype.condition_type_immunities) then
+      return true
+    end
+  end
+  return false
+end
 
 ---Check what hit conditions a creature can inflict
 --@return Table. The list of hit conditions
@@ -2163,6 +2238,28 @@ function Creature:is_friendly_type(target)
     for _,ctype in ipairs(self.types) do
       if creatureTypes[ctype] and creatureTypes[ctype].friendly_types then
         for _,ct in ipairs(creatureTypes[ctype].friendly_types) do
+          if target:is_type(ct) then return true end
+        end --end enemy_types for
+      end --end if creatureTypes[ctype]
+    end --end self ctype for
+  end --end if self.types
+  return false
+end
+
+---Determine if a creature is an ignored type of yours (this function ignores factions, but does look at your creature types' ignore types list)
+--@param target Creature. The creature to check
+--@return Boolean. If they're a friendly type
+function Creature:is_ignore_type(target)
+  if not target.types then return false end
+  if self.ignore_types then
+    for _,ctype in pairs(self.ignore_types) do
+      if target:is_type(ctype) then return true end
+    end
+  end
+  if self.types then --Check through the ignore types for all your creature types
+    for _,ctype in ipairs(self.types) do
+      if creatureTypes[ctype] and creatureTypes[ctype].ignore_types then
+        for _,ct in ipairs(creatureTypes[ctype].ignore_types) do
           if target:is_type(ct) then return true end
         end --end enemy_types for
       end --end if creatureTypes[ctype]
@@ -3542,7 +3639,7 @@ function Creature:can_learn_spell(spellID)
   if spell.skill_requirements then
     for skill,requirement in pairs(spell.skill_requirements) do
       if self:get_skill(skill,true) < requirement then
-        return false,"Your " .. stat .. " skill is too low to learn this ability."
+        return false,"Your " .. skill .. " skill is too low to learn this ability."
       end
     end
   end
