@@ -918,7 +918,7 @@ function game:display_map(map)
   --pClock:clearTime()
   --Figure out what creatures to display:
   for _,creat in pairs(currMap.creatures) do
-    if player:does_notice(creat) and (player:can_sense_creature(creat) or (creat.fromX and creat.fromY and creat.moveTween and player:can_see_tile(creat.fromX,creat.fromY))) then
+    if player:does_notice(creat) and (player:can_sense_creature(creat) or (creat.fromX and creat.fromY and timers[tostring(creat) .. 'moveTween'] and player:can_see_tile(creat.fromX,creat.fromY))) then
       local printX,printY = output:tile_to_coordinates(creat.x,creat.y)
       if (printY+tileSize+yMod >= 0 and printY+yMod <= height and printX+tileSize+xMod >= 0 and printX+xMod <= width) then
         creaturesToDisplay[creat] = {printX,printY,true}

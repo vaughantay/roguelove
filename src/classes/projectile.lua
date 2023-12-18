@@ -111,10 +111,10 @@ function Projectile:update(dt,force_generic)
       self.x, self.y = self.path[1][1],self.path[1][2]
       if not prefs['noSmoothMovement'] then
         self.xMod,self.yMod = self.xMod-xChange,self.yMod-yChange
-        if self.moveTween then
-          Timer.cancel(self.moveTween)
+        if timers[tostring(self) .. 'moveTween'] then
+          Timer.cancel(timers[tostring(self) .. 'moveTween'])
         end
-        self.moveTween = tween(self.time_per_tile,self,{xMod=0,yMod=0})
+        timers[tostring(self) .. 'moveTween'] = tween(self.time_per_tile,self,{xMod=0,yMod=0})
       end
       table.remove(self.path,1)
       if self.passThrough ~= true and currMap:isClear(self.x,self.y,'flyer') == false then

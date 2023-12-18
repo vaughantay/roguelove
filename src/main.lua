@@ -55,6 +55,9 @@ function love.load(arg)
   images = {}
   sounds = {}
   music = {}
+  pathfinders = {}
+  grids = {}
+  timers = {}
   Gamestate.switch(loading)
   totalstats = load_stats()
  	load_prefs()
@@ -356,7 +359,7 @@ function load_libraries()
   Class = require "lib.hump.class"
   Gamestate = require "lib.hump.gamestate"
   Timer = require "lib.hump.timer"
-  Lady = require "lib.lady"
+  bitser = require "lib.bitser.bitser"
   bresenham = require 'lib.bresenham'
   ripple = require "lib.ripple"
 end

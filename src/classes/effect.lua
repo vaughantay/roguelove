@@ -121,9 +121,9 @@ function Effect:update(dt)
     self.doneMoving = nil
     self.xMod,self.yMod = self.originalXmod,self.originalYmod
     self.originalXmod,self.originalYmod = nil,nil
-    if self.moveTween then
-      Timer.cancel(self.moveTween)
-      self.moveTween = nil
+    if timers[tostring(self) .. 'moveTween']then
+      Timer.cancel(timers[tostring(self) .. 'moveTween'])
+      timers[tostring(self) .. 'moveTween'] = nil
     end
   end
   
@@ -161,10 +161,10 @@ function Effect:moveTo(x,y,tweenLength)
       self.originalXmod,self.originalYmod=self.xMod or 0,self.yMod or 0
     end
     self.xMod,self.yMod = (self.xMod or 0)-xChange,(self.yMod or 0)-yChange
-    if self.moveTween then
-      Timer.cancel(self.moveTween)
+    if timers[tostring(self) .. 'moveTween'] then
+      Timer.cancel(timers[tostring(self) .. 'moveTween'])
     end
-    self.moveTween = tween(tweenLength,self,{xMod=self.originalXmod,yMod=self.originalYmod},'linear',function() self.doneMoving = true end)
+    timers[tostring(self) .. 'moveTween'] = tween(tweenLength,self,{xMod=self.originalXmod,yMod=self.originalYmod},'linear',function() self.doneMoving = true end)
   end
   return xChange,yChange
 end

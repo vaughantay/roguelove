@@ -102,7 +102,7 @@ function loadsaves:draw()
         self.currSave = s
       end
       local save = self.currSave
-      if save then
+      if save and save.player then
         love.graphics.setFont(fonts.buttonFont)
         self.loadbutton = output:button(sidebarX+padding,printY,75,false,((self.cursorX == 2 and self.deletewarning == false) and "hover" or nil),nil,true)
         love.graphics.printf("Load",sidebarX+padding,printY+4,75,"center")
@@ -128,15 +128,15 @@ function loadsaves:draw()
         love.graphics.printf("Turns: " .. (save.currGame.stats.turns or 0),sidebarX+padding,printY,endX-sidebarX-padding,"center")
         --check game ID and game version
         setColor(255,255,255,255)
-        if not save.gameDefinition or (save.gameDefinition.name ~= gamesettings.name) then
+        if not save.gamesettings or (save.gamesettings.name ~= gamesettings.name) then
           printY = printY+padY*3
           setColor(255,0,0,255)
-          love.graphics.printf("WARNING! This save file could be from a different game! This save is for game " .. (save.gameDefinition and save.gameDefinition.name or "Unknown") .. ", current game is " .. gamesettings.name .. ". If you load this save, it might not work correctly or may crash.",sidebarX+padding,printY,endX-sidebarX-padding,"center")
+          love.graphics.printf("WARNING! This save file could be from a different game! This save is for game " .. (save.gamesettings and save.gamesettings.name or "Unknown") .. ", current game is " .. gamesettings.name .. ". If you load this save, it might not work correctly or may crash.",sidebarX+padding,printY,endX-sidebarX-padding,"center")
           printY = printY+padY*3
-        elseif save.gameDefinition.version ~= gamesettings.version then
+        elseif save.gamesettings.version ~= gamesettings.version then
           printY = printY+padY*3
           setColor(255,0,0,255)
-          love.graphics.printf("WARNING! This save file could be from a different version! This save is for version " .. (save.gameDefinition and save.gameDefinition.version_text or "Unknown") .. ", current game version " .. gamesettings.version_text .. ". If you load this save, it might not work correctly or may crash.",sidebarX+padding,printY,endX-sidebarX-padding,"center")
+          love.graphics.printf("WARNING! This save file could be from a different version! This save is for version " .. (save.gamesettings and save.gamesettings.version_text or "Unknown") .. ", current game version " .. gamesettings.version_text .. ". If you load this save, it might not work correctly or may crash.",sidebarX+padding,printY,endX-sidebarX-padding,"center")
           printY = printY+padY*3
         end
       else --if save isn't found
@@ -329,9 +329,10 @@ function loadsaves:mousepressed(x,y,button)
         end --end coordinate for
         if line and self.cursorY == line and self.cursorY >= 1 then
           output:play_playlist('silence')
-          load_game("saves/" .. self.saves[self.cursorY].fileName)
-          Gamestate.switch(game)
-          game:show_map_description()
+          if load_game("saves/" .. self.saves[self.cursorY].fileName) then
+            Gamestate.switch(game)
+            game:show_map_description()
+          end
         elseif line then
           self.cursorY = line
         end

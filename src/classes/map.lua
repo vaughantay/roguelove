@@ -10,6 +10,8 @@ function Map:init(width,height,gridOnly)
   if not gridOnly then
     self.creatures, self.contents, self.effects, self.projectiles, self.seenMap, self.lightMap, self.lights, self.pathfinders, self.grids, self.collisionMaps, self.exits, self.tile_info = {},{},{},{},{},{},{},{},{},{},{},{}
     self.sightblock_cache, self.creature_cache, self.feature_cache, self.effect_cache = {},{},{},{}
+    pathfinders[self] = {}
+    grids[self] = {}
     self.boss=nil
     self.stairsUp,self.stairsDown = {x=0,y=0},{x=0,y=0}
     self.creature_spawn_points, self.item_spawn_points = {},{}
@@ -588,21 +590,25 @@ end
 --@param terrainLimit String. Limit pathfinding to tiles with a specific feature ID (optional)
 --@return A table of tile entries, or FALSE if there is no path.
 function Map:findPath(fromX,fromY,toX,toY,cType,terrainLimit)
-  if self.pathfinders[(cType or 'basic') .. (terrainLimit or "")] == nil then
+  if not pathfinders[self] then pathfinders[self] = {} end
+  if not grids[self] then grids[self] = {} end
+  if pathfinders[self][(cType or 'basic') .. (terrainLimit or "")] == nil then
     self:refresh_pathfinder(cType,terrainLimit)
   end
-	local path = self.pathfinders[(cType or 'basic') .. (terrainLimit or "")]:getPath(fromX,fromY,toX,toY,true)
-	if path then
-    if #path > 1 then path:fill() end
-		return path
-  else
-    if self.pathfinders[(cType or 'basic') .. (terrainLimit or "") .. "unsafe"] == nil then self:refresh_pathfinder(cType,terrainLimit,true) end
-    local path = self.pathfinders[(cType or 'basic') .. (terrainLimit or "") .. "unsafe"]:getPath(fromX,fromY,toX,toY,true)
-    if path then
-      if #path > 1 then path:fill() end
-      return path
-    end
+	local path = pathfinders[self][(cType or 'basic') .. (terrainLimit or "")]:getPath(fromX,fromY,toX,toY,true)
+	if not path then
+    if pathfinders[self][(cType or 'basic') .. (terrainLimit or "") .. "unsafe"] == nil then self:refresh_pathfinder(cType,terrainLimit,true) end
+    path = pathfinders[self][(cType or 'basic') .. (terrainLimit or "") .. "unsafe"]:getPath(fromX,fromY,toX,toY,true)
 	end
+  if path then
+    --Sanitize the path so it's just coordinates, making it safe to save:
+    if #path > 1 then path:fill() end
+    local p = {}
+    for i,coords in ipairs(path) do
+      p[i] = {x=coords.x,y=coords.y}
+    end
+		return p
+  end
 	return false
 end
 
@@ -637,32 +643,36 @@ function Map:swap(creature1,creature2)
 end
 
 ---Refresh a pathfinder on the map
---@param cType String. The creature path type (eg flyer) (optional)
+--@param cType String. The creature path type (eg flyer). If it's "alltiles" then it will create a pathfinder that's completely open (optional)
 --@param terrainLimit String. If you want to limit the pathfinder to a specific feature ID (optional)
 --@param ignoreSafety Boolean. Whether to ignore hazards (optional)
 function Map:refresh_pathfinder(cType,terrainLimit,ignoreSafety)
+  if not pathfinders[self] then pathfinders[self] = {} end
+  if not grids[self] then grids[self] = {} end
   if (self.collisionMaps[(cType or 'basic') .. (terrainLimit or "") .. (ignoreSafety and "unsafe" or "")] == nil) then self.collisionMaps[(cType or 'basic') .. (terrainLimit or "") .. (ignoreSafety and "unsafe" or "")] = {} end
 	for y = 1, self.height, 1 do
     if (self.collisionMaps[(cType or 'basic') .. (terrainLimit or "") .. (ignoreSafety and "unsafe" or "")][y] == nil) then self.collisionMaps[(cType or 'basic') .. (terrainLimit or "") .. (ignoreSafety and "unsafe" or "")][y] = {} end
 		for x = 1, self.width, 1 do
-			self.collisionMaps[(cType or 'basic') .. (terrainLimit or "") .. (ignoreSafety and "unsafe" or "")][y][x] = 0
-      if self:is_passable_for(x,y,cType,false,ignoreSafety) == false or (terrainLimit and not self:tile_has_feature(x,y,terrainLimit)) then self.collisionMaps[(cType or 'basic') .. (terrainLimit or "") .. (ignoreSafety and "unsafe" or "")][y][x] = 1 end
+      self.collisionMaps[(cType or 'basic') .. (terrainLimit or "") .. (ignoreSafety and "unsafe" or "")][y][x] = 0
+      if cType ~= "alltiles" then
+        if self:is_passable_for(x,y,cType,false,ignoreSafety) == false or (terrainLimit and not self:tile_has_feature(x,y,terrainLimit)) then self.collisionMaps[(cType or 'basic') .. (terrainLimit or "") .. (ignoreSafety and "unsafe" or "")][y][x] = 1 end
+      end
 		end
 	end
   
-  if self.grids[(cType or 'basic') .. (terrainLimit or "") .. (ignoreSafety and "unsafe" or "")] == nil or self.pathfinders[(cType or 'basic') .. (terrainLimit or "") .. (ignoreSafety and "unsafe" or "")] == nil then
+  if grids[self][(cType or 'basic') .. (terrainLimit or "") .. (ignoreSafety and "unsafe" or "")] == nil or pathfinders[self][(cType or 'basic') .. (terrainLimit or "") .. (ignoreSafety and "unsafe" or "")] == nil then
     local Grid = require('lib.jumper.grid')
-    self.grids[(cType or 'basic') .. (terrainLimit or "") .. (ignoreSafety and "unsafe" or "")] = Grid(self.collisionMaps[(cType or 'basic') .. (terrainLimit or "") .. (ignoreSafety and "unsafe" or "")])
+    grids[self][(cType or 'basic') .. (terrainLimit or "") .. (ignoreSafety and "unsafe" or "")] = Grid(self.collisionMaps[(cType or 'basic') .. (terrainLimit or "") .. (ignoreSafety and "unsafe" or "")])
     local Pathfinder = require 'lib.jumper.pathfinder'
-    self.pathfinders[(cType or 'basic') .. (terrainLimit or "") .. (ignoreSafety and "unsafe" or "")] = Pathfinder(self.grids[(cType or 'basic') .. (terrainLimit or "") .. (ignoreSafety and "unsafe" or "")],'ASTAR',0)
+    pathfinders[self][(cType or 'basic') .. (terrainLimit or "") .. (ignoreSafety and "unsafe" or "")] = Pathfinder(grids[self][(cType or 'basic') .. (terrainLimit or "") .. (ignoreSafety and "unsafe" or "")],'ASTAR',0)
   end
 end
 
 ---Delete all the pathfinders from the map
 function Map:clear_all_pathfinders()
-  self.pathfinders = {}
+  pathfinders[self] = {}
   self.collisionMaps = {}
-  self.grids = {}
+  grids[self] = {}
 end
 
 ---Checks if a tile is passable for a certain creature

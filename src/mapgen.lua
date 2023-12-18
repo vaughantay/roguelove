@@ -491,7 +491,7 @@ function mapgen:addRiver(map, tile, noBridges,bridgeData,minDist,clearTiles)
           local s1xDist,s1yDist = math.abs(shore[1].x-bend.x),math.abs(shore[1].y-bend.y)
           local s2xDist,s2yDist = math.abs(shore[2].x-bend.x),math.abs(shore[2].y-bend.y)
           if (s1xDist < minDist and s1yDist < minDist) or (s2xDist < minDist and s2yDist < minDist) and (map:is_line(shore[1].x,shore[1].y,bend.x,bend.y) and map:is_line(shore[2].x,shore[2].y,bend.x,bend.y)) then
-            if (s1xDist < 2 and s1yDist < 2) or (s2xDist < 2 and s2yDist < 2) or (map:tile_has_feature(shore[1].x,shore[1].y,"door") == false and map:tile_has_feature(shore[2].x,shore[2].y,"door") == false) then
+            if (s1xDist < 2 and s1yDist < 2) or (s2xDist < 2 and s2yDist < 2) or (map:tile_has_tag(shore[1].x,shore[1].y,"door") == false and map:tile_has_tag(shore[2].x,shore[2].y,"door") == false) then
               makeBridge = false
               break
             end --end dist==2/door if
@@ -774,13 +774,12 @@ function mapgen:is_safe_to_block(map,startX,startY,safeType)
   local cardinalWalls,cornerWalls = {},{}
   local n,s,e,w = false,false,false,false
   local walls = false
-  if (startX == map.stairsUp.x and startY == map.stairsUp.y) or (startX == map.stairsDown.x and startY == map.stairsDown.y) or map[startX][startY] == "#" then return false end
+  if map:tile_has_feature(startX,startY,'exit') or not map:isClear(startX,startY) then return false end
 
   for x=minX,maxX,1 do
     for y=minY,maxY,1 do
-      if startX == x and startY == y and not map:isClear(x,y) then return false end -- already blocked, so can't block again, obvs
-      local door = map:tile_has_feature(x,y,'door')
-      if (map:isClear(x,y) or door) and not (x== startX and y == startY) then
+      local door = map:tile_has_tag(x,y,'door')
+      if (map:isClear(x,y) or door) and not (x == startX and y == startY) then
         if (x == startX or y == startY) then --cardinal direction
           if door then return false end -- don't block the area next to a door
           cardinals[#cardinals+1] = {x=x,y=y}

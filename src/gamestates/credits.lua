@@ -53,7 +53,7 @@ by Enrique García Cota, Yuichi Tateno, Emmanuel Oga, MIT license.
 
 Jumper by Roland Yonaba, MIT License.
 
-Lady by Robin Wellner, MIT License.
+Bitser by Jasmijn Wellner, MIT License.
 
 Luasteam, USPGameDev, MIT License.
 

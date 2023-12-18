@@ -9,7 +9,7 @@ Includes an implementation of the Bresenham Line Algorithm by Enrique Garc’a Cot
 
 Includes the Jumper pathfinding library by Roland Yonaba, included under the MIT License.
 
-Includes Lady by Robin Wellner, MIT License.
+Includes Bitser by Jasmijn Wellner, MIT License.
 
 Luasteam, USPGameDev, MIT License
 

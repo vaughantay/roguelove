@@ -20,7 +20,7 @@ function newgame:enter(previous)
     self.classScrollY = 0
     self.classDescSplit = 0
     local genders={"male","female","other"}
-    self.player = {name=nil,species=nil,class=nil,gender=get_random_element(genders),pronouns=nil}
+    self.player = {name=nil,species=nil,class=nil,gender=get_random_element(genders),pronouns=nil,spells={}}
     if not gamesettings.player_species then
       self.player.species = gamesettings.default_player
     end
@@ -1065,12 +1065,10 @@ function newgame:get_stat_text(whichSpecies,whichClass)
   end
   
   --Abilities:
-  if (class.spells and count(class.spells) > 0) or (creature.spells and count(creature.spells) > 0) then
+  local spells = merge_tables((class.spells or {}),(creature.spells or {}),self.player.spells)
+  if count(spells) > 0 then
     desc = desc .. "\nAbilities:\n"
-    for i,spell in ipairs(creature.spells or {}) do
-      desc = desc .. "\t" .. possibleSpells[spell].name .. " - " .. possibleSpells[spell].description .. "\n"
-    end
-    for i,spell in ipairs(class.spells or {}) do
+    for i,spell in ipairs(spells) do
       desc = desc .. "\t" .. possibleSpells[spell].name .. " - " .. possibleSpells[spell].description .. "\n"
     end
   end

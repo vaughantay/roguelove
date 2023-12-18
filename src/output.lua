@@ -72,7 +72,7 @@ function output.display_entity(entity,x,y, seen,ignoreDistMods,scale)
     end
     if (Gamestate.current() == game or Gamestate.current() == pausemenu) and ((entity.baseType == "creature" and entity:is_type("flyer") == false) or entity.useWalkedOnImage == true) then --for walking creatures (or special features), display features' walking image (splashes in water, bridge over top, etc)
       for _,feat in pairs(currMap:get_tile_features(entity.x,entity.y)) do
-        if feat.walkedOnImage and (not entity.moveTween or not entity.fromX or not entity.fromY or currMap:tile_has_feature(entity.fromX,entity.fromY,feat.id)) then
+        if feat.walkedOnImage and (not timers[tostring(entity) .. 'moveTween'] or not entity.fromX or not entity.fromY or currMap:tile_has_feature(entity.fromX,entity.fromY,feat.id)) then
           if images['feature' .. feat.walkedOnImage] == nil then
             --output:load_image(feat.walkedOnImage,"feature")
           end --end if image == nil if

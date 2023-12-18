@@ -206,7 +206,7 @@ local valhallagate = {
   blocksMovement = true,
   pathThrough = true,
   closed=true,
-  actions={unlock={text="Unlock the Gate to Valhalla",description="Unlock the Gate to Valhalla.",requires=function(self,user) if self.closed and user:has_item('heroskey') then return true else return false end end}},
+  actions={unlock={text="Unlock the Gate to Valhalla",description="Unlock the Gate to Valhalla."}},
   enter=function(self,entity)
     if self.closed then
       self:action(entity)
@@ -228,6 +228,13 @@ local valhallagate = {
     self.image_name = "gateopen"
     player:delete_item(herokey,1)
     update_mission_status('ascend')
+  end,
+  action_requires=function(self,user)
+    if self.closed and user:has_item('heroskey') then
+      return true
+    else
+      return false
+    end
   end
 }
 possibleFeatures['valhallagate'] = valhallagate
@@ -2263,7 +2270,14 @@ local corpse = {
     self.color = creature.color
     if not creature:is_type('bloodless') then
       if not self.actions then self.actions = {} end
-      self.actions['extractblood'] = {text="Extract blood from " .. creature.name .. " corpse",description="Extract blood from a corpse.",requires=function(self,user) if not self.bloodless and user:has_item('bloodextractor') then return true else return false end end}
+      self.actions['extractblood'] = {text="Extract blood from " .. creature.name .. " corpse",description="Extract blood from a corpse."}
+    end
+  end,
+  action_requires=function(self,user)
+    if not self.bloodless and user:has_item('bloodextractor') then
+      return true
+    else
+      return false
     end
   end
 }
@@ -2318,7 +2332,7 @@ local door = {
   pathThrough = true,
   blocksSight = true,
   alwaysDisplay = true,
-  actions={opendoor={text="Open Door",description="Open a nearby door.",requires=function(self,user) return self.closed end},closedoor={text="Close Door",description="Close a nearby door.",requires=function(self,user) return not self.closed end}},
+  actions={opendoor={text="Open Door",description="Open a nearby door."},closedoor={text="Close Door",description="Close a nearby door."}},
   closed=true,
   enter=function(self,entity)
     if not self.closed or entity:is_type('ghost') then
@@ -2378,6 +2392,10 @@ local door = {
         output:sound('door_close')
       end
     end
+  end,
+  action_requires = function(self,entity,action)
+    if action == "opendoor" then return self.closed end
+    if action == "closedoor" then return not self.closed end
   end
 }
 possibleFeatures['door'] = door

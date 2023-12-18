@@ -1115,10 +1115,10 @@ function Creature:attack(target,forceHit,ignore_callbacks)
       --tween(.1,target,{xMod=0,yMod=0})
       --Tweening
       target.xMod,target.yMod = target.xMod+(xMod*5),target.yMod+(yMod*5)
-      if target.moveTween then
-        Timer.cancel(target.moveTween)
+      if timers[tostring(target) .. 'moveTween'] then
+        Timer.cancel(timers[tostring(target) .. 'moveTween'])
       end
-      target.moveTween = tween(.1,target,{xMod=0,yMod=0},'linear',function() target.doneMoving = true end)
+      timers[tostring(target) .. 'moveTween'] = tween(.1,target,{xMod=0,yMod=0},'linear',function() target.doneMoving = true end)
       
       if player:can_see_tile(self.x,self.y) or player:can_see_tile(target.x,target.y) and player:does_notice(self) and player:does_notice(target) then
         output:out(txt)
@@ -1341,10 +1341,10 @@ function Creature:moveTo(x,y, skip_callbacks,noTween)
             if self:is_type('flyer') == false then
               self.yMod = self.yMod-2
             end
-            if self.moveTween then
-              Timer.cancel(self.moveTween)
+            if timers[tostring(self) .. 'moveTween'] then
+              Timer.cancel(timers[tostring(self) .. 'moveTween'])
             end
-            self.moveTween = tween(.1,self,{xMod=0,yMod=0},'linear',function() self.doneMoving = true end)
+            timers[tostring(self) .. 'moveTween'] = tween(.1,self,{xMod=0,yMod=0},'linear',function() self.doneMoving = true end)
             --[[elseif self ~= player then
               self.xMod = (self.x-x)*32
               tween(.1,self,{xMod=0})
@@ -2548,9 +2548,9 @@ function Creature:update(dt) --for charging, and other special effects
   --Delete tween if done moving:
   if self.doneMoving and self.xMod == 0 and self.yMod == 0 then
     self.doneMoving = nil
-    if self.moveTween then
-      Timer.cancel(self.moveTween)
-      self.moveTween = nil
+    if timers[tostring(self) .. 'moveTween'] then
+      Timer.cancel(timers[tostring(self) .. 'moveTween'])
+      timers[tostring(self) .. 'moveTween'] = nil
     end
     self.fromX,self.fromY=self.x,self.y
   end

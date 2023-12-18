@@ -119,10 +119,10 @@ function Feature:moveTo(x,y,noTween)
     local moveX,moveY=x-self.x,y-self.y
     local xChange,yChange = (x-self.x)*tileSize,(y-self.y)*tileSize
     self.xMod,self.yMod = (self.xMod or 0)-xChange,(self.yMod or 0)-yChange
-    if self.moveTween then
-      Timer.cancel(self.moveTween)
+    if timers[tostring(self) .. 'moveTween'] then
+      Timer.cancel(timers[tostring(self) .. 'moveTween'])
     end
-    self.moveTween = tween(.1,self,{xMod=0,yMod=0},'linear')
+    timers[tostring(self) .. 'moveTween'] = tween(.1,self,{xMod=0,yMod=0},'linear')
   end
   currMap.contents[self.x][self.y][self] = nil
   currMap.feature_cache[x .. ',' .. y] = nil
@@ -151,10 +151,10 @@ function Feature:damage(amt,source,damage_type,force)
       currMap:add_effect(p,self.x,self.y)
       local xMod,yMod = get_unit_vector(source.x,source.y,self.x,self.y)
       self.xMod,self.yMod = (self.xMod or 0)+(xMod*5),(self.yMod or 0)+(yMod*5)
-      if self.moveTween then
-        Timer.cancel(self.moveTween)
+      if timers[tostring(self) .. 'moveTween'] then
+        Timer.cancel(timers[tostring(self) .. 'moveTween'])
       end
-      self.moveTween = tween(.1,self,{xMod=0,yMod=0},'linear')
+      timers[tostring(self) .. 'moveTween'] = tween(.1,self,{xMod=0,yMod=0},'linear')
     end --end if self.hp if
     if not self.hp or self.hp <= 0 then
       if possibleFeatures[self.id].destroyed then --has custom destroyed code

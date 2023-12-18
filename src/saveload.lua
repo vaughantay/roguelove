@@ -1,13 +1,13 @@
 function register_classes()
-  Lady.register_class(Creature,'Creature')
-  Lady.register_class(Effect,'Effect')
-  Lady.register_class(Feature,'Feature')
-  Lady.register_class(Map,'Map')
-  Lady.register_class(Projectile,'Projectile')
-  Lady.register_class(Item,'Item')
-  Lady.register_class(Store,'Store')
-  Lady.register_class(Faction,'Faction')
-  Lady.register_class(Spell,'Spell')
+  bitser.registerClass('Creature',Creature)
+  bitser.registerClass('Effect',Effect)
+  bitser.registerClass('Feature',Feature)
+  bitser.registerClass('Map',Map)
+  bitser.registerClass('Projectile',Projectile)
+  bitser.registerClass('Item',Item)
+  bitser.registerClass('Store',Store)
+  bitser.registerClass('Faction',Faction)
+  bitser.registerClass('Spell',Spell)
 end
 
 function save_game(screenshot,fileName)
@@ -25,17 +25,23 @@ function save_game(screenshot,fileName)
   if screenshot then
     screenshot:encode('png', "saves/" .. fileName .. ".png");
   end
-  Lady.save_all("saves/" .. fileName .. ".sav", player, maps, currMap,currGame,currWorld,gamesettings)
-	output:out("Game Saved.")
+  local saveData = {player=player, maps=maps, currMap=currMap,currGame=currGame,currWorld=currWorld,gamesettings=gamesettings}
+  local ok, err = pcall(bitser.dumpLoveFile,"saves/" .. fileName .. ".sav",saveData) -- load the chunk safely
+  if not ok or err then
+    output:out("Saving error:" .. tostring(err))
+    print("Saving error: ",err)
+    return false
+  else
+    output:out("Game Saved.")
+  end
 end
 
 function load_game(fileName)
 	if (love.filesystem.getInfo(fileName) == false) then
 		return false
 	end
-  local saveData = {}
-  saveData.player, saveData.maps, saveData.currMap, saveData.currGame,saveData.currWorld, saveData.gameDefinition = Lady.load_all(fileName)
-  if saveData.player and saveData.maps and saveData.currMap and saveData.currGame and saveData.currWorld then
+  local saveData = bitser.loadLoveFile(fileName)
+  if type(saveData) == "table" and saveData.player and saveData.maps and saveData.currMap and saveData.currGame and saveData.currWorld then
     player,maps,currMap,currGame,currWorld = saveData.player, saveData.maps, saveData.currMap, saveData.currGame, saveData.currWorld
     currMap:clear_all_pathfinders()
     if not currGame.cheats then currGame.cheats = {} end --delet this eventually I guess
@@ -48,7 +54,9 @@ function load_game(fileName)
     output:set_camera(player.x,player.y,true)
     output:out("Welcome back.")
     output:play_playlist(currMap.playlist)
+    return true
   end
+  return false
 end
 
 function load_all_saves()
@@ -73,8 +81,7 @@ end
 
 function load_save_info(fileName)
   if love.filesystem.getInfo("saves/" .. fileName) then
-    local sd = {}
-    sd.player,sd.maps,sd.currMap,sd.currGame,sd.currGame,sd.gameDefinition = Lady.load_all("saves/" .. fileName)
+    local sd = bitser.loadLoveFile("saves/" .. fileName)
     sd.fileName = fileName
     local info = love.filesystem.getInfo("saves/" .. fileName)
     sd.date = info.modtime

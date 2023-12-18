@@ -27,18 +27,8 @@ local corpse = {
     self.image_name = (creature.image_name or creature.id)
     self.scale = .75
     self.color = creature.color
-    if not creature:is_type('bloodless') then
-      if not self.actions then self.actions = {} end
-      self.actions['extractblood'] = {text="Extract blood from " .. creature.name .. " corpse",description="Extract blood from a corpse.",requires=function(self,user) if not self.bloodless and user:has_item('bloodextractor') then return true else return false end end}
-    end
   end
 }
-function corpse:action(entity,action)
-  if action == "extractblood" then
-    local extractor = entity:has_item('bloodextractor')
-    if extractor then return extractor:use(self,entity) end
-  end
-end
 possibleFeatures['corpse'] = corpse
 
 local chunk = {
@@ -83,7 +73,7 @@ local door = {
   pathThrough = true,
   blocksSight = true,
   alwaysDisplay = true,
-  actions={opendoor={text="Open Door",description="Open a nearby door.",requires=function(self,user) return self.closed end},closedoor={text="Close Door",description="Close a nearby door.",requires=function(self,user) return not self.closed end}},
+  actions={opendoor={text="Open Door",description="Open a nearby door."},closedoor={text="Close Door",description="Close a nearby door."}},
   closed=true,
   enter=function(self,entity)
     if not self.closed or entity:is_type('ghost') then
@@ -143,6 +133,10 @@ local door = {
         output:sound('door_close')
       end
     end
+  end,
+  action_requires = function(self,entity,action)
+    if action == "opendoor" then return self.closed end
+    if action == "closedoor" then return not self.closed end
   end
 }
 possibleFeatures['door'] = door

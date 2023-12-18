@@ -438,10 +438,10 @@ function Item:attack(target,wielder,forceHit,ignore_callbacks,forceBasic)
       end
       local xMod,yMod = get_unit_vector(wielder.x,wielder.y,target.x,target.y)
       target.xMod,target.yMod = target.xMod+(xMod*5),target.yMod+(yMod*5)
-      if target.moveTween then
-        Timer.cancel(target.moveTween)
+      if timers[tostring(target) .. 'moveTween'] then
+        Timer.cancel(timers[tostring(target) .. 'moveTween'])
       end
-      target.moveTween = tween(.1,target,{xMod=0,yMod=0},'linear',function() target.doneMoving = true end)
+      timers[tostring(target) .. 'moveTween'] = tween(.1,target,{xMod=0,yMod=0},'linear',function() target.doneMoving = true end)
       if player:can_see_tile(wielder.x,wielder.y) or player:can_see_tile(target.x,target.y) and player:does_notice(wielder) and player:does_notice(target) then
         output:out(txt)
       end
