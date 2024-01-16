@@ -246,19 +246,20 @@ function Faction:generate_items()
   end
   --Generate items from list:
   local tags = self.passedTags
-  if not self.sells_items then return end
-  for _,info in pairs(self.sells_items) do
-    local itemID = info.item
-    local item = Item(itemID,tags,info.passed_info)
-    item.amount = (info.amount or -1)
-    if info.artifact then
-      mapgen:make_artifact(item,tags)
-    elseif info.enchantments then
-      for _,eid in ipairs(info.enchantments) do
-        item:apply_enchantment(eid,-1)
+  if self.sells_items then
+    for _,info in pairs(self.sells_items) do
+      local itemID = info.item
+      local item = Item(itemID,tags,info.passed_info)
+      item.amount = (info.amount or -1)
+      if info.artifact then
+        mapgen:make_artifact(item,tags)
+      elseif info.enchantments then
+        for _,eid in ipairs(info.enchantments) do
+          item:apply_enchantment(eid,-1)
+        end
       end
+      self:add_item(item,info)
     end
-    self:add_item(item,info)
   end
   --Generate dynamic inventory:
   if self.random_item_amount then
@@ -392,9 +393,31 @@ function Faction:get_buy_list(creat)
     if self.buys_items and self.buys_items[item.id] then
       buying[#buying+1]={item=item,moneyCost=self.buys_items[item.id].moneyCost,favorCost=self.buys_items[item.id].favorCost}
     elseif self.buys_tags and item:get_value() > 0 then
-      for _,tag in ipairs(self.buys_tags) do
-        if item:has_tag(tag) or item.itemType == tag then
-          buying[#buying+1]={item=item,favorCost=math.max(math.floor((item:get_value()*(self.buy_markup or 1))/(self.money_per_favor or 10)),1),moneyCost=(not self.only_buys_favor and math.max(item:get_value()*(self.buy_markup or 1),1) or nil)}
+      local done = false
+      if not done then
+        if self.forbidden_buys_tags then
+          for _,tag in ipairs(self.forbidden_buys_tags) do
+            if item:has_tag(tag) then
+              done = true
+              break
+            end
+          end
+        end
+        if not done and self.required_buys_tags then
+          for _,tag in ipairs(self.required_buys_tags) do
+            if not item:has_tag(tag) then
+              done = true
+              break
+            end
+          end
+        end
+        if not done then
+          for _,tag in ipairs(self.buys_tags) do
+            if item:has_tag(tag) or item.itemType == tag then
+              buying[#buying+1]={item=item,favorCost=math.max(math.floor((item:get_value()*(self.buy_markup or 1))/(self.money_per_favor or 10)),1),moneyCost=(not self.only_buys_favor and math.max(item:get_value()*(self.buy_markup or 1),1) or nil)}
+              break
+            end
+          end
         end
       end
     end
@@ -529,17 +552,45 @@ end
 function Faction:get_possible_random_items()
   local possibles = {}
   for id,item in pairs(possibleItems) do
-      local done = false
-      for _,tag in ipairs(self.sells_tags) do
-        if item.value and not item.neverSpawn and ((item.tags and in_table(tag,item.tags)) or item.itemType == tag) then
-          possibles[#possibles+1] = id
-          done = true
+    if item.value and not item.neverSpawn and not item.neverStore then --don't sell valueless items or items that don't spawn naturally
+      local alreadySells = false
+      for _,itemInfo in ipairs(self.sells_items or {}) do --check if we're already selling the item
+        if itemInfo.item == id then
+          alreadySells = true
           break
         end
-      end
-    end
-    return possibles
+      end --end sells_Items for
+      if not alreadySells then
+        local done = false
+        if self.forbidden_sells_tags then
+          for _,tag in ipairs(self.forbidden_sells_tags) do
+            if item.tags and in_table(tag,item.tags) then
+              done = true
+              break
+            end
+          end
+        end
+        if not done and self.required_sells_tags then
+          for _,tag in ipairs(self.required_sells_tags) do
+            if not item.tags or not in_table(tag,item.tags) then
+              done = true
+              break
+            end
+          end
+        end
+        if not done then
+          for _,tag in ipairs(self.sells_tags) do --check tags
+            if (item.tags and in_table(tag,item.tags)) or item.itemType == tag then
+              possibles[#possibles+1] = id
+              break
+            end --end tags if
+          end --end sells_tag for
+        end
+      end --end alreadySells if
+    end --end value and neverSpawn if
   end
+  return possibles
+end
   
   ---Generate a random item from the faction's possible random items list
 --@param list Table. A list of item IDs to pull from. Optional, defaults to the list from get_possible_random_items()

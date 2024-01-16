@@ -193,10 +193,29 @@ function Store:get_buy_list(creat)
     if self.buys_items and self.buys_items[item.id] then
       buying[#buying+1]={item=item,cost=self.buys_items[item.id]}
     elseif self.buys_tags and item:get_value() > 0 then
-      for _,tag in ipairs(self.buys_tags) do
-        if item:has_tag(tag) or item.itemType == tag then
-          buying[#buying+1]={item=item,cost=math.max(math.floor((item:get_value()*(self.buy_markup or 1))/(self.currency_item and (self.money_per_currency_item or 10) or 1)),1)}
-          break
+      local done = false
+      if self.forbidden_buys_tags then
+        for _,tag in ipairs(self.forbidden_buys_tags) do
+          if item:has_tag(tag) then
+            done = true
+            break
+          end
+        end
+      end
+      if not done and self.required_buys_tags then
+        for _,tag in ipairs(self.required_buys_tags) do
+          if not item:has_tag(tag) then
+            done = true
+            break
+          end
+        end
+      end
+      if not done then
+        for _,tag in ipairs(self.buys_tags) do
+          if item:has_tag(tag) or item.itemType == tag then
+            buying[#buying+1]={item=item,cost=math.max(math.floor((item:get_value()*(self.buy_markup or 1))/(self.currency_item and (self.money_per_currency_item or 10) or 1)),1)}
+            break
+          end
         end
       end
     end
@@ -366,12 +385,31 @@ function Store:get_possible_random_items()
         end
       end --end sells_Items for
       if not alreadySells then
-        for _,tag in ipairs(self.sells_tags) do --check tags
-          if item.value and not item.neverSpawn and ((item.tags and in_table(tag,item.tags)) or item.itemType == tag) then
-            possibles[#possibles+1] = id
-            break
-          end --end tags if
-        end --end sells_tag for
+        local done = false
+        if self.forbidden_sells_tags then
+          for _,tag in ipairs(self.forbidden_sells_tags) do
+            if item.tags and in_table(tag,item.tags) then
+              done = true
+              break
+            end
+          end
+        end
+        if not done and self.required_sells_tags then
+          for _,tag in ipairs(self.required_sells_tags) do
+            if not item.tags or not in_table(tag,item.tags) then
+              done = true
+              break
+            end
+          end
+        end
+        if not done then
+          for _,tag in ipairs(self.sells_tags) do --check tags
+            if (item.tags and in_table(tag,item.tags)) or item.itemType == tag then
+              possibles[#possibles+1] = id
+              break
+            end --end tags if
+          end --end sells_tag for
+        end
       end --end alreadySells if
     end --end value and neverSpawn if
   end --end possibleItems for
