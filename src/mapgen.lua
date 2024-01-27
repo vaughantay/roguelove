@@ -259,7 +259,9 @@ end
 --@param tags Table. A list of tags, used to prioritize enchantments which match said tags (optional)
 function mapgen:make_artifact(item,tags)
   local possibles = item:get_possible_enchantments(true)
-  local additions = random(1,3)
+  local max = item.max_enchantments or 3
+  local additions = random(math.ceil(max/2),max)
+  local enchantment_count = 0
   if count(possibles) == 0 then
     return false
   end
@@ -279,9 +281,17 @@ function mapgen:make_artifact(item,tags)
     end --end enchantment for
     if #taggedPossibles > 0 then
       local eid = get_random_element(taggedPossibles)
-      if eid then
-        item:apply_enchantment(eid,-1)
-      else
+      local tries = 0
+      local applied = false
+      while tries < 10 do
+        if eid and item:qualifies_for_enchantment(eid,true) then
+          item:apply_enchantment(eid,-1)
+          applied = true
+          enchantment_count = enchantment_count+1
+          break
+        end
+      end
+      if not applied then
         additions = additions+1 --if for some reason we get to this point and there's no enchantment, add an extra "generic" enchantment
       end
     else
@@ -289,10 +299,14 @@ function mapgen:make_artifact(item,tags)
     end
   end --end tags if
   --Now add random other enchantments:
-  for i = 1,additions,1 do
+  local tries = 0
+  local applied = false
+  while enchantment_count < additions and tries < 10 do
     local eid = get_random_element(possibles)
-    if eid then
+    if eid and not self.enchantments[eid] and item:qualifies_for_enchantment(eid,true) then
       item:apply_enchantment(eid,-1)
+      applied = true
+      enchantment_count = enchantment_count+1
     end
   end
   if not item.properName then

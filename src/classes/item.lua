@@ -612,6 +612,23 @@ function Item:qualifies_for_enchantment(eid,permanent)
   if permanent and enchantment.neverPermanent then
     return false
   end
+  if self.max_enchantments and #self.enchantments >= self.max_enchantments then
+    return false
+  end
+  if enchantment.enchantment_type and self.enchantment_slots and self.enchantment_slots[enchantment.enchantment_type] then
+    local slots_used = 0
+    if self.enchantments then
+      for enID,_ in pairs(self.enchantments) do
+        local enc = enchantments[enID]
+        if enc.enchantment_type == enchantment.enchantment_type then
+          slots_used = slots_used+1
+        end
+      end
+    end
+    if slots_used >= self.enchantment_slots[enchantment.enchantment_type] then
+      return false
+    end
+  end
   
   if enchantment.itemType and (self.itemType ~= enchantment.itemType or (enchantment.subType and self.subType ~= enchantment.subType)) then
     return false
@@ -634,6 +651,20 @@ function Item:qualifies_for_enchantment(eid,permanent)
       end --end if self:has_tag
     end --end tag for
   end --end requires_tags if
+  if enchantment.forbiddenTags then
+    for _,tag in ipairs(enchantment.forbiddenTags) do
+      if self:has_tag(tag) then
+        return false
+      end
+    end
+  end
+  if enchantment.forbiddenEnchantments then
+    for _,eid in ipairs(enchantment.forbiddenEnchantments) do
+      if self.enchantments and self.enchantments[eid] then
+        return false
+      end
+    end
+  end
   return true
 end
 

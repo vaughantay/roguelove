@@ -6,6 +6,7 @@ local vampiric = {
   description = "Drains health from your enemies and gives it to you.",
   tags={"unholy"},
   requires_tags={"sharp"},
+  forbiddenTags={'holy'},
   itemType="weapon",
   subType="melee"
 }
@@ -53,8 +54,10 @@ local fireweapon = {
   extra_damage = {damage_type="fire",damage_percent=50,safe_creature_types={"fireImmune"}},
   removal_type="hit",
   tags={"fire","magic"},
+  forbiddenTags={'ice'},
   itemTypes={"weapon","ammo","throwable"},
-  apply_to_projectile=true
+  apply_to_projectile=true,
+  enchantment_type="elemental"
 }
 enchantments['fireweapon'] = fireweapon
 
@@ -65,8 +68,10 @@ local iceweapon = {
   extra_damage = {damage_type="ice",damage_percent=50},
   removal_type="hit",
   tags={"ice","magic"},
+  forbiddenTags={'fire'},
   itemTypes={"weapon","ammo","throwable"},
-  apply_to_projectile=true
+  apply_to_projectile=true,
+  enchantment_type="elemental"
 }
 enchantments['iceweapon'] = iceweapon
 
@@ -87,7 +92,9 @@ local blessed = {
   extra_damage = {damage_type="holy",damage_percent=50,armor_piercing=true,only_creature_types={"demon","undead","abomination","unholy"}},
   removal_type="kill",
   tags={"holy"},
-  itemTypes={"weapon","ammo","throwable"}
+  forbiddenTags={'unholy'},
+  itemTypes={"weapon","ammo","throwable"},
+  enchantment_type="elemental"
 }
 enchantments['blessed'] = blessed
 
@@ -99,9 +106,24 @@ local sharpened = {
   itemType="weapon",
   subType="melee",
   requires_tags={"sharp"},
-  hit_conditions={{condition="bleeding",minTurns=2,maxTurns=5,chance=100,crit_turns=5}}
+  forbiddenEnchantments={'dulled'},
+  hit_conditions={{condition="bleeding",minTurns=2,maxTurns=5,chance=100,crit_turns=5}},
+  enchantment_type="sharpness"
 }
 enchantments['sharpened'] = sharpened
+
+local dulled = {
+  name = "Dull",
+  prefix = "dull",
+  description = "The edge of this weapon is dulled, dealing less damage.",
+  itemType="weapon",
+  subType="melee",
+  requires_tags={"sharp"},
+  forbiddenEnchantments={'sharpened'},
+  bonuses={damage=-5},
+  enchantment_type="sharpness"
+}
+enchantments['dulled'] = dulled
 
 local damaging = {
   name = "Damaging",
