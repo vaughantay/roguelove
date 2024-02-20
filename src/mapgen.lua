@@ -303,7 +303,7 @@ function mapgen:make_artifact(item,tags)
   local applied = false
   while enchantment_count < additions and tries < 10 do
     local eid = get_random_element(possibles)
-    if eid and not self.enchantments[eid] and item:qualifies_for_enchantment(eid,true) then
+    if eid and (not item.enchantments or not item.enchantments[eid]) and item:qualifies_for_enchantment(eid,true) then
       item:apply_enchantment(eid,-1)
       applied = true
       enchantment_count = enchantment_count+1

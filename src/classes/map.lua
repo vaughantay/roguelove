@@ -1421,8 +1421,7 @@ function Map:populate_stores(forceGeneric)
       if store.isPlaced and store.multiple_locations then
         local s = Store(store.id)
         s.multiple_locations=nil
-        selected = #currWorld.stores+1
-        currWorld.stores[selected] = s
+        selected = s
       end
       local newStore = Feature('store',selected)
       local tries = 0
