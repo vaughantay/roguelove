@@ -95,7 +95,7 @@ function temple.decorate(room,map,focusList,pewsOnly,altarArgs)
     end
   end
 end
-roomDecorators[temple] = temple
+roomDecorators['temple'] = temple
 
 local tavern = {
   tags={'organized','dungeon'}
@@ -156,7 +156,7 @@ function tavern.decorate(room,map)
     end
   end
 end
-roomDecorators[tavern] = tavern
+roomDecorators['tavern'] = tavern
 
 local bedroom = {
   tags={'organized','dungeon'}
@@ -221,7 +221,7 @@ function bedroom.decorate(room,map)
     end
   end
 end
-roomDecorators[bedroom] = bedroom
+roomDecorators['bedroom'] = bedroom
 
 local storeroom = {
   tags={'organized','dungeon'}
@@ -252,7 +252,7 @@ function storeroom.decorate(room,map)
     if count(safeTiles) < 1 then break end
   end
 end
-roomDecorators[storeroom] = storeroom
+roomDecorators['storeroom'] = storeroom
 
 local trainingroom = {
   tags={'organized','dungeon'}
@@ -308,4 +308,4 @@ function trainingroom.decorate(room,map)
     if count(safeTiles) < 1 or tries >= 100 then break end
   end
 end
-roomDecorators[trainingroom] = trainingroom
+roomDecorators['trainingroom'] = trainingroom

@@ -277,7 +277,7 @@ serialize_value = function(value, seen)
 		return
 	end
 	(types[t] or
-		error("cannot serialize type " .. t .. ": " .. string.dump(value))
+		error("cannot serialize type " .. t .. " found in " .. tostring(debug.getinfo(value).source) .. " at line " .. tostring(debug.getinfo(value).linedefined))
 		)(value, seen)
 end
 
