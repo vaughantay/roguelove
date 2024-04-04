@@ -7,6 +7,7 @@ function crafting:enter()
   self.makeAmt = 1
   self.cursorX = 1
   self.cursorY = 0
+  self.sideCursorY = 0
   self.outText = nil
   self.yModPerc = 100
   self.scrollY = 0
@@ -15,6 +16,9 @@ function crafting:enter()
   self.descScrollMax = 0
   self.sidebarX = 0
   self.startY = 0
+  self.buttons = {}
+  self.maxButtonY = 0
+  self.lineCountdown = 0.5
   
   tween(0.2,self,{yModPerc=0})
   output:sound('stoneslideshort',2)
@@ -24,15 +28,18 @@ function crafting:refresh_craft_list()
   local craft_list = player:get_all_possible_recipes(self.hideUncraftable)
   local crafts = {}
   for _,craftID in ipairs(craft_list) do
-    local craftData = {id=craftID,craftable=true,ingredients={}}
+    local craftData = {id=craftID,craftable=true,secondary_ingredients={}}
     local recipe = possibleRecipes[craftID]
     --First look at igredients:
-    for iid,amount in pairs(recipe.ingredients) do
-      local item = possibleItems[iid]
-      local _,_,player_amount = player:has_item(iid)
-      local ing = {id=iid,amount=amount,player_amount=player_amount,enough=(player_amount>=amount)}
-      craftData.ingredients[ing.id] = ing
-      if player_amount < amount then craftData.craftable = false end
+    if recipe.ingredients then
+      craftData.ingredients = {}
+      for iid,amount in pairs(recipe.ingredients) do
+        local item = possibleItems[iid]
+        local _,_,player_amount = player:has_item(iid)
+        local ing = {id=iid,amount=amount,player_amount=player_amount,enough=(player_amount>=amount)}
+        craftData.ingredients[ing.id] = ing
+        if player_amount < amount then craftData.craftable = false end
+      end
     end
     --Class check:
     if recipe.requires_class then
@@ -56,11 +63,11 @@ function crafting:refresh_craft_list()
       end
     end
     --Specific Tool Check:
-    if recipe.specific_tools then
-      craftData.specific_tools = {}
-      for _,tool in ipairs(recipe.specific_tools) do
+    if recipe.requires_tools then
+      craftData.requires_tools = {}
+      for _,tool in ipairs(recipe.requires_tools) do
         local has_item = player:has_item(tool)
-        craftData.specific_tools[#craftData.specific_tools+1] = {toolID=tool,has_item=has_item}
+        craftData.requires_tools[#craftData.requires_tools+1] = {toolID=tool,has_item=has_item}
         if not has_item then craftData.craftable=false end
       end
     end --end specific tool for
@@ -70,7 +77,7 @@ function crafting:refresh_craft_list()
       craftData.tool_tags = {}
       for _,tag in ipairs(recipe.tool_tags) do
         craftData.tool_tags[tag] = false
-        for _,item in pairs(player.inventory) do
+        for _,item in pairs(player:get_inventory()) do
           if item:has_tag(tag) then
             craftData.tool_tags[tag] = item
             break
@@ -81,6 +88,39 @@ function crafting:refresh_craft_list()
         end
       end --end tag for
     end --end tool tag for
+    
+    --Ingredient property check:
+    if recipe.ingredient_properties then
+      craftData.ingredient_properties = {}
+      for prop,amt in pairs(recipe.ingredient_properties) do
+        craftData.ingredient_properties[prop] = {required=amt,amount=0,selected=0}
+        for _, item in pairs(player:get_inventory()) do
+          if item.crafting_ingredient_properties and item.crafting_ingredient_properties[prop] and not recipe.results[item.id]  then
+            local typeMatch = false
+            if recipe.ingredient_types then
+              if item.crafting_ingredient_types then
+                for _,itype in pairs(recipe.ingredient_types) do
+                  if in_table(itype,item.crafting_ingredient_types) then
+                    typeMatch = true
+                    break
+                  end
+                end
+              end
+            else --if ingredient types aren't set, don't worry about matching
+              typeMatch = true
+            end
+            if typeMatch then
+              craftData.ingredient_properties[prop][#craftData.ingredient_properties[prop]+1] = {item=item,amount=item.crafting_ingredient_properties[prop]}
+              craftData.ingredient_properties[prop].amount = craftData.ingredient_properties[prop].amount + item.crafting_ingredient_properties[prop]*item.amount
+              craftData.secondary_ingredients[item] = 0
+            end
+          end
+        end
+        if craftData.ingredient_properties[prop].amount < amt then
+          craftData.craftable = false
+        end
+      end
+    end
     
     --Level Requirement Check:
     if recipe.required_level then
@@ -142,6 +182,8 @@ function crafting:draw()
   local mouseX,mouseY = love.mouse.getPosition()
   mouseX,mouseY = round(mouseX/uiScale),round(mouseY/uiScale)
   local fontSize = prefs['fontSize']
+  local tileSize = output:get_tile_size()
+  local lineSize = math.max(fontSize,tileSize)
   local outHeight = 0
 	
   self.screenMax = round((height/(fontSize+2)/2)/uiScale)
@@ -199,22 +241,28 @@ function crafting:draw()
     local name = ""
     local count = 1
     local recipe = possibleRecipes[craftID]
-    for item,amount in pairs(recipe.results) do
-      if count > 1 then name = name .. ", " end
-      if amount > 1 then
-        name = name .. amount .. " " .. ucfirst(possibleItems.pluralName or "x " .. ucfirst(possibleItems[item].name))
-      else
-        name = name .. ucfirst(possibleItems[item].name)
+    if recipe.name then
+      name = recipe.name
+    else
+      for item,amount in pairs(recipe.results) do
+        if count > 1 then name = name .. ", " end
+        if amount > 1 then
+          name = name .. amount .. " " .. ucfirst(possibleItems.pluralName or "x " .. ucfirst(possibleItems[item].name))
+        else
+          name = name .. ucfirst(possibleItems[item].name)
+        end
+        count = count + 1
       end
-      count = count + 1
     end
     local _, nameLines = fonts.textFont:getWrap(name, window1w)
-    if self.cursorY == i then
-      if self.cursorX == 1 then setColor(150,150,150,255)
-      else setColor(75,75,75,255) end
+    if self.selected == i then
+      setColor(150,150,150,255)
       love.graphics.rectangle("fill",padX,printY,window1w-padX,#nameLines*fontSize+2)
-      setColor(255,255,255,255)
+    elseif self.cursorY == i then
+      setColor(75,75,75,255)
+      love.graphics.rectangle("fill",padX,printY,window1w-padX,#nameLines*fontSize+2)
     end
+    setColor(255,255,255,255)
     self.craft_coordinates[i] = {minX=padX,minY=printY,maxX=window1w-padX,maxY=printY+#nameLines*fontSize}
     if not craftInfo.craftable then
       setColor(200,0,0,255)
@@ -246,7 +294,16 @@ function crafting:draw()
   self.scrollY = math.min(self.scrollY,self.scrollMax)
   
   --Print info on selected craft:
-  if (self.crafts[self.cursorY] ~= nil) then
+  local amountBoxW = fonts.textFont:getWidth("100")+8
+  local minusButtonX = sidebarX+padX
+  local amountBoxX = minusButtonX+48
+  local plusButtonX = amountBoxX+amountBoxW+16
+  local iconX = plusButtonX+48
+  local ingredientX = iconX+tileSize
+  local ingredientW = window2w-(ingredientX-(sidebarX+padX))
+  self.buttons = {}
+  
+  if (self.crafts[self.selected or self.cursorY] ~= nil) then
     love.graphics.push()
     --Create a "stencil" that stops 
     local function stencilFunc()
@@ -255,49 +312,157 @@ function crafting:draw()
     love.graphics.stencil(stencilFunc,"replace",1)
     love.graphics.setStencilTest("greater",0)
     love.graphics.translate(0,-self.descScrollY)
-    local craftInfo = self.crafts[self.cursorY]
+    local craftInfo = self.crafts[self.selected or self.cursorY]
     local recipe = possibleRecipes[craftInfo.id]
     local descY = padding
     --List Results:
     local resultCount = count(recipe.results)
-    local resultText = (resultCount > 1 and "Results:" or "Result: ")
+    love.graphics.printf((resultCount > 1 and "Results:" or "Result:"),sidebarX+padX,descY,window2w,"left")
+    descY = descY+fontSize
+    
     for iid,amount in pairs(recipe.results) do
       local item = possibleItems[iid]
-      resultText = resultText .. (resultCount > 1 and "\n\t*" or "") .. (amount > 1 and item.pluralName and amount .. " " .. ucfirst(item.pluralName) or ucfirst(item.name) .. (amount > 1 and " x " .. amount or "")) .. " (" .. item.description .. ")"
+      item.baseType = "item"
+      if item.id == nil then item.id = iid end
+      local resultText = (amount > 1 and item.pluralName and amount .. " " .. ucfirst(item.pluralName) or ucfirst(item.name) .. (amount > 1 and " x " .. amount or "")) .. " (" .. item.description .. ")"
+      output.display_entity(item,sidebarX+padX,descY,"force")
+      love.graphics.printf(resultText,sidebarX+padX+tileSize,descY,window2w,"left")
+      local _, dlines = fonts.textFont:getWrap(resultText,window2w)
+      descY = descY+math.max(fontSize*(#dlines+1),lineSize)
     end
-    love.graphics.printf(resultText,sidebarX+padX,descY,window2w,"left")
-    local _, dlines = fonts.textFont:getWrap(resultText,window2w)
-    descY = descY+prefs['fontSize']*(#dlines+2)
-    --List Ingredients:
+    descY = descY+fontSize
+    local buttonY = 0
+    
+    --Craft Buttons:
+    if craftInfo.ingredient_properties then
+      for _,prop in pairs(craftInfo.ingredient_properties) do
+        if prop.selected < prop.required then
+          setColor(150,150,150,255)
+          break
+        end
+      end
+    end
+    local craftSelected = (self.selected and self.sideCursorY == 0 or false)
+    local buttonW = fonts.buttonFont:getWidth("Create")+25
+    local craftButton = output:button(sidebarX+padX,descY,buttonW,nil,(craftSelected and 'hover' or nil),"Create")
+    craftButton.buttonY = buttonY
+    craftButton.buttonType = "craft"
+    self.buttons[1] = craftButton
+    setColor(255,255,255,255)
+    
+    descY = descY+tileSize
+    --Specific Ingredients:
     love.graphics.printf("Ingredients:",sidebarX+padX,descY,window2w,"left")
-    descY=descY+prefs['fontSize']
-    for iid,ingInfo in pairs(craftInfo.ingredients) do
-      local item = possibleItems[iid]
-      local player_amount = ingInfo.player_amount or 0
-      local amount = ingInfo.amount
-      local ingText = "\t*" .. (amount > 1 and item.pluralName and amount .. " " .. ucfirst(item.pluralName) or ucfirst(item.name) .. (amount > 1 and " x " .. amount or "")) .. " (You have " .. player_amount .. ")"
-      if not ingInfo.enough then
-        setColor(200,0,0,255)
+    descY=descY+prefs['fontSize']+8
+    if craftInfo.ingredients then
+      for iid,ingInfo in pairs(craftInfo.ingredients) do
+        local item = possibleItems[iid]
+        item.baseType = "item"
+        if item.id == nil then item.id = iid end
+        local player_amount = ingInfo.player_amount or 0
+        local amount = ingInfo.amount
+        local ingText = (amount > 1 and item.pluralName and amount .. " " .. ucfirst(item.pluralName) or ucfirst(item.name) .. (amount > 1 and " x " .. amount or "")) .. " (have " .. player_amount .. ")"
+        if not ingInfo.enough then
+          setColor(200,0,0,255)
+        end
+        output.display_entity(item,sidebarX+padX,descY,"force")
+        love.graphics.printf(ingText,sidebarX+padX+tileSize,descY,window2w,"left")
+        if not ingInfo.enough then
+          setColor(255,255,255,255)
+        end
+        local _, dlines = fonts.textFont:getWrap(ingText,window2w)
+        descY = descY+math.max(prefs['fontSize']*#dlines,lineSize)
       end
-      love.graphics.printf(ingText,sidebarX+padX,descY,window2w,"left")
-      if not ingInfo.enough then
-        setColor(255,255,255,255)
-      end
-      local _, dlines = fonts.textFont:getWrap(ingText,window2w)
-      descY = descY+prefs['fontSize']*#dlines
     end
+    --Property-based ingredients:
+    if craftInfo.ingredient_properties then
+      for prop,propInfo in pairs(craftInfo.ingredient_properties) do
+        local propText = ucfirst(prop) .. " ingredients adding to " .. propInfo.required .. " (" .. propInfo.selected .. " selected):"
+        if propInfo.required > propInfo.amount then
+          setColor(200,0,0,255)
+        elseif propInfo.required > propInfo.selected then
+          setColor(200,200,0,255)
+        end
+        love.graphics.printf(propText,sidebarX+padX,descY,window2w,"left")
+        if propInfo.required > propInfo.amount or propInfo.required > propInfo.selected then
+          setColor(255,255,255,255)
+        end
+        local _, dlines = fonts.textFont:getWrap(propText,window2w)
+        descY = descY+fontSize*#dlines
+        --Loop through possibilities:
+        if #propInfo == 0 then
+          descY = descY+8
+          love.graphics.printf("\tYou have none.",sidebarX+padX,descY,window2w,"left")
+          local _, dlines = fonts.textFont:getWrap("\tYou have none.",window2w)
+          descY = descY+fontSize*(#dlines+1)
+        else
+          descY = descY + fontSize
+          for _,details in ipairs(propInfo) do
+            local item = details.item
+            buttonY = buttonY+1
+            --Minus Button:
+            local minusButton = output:tinybutton(minusButtonX,descY,nil,(minusMouse or (self.sideCursorY == buttonY and self.cursorX == 1) and "hover" or false),"-")
+            minusButton.craftInfo = craftInfo
+            minusButton.property = propInfo
+            minusButton.details = details
+            minusButton.buttonX = 1
+            minusButton.buttonY = buttonY
+            minusButton.buttonType = "minus"
+            self.buttons[#self.buttons+1] = minusButton
+            
+            --Amount Box:
+            local numberEntry = {minX=amountBoxX,minY=descY-2,maxX=amountBoxX+amountBoxW,maxY=descY-2+fontSize+4,buttonX=2,buttonY=buttonY,buttonType="box"}
+            numberEntry.craftInfo = craftInfo
+            numberEntry.property = propInfo
+            numberEntry.details = details
+            self.buttons[#self.buttons+1] = numberEntry
+            local amountMouse = (mouseX > numberEntry.minX and mouseX < numberEntry.maxX and mouseY > numberEntry.minY-self.scrollY and mouseY < numberEntry.maxY-self.scrollY)
+            if (self.cursorX == 2 and self.sideCursorY == buttonY) or amountMouse then
+              setColor(75,75,75,255)
+              love.graphics.rectangle('fill',numberEntry.minX,numberEntry.minY,amountBoxW,fontSize+4)
+              setColor(255,255,255,255)
+              if self.lineOn and self.cursorX == 2 and self.sideCursorY == buttonY then
+                local w = fonts.textFont:getWidth(tostring(craftInfo.secondary_ingredients[item]))
+                local lineX = amountBoxX+math.ceil(amountBoxW/2+w/2)
+                love.graphics.line(lineX,descY,lineX,descY+fontSize)
+              end
+            end
+            love.graphics.rectangle('line',numberEntry.minX,numberEntry.minY,amountBoxW,fontSize+4)
+            love.graphics.printf(craftInfo.secondary_ingredients[item],amountBoxX,descY,amountBoxW,"center")
+        
+            --Plus Button:
+            local plusButton = output:tinybutton(plusButtonX,descY,nil,(plusMouse or (self.sideCursorY == buttonY and self.cursorX == 3) and "hover" or false),"+")
+            plusButton.craftInfo = craftInfo
+            plusButton.property = propInfo
+            plusButton.details = details
+            plusButton.buttonType = "plus"
+            plusButton.buttonX = 3
+            plusButton.buttonY = buttonY
+            self.buttons[#self.buttons+1] = plusButton
+            
+            --Item display:
+            local itemText = item:get_name(true,1) .. ": " .. details.amount .. " (have " .. item.amount .. ")"
+            output.display_entity(item,iconX,descY,true,true)
+            love.graphics.printf(itemText,ingredientX,descY,ingredientW,"left")
+            local _, dlines = fonts.textFont:getWrap(propText,ingredientW)
+            descY = descY+prefs['fontSize']*#dlines
+          end
+        end
+      end
+    end
+    
     descY=descY+prefs['fontSize']
     
-    if craftInfo.specific_tools then
-      local toolCount = count(craftInfo.specific_tools)
+    if craftInfo.requires_tools then
+      local toolCount = count(craftInfo.requires_tools)
       love.graphics.printf("Requires Tool" .. (toolCount > 1 and "s:" or ":"),sidebarX+padX,descY,window2w,"left")
-      descY=descY+prefs['fontSize']
-      for _,toolInfo in ipairs(craftInfo.specific_tools) do
+      descY=descY+prefs['fontSize']+8
+      for _,toolInfo in ipairs(craftInfo.requires_tools) do
         local item = possibleItems[toolInfo.toolID]
         if not toolInfo.has_item then
           setColor(200,0,0,255)
         end
-        local toolText = "\t*" .. ucfirst(item.name)
+        local toolText = "*" .. ucfirst(item.name)
         love.graphics.printf(toolText,sidebarX+padX,descY,window2w,"left")
         if not toolInfo.has_item then
           setColor(255,255,255,255)
@@ -311,9 +476,9 @@ function crafting:draw()
     if craftInfo.tool_tags then
       local toolCount = count(craftInfo.tool_tags)
       love.graphics.printf("Requires tool" .. (toolCount > 1 and "s" or "") .. " with tag" .. (toolCount > 1 and "s:" or ":"),sidebarX+padX,descY,window2w,"left")
-      descY = descY + prefs['fontSize']
+      descY = descY + prefs['fontSize']+8
       for tag,item in pairs(craftInfo.tool_tags) do
-        local toolText = "\t*" .. ucfirst(tag) .. (item and " (" .. ucfirst(item.name) .. ")" or "")
+        local toolText = "*" .. ucfirst(tag) .. (item and " (" .. ucfirst(item.name) .. ")" or "")
         if not item then
           setColor(200,0,0,255)
         end
@@ -330,9 +495,9 @@ function crafting:draw()
     if craftInfo.requires_spells then
       local spellCount = #craftInfo.requires_spells
       love.graphics.printf("Requires spell" .. (spellCount > 1 and "s:" or ":"),sidebarX+padX,descY,window2w,"left")
-      descY = descY+prefs['fontSize']
+      descY = descY+prefs['fontSize']+8
       for _,spellData in ipairs(craftInfo.requires_spells) do
-        local spellText = "\t*" .. ucfirst(spellData.spell_name)
+        local spellText = "*" .. ucfirst(spellData.spell_name)
         if not spellData.has_spell then
           setColor(200,0,0,255)
         end
@@ -387,9 +552,9 @@ function crafting:draw()
     
     if craftInfo.stat_requirements then
       love.graphics.printf("Stat Requirements:",sidebarX+padX,descY,window2w,"left")
-      descY = descY+prefs['fontSize']
+      descY = descY+prefs['fontSize']+8
       for stat,info in pairs(craftInfo.stat_requirements) do
-        local statText = "\t*" .. ucfirst(stat) .. ": " .. info.requirement .. " (You have " .. info.player_stat .. ")"
+        local statText = "*" .. ucfirst(stat) .. ": " .. info.requirement .. " (have " .. info.player_stat .. ")"
         if not info.meets_requirement then
           setColor(200,0,0,255)
         end
@@ -405,10 +570,10 @@ function crafting:draw()
     
     if craftInfo.skill_requirements then
       love.graphics.printf("Skill Requirements:",sidebarX+padX,descY,window2w,"left")
-      descY = descY+prefs['fontSize']
+      descY = descY+prefs['fontSize']+8
       for skill,info in pairs(craftInfo.skill_requirements) do
         local skillInfo = possibleSkills[skill]
-        local statText = "\t*" .. skillInfo.name .. (skillInfo.max == 1 and "" or ": " .. info.requirement .. " (You have " .. info.player_stat .. ")")
+        local statText = "*" .. skillInfo.name .. (skillInfo.max == 1 and "" or ": " .. info.requirement .. " (have " .. info.player_stat .. ")")
         if not info.meets_requirement then
           setColor(200,0,0,255)
         end
@@ -433,6 +598,7 @@ function crafting:draw()
       local _, dlines = fonts.textFont:getWrap(craftInfo.requires_text,window2w)
       descY = descY+prefs['fontSize']*(#dlines+1)
     end
+    self.maxButtonY = buttonY
     love.graphics.setStencilTest()
     love.graphics.pop()
     --Scrollbars
@@ -457,79 +623,183 @@ end
 function crafting:buttonpressed(key)
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
   local uiScale = (prefs['uiScale'] or 1)
+  local typed = key
   width,height = round(width/uiScale),round(height/uiScale)
   key = input:parse_key(key)
 	if (key == "escape") then
-		self:switchBack()
+    if self.selected then
+      self.selected = nil
+      self.cursorX = 1
+      self.sideCursorY = 0
+    else
+      self:switchBack()
+    end
 	elseif (key == "enter") or key == "wait" then
-    if self.cursorX == 1 then
+    if not self.selected then
       if self.cursorY == 0 then
         self.hideUncraftable = not self.hideUncraftable
         self:refresh_craft_list()
       end
       if self.crafts[self.cursorY] ~= nil then
-        self:doCraft(self.cursorY)
+        self.selected = self.cursorY
+        self.sideCursorY = 0
+        self.cursorX = 1
       end
     else
-      self.cursorX = 1
+      for _,button in pairs(self.buttons) do
+        if (not button.buttonX or self.cursorX == button.buttonX) and self.sideCursorY == button.buttonY then
+          self:select_button(button)
+          break
+        end
+      end      
     end
   elseif key == "east" then
-    if self.cursorX == 1 and self.cursorY ~= 0 then
-      if self.scrollMax > 0 then
-        self.cursorX = 2
-      elseif self.descScrollMax > 0 then
-        self.cursorX = 3
+    if not self.selected and self.cursorY ~= 0 then
+      self.selected = self.cursorY
+      self.sideCursorY = 0
+      self.cursorX = 1
+    elseif self.selected then
+      if self.cursorX < 3 and self.sideCursorY ~= 0 then
+        self.cursorX = self.cursorX+1
       end
-    elseif self.cursorX == 2 and self.descScrollMax > 0 then
-      self.cursorX = 3
     end
   elseif key == "west" then
-    if self.cursorX == 2 then
+    if self.cursorX > 1  then
+      self.cursorX = self.cursorX - 1
+    elseif self.selected then
+      self.selected = nil
+      self.sideCursorY = 0
       self.cursorX = 1
-    elseif self.cursorX == 3 then
-      if self.scrollMax > 0 then self.cursorX = 2
-      else self.cursorX = 1 end
     end
 	elseif (key == "north") then
-    if self.cursorX == 1 then
+    if not self.selected then
       if (self.cursorY > 0) then
         self.cursorY = self.cursorY - 1
         if not self.craft_coordinates[self.cursorY-1] or self.craft_coordinates[self.cursorY-1].minY-self.scrollY < self.startY then
           self:listScrollUp()
         end
       end
-    elseif self.cursorX == 2 then
-      self:listScrollUp()
-    elseif self.cursorX == 3 then
-      self:descScrollUp()
+    else
+      self.sideCursorY = math.max(self.sideCursorY-1,0)
     end
 	elseif (key == "south") then
-    if self.cursorX == 1 then
+    if not self.selected then
       if (self.crafts[self.cursorY+1] ~= nil) then
         self.cursorY = self.cursorY + 1
         if not self.craft_coordinates[self.cursorY+1] or self.craft_coordinates[self.cursorY+1].maxY-self.scrollY > height then
           self:listScrollDown()
         end
       end
-    elseif self.cursorX == 2 then
-      self:listScrollDown()
-    elseif self.cursorX == 3 then
-      self:descScrollDown()
+    else
+      if self.sideCursorY < self.maxButtonY then
+        self.sideCursorY = self.sideCursorY + 1 
+      end
+    end
+  elseif key == "nextTarget" then
+    if not self.selected and self.cursorY ~= 0 then
+      self.selected = self.cursorY
+      self.sideCursorY = 0
+      self.cursorX = 1
+    elseif self.selected then
+      if self.sideCursorY == 0 then
+        self.sideCursorY = 1
+      elseif self.cursorX < 3 then
+        self.cursorX = self.cursorX+1
+      elseif self.cursorX >= 3 then
+        if self.sideCursorY < self.maxButtonY then
+          self.cursorX = 1
+          self.sideCursorY = self.sideCursorY+1
+        else
+          self.cursorX = 1
+          self.sideCursorY = 0
+        end
+      end
+    end
+  elseif tonumber(typed) and self.cursorX == 2 then --Typing in box
+    local box
+    local item
+    for _,button in pairs(self.buttons) do
+      if button.buttonType == "box" and button.buttonY == self.sideCursorY then
+        box = button
+        item = box.details.item
+      end
+    end
+    if box and box.property.selected < box.property.required then
+      local craft = box.craftInfo or self.crafts[self.selected or self.cursorY]
+      local currAmt = craft.secondary_ingredients[item] or 0
+      if string.len(currAmt) < 3 then
+        local newAmt = math.min(tonumber(currAmt == 0 and typed or currAmt .. typed),item.amount)
+        local diff = newAmt-currAmt
+        local prop_amt = box.details.amount
+        local addition = (diff*prop_amt)
+        
+        local overcharge = box.property.selected+addition-box.property.required
+        if overcharge > 0 and overcharge >= prop_amt then
+          local over_amt = math.floor(overcharge/prop_amt)
+          newAmt = newAmt-over_amt
+        end
+        diff = newAmt-currAmt
+        craft.secondary_ingredients[item] = newAmt
+        
+        for property,prop_amt in pairs(item.crafting_ingredient_properties) do
+          local prop = craft.ingredient_properties and craft.ingredient_properties[property] or false
+          if prop then
+            local addition = (diff*prop_amt)
+            prop.selected = prop.selected+addition
+          end
+        end
+      end
+    end
+  elseif (typed == "backspace") and self.cursorX == 2 then
+    local box
+    local item
+    for _,button in pairs(self.buttons) do
+      if button.buttonType == "box" and button.buttonY == self.sideCursorY then
+        box = button
+        item = box.details.item
+      end
+    end
+    if box then
+      local craft = box.craftInfo or self.crafts[self.selected or self.cursorY]
+      local currAmt = tostring(craft.secondary_ingredients[item] or 0)
+      local newAmt = tonumber(string.sub(currAmt,1,#currAmt-1))
+      newAmt = newAmt or 0
+      local diff = newAmt-currAmt
+      craft.secondary_ingredients[item] = newAmt
+      for property,prop_amt in pairs(item.crafting_ingredient_properties) do
+        if craft.ingredient_properties and craft.ingredient_properties[property] then
+          craft.ingredient_properties[property].selected = craft.ingredient_properties[property].selected+(diff*prop_amt)
+        end
+      end
     end
 	end
 end
 
 function crafting:mousepressed(x,y,button)
   local uiScale = (prefs['uiScale'] or 1)
-  if button == 2 or (x/uiScale > self.closebutton.minX and x/uiScale < self.closebutton.maxX and y/uiScale > self.closebutton.minY and y/uiScale < self.closebutton.maxY) then self:switchBack() end
-  local scrolled = self:update(0,true)
+  x,y = round(x/uiScale), round(y/uiScale)
+  if button == 2 or (x > self.closebutton.minX and x < self.closebutton.maxX and y > self.closebutton.minY and y < self.closebutton.maxY) then self:switchBack() end
   
-  if not scrolled then
-    if (self.crafts[self.cursorY] ~= nil) then
-      self:doCraft(self.cursorY)
-    elseif self.cursorY == 0 then
-      self.hideUncraftable = not self.hideUncraftable
-      self:refresh_craft_list()
+
+  for id,coords in ipairs(self.craft_coordinates) do
+    if x > coords.minX and x < coords.maxX and y+self.scrollY > coords.minY and y+self.scrollY < coords.maxY then
+      self.selected = id
+      self.cursorX = 2
+    end
+  end
+  local toggle = self.craft_coordinates['toggle']
+  if x > toggle.minX and x < toggle.maxX and y > toggle.minY and y < toggle.maxY then
+    self.cursorY = 0
+    self.selected = nil
+    self.hideUncraftable = not self.hideUncraftable
+    self:refresh_craft_list()
+  end
+  if self.buttons then
+    for _,button in pairs(self.buttons) do
+      if x > button.minX and x < button.maxX and y > button.minY and y < button.maxY then
+        self:select_button(button)
+        break
+      end
     end
   end
 end
@@ -541,6 +811,12 @@ function crafting:update(dt,forceMouse)
     Gamestate.update(dt)
     return
   end
+  self.lineCountdown = self.lineCountdown-dt
+  if self.lineCountdown <= 0 then
+    self.lineCountdown = .5
+    self.lineOn = not self.lineOn
+  end
+  
 	local x,y = love.mouse.getPosition()
   local uiScale = (prefs['uiScale'] or 1)
   x,y = round(x/uiScale), round(y/uiScale)
@@ -600,17 +876,29 @@ function crafting:update(dt,forceMouse)
 end
 
 function crafting:doCraft(craftIndex)
-  local craftID = self.crafts[craftIndex].id
-  if self.crafts[craftIndex].craftable then
-    local result,text = player:craft_recipe(craftID)
-    if result == true and not text then
-      text = possibleCrafts[craftID].result_text
+  local craftInfo = self.crafts[craftIndex]
+  local craftID = craftInfo.id
+  if craftInfo.craftable then
+    local propCheck = true
+    if craftInfo.ingredient_properties then
+      for _,propInfo in pairs(craftInfo.ingredient_properties) do
+        if propInfo.selected < propInfo.required then
+          propCheck = false
+          break
+        end
+      end
     end
-    self.outText = text
-    self:refresh_craft_list()
-  else
-    self.outText = "You can't craft that right now."
+    if propCheck then
+      local result,text = player:craft_recipe(craftID,craftInfo.secondary_ingredients)
+      if result == true and not text then
+        text = possibleCrafts[craftID].result_text
+      end
+      self.outText = text
+      self:refresh_craft_list()
+      return true
+    end
   end
+  self.outText = "You can't craft that right now."
 end
 
 function crafting:switchBack()
@@ -620,10 +908,11 @@ function crafting:switchBack()
 end
 
 function crafting:wheelmoved(x,y)
+  local mouseX,mouseY = love.mouse.getPosition()
   if y > 0 then
-    if self.mouseX < self.sidebarX then self:listScrollUp() else self:descScrollUp() end
+    if mouseX < self.sidebarX then self:listScrollUp() else self:descScrollUp() end
 	elseif y < 0 then
-    if self.mouseX < self.sidebarX then self:listScrollDown() else self:descScrollDown() end
+    if mouseX < self.sidebarX then self:listScrollDown() else self:descScrollDown() end
   end --end button type if
 end
 
@@ -669,5 +958,37 @@ function crafting:descScrollDown()
     if self.descScrollMax-self.descScrollY < prefs.fontSize then
       self.descScrollY = self.descScrollMax
     end
+  end
+end
+
+function crafting:select_button(button)
+  if not button then return end
+  
+  local craft = button.craftInfo or self.crafts[self.selected or self.cursorY]
+  
+  if button.buttonType == "minus" then
+    local item = button.details.item
+    if craft.secondary_ingredients[item] > 0 then
+      craft.secondary_ingredients[item] = craft.secondary_ingredients[item]-1
+      for property,amt in pairs(item.crafting_ingredient_properties) do
+        if craft.ingredient_properties and craft.ingredient_properties[property] then
+          craft.ingredient_properties[property].selected = craft.ingredient_properties[property].selected-amt
+        end
+      end
+    end
+  elseif button.buttonType == "plus" then
+    local item = button.details.item
+    if item.amount > craft.secondary_ingredients[item] and button.property.selected < button.property.required then
+      craft.secondary_ingredients[item] = craft.secondary_ingredients[item]+1
+      for property,amt in pairs(item.crafting_ingredient_properties) do
+        if craft.ingredient_properties and craft.ingredient_properties[property] then
+          craft.ingredient_properties[property].selected = craft.ingredient_properties[property].selected+amt
+        end
+      end
+    end
+  elseif button.buttonType == "box" then
+    self.cursorX,self.sideCursorY = 2,button.buttonY
+  elseif button.buttonType == "craft" then
+    self:doCraft(self.selected)
   end
 end

@@ -19,7 +19,7 @@ playerClasses = {
     spells={}, --These are spells the character will start with
     recipes={"healthpotionminor"}, --These are the specific recipes members of this class start with knowledge of
     items={{item="holywater",amount=2},{item="scroll",passed_info={'holy'},displayName = "3 Random Holy Scrolls",amount=3}}, --These items will be granted on game start
-    equipment={{item="dagger",enchantment="blessed",enchantment_turns=5,displayName="Blessed Dagger"}}, --These items will be equipped on game start
+    equipment={{item="sword",enchantment="blessed",enchantment_turns=5,displayName="Blessed Sword"}}, --These items will be equipped on game start
     learns_spells={{spell="smite",level=2}}, --These spells will be automatically granted once a certain level is reached
     skill_purchases={{skill='alchemy',point_cost=2}},
     spell_purchases={{spell="demondamager",level=1,point_cost=5},{spell="summonangel",level=1,point_cost=2}, {spell="smite",level=1,point_cost=2}}, --These spells will show up as options to learn (requiring spending points on them)

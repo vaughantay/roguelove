@@ -12,6 +12,8 @@ local healthPotionMinor = {
   useVerb="drink",
   consumed=true,
   tags={'liquid','healing'},
+  crafting_ingredient_properties={healing=3},
+  crafting_ingredient_types={'alchemy'},
   value=50,
   size=0
 }
@@ -36,6 +38,8 @@ local healthPotionModerate = {
   useVerb="drink",
   consumed=true,
   tags={'liquid','healing'},
+  crafting_ingredient_properties={healing=5},
+  crafting_ingredient_types={'alchemy'},
   value=5
 }
 function healthPotionModerate:use(user)
@@ -82,6 +86,8 @@ local poison = {
   useVerb="drink",
   consumed=true,
   tags={'liquid','poison'},
+  crafting_ingredient_properties={poison=2},
+  crafting_ingredient_types={'alchemy'},
   value=5
 }
 function poison:use(user)
@@ -103,6 +109,8 @@ local herbs = {
   useVerb="eat",
   consumed=true,
   tags={'food','healing','nature','ingredient','alchemy'},
+  crafting_ingredient_properties={healing=1},
+  crafting_ingredient_types={'alchemy'},
   value=5
 }
 function herbs:use(user)
@@ -125,6 +133,8 @@ local poisonshroom = {
   useVerb="eat",
   consumed=true,
   tags={'food','nature','ingredient','alchemy','poison'},
+  crafting_ingredient_properties={poison=1},
+  crafting_ingredient_types={'alchemy'},
   value=5
 }
 function poisonshroom:use(user)
@@ -146,6 +156,8 @@ local blood = {
   useVerb="drink",
   consumed=true,
   tags={'liquid','blood','ingredient'},
+  crafting_ingredient_properties={healing=2,blood=1},
+  crafting_ingredient_types={'alchemy'},
   value=5
 }
 function blood:use(user)
@@ -176,6 +188,8 @@ local demonblood = {
   useVerb="drink",
   consumed=true,
   tags={'liquid','unholy','fire','blood','ingredient'},
+  crafting_ingredient_properties={fire=1,unholy=1,demon=1},
+  crafting_ingredient_types={'alchemy'},
   value=5
 }
 function demonblood:use(user)
@@ -467,6 +481,8 @@ local greatsword = {
   max_level=5,
   tags={'large','sharp','sword'},
   stats_per_level={damage=2,value=5},
+  enchantable=true,
+  enchantment_slots={elemental=1,sharpness=1},
   value=50
 }
 possibleItems['greatsword'] = greatsword
@@ -536,6 +552,27 @@ local dagger = {
   stats_per_level={damage=1,value=1,accuracy=1,critical_chance=.5}
 }
 possibleItems['dagger'] = dagger
+
+local sword = {
+  name="sword",
+	description="A sword.",
+	symbol="†",
+	itemType="weapon",
+  subType="melee",
+  equippable=true,
+  equipSlot="wielded",
+	color={r=200,g=200,b=200,a=255},
+  melee_attack=true,
+	damage = 5,
+	level = 1,
+  max_level=5,
+  tags={'sharp'},
+  value=5,
+  stats_per_level={damage=1,value=1,accuracy=1},
+  enchantable=true,
+  enchantment_slots={elemental=1,sharpness=1}
+}
+possibleItems['sword'] = sword
 
 local selfharmdagger = {
   name="dual-bladed dagger",
@@ -1163,6 +1200,8 @@ local dragonflyheart = {
   itemType="other",
   color={r=255,g=0,b=0,a=255},
   tags={'insect','bodypart','fire','ingredient'},
+  crafting_ingredient_properties={fire=1},
+  crafting_ingredient_types={'alchemy'},
   value=1,
   stacks=true,
   neverSpawn=true,

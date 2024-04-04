@@ -1,7 +1,7 @@
 possibleRecipes = {}
 
 local uhw = {
-  results={unholywater=1},
+  results={unholywater=2,alcahest=1},
   ingredients={holywater=1,demonblood=1},
   result_text="You mix the demon blood into the holy water, corrupting it and turning it into unholy water.",
   tags={"alchemy","unholy"}
@@ -24,32 +24,42 @@ possibleRecipes['holywater'] = hw
 
 possibleRecipes['healthpotionminor'] = {
   results={healthpotionminor=1},
-  ingredients={herbs=2,blood=1,alcahest=1},
-  result_text="You mix the herbs and blood into the alcahest, creating a healing infusion.",
+  ingredients={alcahest=1},
+  ingredient_properties={healing=3},
+  ingredient_types={'alchemy'},
+  result_text="You mix healing ingredients into the alcahest, creating a healing infusion.",
   tags={"alchemy","healing"},
 }
 possibleRecipes['healthpotionmoderate'] = {
   results={healthpotionmoderate=1},
-  ingredients={healthpotionminor=2},
-  result_text="You mix together two Potions of Minor Healing, magically concentrating the healing energy into a Potion of Moderate Healing.",
+  ingredients={alcahest=1},
+  ingredient_properties={healing=5},
+  ingredient_types={'alchemy'},
+  result_text="You mix together the healing ingredients, concentrating the healing energy into a Potion of Moderate Healing.",
   tags={"alchemy","healing"}
 }
 possibleRecipes['poisonbottle'] = {
   results={poison=1},
-  ingredients={poisonshroom=1,alcahest=1},
+  ingredients={alcahest=1},
+  ingredient_properties={poison=1},
+  ingredient_types={'alchemy'},
   result_text="You whip up some deadly poison.",
   tags={"alchemy","poison"}
 }
 possibleRecipes['weaponpoison'] = {
   results={weaponpoison=1},
-  ingredients={poison=1,weaponoil=1},
+  ingredients={weaponoil=1},
+  ingredient_properties={poison=2},
+  ingredient_types={'alchemy'},
   result_text="You mix poison into your weapon oil. You can now apply it to a weapon to have it apply poison.",
   tags={"alchemy","poison"}
 }
 possibleRecipes['weaponfireoil'] = {
   results={weaponfireoil=1},
-  ingredients={dragonflyheart=1,weaponoil=1},
-  result_text="You mix the dragonfly heart into your weapon oil. You can now apply it to a weapon to have it deal extra fire damage.",
+  ingredients={weaponoil=1},
+  ingredient_properties={fire=2},
+  ingredient_types={'alchemy'},
+  result_text="You mix fiery substances into your weapon oil. You can now apply it to a weapon to have it deal extra fire damage.",
   tags={"alchemy","fire"},
   skill_requirements={alchemy=1,magic=100}
 }
@@ -67,7 +77,7 @@ possibleRecipes['reallybigclub'] = {
     name="Blah",
     results={item1=1,item2=1},
     ingredients={item3=1,item4=1},    
-    specific_tools={item5},
+    requires_tools={item5},
     tool_tags={tag1,tag2},
     requires_class="",
     requires_faction="",

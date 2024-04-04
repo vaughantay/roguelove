@@ -140,7 +140,7 @@ end
 function Item:get_name(full,amount,withLevel)
   local identified = self:is_identified()
   local name = (not identified and self.unidentified_name or self.name)
-  local pname = (not identified and self.unidentified_plural_name or self.plural_name)
+  local pname = (not identified and self.unidentified_plural_name or self.pluralName)
   amount = amount or self.amount or 1
   local prefix = ""
   local suffix = ""
@@ -900,4 +900,51 @@ end
 function Item:cleanup(map)
   map = map or currMap
   if possibleItems[self.id].cleanup then return possibleItems[self.id].cleanup(self,map) end
+end
+
+---Determines what recipes the item is an ingredient in:
+--@param all Boolean. If true, get all recipes, not just known recipes.
+function Item:is_ingredient_in(all)
+  local recipes = {}
+  local tool_recipes = {}
+  local done = false
+  for _,rid in pairs(player:get_all_possible_recipes()) do
+    local recipe = possibleRecipes[rid]
+    if recipe.ingredients and recipe.ingredients[self.id] then
+      recipes[#recipes+1] = rid
+      done = true
+    end
+    if not done then
+      if recipe.ingredient_properties and self.crafting_ingredient_properties then
+        for prop,_ in pairs(self.crafting_ingredient_properties) do
+          if recipe.ingredient_properties[prop] then
+            local typeMatch = false
+            if recipe.ingredient_types then
+              if self.crafting_ingredient_types then
+                for _,itype in pairs(recipe.ingredient_types) do
+                  if in_table(itype,self.crafting_ingredient_types) then
+                    typeMatch = true
+                    break
+                  end
+                end
+              end
+            else --if ingredient types aren't set, don't worry about matching
+              typeMatch = true
+            end
+            if typeMatch then
+              recipes[#recipes+1] = rid
+              done = true
+            end
+          end
+        end
+      end
+    end
+    --TODO: tool check
+  end
+  return recipes
+end
+
+---Determines what stores and factions will buy this item
+function Item:can_sell_to()
+  
 end

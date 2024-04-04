@@ -4208,19 +4208,48 @@ function Creature:can_craft_recipe(recipeID)
       if not self:has_spell(spell) then return false end
     end
   end
-  if recipe.specific_tools then
-    for _,tool in ipairs(recipe.specific_tools) do
+  if recipe.requires_tools then
+    for _,tool in ipairs(recipe.requires_tools) do
       if not self:has_item(tool) then return false end
     end
   end
-  for item,amt in pairs(recipe.ingredients) do
-    local i = self:has_item(item)
-    if not i or (i.amount or 1) < amt then return false end
+  if recipe.ingredients then
+    for item,amt in pairs(recipe.ingredients) do
+      local i = self:has_item(item)
+      if not i or (i.amount or 1) < amt then return false end
+    end
   end
+  if recipe.ingredient_properties then
+    for property,amt in pairs(recipe.ingredient_properties) do
+      local found = 0
+      for _,item in pairs(self:get_inventory()) do
+        if item.crafting_ingredient_properties and item.crafting_ingredient_properties[property] and not recipe.results[item.id] then
+          local typeMatch = false
+          if recipe.ingredient_types then
+            if item.crafting_ingredient_types then
+              for _,itype in pairs(recipe.ingredient_types) do
+                if in_table(itype,item.crafting_ingredient_types) then
+                  typeMatch = true
+                  break
+                end
+              end
+            end
+          else --if ingredient types aren't set, don't worry about matching
+            typeMatch = true
+          end
+          if typeMatch then
+            found = found + item.crafting_ingredient_properties[property]
+            if found >= amt then break end
+          end
+        end
+      end
+      if found < amt then return false end
+    end --end property for
+  end --end if ingredient_properties
   if recipe.tool_tags then
     for _,tag in ipairs(recipe.tool_tags) do
       local has = false
-      for _,item in pairs(self.inventory) do
+      for _,item in pairs(self:get_inventory()) do
         if item:has_tag(tag) then
           has = true
           break
@@ -4249,20 +4278,94 @@ end
 
 ---Craft a recipe
 --@param recipeID Text. The ID of the recipe to craft
+--@param secondary_ingredients Table. Secondary ingredients provided for the recipe based on the ingredient_properties
 --@return Boolean. If the recipe was successfully created
 --@return Text. The result text of the recipe
-function Creature:craft_recipe(recipeID)
+function Creature:craft_recipe(recipeID,secondary_ingredients)
   local recipe = possibleRecipes[recipeID]
-  for item,amt in pairs(recipe.ingredients) do
-    local i = self:has_item(item)
+  local results = recipe.results
+  local text = recipe.result_text
+  
+  --[[Custom craft code TODO: return to this later
+  if recipe.craft then
+    local ret,rettext = recipe.craft(self,recipe.ingredients,secondary_ingredients)
+    if ret == false then
+      if rettext then output:out(rettext) end
+      return false,rettext
+    elseif type(ret) == "table" then
+      results = ret
+      if rettext then text = rettext end
+    end
+  end--]]
+  
+  local passedTags = {}
+  local givenTags = {}
+  local enchantments = {}
+  if recipe.ingredients then
+    for item,amt in pairs(recipe.ingredients) do
+      local i = self:has_item(item)
       self:delete_item(i,amt)
+      if i.crafting_passed_tags then
+        for _,tag in pairs(i.crafting_passed_tags) do
+          passedTags[#passedTags+1] = tag
+        end
+      end
+      if i.crafting_given_tags then
+        for _,tag in pairs(i.crafting_given_tags) do
+          givenTags[#givenTags+1] = tag
+        end
+      end
+      if i.crafting_given_enchantments then
+        for _,tag in pairs(i.crafting_given_enchantments) do
+          enchantments[#enchantments+1] = tag
+        end
+      end
+    end
   end
-  for item,amt in pairs(recipe.results) do
-    local newItem = Item(item)
-      newItem.amount = amt
-      self:give_item(newItem)
+  if secondary_ingredients then
+    for item,amt in pairs(secondary_ingredients) do
+      self:delete_item(item,amt)
+      if item.crafting_passed_tags then
+      for _,tag in pairs(item.crafting_passed_tags) do
+        passedTags[#passedTags+1] = tag
+      end
+    end
+    if item.crafting_given_tags then
+      for _,tag in pairs(item.crafting_given_tags) do
+        givenTags[#givenTags+1] = tag
+      end
+    end
+    if item.crafting_given_enchantments then
+      for _,tag in pairs(item.crafting_given_enchantments) do
+        enchantments[#enchantments+1] = tag
+      end
+    end
+    end
   end
-  local text = recipe.result_text or "You make stuff."
+  local resultCount = 0
+  local resultText = nil
+  for item,amt in pairs(results) do
+    resultCount = resultCount + 1
+    local newItem = Item(item,passedTags)
+    newItem.amount = amt
+    for _,tag in ipairs(givenTags) do
+      if not newItem:has_tag(tag) then
+        newItem.tags[#newItem.tags+1] = tag
+      end
+    end
+    for _,enchantment in ipairs(enchantments) do
+      if item:qualifies_for_enchantment(enchantment) then
+        item:apply_enchantment(enchantment,-1)
+      end
+    end
+    self:give_item(newItem)
+    if resultText then
+      resultText = resultText .. (resultCount == count(recipe.results) and (resultCount ~= 2 and ", and " or " and ") or ", ") .. newItem:get_name()
+    else
+      resultText = newItem:get_name()
+    end
+  end
+  if not text and resultText then text = "You create " .. resultText .. "." end
   output:out(text)
   update_stat('recipes_crafted',recipeID)
   self:learn_recipe(recipeID)
