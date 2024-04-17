@@ -210,9 +210,12 @@ function shuffle(t)
 end
 
 ---Counts the number of entries in a table (even if not sequentially numbered)
---@param t Table. The table the count.
---@return Number. The number of entries in the table.
+--@param t Table. The table to count.
+--@return Number. The number of entries in the table, or 0 if it's not a table.
 function count(t)
+  if type(t) ~= "table" then
+    return 0
+  end
   local c = 0
   for _,__ in pairs(t) do
     c = c + 1
@@ -248,6 +251,30 @@ function sort_table(t,key)
   else
     table.sort(t,subSort)
   end
+end
+
+--Removes a given value from a numbered array
+--@param t Table. The table.
+--@param val Anything. The value to remove.
+--@param multiple Boolean. If true, will remove all instances of val. Otherwise, only removes it once
+function remove_from_array(t,val,multiple)
+  local pos = 1
+  local total = #t
+  local removed = false
+  
+  for i=1,total,1 do
+    if t[i] == val and (removed == false or multiple) then
+      t[i] = nil
+      removed = true
+    else
+      if i ~= pos then
+        t[pos] = t[i]
+        t[i] = nil
+      end
+      pos = pos + 1
+    end
+  end
+  return t
 end
 
 ---Determines what directions a set of coordinates is in from an origin point. Doesn't actually have anything to do with unit vectors.
