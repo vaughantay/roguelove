@@ -441,7 +441,7 @@ function game:print_sidebar()
       else
         if hotkeyInfo.type == "spell" then
           local no_deactivate = (hotkeyItem.active and hotkeyItem.no_manual_deactivate)
-          name = hotkeyItem.name .. (player.cooldowns[hotkeyItem.name] and " (" .. player.cooldowns[hotkeyItem.name] .. " turns)" or "") .. (hotkeyItem.charges and " (" .. hotkeyItem.charges .. ")" or "") .. (hotkeyItem.active and " (Active)" or "")
+          name = hotkeyItem.name .. (player.cooldowns[hotkeyItem] and " (" .. player.cooldowns[hotkeyItem] .. " turns)" or "") .. (hotkeyItem.charges and " (" .. hotkeyItem.charges .. ")" or "") .. (hotkeyItem.active and " (Active)" or "")
           canUse = not player.cooldowns[hotkeyItem.name] and hotkeyItem:requires(player) and not no_deactivate
           if no_deactivate then
             canUseText = "You cannot manually deactivate this ability."
@@ -2005,7 +2005,7 @@ function ContextualMenu:init(x,y,printX,printY)
   for _,spell in pairs(player:get_spells()) do
     local spellID = spell.id
     if spell.target_type == "tile" or spell.target_type == "self" or (spell.target_type == "creature" and self.creature) then
-      self.entries[#self.entries+1] = {name=spell.name,y = spellY,action=spell,cooldown=player.cooldowns[spell.name],charges=spell.charges,active=spell.active}
+      self.entries[#self.entries+1] = {name=spell.name,y = spellY,action=spell,cooldown=player.cooldowns[spell],charges=spell.charges,active=spell.active}
       spellY = spellY+fontPadding
     end
   end

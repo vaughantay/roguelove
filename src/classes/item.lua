@@ -35,7 +35,9 @@ function Item:init(type_name,tags,info,ignoreNewFunc)
   if data.spells_granted then
     self.spells_granted = {}
     for _,spellID in ipairs(data.spells_granted) do
-      self.spells_granted[#self.spells_granted+1] = Spell(spellID)
+      local newSpell = Spell(spellID)
+      newSpell.from_item = self
+      self.spells_granted[#self.spells_granted+1] = newSpell
     end
   end
   if self.image_varieties and not self.image_name then
@@ -686,15 +688,38 @@ end
 --@param enchantment Text. The enchantment ID
 --@param turns Number. The number of turns to apply the enchantment, if applicable. What "turns" refers to will vary by enchantment, and some are always permanent, and so this number will do nothing. Add a -1 to make force this enchantment to be permanent.
 function Item:apply_enchantment(enchantment,turns)
+  local enchData = enchantments[enchantment]
   turns = turns or 1
-  if not self.enchantments then self.enchantments = {} end
-  local currEnch = self.enchantments[enchantment]
-  if currEnch == -1 or turns == -1 then --permanent enchantments are always permanent
-    self.enchantments[enchantment] = -1
-  elseif currEnch then --if you currently have this enchantment, add turns
-    self.enchantments[enchantment] = currEnch+turns
-  else --if you don't currently have this enchantment, set it to the passed turns value
-    self.enchantments[enchantment] = turns
+  if enchData then
+    if not self.enchantments then self.enchantments = {} end
+    local currEnch = self.enchantments[enchantment]
+    if currEnch == -1 or turns == -1 then --permanent enchantments are always permanent
+      self.enchantments[enchantment] = -1
+    elseif currEnch then --if you currently have this enchantment, add turns
+      self.enchantments[enchantment] = currEnch+turns
+    else --if you don't currently have this enchantment, set it to the passed turns value
+      self.enchantments[enchantment] = turns
+    end
+    if enchData.spells_granted then
+      for _,spellID in ipairs(enchData.spells_granted) do
+        local already = false
+        if self.spells_granted then
+          for _,selfspell in ipairs(self.spells_granted) do
+            if selfspell.id == spellID then
+              already = true
+              break
+            end
+          end
+        end
+        if not already then
+          if not self.spells_granted then self.spells_granted = {} end
+          local newSpell = Spell(spellID)
+          newSpell.from_item = self
+          newSpell.from_enchantment = enchantment
+          self.spells_granted[#self.spells_granted+1] = newSpell
+        end
+      end
+    end
   end
 end
 
@@ -702,6 +727,13 @@ end
 --@param enchantment Text. The ID of the enchantment
 function Item:remove_enchantment(enchantment)
   self.enchantments[enchantment] = nil
+  if self.spells_granted then
+    for index,spell in pairs(self.spells_granted) do
+      if spell.from_enchantment == enchantment then
+        remove_from_array(self.spells_granted,spell)
+      end
+    end
+  end
 end
 
 ---Decrease the amount of enchantment on an item

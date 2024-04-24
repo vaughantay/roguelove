@@ -94,7 +94,8 @@ local blessed = {
   tags={"holy"},
   forbiddenTags={'unholy'},
   itemTypes={"weapon","ammo","throwable"},
-  enchantment_type="elemental"
+  enchantment_type="elemental",
+  spells_granted={'smite'}
 }
 enchantments['blessed'] = blessed
 

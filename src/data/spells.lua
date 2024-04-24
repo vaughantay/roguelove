@@ -185,6 +185,7 @@ smite = {
     projectile=false,
     cost=1,
     cooldown = 5,
+    min_targets=1,
     max_targets=3,
     tags={'holy','attack'},
     stats = {
@@ -217,10 +218,16 @@ smite = {
 
 homecoming = {
     name = "Homecoming",
-    description = "Teleport immediately to the town.",
+    description = "Teleport to the town.",
     target_type = "self",
     tags={'teleport','magic'},
+    toggled=true,
+    no_manual_deactivate=true,
+    max_active_turns=5,
     cast = function(self,caster)
+      output:out("You start feeling homesick.")
+    end,
+    finish = function(self,caster)
       if caster == player then
         goToMap(1,"town",true)
       end
@@ -1395,6 +1402,40 @@ heal_other = {
       return dmgedCreat or false
     end
   },
+}
+
+possibleSpells['doubleshot'] = {
+  name = "Double Shot",
+  description = "If you're holding two guns, you can shoot at two different targets at once.",
+  target_type="creature",
+  free_aim=true,
+  min_targets=2,
+  max_targets=2,
+  cast_accepts_multiple_targets=true,
+  forgettable=false,
+  freeSlot=true,
+  cast = function(self,targets,caster)
+    for _,target in pairs(targets) do
+      for _, attack in pairs(caster:get_ranged_attacks()) do
+        
+      end
+    end
+  end,
+  requires = function(self,caster)
+    
+  end
+}
+
+possibleSpells['fanhammer'] = {
+  name = "Fan the Hammer",
+  description = "Unload all your ammo at a target.",
+  target_type="creature",
+  free_aim=true,
+  forgettable=false,
+  freeSlot=true,
+  cast = function(self,target,caster)
+    
+  end
 }
 
 possibleSpells['undotransform'] = {

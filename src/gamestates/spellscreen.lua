@@ -110,7 +110,8 @@ function spellscreen:draw()
     local name = spell.name
     local target_type = spell.target_type
     local active = spell.active
-    local upgrade = ((spellPoints > 0 or spell.spellPoints > 0) and (count(spell:get_possible_upgrades()) > 0))
+    local item = spell.from_item
+    local upgrade = not item and ((spellPoints > 0 or spell.spellPoints > 0) and (count(spell:get_possible_upgrades()) > 0))
     --Draw the highlight box:
     if (self.cursorY == i) then
       if self.cursorX == 2 then
@@ -126,7 +127,7 @@ function spellscreen:draw()
       setColor(255,255,255,255)
       mousedSpell = i
     end
-    if player.cooldowns[name] or spell:requires(player) == false then
+    if player.cooldowns[spell] or spell:requires(player) == false then
       if moused or self.cursorY == i then
         setColor((active and (upgrade and 12 or 0) or 25),25,(upgrade and 0 or (active and 0 or 25)),255)
       else
@@ -138,7 +139,7 @@ function spellscreen:draw()
     if not spell.freeSlot then
       slotcount = slotcount + 1
     end
-    local fullText = (spell.freeSlot and "-) " or slotcount .. ") ") .. name .. (player.cooldowns[name] and " (" .. player.cooldowns[name] .. " turns to recharge)" or "") .. (target_type == "passive" and " (Passive)" or "") .. (active and " (Active)" or "") .. (upgrade and " (+)" or "")
+    local fullText = (spell.freeSlot and "-) " or slotcount .. ") ") .. name .. (player.cooldowns[spell] and " (" .. player.cooldowns[spell] .. " turns to recharge)" or "") .. (target_type == "passive" and " (Passive)" or "") .. (active and " (Active)" or "") .. (upgrade and " (+)" or "") .. (item and " (from " .. item:get_name(true) .. ")" or "")
 		love.graphics.print(fullText,x+padX,printY)
     setColor(255,255,255,255)
 		line = line+1
@@ -225,7 +226,8 @@ function spellscreen:draw()
     local printX = sidebarX+padX
     local hotkey = spell.hotkey
     local selected = (self.cursorX ~= 1)
-    local memorized = player:has_spell(spell.id,true)
+    local memorized = player:has_spell(spell.id)
+    local item = spell.from_item
     
     if target_type == "passive" then
       spellText = spellText .. "\n\nThis ability is passive and is used automatically when needed."
@@ -262,6 +264,10 @@ function spellscreen:draw()
       end
     end
     
+    if item then
+      spellText = spellText .. "\nGranted by " .. item:get_name(true) .. "."
+    end
+    
     local oldFont = love.graphics.getFont()
     love.graphics.setFont(fonts.textFont)
     local width, tlines = fonts.textFont:getWrap(spellText,window2w)
@@ -282,12 +288,12 @@ function spellscreen:draw()
       self.buttonCount = self.buttonCount + 1
       local useText = ((spell.active and not spell.no_manual_deactivate) and "Stop" or "Use")
       local buttonWidth = fonts.buttonFont:getWidth(useText)+25
-      if player.cooldowns[spell.name] or spell:requires(player) == false or (spell.active and spell.no_manual_deactivate) then
+      if player.cooldowns[spell] or spell:requires(player) == false or (spell.active and spell.no_manual_deactivate) then
         setColor(100,100,100,255)
       end
       self.buttons.use = output:button(printX,printY,buttonWidth,false,(self.cursorX == 2 and self.sidebarCursorY == self.buttonCount and "hover" or nil),useText,true)
       self.buttons.use.buttonNum = self.buttonCount
-      if player.cooldowns[spell.name] or spell:requires(player) == false or (spell.active and spell.no_manual_deactivate) then
+      if player.cooldowns[spell] or spell:requires(player) == false or (spell.active and spell.no_manual_deactivate) then
         if selected then setColor(255,255,255,255)
         else setColor(175,175,175,255) end
       end
@@ -301,14 +307,14 @@ function spellscreen:draw()
     end
     
     if not self.locked then
-      if memorized and (spell.forgettable or (gamesettings.spells_forgettable_by_default and spell.forgettable ~= false)) then
+      if memorized and not item and (spell.forgettable or (gamesettings.spells_forgettable_by_default and spell.forgettable ~= false)) then
         self.buttonCount = self.buttonCount + 1
         local forgetText = "Forget"
         local buttonWidth = fonts.buttonFont:getWidth(forgetText)+25
         self.buttons.forget = output:button(printX,printY,buttonWidth,false,(self.cursorX == 2 and self.sidebarCursorY == self.buttonCount and "hover" or nil),forgetText,true)
         self.buttons.forget.buttonNum = self.buttonCount
         printY = printY+buttonHeight
-      elseif not memorized then
+      elseif not memorized and not item then
         self.buttonCount = self.buttonCount + 1
         local memText = "Memorize"
         local buttonWidth = fonts.buttonFont:getWidth(memText)+25

@@ -119,7 +119,7 @@ ai['basic'] = function(self,args)
   if not args.noRanged and self.ranged_chance and random(0,100) <= self.ranged_chance then
     for _, spell in ipairs(self:get_spells()) do
       local id = spell.id
-      if spell.flags['random'] == true and self.cooldowns[id] == nil then --cast friendly spells first
+      if spell.flags['random'] == true and self.cooldowns[spell] == nil then --cast friendly spells first
         local target = spell:decide(self,self,'random')
         if target == true then target = self.target end
         if target and target.x and target.y and (not spell.range or math.floor(calc_distance(self.x,self.y,target.x,target.y)) <= spell.range) then --if there's a valid target to the spell within range
@@ -300,7 +300,7 @@ ai['rangedAttack'] = function(self,args)
   -- Then cast a spell, if possible
   for _, spell in ipairs(self:get_spells()) do
     local id = spell.id
-    if spell.flags['friendly'] == true and self.cooldowns[id] == nil then --cast friendly spells first
+    if spell.flags['friendly'] == true and self.cooldowns[spell] == nil then --cast friendly spells first
       local target = spell:decide(self,self,'friendly')
       if target == true then target = self.target end
       if target and target.x and target.y and (not spell.range or math.floor(calc_distance(self.x,self.y,target.x,target.y)) <= spell.range) then --if there's a valid target to the spell within range
@@ -326,7 +326,7 @@ ai['run'] = function(self,runType,args)
     -- Cast a defensive/fleeing spell, if possible
     for _, spell in ipairs(self:get_spells()) do
       local id = spell.id
-      if spell.flags[runType] == true and self.cooldowns[id] == nil then
+      if spell.flags[runType] == true and self.cooldowns[spell] == nil then
         local target = spell:decide(self,self,runType)
         if target ~= false and (target == nil or target.x == nil or target.y == nil) then target = self.target end --if for some reason the decide function doesn't return an acceptable target
         if (target ~= false and spell:use(target,self)) then

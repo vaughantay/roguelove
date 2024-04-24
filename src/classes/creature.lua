@@ -3515,7 +3515,7 @@ function Creature:get_spells(noEquip)
   for _, equip in pairs(self.equipment_list) do
     if equip.spells_granted then
      for _, spell in ipairs(equip.spells_granted) do
-       if not self:has_spell(spell.id,true) then spells[#spells+1] = spell end
+      spells[#spells+1] = spell
      end
     end --end bonuses if
   end --end equipment for

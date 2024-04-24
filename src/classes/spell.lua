@@ -193,9 +193,16 @@ function Spell:use(target, caster, ignoreCooldowns, ignoreCost)
   end
   --First, check all requirements:
   local canUse, result = self:can_use(target,caster,ignoreCooldowns,ignoreCost)
+  local targ, targtext = self:target_requires(target,caster)
   if canUse == false then
     if caster == player and result then
       output:out(result)
+    end
+    return false
+  end
+  if targ == false then
+    if caster == player then
+      output:out((targtext or "You have selected an invalid target for this spell."))
     end
     return false
   end
@@ -244,7 +251,7 @@ function Spell:use(target, caster, ignoreCooldowns, ignoreCost)
       self.uses = self.uses+1
       --Add cooldown
       if ((self.cooldown and self.cooldown > 0) or (caster ~= player and self.AIcooldown and self.AIcooldown > 0)) and not ignoreCooldowns and not self.toggled then --Don't add cooldown to a toggled spell, add it when the spell is finished
-        caster.cooldowns[self.name] = (caster ~= player and self.AIcooldown or self.cooldown)
+        caster.cooldowns[self] = (caster ~= player and self.AIcooldown or self.cooldown)
       end
       --Account for the cost of the spell
       if not ignoreCost then 
@@ -288,7 +295,6 @@ end
 --@return Boolean. Whether the spell can be used right now
 function Spell:can_use(target, caster, ignoreCooldowns, ignoreCost)
   local req, reqtext = self:requires(caster)
-  local targ, targtext = self:target_requires(target,caster)
   if req == false then
     return false,(reqtext or "You can't use that ability right now.")
 	elseif (not ignoreCooldowns and caster.cooldowns[self.name]) then
@@ -297,8 +303,6 @@ function Spell:can_use(target, caster, ignoreCooldowns, ignoreCost)
 		return false,"You don't have enough magic points to use that ability."
   elseif not ignoreCost and self.charges and self.charges < 1 then
 		return false,"You're out of charges for that ability."
-  elseif targ == false then
-    return false,targtext or "You've selected an invalid target for this ability."
   elseif caster:callbacks('casts',target,self,ignoreCooldowns) == false then --We're hoping the callback itself will provide any necessary feedback
     return false
   end
@@ -385,7 +389,7 @@ function Spell:finish(target,caster, ignoreCooldowns, ignoreCost)
     if r == false then return false end
   end
   if ((self.cooldown and self.cooldown > 0) or (caster ~= player and self.AIcooldown and self.AIcooldown > 0)) and not ignoreCooldowns then 
-    caster.cooldowns[self.name] = (caster ~= player and self.AIcooldown or self.cooldown)
+    caster.cooldowns[self] = (caster ~= player and self.AIcooldown or self.cooldown)
   end
   caster.active_spells[self.id] = nil
   self.active = false
@@ -456,6 +460,15 @@ end
 --@return Boolean. Whether or not it has the tag.
 function Spell:has_tag(tag)
   if self.tags and in_table(tag,self.tags) then
+    return true
+  end
+end
+
+---Checks if a spell is of a specific type
+--@param tag String. The tag to check for
+--@return Boolean. Whether or not it has the tag.
+function Spell:is_type(stype)
+  if self.types and in_table(stype,self.types) then
     return true
   end
 end
