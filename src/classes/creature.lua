@@ -663,9 +663,9 @@ function Creature:give_condition(name,turns,applier,force,stack)
     if force or result ~= false then
       local addition = 0
       if turns ~= -1 and (stack or conditions[name].turns_stack == true) then
-        addition = self.conditions[name]
+        addition = self.conditions[name].turns or 0
       end
-      self.conditions[name] = turns+addition
+      self.conditions[name] = {turns=turns+addition,applier=applier}
       return true
     end
   end
@@ -686,7 +686,7 @@ end
 --@return Number or False. The number of turns left in the condition if it has it, or false if it doesn't
 function Creature:has_condition(condition)
   if self.conditions[condition] then
-    return self.conditions[condition]
+    return self.conditions[condition].turns
   else
     return false
   end
@@ -697,11 +697,12 @@ end
 function Creature:decrease_all_conditions(removal_type)
   removal_type = removal_type or 'turn'
   
-  for condition, turns in pairs(self.conditions) do
+  for condition, info in pairs(self.conditions) do
+    local turns = info.turns
     local con = conditions[condition]
     if con and con.removal_type == removal_type and turns ~= -1 then
-      self.conditions[condition] = self.conditions[condition] - 1
-      if self.conditions[condition] <= 0 then
+      self.conditions[condition].turns = self.conditions[condition].turns - 1
+      if self.conditions[condition].turns <= 0 then
         self:cure_condition(condition)
       end --end if condition <= 0
     end --end condition for
@@ -889,7 +890,7 @@ function Creature:get_bonus(bonusType)
   end
 	local bonus = 0
   local bcount = 0
-	for id, turns in pairs(self.conditions) do
+	for id, info in pairs(self.conditions) do
 		if (conditions[id].bonuses ~= nil) then
 			local b = conditions[id].bonuses[bonusType]
 			if (b ~= nil) then
@@ -2644,7 +2645,7 @@ function Creature:update(dt) --for charging, and other special effects
     self:die()
   end --end if self zoomto
 
-  for condition, turns in pairs(self.conditions) do --for special effects like glowing, shaking, whatever
+  for condition, info in pairs(self.conditions) do --for special effects like glowing, shaking, whatever
 		if (conditions[condition].update ~= nil) then conditions[condition]:update(self,dt) end
   end -- end for
   
@@ -4380,7 +4381,8 @@ end
 
 ---Restores HP, MP, spells, removes cooldowns and conditions
 function Creature:refresh()
-  for condition,turns in pairs(self.conditions) do
+  for condition,info in pairs(self.conditions) do
+    local turns = info.turns
     if turns ~= -1 then
       self:cure_condition(condition)
     end

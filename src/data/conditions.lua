@@ -9,7 +9,7 @@ conditions = {
 		end,
 		advance = function(self,possessor)
 			if (random(1,3) == 1) then 
-        local dmg = possessor:damage(random(1,math.floor(possessor.max_hp/10)),nil,"poison")
+        local dmg = possessor:damage(random(1,math.floor(possessor.max_hp/10)),possessor.conditions.poisoned.applier,"poison")
         if player:can_see_tile(possessor.x,possessor.y) and player:does_notice(possessor) then output:out(possessor:get_name() .. " takes " .. dmg .. " damage from poison.") end
       end
 		end,
@@ -59,7 +59,7 @@ bleeding=Condition({
 		end,
 		advance = function(self,possessor)
 			if (random(1,3) == 1) then 
-        local dmg = possessor:damage(random(math.ceil(possessor.max_hp/20),math.floor(possessor.max_hp/10)),nil,"physical")
+        local dmg = possessor:damage(random(math.ceil(possessor.max_hp/20),math.floor(possessor.max_hp/10)),possessor.conditions.bleeding.applier,"physical")
         if player:can_see_tile(possessor.x,possessor.y) and player:does_notice(possessor) then output:out(possessor:get_name() .. " takes " .. dmg .. " damage from bleeding.") end
         if not currMap:tile_has_feature(possessor.x,possessor.y,'bloodstain') then currMap:add_feature(Feature('bloodstain',possessor.bloodColor),possessor.x,possessor.y) end
       end
@@ -77,7 +77,7 @@ bleeding=Condition({
       end
 		end,
 		advance = function(self,possessor)
-			if not possessor:is_type('fireImmune') then possessor:damage(random(1,5),nil,"fire") end
+			if not possessor:is_type('fireImmune') then possessor:damage(random(1,5),possessor.conditions.onfire.applier,"fire") end
       for _, feat in pairs(currMap:get_tile_features(possessor.x,possessor.y)) do
         if feat.fireChance and random(1,100) <= feat.fireChance then
           feat:combust()
@@ -170,8 +170,8 @@ slipping = Condition({
       if not currMap:isClear(newX,newY) then
         local creat = currMap:get_tile_creature(newX,newY)
         if creat then
-          local dmg = possessor:damage(tweak(possessor.max_hp/random(10,20)))
-          local tdmg = creat:damage(tweak(possessor.max_hp/random(10,20)))
+          local dmg = possessor:damage(tweak(possessor.max_hp/random(10,20)),possessor)
+          local tdmg = creat:damage(tweak(possessor.max_hp/random(10,20)),possessor)
           if player:can_see_tile(possessor.x,possessor.y) then
             output:out(possessor:get_name() .. " slips and crashes into " .. creat:get_name() .. "! " .. ucfirst(possessor:get_name()) .. " takes " .. dmg .. " damage, and " .. creat:get_name() .. " takes " .. tdmg .. " damage.")
             output:sound('collision_creature')
@@ -193,7 +193,7 @@ slipping = Condition({
           return
         else --no creat and no chasm, basically just a wall then
           if currMap[newX][newY] == "#" then
-            local dmg = possessor:damage(tweak(possessor.max_hp/random(10,20)))
+            local dmg = possessor:damage(tweak(possessor.max_hp/random(10,20)),possessor)
             if player:can_see_tile(possessor.x,possessor.y) then
               output:out(possessor:get_name() .. " slips and crashes into the wall! " .. ucfirst(possessor:get_name()) .. " takes " .. dmg .. " damage.")
               output:sound('collision_wall')
@@ -206,7 +206,7 @@ slipping = Condition({
                 break
               end
             end --end for
-            local dmg = possessor:damage(tweak(possessor.max_hp/random(10,20)))
+            local dmg = possessor:damage(tweak(possessor.max_hp/random(10,20)),possessor)
             local tdmg = 0
             if feat and feat.attackable then
               tdmg = feat:damage(tweak(possessor.max_hp/random(10,20)),possessor)
@@ -289,7 +289,7 @@ boundindarkness = Condition({
   advance = function(self,possessor)
     local darkness = currMap:tile_has_effect(possessor.x,possessor.y,'darkness')
     local dmg = tweak((darkness and 15 or 10))
-    dmg = possessor:damage(dmg,nil,"unholy")
+    dmg = possessor:damage(dmg,possessor.conditions.boundindarkness.applier,"unholy")
     if player:can_sense_creature(possessor) then 
       output:out(possessor:get_name() .. " takes " .. dmg .. " damage from the unholy binds.")
     end
@@ -847,7 +847,7 @@ digesting = Condition({
     advance = function(self,possessor)
       if possessor.digesting and possessor.digesting.hp >= 1 then
         local creat = possessor.digesting
-        local dmg = creat:damage(tweak(math.ceil(creat.max_hp/5)))
+        local dmg = creat:damage(tweak(math.ceil(creat.max_hp/5)),possessor.conditions.digesting.applier)
         if creat.hp <= 0 then
           local hp = tweak(math.ceil(creat.max_hp/2))
           possessor:updateHP(hp)
@@ -1076,7 +1076,7 @@ drowning = Condition({
       if possessor:has_condition('onfire') then possessor:cure_condition('onfire') end
       if possessor:has_condition('fireaura') then possessor:cure_condition('fireaura') end
       if random(1,5) == 1 then
-        local dmg = possessor:damage(tweak(5))
+        local dmg = possessor:damage(tweak(5),,possessor.conditions.drowning.applier)
         if player:can_see_tile(possessor.x,possessor.y) then output:out(possessor:get_name() .. " thrashes around fruitlessly, inhaling water for " .. dmg .. " damage.") end
         local moveX,moveY = random(possessor.x-1,possessor.x+1),random(possessor.y-1,possessor.y+1)
         local tries = 0
@@ -1213,7 +1213,7 @@ bloodbond = Condition({
           output:out(possessor.bloodbond:get_name() .. " takes " .. dmg .. " damage from their blood bond to " .. possessor:get_name() .. ".")
         end
         dmg = math.ceil(dmg/2)
-        possessor.bloodbond:damage(dmg,possessor.bloodbond,"bloodmagic")
+        possessor.bloodbond:damage(dmg,nil,"bloodmagic")
         return dmg
       end
     end
@@ -1223,7 +1223,7 @@ bloodbond = Condition({
 		name = "Withering Curse",
 		bonuses={fear=20,hit_chance=-10,dodge_chance=-10,damage_percent=-25},
     advance = function(self,possessor)
-      possessor:damage(random(1,5),nil,"unholy")
+      possessor:damage(random(1,5),possessor.conditions.witheringcurse.applier,"unholy")
     end
 	}),
     
