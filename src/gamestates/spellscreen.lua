@@ -59,6 +59,9 @@ function spellscreen:draw()
   local mouseX,mouseY = love.mouse.getPosition()
   mouseX,mouseY = round(mouseX/uiScale),round(mouseY/uiScale)
   local fontSize = prefs['fontSize']
+  local tileSize = output:get_tile_size()
+  local lineSize = math.max(fontSize,tileSize)
+  local padYtext = math.ceil((lineSize-fontSize)/2)
 	
   self.screenMax = round(height/(fontSize+2)/2)
   local padding = self.padding
@@ -104,14 +107,14 @@ function spellscreen:draw()
     printY=printY+round(fontSize*1.5)
   end
 	for i, spell in pairs(playerSpells) do
-    local moused = (mouseX > printX and mouseX < window1w and mouseY+self.scrollY > printY and mouseY+self.scrollY < printY+fontSize+2)
+    local moused = (mouseX > printX and mouseX < window1w and mouseY+self.scrollY > printY and mouseY+self.scrollY < printY+lineSize+2)
     local spellID = spell.id
 		spells[i] = spellID
     local name = spell.name
     local target_type = spell.target_type
     local active = spell.active
     local item = spell.from_item
-    local upgrade = not item and ((spellPoints > 0 or spell.spellPoints > 0) and (count(spell:get_possible_upgrades()) > 0))
+    local upgrade = not item and (count(spell:get_possible_upgrades()) > 0)
     --Draw the highlight box:
     if (self.cursorY == i) then
       if self.cursorX == 2 then
@@ -119,11 +122,11 @@ function spellscreen:draw()
       else
         setColor(100,100,100,255)
       end
-      love.graphics.rectangle("fill",x+padX,printY,window1w-padX*2,fontSize+2)
+      love.graphics.rectangle("fill",x+padX,printY,window1w-padX*2,lineSize+2)
       setColor(255,255,255,255)
     elseif moused then
       setColor(100,100,100,125)
-      love.graphics.rectangle("fill",x+padX,printY,window1w-padX*2,fontSize+2)
+      love.graphics.rectangle("fill",x+padX,printY,window1w-padX*2,lineSize+2)
       setColor(255,255,255,255)
       mousedSpell = i
     end
@@ -139,37 +142,48 @@ function spellscreen:draw()
     if not spell.freeSlot then
       slotcount = slotcount + 1
     end
-    local fullText = (spell.freeSlot and "-) " or slotcount .. ") ") .. name .. (player.cooldowns[spell] and " (" .. player.cooldowns[spell] .. " turns to recharge)" or "") .. (target_type == "passive" and " (Passive)" or "") .. (active and " (Active)" or "") .. (upgrade and " (+)" or "") .. (item and " (from " .. item:get_name(true) .. ")" or "")
-		love.graphics.print(fullText,x+padX,printY)
+    local num = (spell.freeSlot and "-) " or slotcount .. ") ")
+    local thisPadX = fonts.textFont:getWidth(num)
+    love.graphics.print(num,x+padX,printY+padYtext)
+    if spell and images['spell' .. (spell.image_name or spell.id)] then
+      if spell.color then
+        setColor(spell.color.r,spell.color.g,spell.color.b,spell.color.a)
+      end
+      love.graphics.draw(images['spell' .. (spell.image_name or spell.id)],x+padX+thisPadX,printY)
+      thisPadX = thisPadX + tileSize+2
+      setColor(255,255,255,255)
+    end
+    local spellText = name .. (player.cooldowns[spell] and " (" .. player.cooldowns[spell] .. " turns to recharge)" or "") .. (target_type == "passive" and " (Passive)" or "") .. (active and " (Active)" or "") .. (upgrade and " (+)" or "")
+		love.graphics.print(spellText,x+padX+thisPadX,printY+padYtext)
     setColor(255,255,255,255)
 		line = line+1
-    self.spellList[i] = {minY=printY,maxY=printY+fontSize+2,spell=spell}
-    printY = printY+fontSize+2
+    self.spellList[i] = {minY=printY,maxY=printY+lineSize+2,spell=spell}
+    printY = printY+lineSize+2
 	end
   if spellSlots and spellSlots > 0 then
     love.graphics.printf("Free Slots",x+padX,printY,window1w-x-padX,"center")
     printY=printY+round(fontSize*1.5)
     for i=1,spellSlots,1 do
       local slot = i+count(playerSpells)
-      local moused = (mouseX > printX and mouseX < window1w and mouseY+self.scrollY > printY and mouseY+self.scrollY < printY+fontSize+2)
+      local moused = (mouseX > printX and mouseX < window1w and mouseY+self.scrollY > printY and mouseY+self.scrollY < printY+lineSize+2)
       --Draw the highlight box:
       if (self.cursorY == slot) then
         setColor(100,100,100,255)
-        love.graphics.rectangle("fill",x+padX,printY,window1w-padX*2,fontSize+2)
+        love.graphics.rectangle("fill",x+padX,printY,window1w-padX*2,lineSize+2)
         setColor(255,255,255,255)
       elseif moused then
         setColor(100,100,100,125)
-        love.graphics.rectangle("fill",x+padX,printY,window1w-padX*2,fontSize+2)
+        love.graphics.rectangle("fill",x+padX,printY,window1w-padX*2,lineSize+2)
         setColor(255,255,255,255)
         mousedSpell = slot
       end
       slotcount = slotcount + 1
       local fullText = slotcount .. ") -"
-      love.graphics.print(fullText,x+padX,printY)
+      love.graphics.print(fullText,x+padX,printY+padYtext)
       setColor(255,255,255,255)
       line = line+1
-      self.spellList[slot] = {minY=printY,maxY=printY+fontSize+2,spell=nil}
-      printY = printY+fontSize+2
+      self.spellList[slot] = {minY=printY,maxY=printY+lineSize+2,spell=nil}
+      printY = printY+lineSize+2
     end
   end
   if self.unmemorized and #self.unmemorized > 0 then
@@ -177,7 +191,7 @@ function spellscreen:draw()
     printY=printY+round(fontSize*1.5)
     for i, spell in pairs(self.unmemorized) do
       local index = #playerSpells+i+(spellSlots or 0)
-      local moused = (mouseX > printX and mouseX < window1w and mouseY+self.scrollY > printY and mouseY+self.scrollY < printY+fontSize+2)
+      local moused = (mouseX > printX and mouseX < window1w and mouseY+self.scrollY > printY and mouseY+self.scrollY < printY+lineSize+2)
       local spellID = spell.id
       spells[index] = spellID
       local name = spell.name
@@ -190,21 +204,30 @@ function spellscreen:draw()
         else
           setColor(100,100,100,255)
         end
-        love.graphics.rectangle("fill",x+padX,printY,window1w-padX*2,fontSize+2)
+        love.graphics.rectangle("fill",x+padX,printY,window1w-padX*2,lineSize+2)
         setColor(255,255,255,255)
       elseif moused then
         setColor(100,100,100,125)
-        love.graphics.rectangle("fill",x+padX,printY,window1w-padX*2,fontSize+2)
+        love.graphics.rectangle("fill",x+padX,printY,window1w-padX*2,lineSize+2)
         setColor(255,255,255,255)
         mousedSpell = index
       end
       setColor(255,255,(upgrade and 0 or 255),255)
-      local fullText = (spell.hotkey and spell.hotkey .. ") " or "") .. name .. (target_type == "passive" and " (Passive)" or "") .. (active and " (Active)" or "") .. (upgrade and " (+)" or "")
-      love.graphics.print(fullText,x+padX,printY)
+      local fullText = name .. (target_type == "passive" and " (Passive)" or "") .. (upgrade and " (+)" or "")
+      local thisPadX = 0
+      if spell and images['spell' .. (spell.image_name or spell.id)] then
+        if spell.color then
+          setColor(spell.color.r,spell.color.g,spell.color.b,spell.color.a)
+        end
+        love.graphics.draw(images['spell' .. (spell.image_name or spell.id)],x+padX+thisPadX,printY)
+        thisPadX = thisPadX + tileSize+2
+        setColor(255,255,255,255)
+      end
+      love.graphics.print(fullText,x+padX+thisPadX,printY+padYtext)
       setColor(255,255,255,255)
       line = line+1
-      self.spellList[index] = {minY=printY,maxY=printY+fontSize+2,spell=spell}
-      printY = printY+fontSize+2
+      self.spellList[index] = {minY=printY,maxY=printY+lineSize+2,spell=spell}
+      printY = printY+lineSize+2
     end
   end
   bottom = printY
@@ -392,7 +415,7 @@ function spellscreen:draw()
       if count(upgrades) > 0 then
         love.graphics.printf("Upgrades:",printX,printY,window2w-scrollPad,"left")
         local upgrade_stat = spell.upgrade_stat or "spellPoints"
-        local upgrade_stat_name = (upgrade_stat == "spellPoints" and "Ability Point" or false)
+        local upgrade_stat_name = (upgrade_stat == "spellPoints" and gamesettings.default_spell_upgrade_stat_name or false)
         local points_available = player[upgrade_stat] or 0
         if not upgrade_stat_name then
           for _,stInfo in pairs(possibleSkillTypes) do
@@ -403,12 +426,15 @@ function spellscreen:draw()
           end
           if not upgrade_stat_name then upgrade_stat_name = upgrade_stat end
         end
+        if not upgrade_stat_name then upgrade_stat_name = "Point" end
         if spell.free_upgrades > 0 then
           printY=printY+fontSize
           love.graphics.printf(spell.free_upgrades .. " Free Upgrade" .. (spell.free_upgrades > 1 and "s available" or " available"),printX,printY,window2w-scrollPad,"left")
         end
-        printY=printY+fontSize
-        love.graphics.printf(points_available .. " " .. upgrade_stat_name .. (points_available > 1 and "s available" or " available"),printX,printY,window2w-scrollPad,"left")
+        if points_available > 0 then
+          printY=printY+fontSize
+          love.graphics.printf(points_available .. " " .. upgrade_stat_name .. (points_available > 1 and "s available" or " available"),printX,printY,window2w-scrollPad,"left")
+        end
         if spell.spellPoints > 0 then
           printY=printY+fontSize
           love.graphics.printf(spell.spellPoints .. " " .. upgrade_stat_name .. (spell.spellPoints > 1 and "s" or "") .. " available specifically for this ability",printX,printY,window2w-scrollPad,"left")
@@ -521,11 +547,11 @@ function spellscreen:draw()
   love.graphics.pop()
 end
 
-function spellscreen:buttonpressed(key)
+function spellscreen:buttonpressed(key,scancode,isRepeat,controllerType)
   local uiScale = prefs['uiScale']
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
   width,height = round(width/uiScale),round(height/uiScale)
-  key = input:parse_key(key)
+  key,scancode,isRepeat = input:parse_key(key,scancode,isRepeat,controllerType)
 	if (key == "escape") then
     if self.cursorX == 1 then
       self:switchBack()

@@ -168,6 +168,21 @@ function Map:get_contents(x,y)
   return self.contents[x][y]
 end
 
+---Run the terrain can_enter() callbacks for the creature's location
+--@param x Number. The x-coordinate
+--@param y Number. The y-coordinate
+--@param creature Creature. The creature entering the tile
+--@param fromX Number. The x-coordinate the creature is leaving (optional)
+--@param fromY Number. The y-coordinate the creature is leaving (optional)
+--@return Boolean. Whether or not the tile can be entered
+function Map:can_enter(x,y,creature,fromX,fromY)
+  local canEnter = true
+  for id, entity in pairs(self:get_tile_features(x,y)) do --make sure you can enter the features at the new tile
+    if (entity:can_enter(creature,fromX,fromY) == false) then canEnter = false break end
+  end -- end feature for
+  return canEnter
+end
+
 ---Run the terrain enter() callbacks for the creature's location
 --@param x Number. The x-coordinate
 --@param y Number. The y-coordinate
@@ -177,13 +192,9 @@ end
 --@return Boolean. Whether or not the tile can be entered
 function Map:enter(x,y,creature,fromX,fromY)
   local canEnter = true
-  for id, entity in pairs(self.contents[x][y]) do --make sure you can enter the features at the new tile
-    if (entity.baseType == "feature") then
-      if (entity:enter(creature,fromX,fromY) == false) then canEnter = false break end
-    end
+  for id, entity in pairs(self:get_tile_features(x,y)) do
+    entity:enter(creature,fromX,fromY)
   end -- end feature for
-  if type(self[x][y]) == "table" and self[x][y]:enter(creature,fromX,fromY) == false then canEnter = false end
-  return canEnter
 end
 
 ---Determines if a given tile blocks vision
@@ -482,9 +493,9 @@ function Map:add_feature(feature,x,y,args)
 	y = (y or random(2,self.height-1))
 	self.contents[x][y][feature] = feature
   feature.x,feature.y = x,y
+  self.feature_cache[x .. ',' .. y] = nil
   if possibleFeatures[feature.id].placed then possibleFeatures[feature.id].placed(feature,self,args) end
   if feature.castsLight then self.lights[feature] = feature end
-  self.feature_cache[x .. ',' .. y] = nil
   if feature.item_spawn_point then
     self.item_spawn_points[#self.item_spawn_points+1] = feature
   end
@@ -507,10 +518,10 @@ function Map:add_effect(effect,x,y,args)
     return false
   end
   effect.x,effect.y = x,y
+  self.effect_cache[x .. ',' .. y] = nil
   if effects[effect.id].placed then effects[effect.id].placed(effect,self,args) end
 	self.effects[effect] = effect
   if effect.castsLight then self.lights[effect] = effect end
-  self.effect_cache[#self.effect_cache+1] = effect
   return effect --return the effect so if it's created when this function is called, you can still access it
 end
 
@@ -744,10 +755,6 @@ function Map:refresh_tile_image(x,y)
     else
       name = "wall" .. directions
     end
-  elseif self[x][y] == "<" then
-    name = "stairsup"
-  elseif self[x][y] == ">" then
-    name = "stairsdown"
   end --end tile type check
   if (tileset[name .. '_tiles']) then
     if random(1,100) <= (tileset[name .. '_tile_chance'] or 25) then name = name .. random(1,tileset[name .. '_tiles'])
@@ -794,10 +801,16 @@ function Map:refresh_lightMap(clear) --I have a feeling this is a HORRIBLE and i
       end
     end
   end
-  if self.lit then return end
 
-  for _,light in pairs(self.lights) do
-    self:refresh_light(light,clear)
+  for lid,light in pairs(self.lights) do
+    if not light.castsLight then
+      self.lights[lid] = nil
+    else
+      if light.owner then
+        light.x,light.y = light.owner.x,light.owner.y
+      end
+      self:refresh_light(light,clear)
+    end
   end --end for effect
 end
 
@@ -817,7 +830,7 @@ function Map:refresh_light(light,forceRefresh)
   local dist = light.lightDist or 0
   for lx = light.x-dist,light.x+dist,1 do
     for ly = light.y-dist,light.y+dist,1 do
-      if self:in_map(lx,ly) and not self.lightMap[lx][ly] then
+      if self:in_map(lx,ly) and (not self.lightMap[lx][ly] or self.lightMap[lx][ly] == true) then
         local dist2tile = calc_distance(light.x,light.y,lx,ly)
         local bresenham = require 'lib.bresenham'
         if dist2tile <= dist and bresenham.los(light.x,light.y,lx,ly, self.can_see_through,self) and (self[lx][ly] ~= "#" or bresenham.los(light.x,light.y,player.x,player.y, self.can_see_through,self)) then --if it's close enough, and there's LOS, it's lit!
@@ -880,6 +893,7 @@ function Map:get_creature_list(force,allowAll)
   local cFactions = nil
   local cTags = whichMap.creatureTags or whichMap.contentTags
   local fTags = self:get_content_tags('forbidden')
+  local rTags = self:get_content_tags('required')
   
   --Look at specific creatures first:
   if whichMap.creatures then
@@ -890,6 +904,9 @@ function Map:get_creature_list(force,allowAll)
     end
   elseif not whichMap.noBranchCreatures and not whichMap.noBranchContent then --if the mapTypes doesn't have creatures, fall back to the branch's creatures
     specialCreats = branch.creatures --if branch doesn't have creatures, this will set it to nil and just use regular creatures
+  end
+  if not specialCreats then
+    specialCreats = {}
   end
   
   --Look at creature types, factions and tags next:
@@ -925,7 +942,7 @@ function Map:get_creature_list(force,allowAll)
     if not creat.neverSpawn then
       if cTypes then
         for _,cType in pairs(cTypes) do
-          if (allowAll or not creat.specialOnly) and Creature.is_type(creat,cType) then
+          if (allowAll or not creat.specialOnly) and Creature.is_type(creat,cType,true) then
             done = true
             break
           end
@@ -950,6 +967,15 @@ function Map:get_creature_list(force,allowAll)
           if done == true then break end
         end --end cFac for
       end --end faction if
+      --Check for required tags:
+      if done and #rTags > 0 then
+        for _,rTag in pairs(rTags) do
+          if not Creature.has_tag(creat,rTag) then
+            done = false
+            break
+          end
+        end
+      end
       --Check for forbidden tags:
       if done and #fTags > 0 then
         for _,fTag in pairs(fTags) do
@@ -959,8 +985,16 @@ function Map:get_creature_list(force,allowAll)
           end --end has_tag if
         end --end ftag for
       end --end if #ftag
+      --Check for creatures' own required tags:
+      if done and creat.requiredMapTags then
+        for _, rTag in ipairs(creat.requiredMapTags) do
+          if not in_table(rTag,cTags) then
+            done = false
+            break
+          end
+        end
+      end
       if done then
-        if not specialCreats then specialCreats = {} end
         specialCreats[#specialCreats+1] = cid
       end
     end --end neverspawn if
@@ -983,6 +1017,7 @@ function Map:get_item_list(force,allowAll)
   local specialItems = nil
   local iTags = whichMap.itemTags or whichMap.contentTags
   local fTags = self:get_content_tags('forbidden')
+  local rTags = self:get_content_tags('required')
   
   --Look at specific items first:
   if whichMap.items then
@@ -1004,34 +1039,9 @@ function Map:get_item_list(force,allowAll)
     iTags = branch.itemTags or branch.contentTags --if branch doesn't have itemTags, this will keep it as nil
   end
   
-  --Add the applicable items to the specialItems list
-  for iid,item in pairs(possibleItems) do
-    if not item.neverSpawn then
-      local done = false
-      if iTags and not done then
-        for _,iTag in pairs(iTags) do
-          if (allowAll or not item.specialOnly) and Item.has_tag(item,iTag,true) then
-            done = true
-            break
-          end
-          if done == true then break end
-        end --end cFac for
-      end --end tags if
-      --Check for forbidden tags:
-      if done and #fTags > 0 then
-        for _,fTag in pairs(fTags) do
-          if Item.has_tag(item,fTag,true) then
-            done = false
-            break
-          end --end has_tag if
-        end --end ftag for
-      end --end if #ftag
-      if done then
-        if not specialItems then specialItems = {} end
-        specialItems[#specialItems+1] = iid
-      end
-    end --end nevespawn if
-  end
+  local tagged_items = mapgen:get_content_list_from_tags('item',iTags,fTags,rTags)
+  specialItems = merge_tables(specialItems,tagged_items)
+  
   self.item_list = specialItems
   return specialItems
 end
@@ -1049,6 +1059,18 @@ function Map:get_store_list(force)
   local branch = currWorld.branches[self.branch]
   local sTags = whichMap.storeTags or whichMap.contentTags
   local fTags = self:get_content_tags('forbidden')
+  local rTags = self:get_content_tags('required')
+  
+  --Look at specific stores first:
+  if whichMap.stores then
+    if (whichMap.noBranchStores or whichMap.noBranchContent) or not branch.stores then
+      store_list = whichMap.stores
+    else
+      store_list =  merge_tables(whichMap.stores,branch.stores)
+    end
+  elseif not whichMap.noBranchStores and not whichMap.noBranchContent then --if the mapTypes doesn't have stores, fall back to the branch's stores
+    store_list = branch.stores --if branch doesn't have stores, this will set it to nil and just use regular stores
+  end
   
   --Look at tags next:
   if sTags then
@@ -1060,32 +1082,8 @@ function Map:get_store_list(force)
   end
   
   --Add the tagged stores to the store list
-  for sid,store in pairs(currWorld.stores) do
-    local done = false
-    if not sTags then done = true end --If the map doesn't have a list of store tags set, any store are eligible to spawn there
-    if sTags and not done then
-      for _,sTag in pairs(sTags) do
-        if store.tags and in_table(sTag,store.tags) then
-          done = true
-          break
-        end
-        if done == true then break end
-      end --end cFac for
-    end --end tags if
-    --Check for forbidden tags:
-    if done and store.tags and #fTags > 0 then
-      for _,fTag in pairs(fTags) do
-        if in_table(fTag,store.tags) then
-          done = false
-          break
-        end --end has_tag if
-      end --end ftag for
-    end --end if #ftag
-    if done then
-      if not store_list then store_list = {} end
-      if not in_table(sid,store_list) then store_list[#store_list+1] = sid end
-    end
-  end --end store for
+  local tagged_stores = mapgen:get_content_list_from_tags('store',sTags,fTags,rTags)
+  store_list = merge_tables(store_list,tagged_stores)
   self.store_list = store_list
   return store_list
 end
@@ -1103,6 +1101,18 @@ function Map:get_faction_list(force)
   local faction_list = nil
   local fTags = whichMap.factionTags or whichMap.contentTags
   local forbiddenTags = self:get_content_tags('forbidden')
+  local rTags = self:get_content_tags('required')
+  
+  --Look at specific factions first:
+  if whichMap.factions then
+    if (whichMap.noBranchFactions or whichMap.noBranchContent) or not branch.factions then
+      faction_list = whichMap.factions
+    else
+      faction_list =  merge_tables(whichMap.factions,branch.factions)
+    end
+  elseif not whichMap.noBranchFactions and not whichMap.noBranchContent then --if the mapTypes doesn't have factions, fall back to the branch's factions
+    faction_list = branch.factions --if branch doesn't have factions, this will set it to nil and just use regular factions
+  end
   
   --Look at faction tags next:
   if fTags then
@@ -1113,35 +1123,9 @@ function Map:get_faction_list(force)
     fTags = branch.factionTags or branch.contentTags --if branch doesn't have itemTags, this will keep it as nil
   end
   
-  --Add the types and factions to the specialItems list
-  for fid,faction in pairs(currWorld.factions) do
-    if not faction.hidden and not faction.no_hq then
-      local done = false
-      if not fTags then done = true end --If the map doesn't have a list of faction tags set, any factions are eligible to spawn there
-      if fTags and not done then
-        for _,fTag in pairs(fTags) do
-          if faction.tags and in_table(fTag,faction.tags) then
-            done = true
-            break
-          end
-          if done == true then break end
-        end --end cFac for
-      end --end tags if
-      --Check for forbidden tags:
-    if done and faction.tags and #forbiddenTags > 0 then
-      for _,forbTag in pairs(forbiddenTags) do
-        if in_table(forbTag,faction.tags) then
-          done = false
-          break
-        end --end has_tag if
-      end --end ftag for
-    end --end if #ftag
-      if done then
-        if not faction_list then faction_list = {} end
-        faction_list[#faction_list+1] = fid
-      end
-    end --end if not hidden
-  end --end faction for
+  --Add the tagged factions to the faction list
+  local tagged_factions = mapgen:get_content_list_from_tags('faction',fTags,forbiddenTags,rTags)
+  faction_list = merge_tables(faction_list,tagged_factions)
   self.faction_list = faction_list
   return faction_list
 end
@@ -1215,7 +1199,7 @@ function Map:populate_creatures(creatTotal,forceGeneric)
         sptries = sptries + 1
         local spk = get_random_key(creature_spawn_points)
         local sp = creature_spawn_points[spk]
-        if self:isClear(sp.x,sp.y,nc.pathType) then
+        if nc:can_move_to(sp.x,sp.y,self) then
           if random(1,4) == 1 then nc:give_condition('asleep',random(10,100)) end
           local creat = self:add_creature(nc,sp.x,sp.y)
           newCreats[#newCreats+1] = creat
@@ -1230,14 +1214,14 @@ function Map:populate_creatures(creatTotal,forceGeneric)
       if not placed then
         local cx,cy = random(2,self.width-1),random(2,self.height-1)
         local tries = 0
-        while self:is_passable_for(cx,cy,nc.pathType) == false or self:tile_has_tag(cx,cy,'door') or self:tile_has_feature(cx,cy,'exit') or not self:isClear(cx,cy,nc.pathType) or self.tile_info[cx][cy].noCreatures do
+        while nc:can_move_to(cx,cy,self) == false or self:tile_has_tag(cx,cy,'door') or self:tile_has_feature(cx,cy,'exit') or not self:isClear(cx,cy,nc.pathType) or self.tile_info[cx][cy].noCreatures do
           cx,cy = random(2,self.width-1),random(2,self.height-1)
           tries = tries+1
           if tries > 100 then break end
         end
         
         --Place the actual creature:
-        if tries ~= 100 then 
+        if tries < 100 then 
           if random(1,4) == 1 then nc:give_condition('asleep',random(10,100)) end
           local creat = self:add_creature(nc,cx,cy)
           newCreats[#newCreats+1] = creat
@@ -1254,7 +1238,7 @@ function Map:populate_creatures(creatTotal,forceGeneric)
         for i=1,spawn_amt,1 do
           local tries = 1
           local cx,cy = random(x-tries,x+tries),random(y-tries,y+tries)
-          while self:is_passable_for(cx,cy,nc.pathType) == false or self:tile_has_tag(cx,cy,'door') or self:tile_has_feature(cx,cy,'exit') or not self:isClear(cx,cy,nc.pathType) or self.tile_info[cx][cy].noCreatures do
+          while nc:can_move_to(cx,cy,self) == false or self:tile_has_tag(cx,cy,'door') or self:tile_has_feature(cx,cy,'exit') or not self:isClear(cx,cy,nc.pathType) or self.tile_info[cx][cy].noCreatures do
             cx,cy = random(x-tries,x+tries),random(y-tries,y+tries)
             tries = tries + 1
             if tries > 10 then break end
@@ -1280,6 +1264,8 @@ function Map:populate_items(itemTotal,forceGeneric)
   local mapTypeID,branchID = self.mapType,self.branch
   local mapType,branch = mapTypes[mapTypeID],currWorld.branches[branchID]
   local newItems = {}
+  local min_level = self:get_min_level()
+  local max_level = self:get_max_level()
   
   --If itemTotal is blank, set itemTotal based on the desired density
   if not itemTotal then
@@ -1370,8 +1356,6 @@ function Map:populate_items(itemTotal,forceGeneric)
   
   --Generate items on floor:
   if not self.noItems and itemTotal > 0 then
-    local min_level = self:get_min_level()
-    local max_level = self:get_max_level()
     for item_amt = 1,itemTotal,1 do
       local ni = mapgen:generate_item(min_level,max_level,item_list,passedTags)
       if ni == false then break end
@@ -1568,13 +1552,56 @@ end
 function Map:get_content_tags(tagType,noBranch)
   local tagLabel = (tagType and tagType .. "Tags" or "contentTags")
   noBranch = noBranch or self.noBranchContent or (tagType and self['noBranch' .. ucfirst(tagType) .. "s"])
-  local tags = (self[tagLabel] or (tagLabel ~= "passedTags" and self.contentTags) or {})
+  local tags = (self[tagLabel] or (tagLabel ~= "passedTags" and tagLabel ~= "forbiddenTags" and tagLabel ~= "requiredTags" and self.contentTags) or {})
   if not noBranch then
     local branch = currWorld.branches[self.branch]
-    local bTags = branch[tagLabel] or (tagLabel ~= "passedTags" and tagLabel ~= "forbiddenTags" and branch.contentTags)
+    local bTags = branch[tagLabel] or (tagLabel ~= "passedTags" and tagLabel ~= "forbiddenTags" and tagLabel ~= "requiredTags" and branch.contentTags)
     if bTags then
       tags = merge_tables(tags,bTags)
     end
   end
   return tags
+end
+
+---Applies damage to all creates and features in a tile
+---Damage a creature
+--@param x Number. The x-coordinate.
+--@param y Number. The y-coordinate.
+--@param amt Number. The damage to deal.
+--@param attacker Entity. The source of the damage.
+--@param damage_type String. The damage type of the attack. (optional)
+--@param args Table. A table of other arguments. All the below arguments are options to include.
+--@param armor_piercing Boolean, or Number. If set to true, it ignores all armor. If set to a number, ignores that much armor. (optional)
+--@param noSound Boolean. If set to true, no damage type sound will be played. (optional)
+--@param item Item. The weapon used to do the damage. (optional)
+--@param ignoreWeakness Boolean. If true, don't apply weakness
+--@param attackerSafe Boolean. If true, do not harm the attacker.
+--@param tweak Boolean. If true, tweak the damage number.
+--@param conditions Table. A table of conditions to possible inflict, in the same format as hitConditions elsewhere.
+--@param source_name String. The name to display for the source of the damage.
+--@return Table. A table of all damaged entities and the damage done to them.
+function Map:damage_all(x,y,damage,attacker,damage_type,args)
+  local creat = currMap:get_tile_creature(x,y)
+  if creat and (creat ~= attacker or not args.attackerSafe) then
+    local dmg = creat:damage((args.tweak and tweak(damage) or damage),attacker,damage_type,args.armor_piercing,args.noSound,args.item,args.ignore_weakness)
+    if dmg and dmg > 0 and player:can_sense_creature(creat) then
+      output:out(creat:get_name() .. " takes " .. dmg .. " " .. (damage_type and damage_types[damage_type] and damage_types[damage_type].name and damage_types[damage_type].name .. " " or "") .. "damage" .. (args.source_name and " from the " .. args.source_name .. "." or "."))
+    end
+    if args.conditions then
+      for _,conInfo in pairs(args.conditions) do
+        if conInfo.chance and random(1,100) <= conInfo.chance then
+          local turns = (conInfo.minTurns and conInfo.maxTurns and random(conInfo.minTurns,conInfo.maxTurns)) or tweak(conInfo.turns or 0)
+          creat:give_condition(conInfo.condition,turns,attacker)
+        end
+      end
+    end
+  end --end creat
+  for _,feat in pairs(currMap:get_tile_features(x,y)) do
+    if feat.hp or feat.max_hp or feat.attackable then
+      local dmg = feat:damage((args.tweak and tweak(damage) or damage),attacker,damage_type)
+      if dmg and dmg > 0 and player:can_see_tile(x,y)  then
+        output:out(feat:get_name() .. " takes " .. dmg .. " " .. (damage_type and damage_types[damage_type] and damage_types[damage_type].name and damage_types[damage_type].name .. " " or "") .. "damage" .. (args.source_name and " from the " .. args.source_name .. "." or "."))
+      end
+    end
+  end --end feature for
 end

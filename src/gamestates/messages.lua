@@ -53,8 +53,8 @@ function messages:draw()
   love.graphics.pop()
 end
 
-function messages:buttonpressed(key)
-  key = input:parse_key(key)
+function messages:buttonpressed(key,scancode,isRepeat,controllerType)
+  key,scancode,isRepeat = input:parse_key(key,scancode,isRepeat,controllerType)
   if (key == "north") then
     messages:scrollUp()
   elseif (key == "south") then

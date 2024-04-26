@@ -541,9 +541,9 @@ function newgame:draw()
   setColor(255,255,255,255)
 end
 
-function newgame:buttonpressed(key)
+function newgame:buttonpressed(key,scancode,isRepeat,controllerType)
   local origKey = key
-  key = input:parse_key(key)
+  key,scancode,isRepeat = input:parse_key(key,scancode,isRepeat,controllerType)
   local screen = self:getScreen()
   if self.blackAmt then return false end
   if key == "enter" or key == "wait" then

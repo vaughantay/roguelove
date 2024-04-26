@@ -106,7 +106,7 @@ function multipickup:draw()
     elseif (item.y or item.owner.y) > player.y then direction = direction .. "south" end
     if (item.x or item.owner.x) < player.x then direction = direction .. "west"
     elseif (item.x or item.owner.x) > player.x then direction = direction .. "east" end
-    if item.owner then extra = " (In " .. item.owner.name .. (direction and ", " .. direction or "") .. ")" end
+    if item.owner then extra = " (In " .. item.owner.name .. (direction ~= "" and ", " .. direction or "") .. ")" end
     if extra == nil and direction ~= "" then extra = " (" .. ucfirst(direction) .. ")" end
     
     --Display line:
@@ -153,9 +153,9 @@ function multipickup:draw()
   love.graphics.pop()
 end
 
-function multipickup:buttonpressed(key)
+function multipickup:buttonpressed(key,scancode,isRepeat,controllerType)
   local typed = key
-  key = input:parse_key(key)
+  key,scancode,isRepeat = input:parse_key(key,scancode,isRepeat,controllerType)
 	if (key == "escape") then
 		self:switchBack()
 	elseif (key == "enter") or key == "wait" then

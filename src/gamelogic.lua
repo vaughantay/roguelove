@@ -159,9 +159,7 @@ end
 --@return result String. "hit", "miss", or "critical"
 --@return dmg Number. The damage to do.
 function calc_attack(attacker,target,forceHit,item)
-	local dmg = (item and item:get_damage(target,attacker) or attacker:get_damage())
-  local dbonus = .01*attacker:get_bonus('damage_percent')
-  dmg = dmg + math.ceil(dmg * dbonus)
+	local dmg = (item and item:get_damage(attacker) or attacker:get_damage())
 	local critChance = attacker:get_critical_chance() + (item and item:get_critical_chance() or 0)
 	local hitMod = calc_hit_chance(attacker,target,item)
   local result = "miss"
@@ -622,6 +620,8 @@ function move_player(newX,newY,force)
 	output:setCursor(0,0)
   local clear = player:can_move_to(newX,newY)
   local entity = currMap:get_tile_creature(newX,newY,true)
+  local actions = currMap:get_tile_actions(newX,newY,player,true)
+  
 	if (clear) then
     --Check whether or not there are any dangerous features or effects at the new location, and give a warning if so
     if (force or currMap:is_passable_for(newX,newY,player.pathType,true) or currMap:is_passable_for(player.x,player.y,player.pathType,true) == false) then --the second is_passable check means that it won't pop up a warning moving FROM dangerous territory TO dangerous territory
@@ -652,18 +652,45 @@ function move_player(newX,newY,force)
         if entity.pushable == true and entity:push(player) then
           player.can_move_cache[newX .. ',' .. newY] = nil
           player:moveTo(newX,newY)
+          clear = true
         elseif entity.attackable == true then
           player:attack(entity)
           player.can_move_cache[newX .. ',' .. newY] = nil
+          clear = true
         else
-          --return false
+          --Do nothing
         end --end possessable if
       end --end feature/creature if
     end --end entity for
+  elseif #actions > 0 then
+    perform_action(newX,newY,true)
 	end
   if (clear or (entity and entity.baseType == "creature")) then
     advance_turn()
     return true
+  end
+end
+
+function perform_action(x,y,noAdjacent)
+  x = (x or player.x)
+  y = (y or player.y)
+  local actions = currMap:get_tile_actions(x,y,player,noAdjacent)
+  if #actions == 1 then
+    if actions[1].entity:action(player,actions[1].id) ~= false then
+      advance_turn()
+    end
+  elseif #actions > 1 then
+    local list = {}
+    for _,action in ipairs(actions) do
+      local direction = ""
+      local entity = action.entity
+      if entity.y < player.y then direction = direction .. "north"
+      elseif entity.y > player.y then direction = direction .. "south" end
+      if entity.x < player.x then direction = direction .. "west"
+      elseif entity.x > player.x then direction = direction .. "east" end
+      list[#list+1] = {text=action.text .. ((direction ~= "" and not action.noDirection) and " (" .. ucfirst(direction) .. ")" or ""),description=action.description,selectFunction=entity.action,selectArgs={entity,player,action.id},image=action.image,image_color=action.image_color,order=action.order}
+    end
+    Gamestate.switch(multiselect,list,"Select an Action",true,true)
   end
 end
 

@@ -67,8 +67,8 @@ function pausemenu:draw()
   love.graphics:pop()
 end
 
-function pausemenu:buttonpressed(key,isRepeat)
-  key = input:parse_key(key)
+function pausemenu:buttonpressed(key,scancode,isRepeat,controllerType)
+  key,scancode,isRepeat = input:parse_key(key,scancode,isRepeat,controllerType)
   if key == "escape" then
     self:switchBack()
   elseif key == "north" then

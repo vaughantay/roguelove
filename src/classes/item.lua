@@ -42,10 +42,7 @@ function Item:init(type_name,tags,info,ignoreNewFunc)
   end
   if self.image_varieties and not self.image_name then
     self.image_variety = random(1,self.image_varieties)
-    self.image_name = self.id .. self.image_variety
-    if not images['item' .. self.image_name] then
-      self.image_name = nil
-    end
+    self.image_name = (self.image_base or self.id) .. self.image_variety
   end
 	return self
 end
@@ -90,12 +87,12 @@ function Item:get_info()
     uses = uses .. "\nYou can't use this item again for another " .. self.owner.cooldowns[self] .. " turns."
   end
 	if self.melee_attack then
-    local damage = self:get_damage() + (not self.no_creature_damage and self.owner and self.owner.get_damage and self.owner:get_damage(self.melee_damage_stats) or 0)
+    local damage = self:get_damage(self.owner)
     local ap = self:get_armor_piercing()
     local accuracy = self:get_accuracy()
     local crit = self:get_critical_chance()
     
-    uses = uses .. "Melee Damage: " .. damage .. (self.damage_type and " (" .. self.damage_type .. ")" or "")
+    uses = uses .. "Melee Damage: " .. damage .. (self.damage_type and " (" .. self.damage_type .. ")" or "") .. ' (' .. self:get_damage() .. ' base)'
     
     if ap > 0 then uses = uses .. "Armor Piercing: " .. ap end
 		if accuracy > 0 then uses = uses .. "\nAccuracy Modifier: " .. accuracy .. "%" end
@@ -269,18 +266,17 @@ function Item:use(target,user,ignoreCooldowns)
 end
 
 ---Find out how much damage an item will deal. The item's damage value + the wielder's get_damage(), but might be overridden by an item's get_damage() code
---@param target Entity. The target of the item's attack.
 --@param wielder Creature. The creature using the item.
 --@return Number. The damage the item will deal.
-function Item:get_damage(target,wielder)
+function Item:get_damage(wielder)
   if possibleItems[self.id].get_damage then
-    return possibleItems[self.id].get_damage(self,target,wielder)
+    return possibleItems[self.id].get_damage(self,wielder)
   end
   local dmg = (self.damage or 0)
   local bonus = .01*self:get_enchantment_bonus('damage_percent')
   dmg = dmg + math.ceil(dmg * bonus)
   
-  return dmg + self:get_enchantment_bonus('damage') + (wielder and not self.no_creature_damage and wielder:get_damage(self.melee_damage_stats) or 0)
+  return dmg + self:get_enchantment_bonus('damage') + (wielder and wielder.baseType == "creature" and not self.no_creature_damage and wielder:get_damage(self.melee_damage_stats) or 0)
 end
 
 ---Find out how much extra damage an item will deal due to enchantments
@@ -288,8 +284,9 @@ end
 --@param wielder Creature. The creature using the item.
 --@param dmg Number. The base damage being done to the target
 --@return Table. A table with values of the extra damage the item will deal.
-function Item:get_extra_damage(target,wielder,dmg)
+function Item:get_extra_damage(target,wielder)
   local extradmg = {}
+  local dmg = self:get_damage(wielder)
   
   for e,_ in pairs(self:get_enchantments()) do
     local ench = enchantments[e]
@@ -315,11 +312,38 @@ function Item:get_extra_damage(target,wielder,dmg)
       end --end if safe creature types
       if apply == true then
         local dmg = tweak((ed.damage or 0)+math.ceil((ed.damage_percent or 0)/100*dmg))
-        dmg = target:damage(dmg,wielder,ed.damage_type,ed.armor_piercing,nil,self)
+        dmg = target:damage(dmg,wielder,ed.damage_type,ed.armor_piercing,nil,self,ed.ignoreWeakness)
         extradmg[ed.damage_type] = extradmg[ed.damage_type] or 0 + dmg
       end
     end --end if it has an extra damage flag
   end --end enchantment for
+  
+  if self.extra_damage then
+    local ed = self.extra_damage
+    local apply = true
+    if ed.only_creature_types then
+      apply = false
+      for _,ctype in ipairs(ed.only_creature_types) do
+        if target:is_type(ctype) then
+          apply = true
+          break
+        end
+      end --end creature type for
+    end --end if only creature types
+    if ed.safe_creature_types and apply then
+      for _,ctype in ipairs(ed.safe_creature_types) do
+        if target:is_type(ctype) then
+          apply = false
+          break
+        end
+      end --end creature type for
+    end --end if safe creature types
+    if apply == true then
+      local dmg = tweak((ed.damage or 0)+math.ceil((ed.damage_percent or 0)/100*dmg))
+      dmg = target:damage(dmg,wielder,ed.damage_type,ed.armor_piercing,nil,self,ed.ignoreWeakness)
+      extradmg[ed.damage_type] = extradmg[ed.damage_type] or 0 + dmg
+    end
+  end --end if it has an extra damage flag
   return extradmg
 end
 
@@ -344,12 +368,23 @@ function Item:attack(target,wielder,forceHit,ignore_callbacks,forceBasic)
   
   --Basic attack:
   if target.baseType == "feature" and wielder:touching(target) then
-    local dmg = target:damage(self:get_damage(target,wielder),wielder,self.damage_type)
+    local dmg = target:damage(self:get_damage(wielder),wielder,self.damage_type)
+    if possibleItems[self.id].after_damage then
+      possibleItems[self.id].after_damage(self,target,wielder,dmg)
+    end
+    for ench,_ in pairs(self:get_enchantments()) do
+      if enchantments[ench].after_damage then
+        enchantments[ench]:after_damage(self,wielder,target,dmg)
+      end
+    end --end enchantment after_damage for
     self:decrease_all_enchantments('attack') --decrease the turns left for any enchantments that decrease on attack
     wielder:decrease_all_conditions('attack')
     if dmg > 0 then
       wielder:decrease_all_conditions('hit')
       self:decrease_all_enchantments('hit') --decrease the turns left for any enchantments that decrease on hit
+    end
+    if player:can_see_tile(wielder.x,wielder.y) or player:can_see_tile(target.x,target.y) and player:does_notice(wielder) then
+      output:out(wielder:get_name() .. ' attacks ' .. target:get_name() .. " with " .. self:get_name()  .. ", dealing " .. dmg .. " damage.")
     end
     return dmg
 	elseif wielder:touching(target) and (ignore_callbacks or wielder:callbacks('attacks',target) and target:callbacks('attacked',self)) then
@@ -375,29 +410,47 @@ function Item:attack(target,wielder,forceHit,ignore_callbacks,forceBasic)
         end
       end --end enchantment after_miss for
 		else --if it's a hit
-      if not forceBasic and possibleItems[self.id].attack_hits then
+      if not forceBasic and possibleItems[self.id].attack_hits then --custom attack hit code:
         local ret = possibleItems[self.id].attack_hits(self,target,wielder,dmg,result)
         if ret ~= false then
-          --TODO: Test if extra daamge and after_damage work for items with custom attack_hits code
+          --TODO: Test if extra damage and after_damage work for items with custom attack_hits code
           --Add extra damage
-          local txt = nil
-          local loopcount = 1
-          local dtypes = self:get_extra_damage(target,wielder,dmg)
+          local dtypes = self:get_extra_damage(target,wielder)
           local dcount = count(dtypes)
-          for dtype,amt in pairs(dtypes) do
-            if loopcount == 1 and dcount == 1 then
-              txt = ucfirst(self:get_name()) .. " deals "
-            elseif loopcount == dcount then
-              txt = txt .. ", and "
-            else
-              txt = txt .. ", "
+          local dTypeCount = (dmg > 0 and 1 or 0)
+          if dmg > 0 or dcount > 0 then
+            txt = txt .. ucfirst(wielder:get_pronoun('n')) .. " hits " .. target:get_pronoun('o') .. " for"
+            if dmg > 0 then
+              txt = txt .. " " .. dmg .. (self.damage_type and " " .. self.damage_type or "") .. " damage"
             end
-            txt = txt .. amt .. " " .. dtype .. " damage"
+            --Add extra damage
+            if dcount > 0 then
+              local loopcount = 0
+              local dtexts = {}
+              for dtype,amt in pairs(dtypes) do
+                if amt > 0 then
+                  dtexts[#dtexts+1] = amt .. " " .. dtype .. " damage"
+                end
+              end
+              for index,dtext in ipairs(dtexts) do
+                if dTypeCount == 0 then
+                  txt = txt .. " " .. dtext
+                elseif index == #dtexts then
+                  txt = txt .. (dTypeCount > 1 and ", and " or " and ") .. dtext
+                else
+                  txt = txt .. ", " .. dtext
+                end
+                dTypeCount = dTypeCount+1
+              end
+            end
           end
-          txt = txt .. " to " .. target:get_name() .. "."
+          if dTypeCount == 0 then
+            txt = txt .. ucfirst(wielder:get_pronoun('n')) .. " hits " .. target:get_pronoun('o') .. " for no damage"
+          end
+          txt = txt .. "."
           output:out(txt)
           if possibleItems[self.id].after_damage then
-            possibleItems[self.id].after_damage(self,target,wielder,dmg)
+            possibleItems[self.id].after_damage(self,target,wielder)
           end
           for ench,_ in pairs(self:get_enchantments()) do
             if enchantments[ench].after_damage then
@@ -407,6 +460,7 @@ function Item:attack(target,wielder,forceHit,ignore_callbacks,forceBasic)
         end
         return ret
       end
+      --Basic attack hit code:
 			if (result == "critical") then txt = txt .. "CRITICAL HIT! " end
       local bool,ret = wielder:callbacks('calc_damage',target,dmg)
       if (bool ~= false) and #ret > 0 then --handle possible returned damage values
@@ -418,35 +472,51 @@ function Item:attack(target,wielder,forceHit,ignore_callbacks,forceBasic)
         if count > 0 then dmg = math.ceil(amt/count) end --final damage is average of all returned damage values
       end
 			dmg = target:damage(dmg,wielder,self.damage_type,self:get_armor_piercing(wielder),nil,self)
-			if dmg > 0 then
-        txt = txt .. ucfirst(wielder:get_pronoun('n')) .. " hits " .. target:get_pronoun('o') .. " for " .. dmg .. (self.damage_type and " " .. self.damage_type or "") .. " damage"
-        --Add extra damage
-        local loopcount = 1
-        local dtypes = self:get_extra_damage(target,wielder,dmg)
-        local dcount = count(dtypes)
-        for dtype,amt in pairs(dtypes) do
-          if loopcount == 1 and dcount == 1 then
-            txt = txt .. " and "
-          elseif loopcount == dcount then
-            txt = txt .. ", and "
-          else
-            txt = txt .. ", "
-          end
-          txt = txt .. amt .. " " .. dtype .. " damage"
+      local dtypes = self:get_extra_damage(target,wielder)
+      local dcount = count(dtypes)
+      local dTypeCount = (dmg > 0 and 1 or 0)
+			if dmg > 0 or dcount > 0 then
+        txt = txt .. ucfirst(wielder:get_pronoun('n')) .. " hits " .. target:get_pronoun('o') .. " for"
+        if dmg > 0 then
+          txt = txt .. " " .. dmg .. (self.damage_type and " " .. self.damage_type or "") .. " damage"
         end
-        txt = txt .. "."
-      else
-        txt = txt .. ucfirst(wielder:get_pronoun('n')) .. " hits " .. target:get_pronoun('o') .. " for no damage."
+        --Add extra damage
+        if dcount > 0 then
+          local loopcount = 0
+          local dtexts = {}
+          for dtype,amt in pairs(dtypes) do
+            if amt > 0 then
+              dtexts[#dtexts+1] = amt .. " " .. dtype .. " damage"
+            end
+          end
+          for index,dtext in ipairs(dtexts) do
+            if dTypeCount == 0 then
+              txt = txt .. " " .. dtext
+            elseif index == #dtexts then
+              txt = txt .. (dTypeCount > 1 and ", and " or " and ") .. dtext
+            else
+              txt = txt .. ", " .. dtext
+            end
+            dTypeCount = dTypeCount+1
+          end
+        end
       end
+      if dTypeCount == 0 then
+        txt = txt .. ucfirst(wielder:get_pronoun('n')) .. " hits " .. target:get_pronoun('o') .. " for no damage"
+      end
+      txt = txt .. "."
+      --Bump
       local xMod,yMod = get_unit_vector(wielder.x,wielder.y,target.x,target.y)
       target.xMod,target.yMod = target.xMod+(xMod*5),target.yMod+(yMod*5)
       if timers[tostring(target) .. 'moveTween'] then
         Timer.cancel(timers[tostring(target) .. 'moveTween'])
       end
       timers[tostring(target) .. 'moveTween'] = tween(.1,target,{xMod=0,yMod=0},'linear',function() target.doneMoving = true end)
+      --Text
       if player:can_see_tile(wielder.x,wielder.y) or player:can_see_tile(target.x,target.y) and player:does_notice(wielder) and player:does_notice(target) then
         output:out(txt)
       end
+      --Callbacks
       if possibleItems[self.id].after_damage then
         possibleItems[self.id].after_damage(self,target,wielder,dmg)
       end
@@ -582,7 +652,7 @@ end
 --@param item Item. The item to check
 --@return Boolean. Whether or not the items are the same
 function Item:matches(item)
-  if self.id == item.id and self.level == item.level and (not self.sortBy or (self[self.sortBy] == item[self.sortBy])) then
+  if self.id == item.id and self.level == item.level and (not self.sortBy or (self[self.sortBy] == item[self.sortBy])) and (not item.properName or not self.properName or item.properName == self.properName) then
     local matchEnch = true
     --Compare enchantments:
     if (self.enchantments and count(self.enchantments) or 0) == (item.enchantments and count(item.enchantments) or 0) then
@@ -823,7 +893,9 @@ end
 ---Returns the ranged accuracy (modifier to the hit roll) of a weapon.
 --@return Number. The accuracy of the weapon.
 function Item:get_ranged_damage()
-  return (self.ranged_damage or 0)+self:get_enchantment_bonus('ranged_damage')
+  local ranged_damage = (self.ranged_damage or 0)
+  ranged_damage = ranged_damage + round(ranged_damage * (self:get_enchantment_bonus('ranged_damage_percent')/100)) + self:get_enchantment_bonus('ranged_damage')
+  return ranged_damage 
 end
 
 ---Checks the critical chance of a weapon.

@@ -278,7 +278,7 @@ function characterscreen:draw()
       printY = printY + fontSize*2
       love.graphics.printf("Abilities Available to Learn:",padding,printY,math.floor(width/uiScale)-padding,"center")
       printY = printY+fontSize
-      love.graphics.printf((player.spellPoints or 0) .. " Ability Point" .. (player.spellPoints == 1 and " available" or "s available"),padding,printY,math.floor(width/uiScale)-padding,"center")
+      love.graphics.printf((player.spellPoints or 0) .. (gamesettings.default_spell_upgrade_stat_name or " Point") .. (player.spellPoints == 1 and " available" or "s available"),padding,printY,math.floor(width/uiScale)-padding,"center")
       printY = printY+fontSize*2
       for _,info in ipairs(self.spell_purchases) do
         local spell = possibleSpells[info.spell]
@@ -286,7 +286,7 @@ function characterscreen:draw()
         if not player:has_spell(info.spell,true,true) then
           local points = info.point_cost or 0
           local upgrade_stat = info.upgrade_stat or "spellPoints"
-          local upgrade_stat_name = info.upgrade_stat_name or (upgrade_stat == "spellPoints" and "Ability Point" or nil)
+          local upgrade_stat_name = info.upgrade_stat_name or (upgrade_stat == "spellPoints" and gamesettings.default_spell_upgrade_stat_name or nil)
           if not upgrade_stat_name then
             for _,stInfo in pairs(possibleSkillTypes) do
               if stInfo.upgrade_stat == upgrade_stat then
@@ -296,6 +296,7 @@ function characterscreen:draw()
             end
             if not upgrade_stat_name then upgrade_stat_name = upgrade_stat end
           end
+          if not upgrade_stat_name then upgrade_stat_name = "Point" end
           local upgrade_stat_plural_name = info.upgrade_stat_plural_name or upgrade_stat_name .. "s"
           local player_has = player[upgrade_stat] or 0
           local costText = (points and points > 0 and points .. " " .. (points == 1 and upgrade_stat_name or upgrade_stat_plural_name) .. (upgrade_stat ~= "spellPoints" and " (You have " .. player_has .. ")" or "") or nil)
@@ -404,11 +405,11 @@ function characterscreen:draw()
   love.graphics.pop()
 end
 
-function characterscreen:buttonpressed(key)
+function characterscreen:buttonpressed(key,scancode,isRepeat,controllerType)
   local height = love.graphics.getHeight()
   local uiScale = prefs['uiScale'] or 1
   height = round(height/uiScale)
-  key = input:parse_key(key)
+  key,scancode,isRepeat = input:parse_key(key,scancode,isRepeat,controllerType)
   if key == "north" then
     if self.screen == "character" then
       local whichButton = self.learnButtons[self.cursorY-1] or self.skillButtons[self.cursorY-1] or nil

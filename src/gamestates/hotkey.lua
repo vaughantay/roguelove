@@ -57,10 +57,10 @@ function hotkey:switchBack()
   Timer.after(0.2,function() self.switchNow=true end)
 end
 
-function hotkey:buttonpressed(key)
+function hotkey:buttonpressed(key,scancode,isRepeat,controllerType)
   local hotkeyItem = self.hotkeyItem
   local origKey = key
-  key = input:parse_key(key)
+  key,scancode,isRepeat = input:parse_key(key,scancode,isRepeat,controllerType)
   if (origKey == "escape") or key == "enter" then
     self:switchBack()
   elseif tonumber(key) then

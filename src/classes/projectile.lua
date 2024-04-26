@@ -190,7 +190,7 @@ function Projectile:hits(target,force_generic)
     local hitCons = self:get_hit_conditions()
     if hitCons and target.baseType == "creature" then
       for _, condition in pairs(hitCons) do
-				if (random(1,100) < condition.chance) then
+				if (random(1,100) < (condition.chance or 100)) then
           local turns = ((condition.minTurns and condition.maxTurns and random(condition.minTurns,condition.maxTurns)) or tweak(condition.turns))
 					target:give_condition(condition.condition,turns,self)
 				end -- end condition chance

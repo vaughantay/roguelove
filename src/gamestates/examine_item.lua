@@ -266,7 +266,7 @@ function examine_item:draw()
       buttonX = buttonX+buttonWidth+25
       buttonCursorX = buttonCursorX+1
     end
-  elseif (gamesettings.can_pickup_adjacent_items and player:touching(item)) or (player.x == item.x and player.y == item.y) or (self.container.inventory_accessible_anywhere) then
+  elseif (gamesettings.can_pickup_adjacent_items and player:touching(item)) or (player.x == item.x and player.y == item.y) or (self.container and self.container.inventory_accessible_anywhere) then
     if player:get_free_inventory_space() > (item.size or 1) then
       local useText = "Take (" .. input:get_button_name("pickup") .. ")"
       local buttonWidth = fonts.buttonFont:getWidth(useText)+25
@@ -498,7 +498,7 @@ function examine_item:calculate_height()
       buttonX = buttonX+buttonWidth+25
       buttonCursorX = buttonCursorX+1
     end
-  elseif (gamesettings.can_pickup_adjacent_items and player:touching(item)) or (player.x == item.x and player.y == item.y)  or (self.container.inventory_accessible_anywhere) then
+  elseif (gamesettings.can_pickup_adjacent_items and player:touching(item)) or (player.x == item.x and player.y == item.y)  or (self.container and self.container.inventory_accessible_anywhere) then
     if player:get_free_inventory_space() > (item.size or 1) then
       local useText = "Take (" .. input:get_button_name("pickup") .. ")"
       local buttonWidth = fonts.buttonFont:getWidth(useText)+25
@@ -518,9 +518,9 @@ function examine_item:calculate_height()
   return math.min(height-(prefs['noImages'] and 0 or output:get_tile_size()),printY)
 end
 
-function examine_item:buttonpressed(key)
+function examine_item:buttonpressed(key,scancode,isRepeat,controllerType)
   local letter = key
-  key = input:parse_key(key)
+  key,scancode,isRepeat = input:parse_key(key,scancode,isRepeat,controllerType)
 	if (key == "escape") then
     self:switchBack()
 	elseif key == "enter" or key == "wait" then

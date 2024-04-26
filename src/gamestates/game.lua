@@ -442,7 +442,7 @@ function game:print_sidebar()
         if hotkeyInfo.type == "spell" then
           local no_deactivate = (hotkeyItem.active and hotkeyItem.no_manual_deactivate)
           name = hotkeyItem.name .. (player.cooldowns[hotkeyItem] and " (" .. player.cooldowns[hotkeyItem] .. " turns)" or "") .. (hotkeyItem.charges and " (" .. hotkeyItem.charges .. ")" or "") .. (hotkeyItem.active and " (Active)" or "")
-          canUse = not player.cooldowns[hotkeyItem.name] and hotkeyItem:requires(player) and not no_deactivate
+          canUse = not player.cooldowns[hotkeyItem] and hotkeyItem:requires(player) and not no_deactivate
           if no_deactivate then
             canUseText = "You cannot manually deactivate this ability."
           end

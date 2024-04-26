@@ -34,10 +34,7 @@ function Feature:init(feature_type,info,x,y)
 	self.baseType = "feature"
   if self.image_varieties and not self.image_name then
     self.image_variety = random(1,self.image_varieties)
-    self.image_name = self.id .. self.image_variety
-    if not images['feature' .. self.image_name] then
-      self.image_name = nil
-    end
+    self.image_name = (self.image_base or self.id) .. self.image_variety
   end
 	return self
 end
@@ -59,13 +56,26 @@ function Feature:get_description()
 	local txt = self.name .. "\n" .. self.description
   if self.attackable then txt = txt .. "\nYou can attack it." end
   if self.pushable then txt = txt .. "\nYou can push it." end
-  if self.inventory and not self.inventory_inaccessible and #self.inventory > 0 then
+  if self.inventory and (not self.inventory_inaccessible or self.inventory_visible_if_inaccessible) and #self.inventory > 0 then
     txt = txt .. "\nIt contains: "
     for i,item in ipairs(self.inventory) do
       txt = txt .. (i ~= 1 and ", " or "") .. item:get_name(true)
     end
   end
   return txt
+end
+
+---Calls the can_enter() function of a feature, if it has one.
+--@param enterer Creature. The creature entering the feature's tile.
+--@param fromX Number. The x-coordinate the creature is coming from
+--@param fromY Number. The y-coordinate the creature is coming from
+--@return Boolean. Whether or not the creature was allowed to enter.
+function Feature:can_enter(enterer,fromX,fromY)
+  if not fromX or not fromY then
+    fromX,fromY = self.x,self.y
+  end
+  if possibleFeatures[self.id].can_enter then return possibleFeatures[self.id].can_enter(self,enterer,fromX,fromY) end
+	return true
 end
 
 ---Calls the enter() function of a feature, if it has one.
@@ -141,42 +151,74 @@ end
 --@return Number. The final damage that was done.
 function Feature:damage(amt,source,damage_type,force)
   if not force and possibleFeatures[self.id].damage then --has custom damaged code?
-    return possibleFeatures[self.id].damage(self,amt,source,damage_type)
-  elseif self.attackable then
+    local ret = possibleFeatures[self.id].damage(self,amt,source,damage_type)
+    if ret == false then
+      return false
+    elseif type(ret) == "number" then
+      amt = ret
+    end
+  end
+  if self.attackable then
     if self.hp then
       if not self.max_hp then self.max_hp = self.hp end
       self.hp = self.hp - amt
       local p = Effect('dmgpopup',self.x,self.y)
       p.symbol = "-" .. amt
       currMap:add_effect(p,self.x,self.y)
-      local xMod,yMod = get_unit_vector(source.x,source.y,self.x,self.y)
-      self.xMod,self.yMod = (self.xMod or 0)+(xMod*5),(self.yMod or 0)+(yMod*5)
-      if timers[tostring(self) .. 'moveTween'] then
-        Timer.cancel(timers[tostring(self) .. 'moveTween'])
+      if source then
+        local xMod,yMod = get_unit_vector(source.x,source.y,self.x,self.y)
+        self.xMod,self.yMod = (self.xMod or 0)+(xMod*5),(self.yMod or 0)+(yMod*5)
+        if timers[tostring(self) .. 'moveTween'] then
+          Timer.cancel(timers[tostring(self) .. 'moveTween'])
+        end
+        timers[tostring(self) .. 'moveTween'] = tween(.1,self,{xMod=0,yMod=0},'linear')
       end
-      timers[tostring(self) .. 'moveTween'] = tween(.1,self,{xMod=0,yMod=0},'linear')
     end --end if self.hp if
     if not self.hp or self.hp <= 0 then
-      if possibleFeatures[self.id].destroyed then --has custom destroyed code
-        return possibleFeatures[self.id].destroyed(self,source)
-      else
-        self:delete()
-        return amt
-      end --end custom destroyed code
+      self:destroy(source,damage_type)
+      return amt
     end --end hp <= 0
   end --end if self.attackable or damage
 	return amt
+end
+
+
+---Destroy a feature. This is different from Feature:delete() in that it calls the destroy() callback and drops any items in its inventory
+--@param source Entity. The source of the damage (optional)
+--@param damage_type String. The damage type (optional)
+function Feature:destroy(source,damage_type)
+  local ret = true
+  if possibleFeatures[self.id].destroy then --has custom destroyed code
+    ret = possibleFeatures[self.id].destroy(self,source,damage_type)
+  end
+  if ret ~= false then
+    if self.destroy_feature and not currMap:tile_has_tag(self.x,self.y,'absorbs') then
+      currMap:add_feature(Feature(self.destroy_feature),self.x,self.y)
+    end
+    if self.destroy_effect then
+      currMap:add_effect(Effect(self.destroy_effect),self.x,self.y)
+    end
+    if self.destroy_sound and player:can_see_tile(self.x,self.y) then
+      output:sound(self.destroy_sound)
+    end
+    self:drop_all_items()
+    self:delete()
+  end
 end
 
 ---Delete a feature from the map
 --@param map The map that the feature is on. If blank, defaults to the current map. (optional)
 function Feature:delete(map)
   map = map or currMap
-  for id,f in pairs(map.contents[self.x][self.y]) do
-    if f == self or id == self then
-      map.contents[self.x][self.y][id] = nil
-    end --end if
-  end --end for
+  if map[self.x][self.y] == self then
+    map[self.x][self.y] = "."
+  else
+    for id,f in pairs(map.contents[self.x][self.y]) do
+      if f == self or id == self then
+        map.contents[self.x][self.y][id] = nil
+      end --end if
+    end --end for
+  end
   map.feature_cache[self.x .. ',' .. self.y] = nil
   if self.castsLight then map.lights[self] = nil end
   if self.blocksSight then refresh_player_sight() end
@@ -202,9 +244,10 @@ end
 
 ---Checks a feature's combust() callback, if applicable, and then lights it on fire if applicable.
 --@param skip_basic Boolean. Whether to skip the combust() callback and just go ahead and light the fire. (optional)
-function Feature:combust(skip_basic)
+--@param source Entity. The cause of the combustion
+function Feature:combust(skip_basic,source)
   if not skip_basic and possibleFeatures[self.id].combust then return possibleFeatures[self.id].combust(self) end
-  currMap:add_effect(Effect('fire',{x=self.x,y=self.y,turns_remaining=(self.fireTime or 10)}),self.x,self.y)
+  currMap:add_effect(Effect('fire',{creator=source,turns_remaining=(self.fireTime or 10)}),self.x,self.y)
   self:delete()
 end
 
@@ -229,13 +272,16 @@ end
 function Feature:cleanup(map)
   map = map or currMap
   if possibleFeatures[self.id].cleanup then return possibleFeatures[self.id].cleanup(self,map) end
+  if self.hp and self.max_hp then
+    self.hp = self.max_hp
+  end
 end
 
 ---Transfer an item to a feature's inventory
 --@param item Item. The item to give.
 function Feature:give_item(item)
   if (item.stacks == true) then
-    local _,inv_id = self:has_item(item.id,(item.sortBy and item[item.sortBy]),item.enchantments,item.level)
+    local it,inv_id = self:has_item(item.id,(item.sortBy and item[item.sortBy]),item.enchantments,item.level)
     if inv_id then
       self.inventory[inv_id].amount = self.inventory[inv_id].amount + item.amount
       item = self.inventory[inv_id]
@@ -264,12 +310,29 @@ end
 
 ---Have a feature drop all their items on the tile they're on
 function Feature:drop_all_items()
-	for _,item in ipairs(self.inventory) do
-    currMap:add_item(item,self.x,self.y,true)
-    item.x,item.y=self.x,self.y
-    item.owner=nil
-	end --end inventory for loop
-  self.inventory = {}
+  if self.inventory then
+    for _,item in ipairs(self.inventory) do
+      currMap:add_item(item,self.x,self.y,true)
+      item.x,item.y=self.x,self.y
+      item.owner=nil
+    end --end inventory for loop
+    self.inventory = {}
+  end
+end
+
+---Delete an item from a feature's inventory
+--@param item Item. The item to remove
+--@param amt Number. The amount of the item to remove, if the item is stackable. Defaults to 1. 
+function Feature:delete_item(item,amt)
+  amt = amt or 1
+	local id = in_table(item,self.inventory)
+	if (id) then
+    if amt == -1 or amt >= (item.amount or 0) then
+      table.remove(self.inventory,id)
+    else
+      item.amount = item.amount - amt
+    end
+	end
 end
 
 ---Get every item in a feature's inventory:
@@ -308,4 +371,14 @@ function Feature:has_item(itemID,sortBy,enchantments,level)
 		end
 	end --end inventory for
 	return false,nil,0
+end
+
+---Checks if a feature has a descriptive tag.
+--@param tag String. The tag to check for
+--@return Boolean. Whether or not it has the tag.
+function Feature:has_tag(tag)
+  if self.tags and in_table(tag,self.tags) then
+    return true
+  end
+  return false
 end

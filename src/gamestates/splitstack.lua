@@ -127,7 +127,7 @@ function splitstack:switchBack()
   Timer.after(0.2,function() self.switchNow=true end)
 end
 
-function splitstack:buttonpressed(key)
+function splitstack:buttonpressed(key,scancode,isRepeat,controllerType)
   --First, look at number keys and backspace, to manipulate the number amount directly
   local stackAmt = tostring(self.stackAmt)
   if tonumber(key) then
@@ -146,7 +146,7 @@ function splitstack:buttonpressed(key)
     return
   end
   --Parse keys to look at commands:
-  key = input:parse_key(key)
+  key,scancode,isRepeat = input:parse_key(key,scancode,isRepeat,controllerType)
   if key == "escape" then
     self:switchBack()
   elseif key == "east" then

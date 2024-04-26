@@ -131,9 +131,9 @@ function pronoun_entry:switchBack()
   newgame.player.pronouns = self.pronouns
 end
 
-function pronoun_entry:buttonpressed(key)
+function pronoun_entry:buttonpressed(key,scancode,isRepeat,controllerType)
   local origKey = key
-  key = input:parse_key(key)
+  key,scancode,isRepeat = input:parse_key(key,scancode,isRepeat,controllerType)
   if (origKey == "escape") then
     self:switchBack()
   elseif key == "south" or origKey == "tab" or key == "nextTarget" then

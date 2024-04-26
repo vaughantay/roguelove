@@ -21,8 +21,11 @@ end
 function output.display_entity(entity,x,y, seen,ignoreDistMods,scale)
   if entity.noDraw then return end
   scale = scale or 1
-  local alpha = (entity.invisible and 0 or (entity.color.a or 255))
-  if (prefs['noImages'] == true or images[(entity.imageType or entity.baseType) .. (entity.image_name or entity.id)] == nil or entity.id == nil) then --if the creature has no image or images are off, then print symbol
+  local color = entity.color or {r=255,g=255,b=255,a=255}
+  local alpha = (entity.invisible and 0 or (color.a or 255))
+  local image_name = (entity.imageType or entity.baseType) .. (entity.image_name or entity.id)
+  if not images[image_name] then image_name = (entity.imageType or entity.baseType) .. 'default' end
+  if prefs['noImages'] == true or images[image_name] == nil then --if the creature has no image or images are off, then print symbol
     local oldFont = love.graphics.getFont()
     love.graphics.setFont((prefs['noImages'] and fonts.mapFont or fonts.mapFontWithImages))
     if seen then
@@ -35,7 +38,7 @@ function output.display_entity(entity,x,y, seen,ignoreDistMods,scale)
         colorMod = 1.5
       end
       if entity.temporaryColor then setColor(round(entity.temporaryColor.r/colorMod),round(entity.temporaryColor.g/colorMod),round(entity.temporaryColor.b/colorMod),(entity.temporaryColor.a or alpha))
-      else setColor(round(entity.color.r/colorMod),round(entity.color.g/colorMod),round(entity.color.b/colorMod),alpha) end
+      else setColor(round(color.r/colorMod),round(color.g/colorMod),round(color.b/colorMod),alpha) end
     else setColor(50,50,50,alpha) end
     love.graphics.print(entity.symbol,x+(not ignoreDistMods and entity.xMod or 0),y+(not ignoreDistMods and entity.yMod or 0))
     setColor(255,255,255,255)
@@ -43,13 +46,13 @@ function output.display_entity(entity,x,y, seen,ignoreDistMods,scale)
     return true --ignore the rest
   end
   -- Image display code:
-  if (images[(entity.imageType or entity.baseType) .. (entity.image_name or entity.id)] and images[(entity.imageType or entity.baseType) .. (entity.image_name or entity.id)] ~= nil) then --if image is already loaded, display it
+  if images[image_name] then --if image is already loaded, display it
     if entity.baseType == "creature" and prefs['creatureShadows'] then
       setColor(0,0,0,alpha) --draw a shadow first
-      if entity.tilemap or entity.spritesheet then
-        love.graphics.draw(images[(entity.imageType or entity.baseType) .. (entity.image_name or entity.id)],output:get_spritesheet_quad(entity.image_frame,entity.image_max),x+18*scale+(not ignoreDistMods and entity.xMod or 0),y+16*scale+(not ignoreDistMods and entity.yMod or 0),entity.angle,(entity.faceLeft and -1 or 1)*(entity.scale or 1)*scale,1*(entity.scale or 1)*scale,16,16)
+      if entity.spritesheet then
+        love.graphics.draw(images[image_name],output:get_spritesheet_quad(entity.image_frame,entity.image_max),x+18*scale+(not ignoreDistMods and entity.xMod or 0),y+16*scale+(not ignoreDistMods and entity.yMod or 0),entity.angle,(entity.faceLeft and -1 or 1)*(entity.scale or 1)*scale,1*(entity.scale or 1)*scale,16,16)
       else
-        love.graphics.draw(images[(entity.imageType or entity.baseType) .. (entity.image_name or entity.id)],x+18*scale+(not ignoreDistMods and entity.xMod or 0),y+16*scale+(not ignoreDistMods and entity.yMod or 0),entity.angle,(entity.faceLeft and -1 or 1)*(entity.scale or 1)*scale,1*(entity.scale or 1)*scale,16,16)
+        love.graphics.draw(images[image_name],x+18*scale+(not ignoreDistMods and entity.xMod or 0),y+16*scale+(not ignoreDistMods and entity.yMod or 0),entity.angle,(entity.faceLeft and -1 or 1)*(entity.scale or 1)*scale,1*(entity.scale or 1)*scale,16,16)
       end
     end
     local colorMod = 1
@@ -59,16 +62,16 @@ function output.display_entity(entity,x,y, seen,ignoreDistMods,scale)
       colorMod = 1.5
     end
     if entity.temporaryColor then setColor(round(entity.temporaryColor.r/colorMod),round(entity.temporaryColor.g/colorMod),round(entity.temporaryColor.b/colorMod),(entity.temporaryColor.a or alpha))
-    elseif entity.use_color_with_tiles or (gamesettings.always_use_color_with_tiles and entity.use_color_with_tiles ~= false) then setColor(round(entity.color.r/colorMod),round(entity.color.g/colorMod),round(entity.color.b/colorMod),alpha)
+    elseif entity.use_color_with_tiles or (gamesettings.always_use_color_with_tiles and entity.use_color_with_tiles ~= false) then setColor(round(color.r/colorMod),round(color.g/colorMod),round(color.b/colorMod),alpha)
     elseif seen then setColor(round(255/colorMod),round(255/colorMod),round(255/colorMod),alpha)
     else setColor(100,100,100,alpha) end
     
-    if entity.tilemap and entity.tileDirection then --if it's a tileset, use the quad
-      love.graphics.draw(images[(entity.imageType or entity.baseType) .. (entity.image_name or entity.id)],quads[entity.tileDirection],x+16*scale+(not ignoreDistMods and entity.xMod or 0),y+(entity.baseType == "creature" and 14 or 16)*scale+(not ignoreDistMods and entity.yMod or 0),entity.angle,(entity.faceLeft and -1 or 1)*(entity.scale or 1)*scale,1*(entity.scale or 1)*scale,16,16)
-    elseif (entity.tilemap or entity.spritesheet) then --if it's a regular spritesheet, use the quad for the frame
-      love.graphics.draw(images[(entity.imageType or entity.baseType) .. (entity.image_name or entity.id)],output:get_spritesheet_quad(entity.image_frame,entity.image_max),x+16*scale+(not ignoreDistMods and entity.xMod or 0),y+(entity.baseType == "creature" and 14 or 16)*scale+(not ignoreDistMods and entity.yMod or 0),entity.angle,(entity.faceLeft and -1 or 1)*(entity.scale or 1)*scale,1*(entity.scale or 1)*scale,16,16)
+    if entity.tilemap then --if it's a tileset, use the quad
+      love.graphics.draw(images[image_name],quads[entity.tileDirection or 'nsew'],x+16*scale+(not ignoreDistMods and entity.xMod or 0),y+(entity.baseType == "creature" and 14 or 16)*scale+(not ignoreDistMods and entity.yMod or 0),entity.angle,(entity.faceLeft and -1 or 1)*(entity.scale or 1)*scale,1*(entity.scale or 1)*scale,16,16)
+    elseif entity.spritesheet then --if it's a regular spritesheet, use the quad for the frame
+      love.graphics.draw(images[image_name],output:get_spritesheet_quad(entity.image_frame,entity.image_max),x+16*scale+(not ignoreDistMods and entity.xMod or 0),y+(entity.baseType == "creature" and 14 or 16)*scale+(not ignoreDistMods and entity.yMod or 0),entity.angle,(entity.faceLeft and -1 or 1)*(entity.scale or 1)*scale,1*(entity.scale or 1)*scale,16,16)
     else --draw the basic image
-      love.graphics.draw(images[(entity.imageType or entity.baseType) .. (entity.image_name or entity.id)],x+16*scale+(not ignoreDistMods and entity.xMod or 0),y+(entity.baseType == "creature" and 14 or 16)*scale+(not ignoreDistMods and entity.yMod or 0),entity.angle,(entity.faceLeft and -1 or 1)*(entity.scale or 1)*scale,1*(entity.scale or 1)*scale,16,16)
+      love.graphics.draw(images[image_name],x+16*scale+(not ignoreDistMods and entity.xMod or 0),y+(entity.baseType == "creature" and 14 or 16)*scale+(not ignoreDistMods and entity.yMod or 0),entity.angle,(entity.faceLeft and -1 or 1)*(entity.scale or 1)*scale,1*(entity.scale or 1)*scale,16,16)
     end
     if (Gamestate.current() == game or Gamestate.current() == pausemenu) and ((entity.baseType == "creature" and entity:is_type("flyer") == false) or entity.useWalkedOnImage == true) then --for walking creatures (or special features), display features' walking image (splashes in water, bridge over top, etc)
       for _,feat in pairs(currMap:get_tile_features(entity.x,entity.y)) do
@@ -90,8 +93,6 @@ function output.display_entity(entity,x,y, seen,ignoreDistMods,scale)
     end --end creature if
     setColor(255,255,255,255)
     return true
-  else --load image, then display it
-    --output:load_image((entity.image_name or entity.id),(entity.imageType or entity.baseType))
   end
 end
 
@@ -355,6 +356,23 @@ function output:draw_health_bar(val,max_val,x,y,width,height,color)
   setColor(255,255,255,255)
 end
 
+---Draw a bar
+--@param val Number. The value at which to draw the bar
+--@param max_val Number. The maximum value the bar could hold
+--@param x Number. The x-coordinate to start at for the bar
+--@param y Number. The Y-coordinate to start at for the bar
+--@param width Number. The width of the bar
+--@param height Number. The height of the bar
+--@param color Table.
+function output:draw_tiny_bar(val,max_val,x,y,width,height,color)
+  setColor((color and color.r or 200),(color and color.g or 0),(color and color.b or 0),(color and color.a or 255))
+  local barWidth = math.max(math.ceil((val/max_val)*width),1)
+  love.graphics.rectangle('fill',x,y,barWidth,height)
+  setColor(255,255,255,100)
+  love.graphics.rectangle('line',x,y,width,height)
+  setColor(255,255,255,255)
+end
+
 ---Play a sound
 --@param soundName Text. The name of the sound file, excluding file extension
 --@param pitchDiff Number. The maximum % by which to randomly shift the pitch up or down. Optional, defaults to 10
@@ -453,21 +471,47 @@ function output:scrollbar(x,startY,endY,scrollPerc,useScaling)
     mouseX,mouseY = math.ceil(mouseX/uiScale),math.ceil(mouseY/uiScale)
   end
   if prefs['noImages'] ~= true then
-    setColor(100,100,100,255)
+    if gamesettings.scrolldotColor then
+      local c = gamesettings.scrolldotColor
+      setColor(c.r,c.g,c.b,c.a)
+    else
+      setColor(100,100,100,255)
+    end
     for y=startY,endY-32,32 do
       love.graphics.draw(images.uidot,x,y)
     end
-    setColor(255,255,255,255)
     --Draw up arrow:
-    if mouseX > x and mouseX < x+32 and mouseY > startY and mouseY < startY+32 then love.graphics.draw(images.uiscrollarrowhighlight,x,startY)
-    else love.graphics.draw(images.uiscrollarrow,x,startY) end
+    if gamesettings.scrollarrowColor then
+      local c = gamesettings.scrollarrowColor
+      setColor(c.r,c.g,c.b,c.a)
+    else
+      setColor(255,255,255,255)
+    end
+    if mouseX > x and mouseX < x+32 and mouseY > startY and mouseY < startY+32 then
+      love.graphics.draw(images.uiscrollarrowhighlight,x,startY)
+    else
+      love.graphics.draw(images.uiscrollarrow,x,startY)
+    end
     --Draw down arrow:
-    if mouseX > x and mouseX < x+32 and mouseY > endY-32 and mouseY < endY then love.graphics.draw(images.uiscrollarrowhighlight,x,endY,0,1,-1)
-    else love.graphics.draw(images.uiscrollarrow,x,endY,0,1,-1) end
+    if mouseX > x and mouseX < x+32 and mouseY > endY-32 and mouseY < endY then
+      love.graphics.draw(images.uiscrollarrowhighlight,x,endY,0,1,-1)
+    else
+      love.graphics.draw(images.uiscrollarrow,x,endY,0,1,-1)
+    end
     --Draw "elevator"
+    if gamesettings.scrollelevatorColor then
+      local c = gamesettings.scrollelevatorColor
+      setColor(c.r,c.g,c.b,c.a)
+    else
+      setColor(255,255,255,255)
+    end
     local elevatorY = startY+32+round(scrollPerc*(endY-startY-96))
-    if mouseX > x and mouseX < x+32 and mouseY > elevatorY and mouseY < elevatorY+32 then love.graphics.draw(images.uiscrollelevatorhighlight,x,elevatorY)
-    else love.graphics.draw(images.uiscrollelevator,x,elevatorY) end
+    if mouseX > x and mouseX < x+32 and mouseY < endY-32 and mouseY > startY+32 then
+      love.graphics.draw(images.uiscrollelevatorhighlight,x,elevatorY)
+    else
+      love.graphics.draw(images.uiscrollelevator,x,elevatorY)
+    end
+    setColor(255,255,255,255)
     return {upArrow={startX=x,endX=(x+32),startY=startY,endY=(startY+32)},downArrow={startX=x,endX=(x+32),startY=(endY-32),endY=endY},elevator={startX=x,endX=(x+32),startY=elevatorY,endY=(elevatorY+32)}} -- return positions, for clicking
   else --ASCII scroll
     setColor(200,200,200,255)
@@ -495,8 +539,9 @@ end
 --@param special Text. The text of the style to force the button to use (eg. forcing hover, or forcing disabled). Optional
 --@param text Text. The text to display on the button. Optional
 --@param useScaling Boolean. Whether to take into account the game's UI scaling setting. Optional
+--@param color 
 --@return Table. A table with the values minX, maxX, minY, and maxY, containing the corresponding coordinates of the button, and hover, a boolean saying if the button is being hovered over
-function output:button(x,y,width,small,special,text,useScaling)
+function output:button(x,y,width,small,special,text,useScaling,color)
   local mouseX,mouseY = love.mouse.getPosition()
   local uiScale = 1
   if useScaling then
@@ -518,12 +563,15 @@ function output:button(x,y,width,small,special,text,useScaling)
     love.graphics.draw(image,images[buttonname].r,math.max(x+width-32,x+32),y)
     if width > 64 then
       love.graphics.draw(image,images[buttonname].middle,x+32,y)
+      love.graphics.draw(image,images[buttonname].middle,x+width-48,y)
       if width > 96 then
-        for drawX = x+64,x+width-32,32 do
+        for drawX = x+64,x+width-48,32 do
           love.graphics.draw(image,images[buttonname].middle,drawX,y)
         end
       end
     end
+    love.graphics.draw(image,images[buttonname].l,x,y)
+    love.graphics.draw(image,images[buttonname].r,math.max(x+width-32,x+32),y)
     if text then
       local oldFont = love.graphics.getFont()
       love.graphics.setFont(fonts.buttonFont)

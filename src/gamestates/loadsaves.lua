@@ -206,8 +206,8 @@ function loadsaves:update(dt)
   end
 end
 
-function loadsaves:buttonpressed(key, isRepeat)
-  key = input:parse_key(key)
+function loadsaves:buttonpressed(key,scancode,isRepeat,controllerType)
+  key,scancode,isRepeat = input:parse_key(key,scancode,isRepeat,controllerType)
   if self.deletewarning == false then
     if key == "escape" then
       self:switchBack()

@@ -2271,20 +2271,37 @@ local corpse = {
     if not creature:is_type('bloodless') then
       if not self.actions then self.actions = {} end
       self.actions['extractblood'] = {text="Extract blood from " .. creature.name .. " corpse",description="Extract blood from a corpse."}
-    end
-  end,
-  action_requires=function(self,user)
-    if not self.bloodless and user:has_item('bloodextractor') then
-      return true
-    else
-      return false
+      self.actions['drainblood'] = {text="Drain blood from " .. creature.name .. " corpse",description="Extract blood from a corpse."}
     end
   end
 }
+function corpse:action_requires(user,action)
+  if action == 'extractblood' then
+    if not self.bloodless and user:has_item('bloodextractor') then
+      return true
+    end
+    return false
+  elseif action == "drainblood" then
+    if not self.bloodless and user:has_spell('vampirism') then
+      return true
+    end
+    return false
+  end
+end
 function corpse:action(entity,action)
-  if action == "extractblood" then
+  if action == "extractblood" and not self.bloodless then
     local extractor = entity:has_item('bloodextractor')
     if extractor then return extractor:use(self,entity) end
+  elseif action == "drainblood" and not self.bloodless and entity:has_spell('vampirism') then
+    local hp = self.creature.level
+    entity:updateHP(hp)
+    if entity.extra_stats.blood then
+      entity.extra_stats.blood.value = math.min(entity.extra_stats.blood.value+hp,entity.extra_stats.blood.max)
+    end
+    self.bloodless = true
+    if entity == player then
+      output:out("You drain cold, congealed blood from the " .. self.creature.name .. " corpse. Gross and unsatisfying, but you do regain " .. hp .. " HP.")
+    end
   end
 end
 possibleFeatures['corpse'] = corpse

@@ -623,8 +623,8 @@ function gamestats:draw()
   love.graphics.pop()
 end
 
-function gamestats:buttonpressed(key)
-  key = input:parse_key(key)
+function gamestats:buttonpressed(key,scancode,isRepeat,controllerType)
+  key,scancode,isRepeat = input:parse_key(key,scancode,isRepeat,controllerType)
   if key == "escape" then
     self:switchBack()
   elseif key == "north" then

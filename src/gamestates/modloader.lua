@@ -160,8 +160,8 @@ function modloader:update(dt)
   end
 end
 
-function modloader:buttonpressed(key, isRepeat)
-  key = input:parse_key(key)
+function modloader:buttonpressed(key,scancode,isRepeat,controllerType)
+  key,scancode,isRepeat = input:parse_key(key,scancode,isRepeat,controllerType)
   if key == "escape" then --go to no mods button
     self.cursorX=3
     self.cursorY=0

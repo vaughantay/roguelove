@@ -270,7 +270,8 @@ function factionscreen:draw()
     if self.subScreen == "Buy" then
       local exambuttonW = fonts.buttonFont:getWidth("Examine")+padding
       local exambuttonX = windowX+padding
-      local nameX = exambuttonX+exambuttonW+3
+      local imageX = exambuttonX+exambuttonW+3
+      local nameX = imageX+output:get_tile_size()+4
       local buybuttonW = fonts.buttonFont:getWidth("Buy")+padding
       local yPad = 8
       local buyBoxW = fonts.textFont:getWidth("1000")+8
@@ -326,6 +327,8 @@ function factionscreen:draw()
           examineMouse = true
         end
         info.examineButton = output:button(exambuttonX,printY+4,exambuttonW,false,((examineMouse or (selected and self.cursorX == 1)) and "hover" or false),"Examine",true)
+        --Icon:
+        output.display_entity(info.item,imageX,buyTextY-8,true,true)
         --Name:
         love.graphics.printf(name,nameX,buyTextY,nameMaxLen)
         --Price:
@@ -401,7 +404,8 @@ function factionscreen:draw()
     elseif self.subScreen == "Sell" then
       local exambuttonW = fonts.buttonFont:getWidth("Examine")+padding
       local exambuttonX = windowX+padding
-      local nameX = exambuttonX+exambuttonW+3
+      local imageX = exambuttonX+exambuttonW+3
+      local nameX = imageX+output:get_tile_size()+4
       local sellbuttonW = fonts.textFont:getWidth("Sell")+padding
       local yPad = 8
       local sellBoxW = fonts.textFont:getWidth("1000")+8
@@ -456,6 +460,8 @@ function factionscreen:draw()
           examineMouse = true
         end
         info.examineButton = output:button(exambuttonX,printY+4,exambuttonW,false,((examineMouse or (selected and self.cursorX == 1)) and "hover" or false),"Examine",true)
+        --Icon:
+        output.display_entity(info.item,imageX,sellTextY-8,true,true)
         --Name:
         love.graphics.printf(name,nameX,sellTextY,nameMaxLen)
         --Cost:
@@ -849,11 +855,11 @@ function factionscreen:draw()
   love.graphics.pop()
 end
 
-function factionscreen:buttonpressed(key)
+function factionscreen:buttonpressed(key,scancode,isRepeat,controllerType)
   local key_south = input:get_button_name("south")
   local key_east = input:get_button_name("east")
 
-  key = input:parse_key(key)
+  key,scancode,isRepeat = input:parse_key(key,scancode,isRepeat,controllerType)
   if key == "escape" then
     self:switchBack()
   elseif (key == "enter" or key == "wait") then

@@ -298,12 +298,12 @@ function settings:draw()
   love.graphics.pop()
 end --end draw
 
-function settings:buttonpressed(key,scancode,isRepeat,noParse)
+function settings:buttonpressed(key,scancode,isRepeat,controllerType)
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
   local uiScale = (prefs['uiScale'] or 1)
   width,height = round(width/uiScale),round(height/uiScale)
   if (action == "setKeys") then
-    local possibleParse = input:parse_key(key)
+    local possiblePars,scancode,isRepeat = input:parse_key(key,scancode,isRepeat,controllerType)
     if possibleParse ~= "escape" then
       for k, val in pairs(keybindings) do
         if val == key or val[1] == key or val[2] == key then
@@ -327,7 +327,7 @@ function settings:buttonpressed(key,scancode,isRepeat,noParse)
       action = "moving"
     end -- end check that makes sure it's not a reserved key
   else -- end setting keys
-    if not noParse then key = input:parse_key(key) end
+    key,scancode,isRepeat = input:parse_key(key,scancode,isRepeat,controllerType)
     if (key == "escape") then
       self:switchBack()
     elseif (key == "north") then
@@ -476,9 +476,9 @@ function settings:mousepressed(x,y,button)
     self.replaceWhich = nil
     self.replaceSetting = nil
     action = "moving"
-    self:buttonpressed("enter",true)
+    self:buttonpressed(input:get_button_name('enter'))
   elseif x > width/4+16 and x < (width/4)*3 then
-    self:buttonpressed("enter",true)
+    self:buttonpressed(input:get_button_name('enter'))
   end
 end
 

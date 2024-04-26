@@ -71,3 +71,13 @@ function Condition:cure(possessor)
 		return self:cured(possessor)
 	end
 end
+
+---Checks if an condition is of a type
+--@param tag String. The tag to check for
+--@return Boolean. Whether or not it has the tag.
+function Condition:is_type(ctype)
+  if self.types and in_table(ctype,self.types) then
+    return true
+  end
+  return false
+end

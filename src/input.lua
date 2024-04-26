@@ -10,14 +10,13 @@ end
 --@param key String. Character of the pressed key
 --@param scancode String. The scancode representing the pressed key
 --@param isrepeat Boolean. Whether this keypress event is a repeat. The delay between key repeats depends on the user's system settings
-function input:parse_key(key,scancode,isrepeat)
+--@param controllerType String. The type of controller. Optional, defeaults to keyboard
+function input:parse_key(key,scancode,isrepeat,controllerType)
+  if not controllerType then controllerType = "keyboard" end
   for command, commandData in pairs(keybindings) do
-    if not commandData.gamepad and not commandData.keyboard then goto skip end
+    if not commandData[controllerType] then goto skip end
 
-    if commandData.gamepad and commandData.gamepad[1] == key then 
-      return command, scancode, isrepeat
-    end
-    if commandData.keyboard and commandData.keyboard[1] == key or commandData.keyboard[2] == key then 
+    if commandData[controllerType][1] == key or commandData[controllerType][2] == key then 
       return command, scancode, isrepeat
     end
 

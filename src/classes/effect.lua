@@ -20,18 +20,18 @@ function Effect:init(effect_type, ...)
       self[key] = data[key]
     end
 	end
+  self.id = effect_type
+  self.baseType='effect'
   if (data.new ~= nil) then 
 		local n = data.new(self,unpack({...}))
 	end
-	self.id = effect_type
-  self.baseType='effect'
   if self.animated and self.spritesheet then
     self.image_frame=1
   end
   if self.animation_time then
     self.animation_time = tweak(self.animation_time)
   end
-  if self.image_varieties then
+  if self.image_varieties and not self.image_name then
     self.image_variety = random(1,self.image_varieties)
     self.image_name = (self.image_base or self.id) .. self.image_variety
   end
@@ -133,7 +133,7 @@ end
 ---Refresh the image name of an effect.
 --Used for effects that look different if they're next to each other, when its surrounding has changed.
 function Effect:refresh_image_name()
-  if effects[self.id].refresh_image_name then return effects[self.id].refresh_image_name(self) end
+  if effects[self.id] and effects[self.id].refresh_image_name then return effects[self.id].refresh_image_name(self) end
 	return false
 end
 

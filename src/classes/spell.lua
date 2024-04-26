@@ -28,7 +28,7 @@ function Spell:init(spellID)
   self.spellPoints = 0
   self.uses = 0
   if self.max_charges then
-    self.charges = self.max_charges
+    self.charges = self:get_stat('max_charges')
   end
 	return self
 end
@@ -56,7 +56,7 @@ end
 function Spell:get_info()
   local statText = ""
   if self.charges then
-    statText = statText .. "Charges: " .. self.charges .. (self.max_charges and "/" .. self.max_charges or "") .. "\n"
+    statText = statText .. "Charges: " .. self.charges .. (self.max_charges and "/" .. self:get_stat('max_charges') or "") .. "\n"
   end
   if self.mp_cost then
     statText = statText .. "MP Cost: " .. self.mp_cost .. "\n"
@@ -282,8 +282,10 @@ function Spell:use(target, caster, ignoreCooldowns, ignoreCost)
         caster.active_spells[self.id] = {caster=caster,target=target,ignoreCost=ignoreCost,ignoreCooldowns=ignoreCooldowns,turns=0,spell=self}
         self.active = true
       end
+      caster:callbacks('after_cast',target,self)
+      caster:decrease_all_conditions('spell')
     end --end false/nil if
-		return (result == nil and true or result) -- this looks weird, but it's so that spells return false by default if they don't return anything
+		return (result == nil and true or result) -- this looks weird, but it's so that spells return true by default if they don't return anything
 	end
 end
 
@@ -297,8 +299,8 @@ function Spell:can_use(target, caster, ignoreCooldowns, ignoreCost)
   local req, reqtext = self:requires(caster)
   if req == false then
     return false,(reqtext or "You can't use that ability right now.")
-	elseif (not ignoreCooldowns and caster.cooldowns[self.name]) then
-		return false,"You can't use that ability again for another " .. caster.cooldowns[self.name] .. " turns."
+	elseif (not ignoreCooldowns and caster.cooldowns[self]) then
+		return false,"You can't use that ability again for another " .. caster.cooldowns[self] .. " turns."
   elseif not ignoreCost and caster.mp and self.mp_cost and self.mp_cost > caster.mp then
 		return false,"You don't have enough magic points to use that ability."
   elseif not ignoreCost and self.charges and self.charges < 1 then
@@ -480,16 +482,45 @@ end
 function Spell:get_stat(stat,possessor)
   possessor = possessor or self.possessor
   local value = false
+  local stat_type = nil
   if self[stat] then 
     value = self[stat]
   elseif self.stats and self.stats[stat] then
     value = self.stats[stat].value
+    stat_type = self.stats[stat].stat_type
   else
     return false
   end
   
   if type(value) ~= "number" then
     return value
+  end
+  
+  --Modifiers from Creature:get_bonus()
+  if possessor and possessor.baseType == "creature" then
+    local bonus = 0
+    local perc = 0
+    if stat_type then
+      bonus = bonus + possessor:get_bonus('spell_' .. stat_type)
+      perc = perc + possessor:get_bonus('spell_' .. stat_type .. '_percent')
+      if self.types then
+        for _,stype in pairs(self.types) do
+          bonus = bonus + possessor:get_bonus(stype .. '_spell_' .. stat_type)
+          perc = perc + possessor:get_bonus(stype .. '_spell_' .. stat_type .. '_percent')
+        end
+      end
+    end
+    if stat ~= stat_type then --this is done because frequently the name of the stat is "damage" and the stat type is also "damage" and we don't want to apply the bonus twice
+      bonus = bonus + possessor:get_bonus('spell_' .. stat)
+      perc = perc + possessor:get_bonus('spell_' .. stat .. '_percent')
+    end
+    value = value + math.ceil(value*(perc/100))
+    value = value + bonus
+    if possessor ~= player and self.stat_bonuses_for_AI then
+      for stat,amt in pairs(self.stat_bonuses_for_AI) do
+        value = value+amt
+      end
+    end
   end
   
   --Modifiers from having other abilities:
@@ -511,11 +542,6 @@ function Spell:get_stat(stat,possessor)
       end
     end --end spell for
   end --end spell bonuses
-  
-  --Modifiers from get_bonus()
-  if self.stats[stat] and self.stats[stat].stat_type and possessor and possessor.baseType == "creature" then
-    value = value + possessor:get_bonus('spell_' .. self.stats[stat].stat_type)
-  end
   
   --Modifiers from creature stats
   local statBonuses = self.stat_bonuses_from_creature_stats and self.stat_bonuses_from_creature_stats[stat]
@@ -663,7 +689,7 @@ function Spell:can_upgrade(upgrade)
         return false,returnText
       end
       if cost.item_cost then
-        for _,item_details in ipairs(cost.item_cost) do
+        for _,item_details in pairs(cost.item_cost) do
           local amount = item_details.amount or 1
           local sortByVal = item_details.sortBy
           local _,_,has_amt = self.possessor:has_item(item_details.item,sortByVal)
@@ -770,8 +796,10 @@ function Spell:apply_upgrade(upgradeID,force)
             point_cost = 0
           end
         end
-        local upgrade_stat = cost.upgrade_stat or "spellPoints"
-        self.possessor.spellPoints = self.possessor[upgrade_stat] - point_cost
+        if point_cost > 0 then
+          local upgrade_stat = cost.upgrade_stat or "spellPoints"
+          self.possessor.spellPoints = self.possessor[upgrade_stat] - point_cost
+        end
         if cost.item_cost then
           for _,item_details in pairs(cost.item_cost) do
             local amount = item_details.amount or 1

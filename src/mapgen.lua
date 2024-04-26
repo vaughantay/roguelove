@@ -270,7 +270,7 @@ function mapgen:make_artifact(item,tags)
     local taggedPossibles = {}
     for _,eid in ipairs(possibles) do
       local ench = enchantments[eid]
-      if ench.tags then
+      if not ench.neverArtifact and ench.tags then
         for _,tag in ipairs(tags) do
           if in_table(tag,ench.tags) then
             taggedPossibles[#taggedPossibles+1] = eid
@@ -302,11 +302,13 @@ function mapgen:make_artifact(item,tags)
   local tries = 0
   local applied = false
   while enchantment_count < additions and tries < 10 do
+    tries = tries + 1
     local eid = get_random_element(possibles)
-    if eid and (not item.enchantments or not item.enchantments[eid]) and item:qualifies_for_enchantment(eid,true) then
+    if eid and (not item.enchantments or not item.enchantments[eid]) and item:qualifies_for_enchantment(eid,true) and not enchantments[eid].neverArtifact then
       item:apply_enchantment(eid,-1)
       applied = true
       enchantment_count = enchantment_count+1
+      tries = 0
     end
   end
   if not item.properName then
@@ -317,8 +319,9 @@ end
 
 ---Creates an instance of a branch, to be attached to a given playthrough
 --@param branchID Text. The ID of the branch
+--@param args Anything. Arguments to pass to the branch
 --@return Table. The information for the new branch
-function mapgen:generate_branch(branchID)
+function mapgen:generate_branch(branchID,args)
   local newBranch = {}
   local data = dungeonBranches[branchID]
   for key, val in pairs(data) do
@@ -330,7 +333,7 @@ function mapgen:generate_branch(branchID)
     newBranch.mapTypes = copy_table(data.mapTypes)
   end
   if data.new then
-    data.new(newBranch)
+    data.new(newBranch,args)
   end
   if data.generateName then
     newBranch.name = data.generateName(newBranch)
@@ -788,7 +791,7 @@ function mapgen:is_safe_to_block(map,startX,startY,safeType)
   local cardinalWalls,cornerWalls = {},{}
   local n,s,e,w = false,false,false,false
   local walls = false
-  if map:tile_has_feature(startX,startY,'exit') or not map:isClear(startX,startY) then return false end
+  if map:tile_has_feature(startX,startY,'exit') or not map:isClear(startX,startY) or map.tile_info[startX][startY].noBlock then return false end
 
   for x=minX,maxX,1 do
     for y=minY,maxY,1 do
@@ -1327,7 +1330,7 @@ function mapgen:populate_items_in_room(room,map,decID)
   return newItems
 end
 
-function mapgen:get_content_list_from_tags(content_type,tags,forbiddenTags)
+function mapgen:get_content_list_from_tags(content_type,tags,forbiddenTags,requiredTags)
   local content_list
   local contents = {}
   if content_type == "creature" then
@@ -1342,6 +1345,12 @@ function mapgen:get_content_list_from_tags(content_type,tags,forbiddenTags)
     content_list = possibleStores
   elseif content_type == "faction" then
     content_list = possibleFactions
+  elseif content_type == "roomDecorator" then
+    content_list = roomDecorators
+  elseif content_type == "roomShape" then
+    content_list = roomShapes
+  elseif content_type == "recipe" then
+    content_list = possibleRecipes
   end
   if not content_list or not tags or #tags < 1 then
     return contents
@@ -1360,7 +1369,25 @@ function mapgen:get_content_list_from_tags(content_type,tags,forbiddenTags)
           end
         end --end tag for
       end --end forbiddentags if
-      if not done then
+      if not done and requiredTags then
+        for _, tag in ipairs(requiredTags) do
+          if not content.tags or not in_table(tag,content.tags) then
+            done = true
+            allowed = false
+            break
+          end
+        end
+      end
+      if not done and content.requiredMapTags then
+        for _,tag in ipairs(content.requiredMapTags) do
+          if not in_table(tag,tags) then
+            done = true
+            allowed = false
+            break
+          end
+        end
+      end
+      if not done and content.tags then
         for _,tag in ipairs(tags) do
           if content.tags and in_table(tag,content.tags) then
             done = true

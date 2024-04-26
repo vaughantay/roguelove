@@ -116,8 +116,8 @@ function love.update(dt)
   if output.popup then output.popup:update(dt) end
 end
 
-function love.keypressed(key, unicode)
-  Gamestate.buttonpressed(key,unicode)
+function love.keypressed(key, scancode, isrepeat)
+  Gamestate.buttonpressed(key, scancode, isrepeat, 'keyboard')
 end
 
 function love.textinput(text)
@@ -174,7 +174,7 @@ function love.gamepadaxis(joystick,axis,value)
 end
 
 function love.gamepadpressed(joystick,button)
-  Gamestate.buttonpressed(button)
+  Gamestate.buttonpressed(button,nil,nil,'gamepad')
 end
 
 function love.joystickadded()

@@ -61,8 +61,8 @@ function menu:draw()
   love.graphics.pop()
 end
 
-function menu:buttonpressed(key,scancode,isRepeat,noParse)
-  if not noParse then key = input:parse_key(key) end
+function menu:buttonpressed(key,scancode,isRepeat,controllerType)
+  key,scancode,isRepeat = input:parse_key(key,scancode,isRepeat,controllerType)
 	if key == "escape" then
     self.cursorY = 0
 	elseif key == "north" then
@@ -119,7 +119,7 @@ function menu:mousepressed(x,y,button)
   local startX = round(love.graphics.getWidth()/uiScale/2-256+80)
   x,y = x/uiScale,y/uiScale
 	if x > startX and x < startX+512-161 then
-    menu:buttonpressed('return',true)
+    menu:buttonpressed(input:get_button_name('enter'))
   end
   if gamesettings.url then
     local URLwidth = fonts.textFont:getWidth(gamesettings.url)

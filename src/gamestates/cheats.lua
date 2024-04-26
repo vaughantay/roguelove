@@ -125,8 +125,8 @@ function cheats:update(dt)
 	end
 end
 
-function cheats:buttonpressed(key,scancode,isRepeat,noParse)
-  if not noParse then key = input:parse_key(key) end
+function cheats:buttonpressed(key,scancode,isRepeat,controllerType)
+  key,scancode,isRepeat = input:parse_key(key,scancode,isRepeat,controllerType)
   if (key == "escape") then
     self:switchBack()
   elseif (key == "north") then
@@ -168,7 +168,7 @@ function cheats:mousepressed(x,y,button)
   if button == 2 or (x/uiScale > self.closebutton.minX and x/uiScale < self.closebutton.maxX and y/uiScale > self.closebutton.minY and y/uiScale < self.closebutton.maxY) or x < math.ceil(width/4) or x > math.ceil(width/4+width/2) then 
     self:switchBack()
   else
-    self:buttonpressed("enter",true)
+    self:buttonpressed(input:get_button_name('enter'))
   end
 end
 

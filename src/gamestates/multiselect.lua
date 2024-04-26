@@ -162,9 +162,9 @@ function multiselect:draw()
   love.graphics.pop()
 end
 
-function multiselect:buttonpressed(key)
+function multiselect:buttonpressed(key,scancode,isRepeat,controllerType)
   local typed = key
-  key = input:parse_key(key)
+  key,scancode,isRepeat = input:parse_key(key,scancode,isRepeat,controllerType)
 	if (key == "escape") then
 		self:switchBack()
 	elseif (key == "enter") or key == "wait" then

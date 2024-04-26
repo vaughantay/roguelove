@@ -503,10 +503,10 @@ function inventory:draw()
   love.graphics.pop()
 end
 
-function inventory:buttonpressed(key)
+function inventory:buttonpressed(key,scancode,isRepeat,controllerType)
   local uiScale = prefs['uiScale']
   local letter = key
-  key = input:parse_key(key)
+  key,scancode,isRepeat = input:parse_key(key,scancode,isRepeat,controllerType)
   local padding = self.padding
 	if (key == "escape") then
     if self.inventoryMenu then
@@ -862,7 +862,7 @@ function inventory:dropItem(item)
       self.container:give_item(item)
     end
     self.text = (self.container and "You put " .. item:get_name() .. " in " .. self.container:get_name(true) ..  "." or "You drop " .. item:get_name() .. "." )
-    advance_turn()
+    --advance_turn() --Uncomment this if you want dropping to require a turn
     self:sort()
   end
 end

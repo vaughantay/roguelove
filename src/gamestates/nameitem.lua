@@ -104,14 +104,14 @@ function nameitem:textinput(text)
   end
 end
 
-function nameitem:buttonpressed(key)
+function nameitem:buttonpressed(key,scancode,isRepeat,controllerType)
   --Text entry
   if key == "backspace" and self.cursorY == 1 then
     self.name = string.sub(self.name,1,#self.name-1)
     return
   end
   --Parse keys to look at commands:
-  key = input:parse_key(key)
+  key,scancode,isRepeat = input:parse_key(key,scancode,isRepeat,controllerType)
   if key == "escape" then
     self:switchBack()
   elseif key == "south" then

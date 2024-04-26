@@ -66,46 +66,8 @@ function monsterpedia:draw()
   --Draw the actual Monsterpedia:
   local tileSize = output:get_tile_size()
 	love.graphics.setFont(fonts.textFont)
-  if (prefs['noImages'] ~= true) then
-    --Borders for select:
-    for x=32,388,32 do
-      love.graphics.draw(images.borders.borderImg,images.borders.u,x,0)
-      love.graphics.draw(images.borders.borderImg,images.borders.d,x,height-32)
-    end
-    for y=32,height-36,32 do
-      love.graphics.draw(images.borders.borderImg,images.borders.l,0,y)
-      love.graphics.draw(images.borders.borderImg,images.borders.r,400,y)
-    end
-    love.graphics.draw(images.borders.borderImg,images.borders.ul,0,0)
-    love.graphics.draw(images.borders.borderImg,images.borders.ur,400,0)
-    love.graphics.draw(images.borders.borderImg,images.borders.ll,0,height-32)
-    love.graphics.draw(images.borders.borderImg,images.borders.lr,400,height-32)
-    --Borders for info panel:
-    for x=452,width-36,32 do
-      love.graphics.draw(images.borders.borderImg,images.borders.u,x,0)
-      love.graphics.draw(images.borders.borderImg,images.borders.d,x,height-32)
-    end
-    for y=32,height-36,32 do
-      love.graphics.draw(images.borders.borderImg,images.borders.l,432,y)
-      love.graphics.draw(images.borders.borderImg,images.borders.r,width-32,y)
-    end
-    love.graphics.draw(images.borders.borderImg,images.borders.ul,432,0)
-    love.graphics.draw(images.borders.borderImg,images.borders.ur,width-32,0)
-    love.graphics.draw(images.borders.borderImg,images.borders.ll,432,height-32)
-    love.graphics.draw(images.borders.borderImg,images.borders.lr,width-32,height-32)
-    --Draw inner coloring:
-    setColor(44,44,44,225)
-    love.graphics.rectangle("fill",18,18,396,height-36)
-    love.graphics.rectangle("fill",450,18,width-468,height-36)
-    setColor(255,255,255,255)
-  else --no images
-    setColor(20,20,20,225)
-    love.graphics.rectangle("fill",18,18,396,height-36)
-    love.graphics.rectangle("fill",450,18,width-468,height-36)
-    setColor(255,255,255,255)
-    love.graphics.rectangle("line",14,14,400,height-30)
-    love.graphics.rectangle("line",450,14,width-465,height-30)
-  end
+  output:draw_window(0,0,400,height-32)
+  output:draw_window(432,0,width-32,height-32)
 	love.graphics.printf("Monsterpedia",14,24,400,"center")
   
   local lineSize = math.max(tileSize,prefs['fontSize'],prefs['asciiSize'])
@@ -192,7 +154,7 @@ function monsterpedia:draw()
     text = text .. "\nSight Radius: " .. creat.perception
     if creat.stealth then text = text .. "\nStealth Modifier: " .. creat.stealth .. "%" end
     if creat.armor then text = text .. "\nDamage Absorbtion: " .. creat.armor .. "" end
-    if creat.ranged_attack then text = text .. "\nRanged Attack: " .. rangedAttacks[creat.ranged_attack].name end
+    if creat.ranged_attack and rangedAttacks[creat.ranged_attack] then text = text .. "\nRanged Attack: " .. rangedAttacks[creat.ranged_attack].name end
     --Extra stats:
     if creat.extra_stats then
       for stat_id,stat in pairs(creat.extra_stats) do
@@ -348,9 +310,9 @@ function monsterpedia:draw()
   love.graphics.pop()
 end
 
-function monsterpedia:buttonpressed(key)
+function monsterpedia:buttonpressed(key,scancode,isRepeat,controllerType)
   local lineSize = math.max(output:get_tile_size(),prefs['fontSize'],prefs['asciiSize'])
-  key = input:parse_key(key)
+  key,scancode,isRepeat = input:parse_key(key,scancode,isRepeat,controllerType)
   if (key == "north") then
     self.cursorY = self.cursorY - 1
     self.rightScroll = 0

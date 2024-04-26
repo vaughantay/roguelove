@@ -91,7 +91,7 @@ function storescreen:draw()
     if reqText then reasonText = reqText end
   end
   
-  if canEnter and (not self.store.noBuy or count(self.store.offers_services) > 0 or count(self.store.teaches_spells) > 0 or count(self.store.teaches_skills) > 0) then
+  if canEnter and (not self.store.noBuy or count(self.store.offers_services) > 0 or count((self.store.teaches_spells or {})) > 0 or count((self.store.teaches_skills or {})) > 0) then
     printY=printY+fontSize
     local padX = 8
     local buybuttonW = fonts.buttonFont:getWidth("Buying")+padding
@@ -151,7 +151,8 @@ function storescreen:draw()
     local buybuttonW = fonts.buttonFont:getWidth("Buy")+padding
     local exambuttonW = fonts.buttonFont:getWidth("Examine")+padding
     local exambuttonX = windowX+padding
-    local nameX = exambuttonX+exambuttonW+3
+    local imageX = exambuttonX+exambuttonW+3
+    local nameX = imageX+output:get_tile_size()+4
     local yPad = 8
     local buyBoxW = fonts.textFont:getWidth("1000")+8
     local buyBoxX = windowX+windowWidth-buyBoxW-padding*(self.scrollMax == 0 and 1 or 2)
@@ -221,6 +222,8 @@ function storescreen:draw()
         examineMouse = true
       end
       info.examineButton = output:button(exambuttonX,printY+4,exambuttonW,false,((examineMouse or (selected and self.cursorX == 1)) and "hover" or false),"Examine",true)
+      --Icon:
+      output.display_entity(info.item,imageX,buyTextY-8,true,true)
       --Name:
       love.graphics.printf(name,nameX,buyTextY,nameMaxLen)
       --Cost:
@@ -281,7 +284,8 @@ function storescreen:draw()
     local sellbuttonW = fonts.buttonFont:getWidth("Sell")+padding
     local exambuttonW = fonts.buttonFont:getWidth("Examine")+padding
     local exambuttonX = windowX+padding
-    local nameX = exambuttonX+exambuttonW+3
+    local imageX = exambuttonX+exambuttonW+3
+    local nameX = imageX+output:get_tile_size()+4
     local yPad = 8
     local sellBoxW = fonts.textFont:getWidth("1000")+8
     local sellBoxX = windowX+windowWidth-sellBoxW-padding*(self.scrollMax == 0 and 1 or 2)
@@ -335,6 +339,8 @@ function storescreen:draw()
         examineMouse = true
       end
       info.examineButton = output:button(exambuttonX,printY+4,exambuttonW,false,((examineMouse or (selected and self.cursorX == 1)) and "hover" or false),"Examine",true)
+      --Icon:
+      output.display_entity(info.item,imageX,sellTextY-8,true,true)
       --Name:
       love.graphics.printf(name,nameX,sellTextY,nameMaxLen)
       --Cost:
@@ -584,14 +590,14 @@ function storescreen:draw()
   love.graphics.pop()
 end
 
-function storescreen:buttonpressed(key)
+function storescreen:buttonpressed(key,scancode,isRepeat,controllerType)
   local key_south = input:get_button_name("south")
   local key_east = input:get_button_name("east")
 
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
   local uiScale = (prefs['uiScale'] or 1)
   local typed = key
-  key = input:parse_key(key)
+  key,scancode,isRepeat = input:parse_key(key,scancode,isRepeat,controllerType)
   if key == "escape" then
     self:switchBack()
   elseif (key == "enter" or key == "wait") then

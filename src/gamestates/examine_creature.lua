@@ -33,7 +33,7 @@ function examine_creature:draw()
   if gamesettings.leveling then topText = topText .. "Level " .. creat.level .. " " end
   topText = topText .. creat.name
   local types = ""
-  for _,ctype in pairs((creat.types or {})) do
+  for _,ctype in ipairs(creat:get_types(true)) do
     if types ~= "" then types = types .. ", " .. (creatureTypes[ctype] and creatureTypes[ctype].name or ucfirst(ctype))
     else types = "\n" .. ucfirst(ctype) end
   end
@@ -217,8 +217,8 @@ function examine_creature:draw()
   love.graphics.pop()
 end
 
-function examine_creature:buttonpressed(key)
-  key = input:parse_key(key)
+function examine_creature:buttonpressed(key,scancode,isRepeat,controllerType)
+  key,scancode,isRepeat = input:parse_key(key,scancode,isRepeat,controllerType)
   if key == "north" then
     self:scrollUp()
   elseif key == "south" then
