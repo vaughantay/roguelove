@@ -49,7 +49,7 @@ function examine_item:draw()
   local _, dlines = fonts.textFont:getWrap(desc,textW)
   local descH = #dlines*(fontSize+2)
   local _, ilines = fonts.textFont:getWrap(info,textW)
-  local infoH = #ilines*fontSize+fontSize*(#ilines > 0 and 2 or 0)
+  local infoH = #ilines*fontSize+fontSize
   local printY = self.y+padding
   love.graphics.printf(name,self.x+padding,printY,self.width,"center")
   printY=printY+nameH
@@ -300,6 +300,29 @@ function examine_item:draw()
   printY=printY+descH
   love.graphics.printf(info,self.x+padding,printY,self.width-scrollPadding,"center")
   printY=printY+infoH
+  if gamesettings.examine_item_recipes then
+    local recipes = item:is_ingredient_in()
+    local recipeCount = count(recipes)
+    if recipeCount > 0 then
+      local recipeText = "Ingredient in known recipes: "
+      for i,recInfo in pairs(recipes) do
+        local recipe = possibleRecipes[recInfo.id]
+        if recipe then
+          if i ~= 1 then
+            recipeText = recipeText .. ", "
+            if i == recipeCount then
+              recipeText = recipeText .. "and "
+            end
+          end
+          recipeText = recipeText .. recInfo.name
+        end
+      end
+      local _, rlines = fonts.textFont:getWrap(recipeText,textW)
+      local recipeH = (#ilines+1)*fontSize
+      love.graphics.printf(recipeText,self.x+padding,printY,self.width-scrollPadding,"center")
+      printY=printY+recipeH
+    end
+  end --end if examine_item_recipes
   love.graphics.setStencilTest()
   love.graphics.pop()
   if printY > self.y+self.height then
@@ -339,6 +362,28 @@ function examine_item:calculate_height()
   local infoH = #ilines*fontSize+fontSize*(#ilines > 0 and 2 or 0)
   local printY = padding
   printY=printY+nameH
+  if gamesettings.examine_item_recipes then
+    local recipes = item:is_ingredient_in()
+    local recipeCount = count(recipes)
+    if recipeCount > 0 then
+      local recipeText = "Ingredient in known recipes: "
+      for i,recInfo in pairs(recipes) do
+        local recipe = possibleRecipes[recInfo.id]
+        if recipe then
+          if i ~= 1 then
+            recipeText = recipeText .. ", "
+            if i == recipeCount then
+              recipeText = recipeText .. "and "
+            end
+          end
+          recipeText = recipeText .. recInfo.name
+        end
+      end
+      local _, rlines = fonts.textFont:getWrap(recipeText,textW)
+      local recipeH = (#ilines+1)*fontSize
+      printY=printY+recipeH
+    end
+  end --end if examine_item_recipes
   if level and gamesettings.display_item_levels then
     local ltext = "Level " .. level
     local _, llines = fonts.textFont:getWrap(ltext,textW)

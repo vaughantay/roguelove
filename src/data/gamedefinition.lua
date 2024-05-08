@@ -74,6 +74,7 @@ gamesettings = {
   money_suffix = nil,
   money_name = "coins",
   money_name_single = "coin",
+  examine_item_recipes=true, --If true, known recipes that use this item as an ingredient will list when examining the item
 
   --Spells:
   default_spell_slots=0, --if not defined, defaults to infinite. See Creature:get_spell_slots() to customize formula

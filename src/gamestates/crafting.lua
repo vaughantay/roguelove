@@ -247,7 +247,7 @@ function crafting:draw()
       for item,amount in pairs(recipe.results) do
         if count > 1 then name = name .. ", " end
         if amount > 1 then
-          name = name .. amount .. " " .. ucfirst(possibleItems.pluralName or "x " .. ucfirst(possibleItems[item].name))
+          name = name .. amount .. " " .. ucfirst(possibleItems[item].pluralName or "x " .. ucfirst(possibleItems[item].name))
         else
           name = name .. ucfirst(possibleItems[item].name)
         end

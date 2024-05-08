@@ -1015,7 +1015,21 @@ function Item:is_ingredient_in(all)
   for _,rid in pairs(player:get_all_possible_recipes()) do
     local recipe = possibleRecipes[rid]
     if recipe.ingredients and recipe.ingredients[self.id] then
-      recipes[#recipes+1] = rid
+      local name = recipe.name
+      if not name then
+        name = ""
+        local c=1
+        for item,amount in pairs(recipe.results) do
+          if c > 1 then name = name .. ", " end
+          if amount > 1 then
+            name = name .. amount .. " " .. ucfirst(possibleItems[item].pluralName or "x " .. ucfirst(possibleItems[item].name))
+          else
+            name = name .. ucfirst(possibleItems[item].name)
+          end
+          c = c + 1
+        end
+      end
+      recipes[#recipes+1] = {id=rid,name=name}
       done = true
     end
     if not done then
@@ -1036,7 +1050,21 @@ function Item:is_ingredient_in(all)
               typeMatch = true
             end
             if typeMatch then
-              recipes[#recipes+1] = rid
+              local name = recipe.name
+              if not name then
+                name = ""
+                local c=1
+                for item,amount in pairs(recipe.results) do
+                  if c > 1 then name = name .. ", " end
+                  if amount > 1 then
+                    name = name .. amount .. " " .. ucfirst(possibleItems[item].pluralName or "x " .. ucfirst(possibleItems[item].name))
+                  else
+                    name = name .. ucfirst(possibleItems[item].name)
+                  end
+                  c = c + 1
+                end
+              end
+              recipes[#recipes+1] = {id=rid,name=name}
               done = true
             end
           end
@@ -1045,10 +1073,8 @@ function Item:is_ingredient_in(all)
     end
     --TODO: tool check
   end
+  if count(recipes) > 0 then
+    sort_table(recipes,'name')
+  end
   return recipes
-end
-
----Determines what stores and factions will buy this item
-function Item:can_sell_to()
-  
 end
