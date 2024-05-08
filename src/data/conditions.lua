@@ -1076,7 +1076,7 @@ drowning = Condition({
       if possessor:has_condition('onfire') then possessor:cure_condition('onfire') end
       if possessor:has_condition('fireaura') then possessor:cure_condition('fireaura') end
       if random(1,5) == 1 then
-        local dmg = possessor:damage(tweak(5),,possessor.conditions.drowning.applier)
+        local dmg = possessor:damage(tweak(5),possessor.conditions.drowning.applier)
         if player:can_see_tile(possessor.x,possessor.y) then output:out(possessor:get_name() .. " thrashes around fruitlessly, inhaling water for " .. dmg .. " damage.") end
         local moveX,moveY = random(possessor.x-1,possessor.x+1),random(possessor.y-1,possessor.y+1)
         local tries = 0
