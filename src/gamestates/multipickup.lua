@@ -143,7 +143,7 @@ function multipickup:draw()
     local info = item:get_info(true)
     local oldFont = love.graphics.getFont()
     love.graphics.setFont(fonts.descFont)
-    local descText = desc .. (info ~= "" and "\n\n" .. info or "")
+    local descText = desc .. (info ~= "" and info or "")
     x,y = round((x+boxW/2)),self.itemLines[self.cursorY].minY+round((self.itemLines[self.cursorY].maxY-self.itemLines[self.cursorY].minY))/2
     y = y-self.scrollY
     output:description_box(ucfirst(descText),x,y)

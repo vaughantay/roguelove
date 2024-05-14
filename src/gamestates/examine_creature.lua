@@ -33,7 +33,7 @@ function examine_creature:draw()
   if gamesettings.leveling then topText = topText .. "Level " .. creat.level .. " " end
   topText = topText .. creat.name
   local types = ""
-  for _,ctype in ipairs(creat:get_types(true)) do
+  for _,ctype in ipairs(creat:get_types()) do
     if types ~= "" then types = types .. ", " .. (creatureTypes[ctype] and creatureTypes[ctype].name or ucfirst(ctype))
     else types = "\n" .. ucfirst(ctype) end
   end
@@ -70,19 +70,21 @@ function examine_creature:draw()
     end
   end
   --Weaknesses and resistances
-  if creat.weaknesses then
+  local weaknesses = creat:get_all_weaknesses()
+  local resistances= creat:get_all_resistances()
+  if weaknesses then
     local weakstring = "\nWeaknesses: "
     local first = true
-    for dtype,amt in pairs(creat.weaknesses) do
+    for dtype,amt in pairs(weaknesses) do
       weakstring = weakstring .. (not first and ", " or "") .. ucfirst(dtype) .. " " .. amt .. "%"
       first = false
     end
     text = text .. weakstring
   end --end weaknesses
-  if creat.resistances then
+  if resistances then
     local resiststring = "\nResistances: "
     local first = true
-    for dtype,amt in pairs(creat.resistances) do
+    for dtype,amt in pairs(resistances) do
       resiststring = resiststring .. (not first and ", " or "") .. ucfirst(dtype) .. " " .. amt .. "%"
       first = false
     end

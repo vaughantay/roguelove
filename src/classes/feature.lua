@@ -7,7 +7,7 @@ Feature = Class{}
 --@param x The x-coordinate (optional, will be set when it is added to the map)
 --@param y The y-coordinate (optional, will be set when it is added to the map)
 --@return The feature itself.
-function Feature:init(feature_type,info,x,y)
+function Feature:init(feature_type,info)
   local data = possibleFeatures[feature_type]
   if not data then
     output:out("Error: Tried to create non-existent feature " .. feature_type)
@@ -22,10 +22,13 @@ function Feature:init(feature_type,info,x,y)
       self[key] = data[key]
     end
 	end
-  if x and y then self.x, self.y = x,y end
   if self.container then self.inventory = {} end
 	if (possibleFeatures[feature_type].new ~= nil) then 
-		possibleFeatures[feature_type].new(self,(info or nil),x,y)
+    local status,r = pcall(possibleFeatures[feature_type].new,self,info)
+    if status == false then
+      output:out("Error in feature " .. self.name .. " new code: " .. r)
+      print("Error in feature " .. self.name .. " new code: " .. r)
+    end
 	end
   if self.max_hp and not self.hp then
     self.hp = self.max_hp
@@ -74,7 +77,14 @@ function Feature:can_enter(enterer,fromX,fromY)
   if not fromX or not fromY then
     fromX,fromY = self.x,self.y
   end
-  if possibleFeatures[self.id].can_enter then return possibleFeatures[self.id].can_enter(self,enterer,fromX,fromY) end
+  if possibleFeatures[self.id].can_enter then
+    local status,r = pcall(possibleFeatures[self.id].can_enter,self,enterer,fromX,fromY)
+    if status == false then
+      output:out("Error in feature " .. self.name .. " enter code: " .. r)
+      print("Error in feature " .. self.name .. " enter code: " .. r)
+    end
+    return r
+  end
 	return true
 end
 
@@ -87,7 +97,14 @@ function Feature:enter(enterer,fromX,fromY)
   if not fromX or not fromY then
     fromX,fromY = self.x,self.y
   end
-  if possibleFeatures[self.id].enter then return possibleFeatures[self.id].enter(self,enterer,fromX,fromY) end
+  if possibleFeatures[self.id].enter then
+    local status,r = pcall(possibleFeatures[self.id].enter,self,enterer,fromX,fromY)
+    if status == false then
+      output:out("Error in feature " .. self.name .. " enter code: " .. r)
+      print("Error in feature " .. self.name .. " enter code: " .. r)
+    end
+    return r
+  end
 	return true
 end
 
@@ -96,7 +113,14 @@ end
 --@return Boolean. Whether or not the push went through.
 function Feature:push(pusher)
   if self.pushable == false then return false end
-  if possibleFeatures[self.id].push then return possibleFeatures[self.id].push(self,pusher) end
+  if possibleFeatures[self.id].push then
+    local status,r = pcall(possibleFeatures[self.id].push,self,pusher)
+    if status == false then
+      output:out("Error in feature " .. self.name .. " push code: " .. r)
+      print("Error in feature " .. self.name .. " push code: " .. r)
+    end
+    return r
+  end
   local xMod,yMod = get_unit_vector(pusher.x,pusher.y,self.x,self.y)
   if currMap:isClear(self.x+xMod,self.y+yMod) then
     self:moveTo(self.x+xMod,self.y+yMod)
@@ -139,7 +163,14 @@ function Feature:moveTo(x,y,noTween)
   currMap.feature_cache[self.x .. ',' .. self.y] = nil
   self.x,self.y=x,y
   currMap.contents[x][y][self] = self
-  if possibleFeatures[self.id].moves then return possibleFeatures[self.id].moves(self,x,y) end
+  if possibleFeatures[self.id].moves then
+    local status,r = pcall(possibleFeatures[self.id].moves,self,x,y)
+    if status == false then
+      output:out("Error in feature " .. self.name .. " moves code: " .. r)
+      print("Error in feature " .. self.name .. " moves code: " .. r)
+    end
+    return r
+  end
 	return true
 end
 
@@ -151,7 +182,11 @@ end
 --@return Number. The final damage that was done.
 function Feature:damage(amt,source,damage_type,force)
   if not force and possibleFeatures[self.id].damage then --has custom damaged code?
-    local ret = possibleFeatures[self.id].damage(self,amt,source,damage_type)
+    local status,ret = pcall(possibleFeatures[self.id].damage,self,amt,source,damage_type)
+    if status == false then
+      output:out("Error in feature " .. self.name .. " damage code: " .. ret)
+      print("Error in feature " .. self.name .. " damage code: " .. ret)
+    end
     if ret == false then
       return false
     elseif type(ret) == "number" then
@@ -189,7 +224,11 @@ end
 function Feature:destroy(source,damage_type)
   local ret = true
   if possibleFeatures[self.id].destroy then --has custom destroyed code
-    ret = possibleFeatures[self.id].destroy(self,source,damage_type)
+    local status,ret = pcall(possibleFeatures[self.id].destroy,self,source,damage_type)
+    if status == false then
+      output:out("Error in feature " .. self.name .. " destroy code: " .. ret)
+      print("Error in feature " .. self.name .. " destroy code: " .. ret)
+    end
   end
   if ret ~= false then
     if self.destroy_feature and not currMap:tile_has_tag(self.x,self.y,'absorbs') then
@@ -228,7 +267,14 @@ end
 --Used for features that look different if they're next to each other, like water, when its surrounding has changed.
 --@return Boolean. Whether the image name was refreshed or not
 function Feature:refresh_image_name(map)
-  if possibleFeatures[self.id].refresh_image_name then return possibleFeatures[self.id].refresh_image_name(self,map) end
+  if possibleFeatures[self.id].refresh_image_name then
+    local status,r = pcall(possibleFeatures[self.id].refresh_image_name,self,map)
+    if status == false then
+      output:out("Error in feature " .. self.name .. " refresh image code: " .. r)
+      print("Error in feature " .. self.name .. " refresh image code: " .. r)
+    end
+    return r
+  end
 	return false
 end
 
@@ -246,8 +292,15 @@ end
 --@param skip_basic Boolean. Whether to skip the combust() callback and just go ahead and light the fire. (optional)
 --@param source Entity. The cause of the combustion
 function Feature:combust(skip_basic,source)
-  if not skip_basic and possibleFeatures[self.id].combust then return possibleFeatures[self.id].combust(self) end
-  currMap:add_effect(Effect('fire',{creator=source,turns_remaining=(self.fireTime or 10)}),self.x,self.y)
+  if not skip_basic and possibleFeatures[self.id].combust then
+    local status,r = pcall(possibleFeatures[self.id].combust,self,source)
+    if status == false then
+      output:out("Error in feature " .. self.name .. " combust code: " .. r)
+      print("Error in feature " .. self.name .. " combust code: " .. r)
+    end
+    return r
+  end
+  currMap:add_effect(Effect('fire',{creator=source,turns=(self.fireTime or 10)}),self.x,self.y)
   self:delete()
 end
 
@@ -255,7 +308,14 @@ end
 --@param activator Creature. The creature activating the feature.
 --@param actionID Text. The ID of the action (optional, only if a feature has multiple actions available).
 function Feature:action(activator,actionID)
-  if possibleFeatures[self.id].action then return possibleFeatures[self.id].action(self,activator,actionID) end
+  if possibleFeatures[self.id].action then
+    local status,r = pcall(possibleFeatures[self.id].action,self,activator,actionID)
+    if status == false then
+      output:out("Error in feature " .. self.name .. " action code: " .. r)
+      print("Error in feature " .. self.name .. " action code: " .. r)
+    end
+    return r
+  end
   return false
 end
 
@@ -263,7 +323,14 @@ end
 --@param activator Creature. The creature activating the feature.
 --@param actionID Text. The ID of the action (optional, only if a feature has multiple actions available).
 function Feature:action_requires(activator,actionID)
-  if possibleFeatures[self.id].action_requires then return possibleFeatures[self.id].action_requires(self,activator,actionID) end
+  if possibleFeatures[self.id].action_requires then
+    local status,r = pcall(possibleFeatures[self.id].action_requires,self,activator,actionID)
+    if status == false then
+      output:out("Error in feature " .. self.name .. " action requires code: " .. r)
+      print("Error in feature " .. self.name .. " action requires code: " .. r)
+    end
+    return r
+  end
   return true
 end
 
@@ -271,7 +338,14 @@ end
 --@param map Map. The map the feature is on
 function Feature:cleanup(map)
   map = map or currMap
-  if possibleFeatures[self.id].cleanup then return possibleFeatures[self.id].cleanup(self,map) end
+  if possibleFeatures[self.id].cleanup then
+    local status,r = pcall(possibleFeatures[self.id].cleanup,self,map)
+    if status == false then
+      output:out("Error in feature " .. self.name .. " cleanup code: " .. r)
+      print("Error in feature " .. self.name .. " cleanup code: " .. r)
+    end
+    return r
+  end
   if self.hp and self.max_hp then
     self.hp = self.max_hp
   end

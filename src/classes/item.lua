@@ -78,29 +78,30 @@ function Item:get_info()
   if not self:is_identified() then return "Its properties are unknown." end
 	local uses = ""
   if self.kills then
-    uses = uses .. "Kills: " .. self.kills .. "\n"
+    uses = uses .. "\nKills: " .. self.kills
   end
   if self.charges and not self.hide_charges then
-    uses = uses .. (self.charge_name and ucfirst(self.charge_name) or (self.ammo_name and "Current Ammo: " or "Charges: ")) .. (self.ammo_name and " (" .. self.ammo_name .. ")" or "") .. ": " .. self.charges .. (self.max_charges and "/" .. self.max_charges or "")
+    uses = uses .. "\n" .. (self.charge_name and ucfirst(self.charge_name) or (self.ammo_name and "Current Ammo" or "Charges")) .. (self.ammo_name and " (" .. self.ammo_name .. ")" or "") .. ": " .. self.charges .. (self.max_charges and "/" .. self.max_charges or "") .."\n"
   end
   if self.owner and self.owner.cooldowns and self.owner.cooldowns[self] then
     uses = uses .. "\nYou can't use this item again for another " .. self.owner.cooldowns[self] .. " turns."
   end
 	if self.melee_attack then
     local damage = self:get_damage(self.owner)
+    local base_damage = self:get_damage()
     local ap = self:get_armor_piercing()
     local accuracy = self:get_accuracy()
     local crit = self:get_critical_chance()
     
-    uses = uses .. "Melee Damage: " .. damage .. (self.damage_type and " (" .. self.damage_type .. ")" or "") .. ' (' .. self:get_damage() .. ' base)'
+    uses = uses .. "\nMelee Damage: " .. damage .. (self.damage_type and " (" .. self.damage_type .. ")" or "") .. (base_damage ~= damage and ' (' .. base_damage .. ' base)' or "")
     
-    if ap > 0 then uses = uses .. "Armor Piercing: " .. ap end
+    if ap > 0 then uses = uses .. "\nArmor Piercing: " .. ap end
 		if accuracy > 0 then uses = uses .. "\nAccuracy Modifier: " .. accuracy .. "%" end
 		if crit > 0 then uses = uses .. "\nCritical Hit Chance: " .. crit .. "%" end
   end
   if self.ranged_attack and rangedAttacks[self.ranged_attack] then
     local attack = rangedAttacks[self.ranged_attack]
-    uses = uses .. "\nRanged Attack: " .. attack:get_name() .. " (" .. attack:get_description() .. ")"
+    uses = uses .. "\n\nRanged Attack: " .. attack:get_name() .. " (" .. attack:get_description() .. ")"
     uses = uses .. "\nRanged Accuracy: " .. (attack.accuracy + self:get_ranged_accuracy()) .. "%"
     if attack.min_range or attack.range then uses = uses .. "\nRange: " .. (attack.min_range and attack.min_range .. " (min)" or "") .. (attack.min_range and attack.range and " - " or "") .. (attack.range and attack.range .. " (max)" or "") end
     if attack.best_distance_min or attack.best_distance_max then uses = uses .. "\nBest Range: " .. (attack.best_distance_min and attack.best_distance_min .. " (min)" or "") .. (attack.best_distance_min and attack.best_distance_max and " - " or "") .. (attack.best_distance_max and attack.best_distance_max .. " (max)" or "") end
@@ -829,12 +830,13 @@ end
 
 ---Returns the total value of the bonuses of a given type provided by enchantments.
 --@param bonusType Text. The bonus type to look at
+--@param permanentOnly Boolean. If true, only look at permanent enchantments
 --@return Number. The bonus
-function Item:get_enchantment_bonus(bonusType)
+function Item:get_enchantment_bonus(bonusType,permanentOnly)
   local total = 0
-  for e,_ in pairs(self:get_enchantments()) do
+  for e,turns in pairs(self:get_enchantments()) do
     local enchantment = enchantments[e]
-    if enchantment.bonuses and enchantment.bonuses[bonusType] then
+    if enchantment.bonuses and enchantment.bonuses[bonusType] and (turns == -1 or not permanentOnly) then
       total = total + enchantment.bonuses[bonusType]
     end --end if it has the right bonus
   end --end enchantment for
@@ -950,11 +952,18 @@ function Item:add_tags(tags)
 end
 
 ---Delete an item
-function Item:delete(map)
+--@param map Map. The map to the delete the item off of (optional, defaults to current map)
+--@param amount Number. The amount of the item to delete. If nil, delete it all
+function Item:delete(map,amount)
   if self.owner then
-    return self.owner:delete_item(self)
+    return self.owner:delete_item(self,amount)
   end
-  map = currMap
+  map = map or currMap
+  if amount and amount < self.amount then
+    self.amount = self.amount - amount
+    return true
+  end
+  --If no amount or amount > self.amount, remove it entirely
   for id,f in pairs(map.contents[self.x][self.y]) do
     if f == self or id == self then
       map.contents[self.x][self.y][id] = nil
@@ -1077,4 +1086,55 @@ function Item:is_ingredient_in(all)
     sort_table(recipes,'name')
   end
   return recipes
+end
+
+---Split off a new stack of an item
+--@param amount Number. The number in the new stack
+--@return Item. The new item stack
+function Item:splitStack(amount)
+  if self.stacks and amount > 0 and amount < self.amount then
+    local oldOwner = self.owner
+    self.owner = nil --This is done because item.owner is the creature who owns the item, and Item:clone() does a deep copy of all tables, which means it will create a copy of the owner, which owns a copy of the item, which is owned by another copy of the owner which owns another copy of the item etc etc leading to a crash
+    local newItem = self:clone()
+    self.amount = self.amount - amount
+    newItem.amount = amount
+    newItem.stacks = false --To prevent the new stack from being re-added to the old stack
+    if oldOwner then
+      self.owner,newItem.owner = oldOwner
+      oldOwner:give_item(newItem)
+    end
+    newItem.stacks = true
+    return newItem
+  end
+end
+
+---Returns a list of spells granted to the wearer of this equipment
+--@return Table. A list of the spells
+function Item:get_spells_granted()
+  return (self.spells_granted or {})
+end
+
+---Returns a list of shops and factions that will buy an item
+function Item:get_buyer_list()
+  local options = {}
+  for id,faction in pairs(currWorld.factions) do
+    if faction.contacted and not faction.hidden then
+      local cost = faction:get_buy_cost(self)
+      if cost then
+        options[#options+1] = {text=faction.name,moneyCost=cost.moneyCost,favorCost=cost.moneyCost}
+      end
+    end
+  end --end faction for
+  for id,store in pairs(currWorld.stores) do
+    if store.contacted then
+      local cost = store:get_buy_cost(self)
+      if cost then
+        options[#options+1] = {text=store.name, cost=cost}
+      end
+    end
+  end --end store for
+  if count(options) > 0 then
+    sort_table(options,'text')
+  end
+  return options
 end

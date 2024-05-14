@@ -390,39 +390,42 @@ function Faction:get_buy_list(creat)
   creat = creat or player
   local buying = {}
   for id,item in ipairs(creat.inventory) do
-    if self.buys_items and self.buys_items[item.id] then
-      buying[#buying+1]={item=item,moneyCost=self.buys_items[item.id].moneyCost,favorCost=self.buys_items[item.id].favorCost}
-    elseif self.buys_tags and item:get_value() > 0 then
-      local done = false
-      if not done then
-        if self.forbidden_buys_tags then
-          for _,tag in ipairs(self.forbidden_buys_tags) do
-            if item:has_tag(tag) then
-              done = true
-              break
-            end
-          end
-        end
-        if not done and self.required_buys_tags then
-          for _,tag in ipairs(self.required_buys_tags) do
-            if not item:has_tag(tag) then
-              done = true
-              break
-            end
-          end
-        end
-        if not done then
-          for _,tag in ipairs(self.buys_tags) do
-            if item:has_tag(tag) or item.itemType == tag then
-              buying[#buying+1]={item=item,favorCost=math.max(math.floor((item:get_value()*(self.buy_markup or 1))/(self.money_per_favor or 10)),1),moneyCost=(not self.only_buys_favor and math.max(item:get_value()*(self.buy_markup or 1),1) or nil)}
-              break
-            end
-          end
-        end
-      end
+    local price = self:get_buy_cost(item)
+    if price then
+      buying[#buying+1] = {item=item,moneyCost=price.moneyCost,favorCost=price.favorCost}
     end
   end
   return buying
+end
+
+---Determines if a store will buy an item, and returns the price if so
+--@param item Item. The item to consider
+--@return False or Number. False if the store won't buy it, the price if it will
+function Faction:get_buy_cost(item)
+  if self.buys_items and self.buys_items[item.id] then
+    return self.buys_items[item.id]
+  elseif self.buys_tags and item:get_value() > 0 then
+    if self.forbidden_buys_tags then
+      for _,tag in ipairs(self.forbidden_buys_tags) do
+        if item:has_tag(tag) then
+          return false
+        end
+      end
+    end
+    if self.required_buys_tags then
+      for _,tag in ipairs(self.required_buys_tags) do
+        if not item:has_tag(tag) then
+          return false
+        end
+      end
+    end
+    for _,tag in ipairs(self.buys_tags) do
+      if item:has_tag(tag) or item.itemType == tag then
+        return {favorCost=math.max(math.floor((item:get_value()*(self.buy_markup or 1))/(self.money_per_favor or 10)),1),moneyCost=(not self.only_buys_favor and math.max(item:get_value()*(self.buy_markup or 1),1) or nil)}
+      end
+    end
+  end
+  return false
 end
 
 ---Sell an item to the faction

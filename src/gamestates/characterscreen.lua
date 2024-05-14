@@ -91,21 +91,23 @@ function characterscreen:draw()
       end
     end
     --Weaknesses/resistances
-    if player.weaknesses then
+    local weaknesses = player:get_all_weaknesses()
+    local resistances= player:get_all_resistances()
+    if count(weaknesses) > 0 then
       printY = printY + fontSize
       local weakstring = "Weaknesses: "
       local first = true
-      for dtype,amt in pairs(player.weaknesses) do
+      for dtype,amt in pairs(weaknesses) do
         weakstring = weakstring .. (not first and ", " or "") .. ucfirst(dtype) .. " " .. amt .. "%"
         first = false
       end
       love.graphics.print(weakstring,padding,printY)
     end --end weaknesses
-    if player.resistances then
+    if count(resistances) > 0 then
       printY = printY+fontSize
       local resiststring = "Resistances: "
       local first = true
-      for dtype,amt in pairs(player.resistances) do
+      for dtype,amt in pairs(resistances) do
         resiststring = resiststring .. (not first and ", " or "") .. ucfirst(dtype) .. " " .. amt .. "%"
         first = false
       end

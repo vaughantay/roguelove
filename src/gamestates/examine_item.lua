@@ -49,7 +49,7 @@ function examine_item:draw()
   local _, dlines = fonts.textFont:getWrap(desc,textW)
   local descH = #dlines*(fontSize+2)
   local _, ilines = fonts.textFont:getWrap(info,textW)
-  local infoH = #ilines*fontSize+fontSize
+  local infoH = (info == "" and fontSize or (#ilines+2)*fontSize)
   local printY = self.y+padding
   love.graphics.printf(name,self.x+padding,printY,self.width,"center")
   printY=printY+nameH
@@ -300,6 +300,11 @@ function examine_item:draw()
   printY=printY+descH
   love.graphics.printf(info,self.x+padding,printY,self.width-scrollPadding,"center")
   printY=printY+infoH
+  local val = item:get_value()
+  if gamesettings.examine_item_value and item.value and val > 0 then
+    love.graphics.printf("Value: " .. val,self.x+padding,printY,self.width-scrollPadding,"center")
+    printY=printY+fontSize
+  end
   if gamesettings.examine_item_recipes then
     local recipes = item:is_ingredient_in()
     local recipeCount = count(recipes)
@@ -318,9 +323,29 @@ function examine_item:draw()
         end
       end
       local _, rlines = fonts.textFont:getWrap(recipeText,textW)
-      local recipeH = (#ilines+1)*fontSize
+      local recipeH = (#rlines)*fontSize
       love.graphics.printf(recipeText,self.x+padding,printY,self.width-scrollPadding,"center")
       printY=printY+recipeH
+    end
+  end --end if examine_item_recipes
+  if gamesettings.examine_item_sellable then
+    local buyers = item:get_buyer_list()
+    local buyerCount = count(buyers)
+    if buyerCount > 0 then
+      local buyText = "Can be sold to: "
+      for i,buyInfo in pairs(buyers) do
+        if i ~= 1 then
+          buyText = buyText .. ", "
+          if i == buyerCount then
+            buyText = buyText .. "and "
+          end
+        end
+        buyText = buyText .. buyInfo.text
+      end
+      local _, blines = fonts.textFont:getWrap(buyText,textW)
+      local buyH = (#blines)*fontSize
+      love.graphics.printf(buyText,self.x+padding,printY,self.width-scrollPadding,"center")
+      printY=printY+buyH
     end
   end --end if examine_item_recipes
   love.graphics.setStencilTest()
@@ -359,9 +384,13 @@ function examine_item:calculate_height()
   local _, dlines = fonts.textFont:getWrap(desc,textW)
   local descH = #dlines*(fontSize+2)
   local _, ilines = fonts.textFont:getWrap(info,textW)
-  local infoH = #ilines*fontSize+fontSize*(#ilines > 0 and 2 or 0)
+  local infoH = (info == "" and fontSize or (#ilines+2)*fontSize)
+  local valueH, recipeH, buyH = 0,0,0
   local printY = padding
   printY=printY+nameH
+  if gamesettings.examine_item_value and item:get_value() > 0 then
+    valueH = fontSize
+  end
   if gamesettings.examine_item_recipes then
     local recipes = item:is_ingredient_in()
     local recipeCount = count(recipes)
@@ -372,18 +401,29 @@ function examine_item:calculate_height()
         if recipe then
           if i ~= 1 then
             recipeText = recipeText .. ", "
-            if i == recipeCount then
-              recipeText = recipeText .. "and "
-            end
           end
           recipeText = recipeText .. recInfo.name
         end
       end
       local _, rlines = fonts.textFont:getWrap(recipeText,textW)
-      local recipeH = (#ilines+1)*fontSize
-      printY=printY+recipeH
+      recipeH = (#rlines)*fontSize
     end
   end --end if examine_item_recipes
+  if gamesettings.examine_item_sellable then
+    local buyers = item:get_buyer_list()
+    local buyerCount = count(buyers)
+    if buyerCount > 0 then
+      local buyText = "Can be sold to: "
+      for i,buyInfo in pairs(buyers) do
+        if i ~= 1 then
+          buyText = buyText .. ", "
+        end
+        buyText = buyText .. buyInfo.text
+      end
+      local _, blines = fonts.textFont:getWrap(buyText,textW)
+      buyH = (#blines)*fontSize
+    end
+  end --end if examine_item_sellable
   if level and gamesettings.display_item_levels then
     local ltext = "Level " .. level
     local _, llines = fonts.textFont:getWrap(ltext,textW)
@@ -543,6 +583,7 @@ function examine_item:calculate_height()
       buttonX = buttonX+buttonWidth+25
       buttonCursorX = buttonCursorX+1
     end
+    printY=buttonY+40
   elseif (gamesettings.can_pickup_adjacent_items and player:touching(item)) or (player.x == item.x and player.y == item.y)  or (self.container and self.container.inventory_accessible_anywhere) then
     if player:get_free_inventory_space() > (item.size or 1) then
       local useText = "Take (" .. input:get_button_name("pickup") .. ")"
@@ -556,10 +597,15 @@ function examine_item:calculate_height()
       buttonX = buttonX+buttonWidth+25
       buttonCursorX = buttonCursorX+1
     end
+    printY=buttonY+40
   end --end if has_item
+  printY=printY+recipeH
+  printY=printY+buyH
+  printY=printY+valueH
   printY=printY+descH
   printY=printY+infoH
   printY=printY+padding
+  printY=printY+fontSize
   return math.min(height-(prefs['noImages'] and 0 or output:get_tile_size()),printY)
 end
 

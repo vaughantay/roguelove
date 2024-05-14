@@ -190,37 +190,42 @@ function Store:get_buy_list(creat)
   creat = creat or player
   local buying = {}
   for id,item in ipairs(creat.inventory) do
-    if self.buys_items and self.buys_items[item.id] then
-      buying[#buying+1]={item=item,cost=self.buys_items[item.id]}
-    elseif self.buys_tags and item:get_value() > 0 then
-      local done = false
-      if self.forbidden_buys_tags then
-        for _,tag in ipairs(self.forbidden_buys_tags) do
-          if item:has_tag(tag) then
-            done = true
-            break
-          end
-        end
-      end
-      if not done and self.required_buys_tags then
-        for _,tag in ipairs(self.required_buys_tags) do
-          if not item:has_tag(tag) then
-            done = true
-            break
-          end
-        end
-      end
-      if not done then
-        for _,tag in ipairs(self.buys_tags) do
-          if item:has_tag(tag) or item.itemType == tag then
-            buying[#buying+1]={item=item,cost=math.max(math.floor((item:get_value()*(self.buy_markup or 1))/(self.currency_item and (self.money_per_currency_item or 10) or 1)),1)}
-            break
-          end
-        end
-      end
+    local price = self:get_buy_cost(item)
+    if price then
+      buying[#buying+1]={item=item,cost=price}
     end
   end
   return buying
+end
+
+---Determines if a store will buy an item, and returns the price if so
+--@param item Item. The item to consider
+--@return False or Number. False if the store won't buy it, the price if it will
+function Store:get_buy_cost(item)
+  if self.buys_items and self.buys_items[item.id] then
+    return self.buys_items[item.id]
+  elseif self.buys_tags and item:get_value() > 0 then
+    if self.forbidden_buys_tags then
+      for _,tag in ipairs(self.forbidden_buys_tags) do
+        if item:has_tag(tag) then
+          return false
+        end
+      end
+    end
+    if self.required_buys_tags then
+      for _,tag in ipairs(self.required_buys_tags) do
+        if not item:has_tag(tag) then
+          return false
+        end
+      end
+    end
+    for _,tag in ipairs(self.buys_tags) do
+      if item:has_tag(tag) or item.itemType == tag then
+        return math.max(math.floor((item:get_value()*(self.buy_markup or 1))/(self.currency_item and (self.money_per_currency_item or 10) or 1)),1)
+      end
+    end
+  end
+  return false
 end
 
 ---Sell an item to the store

@@ -358,7 +358,7 @@ function Map:get_tile_actions(x,y,user,noAdjacent)
       if entity.actions then
         for id,act in pairs(entity.actions) do
           if entity:action_requires(user,id) then
-            actions[#actions+1] = {id=id,entity=entity,text=act.text,description=act.description,order=act.order,image=act.image,image_color=act.image_color,noDirection=act.noDirection}
+            actions[#actions+1] = {id=id,entity=entity,text=act.text,description=act.description,order=act.order,image=(act.image or 'feature' .. (entity.image_name or entity.id)),image_color=(act.image_color or (entity.use_color_with_tiles or (gamesettings.always_use_color_with_tiles and entity.use_color_with_tiles ~= false) and entity.color) or nil),noDirection=act.noDirection}
           end --end requires if
         end --end action for
       end --end if
@@ -370,7 +370,7 @@ function Map:get_tile_actions(x,y,user,noAdjacent)
           if entity.actions then
             for id,act in pairs(entity.actions) do
               if (not act.noAdjacent or (x2 == x and y2 == y)) and entity:action_requires(user,id) then
-                actions[#actions+1] = {id=id,entity=entity,text=act.text,description=act.description,order=act.order,image=act.image,image_color=act.image_color,noDirection=act.noDirection}
+                actions[#actions+1] = {id=id,entity=entity,text=act.text,description=act.description,order=act.order,image=(act.image or 'feature' .. (entity.image_name or entity.id)),image_color=(act.image_color or (entity.use_color_with_tiles or (gamesettings.always_use_color_with_tiles and entity.use_color_with_tiles ~= false) and entity.color) or nil),noDirection=act.noDirection}
               end --end requires if
             end --end action for
           end --end if
@@ -456,8 +456,8 @@ end --end function
 --@return Creature. The creature placed
 function Map:add_creature(creature,x,y,ignoreFunc)
   if not creature or type(creature) ~= "table" or creature.baseType ~= "creature" then
-    output:out("Error: Tried to add non-existent creature to map " .. self:get_name())
-    print("Tried to add non-existent creature to map " .. self:get_name())
+    output:out("Error: Tried to add non-existent creature to map " .. self:get_name() .. ' at ' .. x .. ', ' .. y)
+    print("Tried to add non-existent creature to map " .. self:get_name() .. ' at ' .. x .. ', ' .. y)
     return false
   end
 	creature.x, creature.y = x,y
@@ -485,8 +485,8 @@ end
 --@return Feature. The feature added
 function Map:add_feature(feature,x,y,args)
   if not feature or type(feature) ~= "table"  or feature.baseType ~= "feature" then
-    output:out("Error: Tried to add non-existent feature to map " .. self:get_name())
-    print("Tried to add non-existent feature to map " .. self:get_name())
+    output:out("Error: Tried to add non-existent feature to map " .. self:get_name() .. ' at ' .. x .. ', ' .. y)
+    print("Tried to add non-existent feature to map " .. self:get_name() .. ' at ' .. x .. ', ' .. y)
     return false
   end
 	x = (x or random(2,self.width-1))
@@ -513,8 +513,8 @@ end
 --@return Effect. The effect added
 function Map:add_effect(effect,x,y,args)
   if not effect or type(effect) ~= "table" or effect.baseType ~= "effect" then
-    output:out("Error: Tried to add non-existent effect to map " .. self:get_name())
-    print("Tried to add non-existent effect to map " .. self:get_name())
+    output:out("Error: Tried to add non-existent effect to map " .. self:get_name() .. ' at ' .. x .. ', ' .. y)
+    print("Tried to add non-existent effect to map " .. self:get_name() .. ' at ' .. x .. ', ' .. y)
     return false
   end
   effect.x,effect.y = x,y
@@ -532,8 +532,8 @@ end
 --@param ignoreFunc Boolean. Whether to ignore the item's new() function (optional)
 function Map:add_item(item,x,y,ignoreFunc)
   if not item or type(item) ~= "table" or item.baseType ~= "item" then
-    output:out("Error: Tried to add non-existent item to map " .. self:get_name())
-    print("Tried to add non-existent item to map " .. self:get_name())
+    output:out("Error: Tried to add non-existent item to map " .. self:get_name() .. ' at ' .. x .. ', ' .. y)
+    print("Tried to add non-existent item to map " .. self:get_name() .. ' at ' .. x .. ', ' .. y)
     return false
   end
 	item.x, item.y = x,y
@@ -575,8 +575,8 @@ end
 --@return Feature or String. The feature added, or the string the tile was turned into.
 function Map:change_tile(feature,x,y,dontRefreshSight)
   if not feature or (type(feature) ~= "table" and type(feature) ~= "string") or (type(feature) == "table" and feature.baseType ~= "feature") then
-    output:out("Error: Tried to add non-existent feature to map " .. self:get_name())
-    print("Tried to add non-existent feature to map " .. self:get_name())
+    output:out("Error: Tried to replace tile with non-existent feature on map " .. self:get_name() .. ' at ' .. x .. ', ' .. y)
+    print("Tried to replace tile with non-existent feature on map " .. self:get_name() .. ' at ' .. x .. ', ' .. y)
     return false
   end
 	self[x][y] = feature
@@ -740,9 +740,9 @@ function Map:refresh_tile_image(x,y)
   if not tileset then return false end
   if type(self[x][y]) == "table" then
     self[x][y]:refresh_image_name()
-    name = "floor"
+    name = "floor" .. (tileset.different_outside_floor and self.tile_info[x][y].outside and "_outside" or "")
   elseif self[x][y] == "." then
-    name = "floor"
+    name = "floor" .. (tileset.different_outside_floor and self.tile_info[x][y].outside and "_outside" or "")
   elseif self[x][y] == "#" then
     if self[x][y-1] and not self:isWall(x,y-1) then directions = directions .. "n" end
     if self[x][y+1] and not self:isWall(x,y+1) then directions = directions .. "s" end
@@ -856,9 +856,7 @@ end
 function Map:clear_tile(x,y)
   if self:in_map(x,y) then
     for _,content in pairs(self.contents[x][y]) do
-      if content.baseType == "effect" then
-        content:delete(self)
-      elseif content.baseType == "feature" then
+      if content.baseType == "effect" or content.baseType == "feature" or content.baseType == "item" then
         content:delete(self)
       elseif content.baseType == "creature" then
         content:remove(self)
@@ -1546,7 +1544,7 @@ function Map:get_max_level()
   return round((branch.max_level_base or 1)+(self.depth-1)*(branch.level_increase_per_depth or 1))
 end
 
----Get a map's tags
+---Get a map's content tags
 --@param tagType String. The type of tag
 --@param noBranch Boolean. If true, don't look at branch's tags
 function Map:get_content_tags(tagType,noBranch)
@@ -1561,6 +1559,16 @@ function Map:get_content_tags(tagType,noBranch)
     end
   end
   return tags
+end
+
+---Checks if a map has a descriptive tag.
+--@param tag String. The tag to check for
+--@return Boolean. Whether or not it has the tag.
+function Map:has_tag(tag)
+  if self.tags and in_table(tag,self.tags) then
+    return true
+  end
+  return false
 end
 
 ---Applies damage to all creates and features in a tile

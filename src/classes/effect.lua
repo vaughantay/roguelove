@@ -23,7 +23,11 @@ function Effect:init(effect_type, ...)
   self.id = effect_type
   self.baseType='effect'
   if (data.new ~= nil) then 
-		local n = data.new(self,unpack({...}))
+    local status,r = pcall(data.new,self,unpack({...}))
+    if status == false then
+      output:out("Error in effect " .. self.name .. " new code: " .. r)
+      print("Error in effect " .. self.name .. " new code: " .. r)
+    end
 	end
   if self.animated and self.spritesheet then
     self.image_frame=1
@@ -52,7 +56,14 @@ end
 --@param map Map. The map the effect is on
 function Effect:cleanup(map)
   map = map or currMap
-  if effects[self.id].cleanup then return effects[self.id].cleanup(self,map) end
+  if effects[self.id].cleanup then
+    local status,r = pcall(effects[self.id].cleanup,self,map)
+    if status == false then
+      output:out("Error in effect " .. self.name .. " cleanup code: " .. r)
+      print("Error in effect " .. self.name .. " cleanup code: " .. r)
+    end
+    return r
+  end
 end
 
 ---Returns the name and description of the effect
@@ -62,7 +73,14 @@ end
 
 ---Called every turn. Calls the advance() function of the effect.
 function Effect:advance()
-	if (effects[self.id].advance) then return effects[self.id].advance(self) end
+	if (effects[self.id].advance) then
+    local status,r = pcall(effects[self.id].advance,self)
+    if status == false then
+      output:out("Error in effect " .. self.name .. " advance code: " .. r)
+      print("Error in effect " .. self.name .. " advance code: " .. r)
+    end
+    return r
+  end
 end
 
 ---This function is run every tick and updates various things. You probably shouldn't call it yourself
@@ -127,13 +145,27 @@ function Effect:update(dt)
     end
   end
   
-	if (effects[self.id].update) then return effects[self.id].update(self,dt) end
+	if (effects[self.id].update) then
+    local status,r = pcall(effects[self.id].update,self,dt)
+    if status == false then
+      output:out("Error in effect " .. self.name .. " update code: " .. r)
+      print("Error in effect " .. self.name .. " update code: " .. r)
+    end
+    return r
+  end
 end
 
 ---Refresh the image name of an effect.
 --Used for effects that look different if they're next to each other, when its surrounding has changed.
 function Effect:refresh_image_name()
-  if effects[self.id] and effects[self.id].refresh_image_name then return effects[self.id].refresh_image_name(self) end
+  if effects[self.id] and effects[self.id].refresh_image_name then
+    local status,r = pcall(effects[self.id].refresh_image_name,self)
+    if status == false then
+      output:out("Error in effect " .. self.name .. " refresh image name code: " .. r)
+      print("Error in effect " .. self.name .. " refresh image name code: " .. r)
+    end
+    return r
+  end
 	return false
 end
 

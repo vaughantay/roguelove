@@ -181,33 +181,6 @@ function Creature:init(creatureType,level,tags,info,noTweak,ignoreNewFunc) --TOD
     end
   end
   
-  --Weaknesses and resistances from your creature types:
-  if self.types then
-    local baseWeak = self.weaknesses or {}
-    local baseResist = self.resistances or {}
-    for _,ctype in ipairs(self.types) do
-      local typ = creatureTypes[ctype]
-      if typ then
-        if typ.weaknesses then
-          if not self.weaknesses then self.weaknesses = {} end
-          for dtype,amt in pairs(typ.weaknesses) do
-            if not baseWeak[dtype] then
-              self.weaknesses[dtype] = math.max(self.weaknesses[dtype] or 0,amt)
-            end
-          end
-        end --end if weaknesses
-        if typ.resistances then
-          if not self.resistances then self.resistances = {} end
-          for dtype,amt in pairs(typ.resistances) do
-            if not baseResist[dtype] then
-              self.resistances[dtype] = math.max(self.resistances[dtype] or 0,amt)
-            end
-          end
-        end --end if resistances
-      end --end if type is defined
-    end --end ctype for
-  end --end if self.types
-  
   --Level up if necessary:
   if level and level > self.level then
     if self.max_level and level > self.max_level then
@@ -534,6 +507,7 @@ function Creature:damage(amt,attacker,damage_type,armor_piercing,noSound,item,ig
   amt = math.ceil(amt) --just in case! to prevent fractional damage
   damage_type = damage_type or gamesettings.default_damage_type
   
+  local bonuses = 0
   --Apply damage weaknesses, resistances, and armor
   if damage_type then
     if self:is_healed_by_damage_type(damage_type) then
@@ -544,14 +518,23 @@ function Creature:damage(amt,attacker,damage_type,armor_piercing,noSound,item,ig
       return 0
     end
     if not ignoreWeakness then
-      amt = amt + self:get_weakness(amt,damage_type)
+      bonuses = bonuses + self:get_weakness(amt,damage_type)
     end
-    amt = amt - self:get_resistance(amt,damage_type)
+    bonuses = bonuses - self:get_resistance(amt,damage_type)
+    bonuses = bonuses + self:get_bonus('exta_' .. damage_type .. '_damage_taken')
   end
+  if not ignoreWeakness then
+    bonuses = bonuses + self:get_weakness(amt,'all')
+  end
+  bonuses = bonuses - self:get_resistance(amt,'all')
+  bonuses = bonuses + self:get_bonus('exta_damage_taken')
+  amt = amt + bonuses
+  
+  --Apply armor
   if armor_piercing ~= true and (not damage_type or not damage_types[damage_type] or not damage_types[damage_type].armor_piercing) then
     local totalArmor = (self.armor or 0)
     totalArmor = totalArmor + round(totalArmor*(self:get_bonus('armor_percent')/100)) + self:get_bonus('armor')
-    if damage_type then totalArmor = totalArmor + round(totalArmor*(self:get_bonus(damage_type .. 'armor_percent')/100)) + self:get_bonus(damage_type .. '_armor') end
+    if damage_type then totalArmor = totalArmor + round(totalArmor*(self:get_bonus(damage_type .. '_armor_percent')/100)) + self:get_bonus(damage_type .. '_armor') end
     if type(armor_piercing) == "number" then
       totalArmor = totalArmor - armor_piercing
     end
@@ -667,34 +650,39 @@ function Creature:qualifies_for_condition(name)
       return false
     end
   end
+  return true
 end
 
 ---Give a condition to a creature
 --@param name String. The ID of the condition.
 --@param turns Number. How many turns the condition should last.
 --@param applier Entity. Who applied the condition. (optional)
+--@param args Anything. Arguments to pass to the condition's apply() code (optional)
 --@param force Boolean. Whether to force-apply the condition. (optional)
 --@param stack Boolean. If true, add the new turns to the current turns (if applicable). If false, sets the turns to turns passed
 --@return Boolean. Whether the condition was applied
-function Creature:give_condition(name,turns,applier,force,stack)
+function Creature:give_condition(name,turns,applier,args,force,stack)
 	if not conditions[name] then return false end
+  if self == player and conditions[name].player_turn_modifier then
+    turns = math.ceil(turns * conditions[name].player_turn_modifier)
+  end
   
   --TODO: Creature:qualifies_for_condition()
   --Check condition type immunities first:
   local qualifies = self:qualifies_for_condition(name)
   if qualifies == false then return false end
 
-  if force or conditions[name]:can_apply(self,applier,turns) ~= false then
-    local result = conditions[name]:apply(self,applier,turns)
+  if force or conditions[name]:can_apply(self,applier,turns,args) ~= false then
+    local result = conditions[name]:apply(self,applier,turns,args)
     if force or result ~= false then
       if type(result) == "number" then
         turns = result
       end
       local addition = 0
       if turns ~= -1 and (stack or conditions[name].turns_stack == true) then
-        addition = self.conditions[name].turns or 0
+        addition = (self.conditions[name] and self.conditions[name].turns) or 0
       end
-      self.conditions[name] = {turns=turns+addition,applier=applier}
+      self.conditions[name] = {turns=turns+addition,applier=applier,bonuses=(args and type(args) == "table" and args.bonuses or nil)}
       return true
     end
   end
@@ -929,8 +917,8 @@ function Creature:get_bonus(bonusType)
     bcount = bcount + 1
   end
 	for id, info in pairs(self.conditions) do
-		if (conditions[id].bonuses ~= nil) then
-			local b = conditions[id].bonuses[bonusType]
+		if conditions[id].bonuses or (info.bonuses and info.bonuses[bonusType]) then
+			local b = (info.bonuses and info.bonuses[bonusType] or conditions[id].bonuses[bonusType])
 			if (b ~= nil) then
         bonus = bonus + b
         bcount = bcount+ 1
@@ -1011,6 +999,16 @@ end
 --@return Number. The amount by which the damage is reduced
 function Creature:get_resistance(amt,damageType)
   local resist = (self.resistances and self.resistances[damageType] or 0)
+  
+  for _,ctype in ipairs(self:get_types()) do
+    local typ = creatureTypes[ctype]
+    if typ then
+      if typ.resistances and typ.resistances[damageType] then
+        resist = math.max(resist,amt)
+      end --end if weaknesses
+    end --end if type is defined
+  end --end ctype for
+  
   local bonus = self:get_bonus(damageType .. "_resistance")
   if bonus == 0 and resist == 0 then return 0 end
   local reduction = math.floor(amt*((resist+bonus)/100))
@@ -1023,11 +1021,75 @@ end --end get_resistance function
 --@return Number. The amount by which the damage is increased
 function Creature:get_weakness(amt,damageType)
   local weakness = (self.weaknesses and self.weaknesses[damageType] or 0)
+  
+  for _,ctype in ipairs(self:get_types()) do
+    local typ = creatureTypes[ctype]
+    if typ then
+      if typ.weaknesses and typ.weaknesses[damageType] then
+        weakness = math.max(weakness,amt)
+      end --end if weaknesses
+    end --end if type is defined
+  end --end ctype for
+  
   local bonus = self:get_bonus(damageType .. "_weakness")
   if bonus == 0 and weakness == 0 then return 0 end
   local increase = math.floor(amt*((weakness+bonus)/100))
   return increase
 end --end get_resistance function
+
+---Gets a list of all damage type weaknesses a creature has
+--@param noBonus Boolean. If true, don't add bonuses
+--@param base_only Boolean. If true, don't look at creature types applied by conditions
+--@return Table. A table of damage types and the weakness value
+function Creature:get_all_weaknesses(noBonus,base_only)
+  local weaknesses = self.weaknesses or {}
+  
+  for _,ctype in ipairs(self:get_types(base_only)) do
+    local typ = creatureTypes[ctype]
+    if typ and typ.weaknesses then
+      for dtype,amt in pairs(typ.weaknesses) do
+        weaknesses[dtype] = math.max(amt,weaknesses[dtype] or 0)
+      end
+    end
+  end
+  if not noBonus then
+    for dtype,_ in pairs(damage_types) do
+      local bonus = self:get_bonus(dtype .. "_weakness")
+      if bonus then
+        weaknesses[dtype] = (weaknesses[dtype] or 0)+bonus
+      end
+      if weaknesses[dtype] == 0 then weaknesses[dtype] = nil end
+    end
+  end
+  return weaknesses
+end
+
+---Gets a list of all damage type resistances a creature has
+--@param noBonus Boolean. If true, don't add bonuses
+--@param base_only Boolean. If true, don't look at creature types applied by conditions
+--@return Table. A table of damage types and the resistance value
+function Creature:get_all_resistances(noBonus,base_only)
+  local resistances = self.resistances or {}
+  
+  for _,ctype in ipairs(self:get_types(base_only)) do
+    local typ = creatureTypes[ctype]
+    if typ and typ.resistances then
+      for dtype,amt in pairs(typ.resistances) do
+        resistances[dtype] = math.max(amt,resistances[dtype] or 0)
+      end
+    end
+  end
+  if not noBonus then
+    for dtype,_ in pairs(damage_types) do
+      local bonus = self:get_bonus(dtype .. "_resistance")
+      if bonus then
+        resistances[dtype] = (resistances[dtype] or 0)+bonus
+      end
+      if resistances[dtype] == 0 then resistances[dtype] = nil end
+    end
+  end
+  return resistances
+end
 
 ---Checks whether a creature has blanket immunity to a damage type
 --@param damageType String. The damage type.
@@ -1216,7 +1278,7 @@ function Creature:advance(skip_conditions)
   
   --AI Decision:
   local runs = 1
-  while self.energy >= player.speed and self ~= player do
+  while self.energy >= player:get_speed() and self ~= player do
     local x,y = self.x,self.y
     self.energy = self.energy - player:get_speed()
     if self:callbacks('ai') then
@@ -1597,11 +1659,11 @@ function Creature:die(killer,silent)
         local chunk = currMap:add_feature(Feature('chunk',self),self.x,self.y)
       end --put a chunk in, no matter what
       if self.corpse == nil then
-        local corpse = Feature('corpse',self,self.x,self.y)
+        local corpse = Feature('corpse',self)
         currMap:add_feature(corpse,self.x,self.y)
         corpse:refresh_image_name()
       elseif self.corpse then
-        local corpse = Feature(self.corpse,self,self.x,self.y)
+        local corpse = Feature(self.corpse,self)
         currMap:add_feature(corpse,self.x,self.y)
       end --end special corpse vs regular corpse if
       
@@ -3546,7 +3608,10 @@ function Creature:get_skill_upgrade_cost(skillID)
         end
       end
     end
-    cost.upgrade_stat_plural_name = skill.upgrade_stat_plural_name or cost.upgrade_stat_name .. "s"
+    if not cost.upgrade_stat_name then
+      cost.upgrade_stat_name = "point"
+    end
+    cost.upgrade_stat_plural_name = (skill.upgrade_stat_plural_name or cost.upgrade_stat_name) .. "s"
   end
 
   --Check items:
@@ -3716,6 +3781,9 @@ function Creature:learn_spell(spellID,force)
       local slots = self:get_free_spell_slots()
       if not slots or slots > 0 or newSpell.forgettable == false or newSpell.freeSlot then
         self:memorize_spell(newSpell)
+      end
+      if newSpell.max_charges then
+        newSpell.charges = newSpell:get_stat('max_charges')
       end
       return newSpell
     else
