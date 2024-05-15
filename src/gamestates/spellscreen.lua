@@ -36,6 +36,7 @@ function spellscreen:enter(previous,locked)
   self.upgradeButtons = {}
   self.settingsButtons = {}
   self.buttonCount = 0
+  self.ignoreMouse = true
   
   self.yModPerc = 0
   if previous == game then
@@ -107,7 +108,7 @@ function spellscreen:draw()
     printY=printY+round(fontSize*1.5)
   end
 	for i, spell in pairs(playerSpells) do
-    local moused = (mouseX > printX and mouseX < window1w and mouseY+self.scrollY > printY and mouseY+self.scrollY < printY+lineSize+2)
+    local moused = not self.ignoreMouse and (mouseX > printX and mouseX < window1w and mouseY+self.scrollY > printY and mouseY+self.scrollY < printY+lineSize+2)
     local spellID = spell.id
 		spells[i] = spellID
     local name = spell.name
@@ -130,7 +131,7 @@ function spellscreen:draw()
       setColor(255,255,255,255)
       mousedSpell = i
     end
-    if player.cooldowns[spell] or spell:requires(player) == false then
+    if player.cooldowns[spell] or spell:requires(player) == false or (spell.charges and spell.charges < 1) then
       if moused or self.cursorY == i then
         setColor((active and (upgrade and 12 or 0) or 25),25,(upgrade and 0 or (active and 0 or 25)),255)
       else
@@ -165,7 +166,7 @@ function spellscreen:draw()
     printY=printY+round(fontSize*1.5)
     for i=1,spellSlots,1 do
       local slot = i+count(playerSpells)
-      local moused = (mouseX > printX and mouseX < window1w and mouseY+self.scrollY > printY and mouseY+self.scrollY < printY+lineSize+2)
+      local moused = not self.ignoreMouse and (mouseX > printX and mouseX < window1w and mouseY+self.scrollY > printY and mouseY+self.scrollY < printY+lineSize+2)
       --Draw the highlight box:
       if (self.cursorY == slot) then
         setColor(100,100,100,255)
@@ -191,7 +192,7 @@ function spellscreen:draw()
     printY=printY+round(fontSize*1.5)
     for i, spell in pairs(self.unmemorized) do
       local index = #playerSpells+i+(spellSlots or 0)
-      local moused = (mouseX > printX and mouseX < window1w and mouseY+self.scrollY > printY and mouseY+self.scrollY < printY+lineSize+2)
+      local moused = not self.ignoreMouse and (mouseX > printX and mouseX < window1w and mouseY+self.scrollY > printY and mouseY+self.scrollY < printY+lineSize+2)
       local spellID = spell.id
       spells[index] = spellID
       local name = spell.name
@@ -236,7 +237,7 @@ function spellscreen:draw()
   love.graphics.pop()
   
   --Description Box:
-  local spellEntry = (self.spellList[self.cursorY] or self.spellList[mousedSpell])
+  local spellEntry = (self.spellList[mousedSpell] or self.spellList[self.cursorY])
   self.buttons = {}
   self.upgradebuttons = {}
   if spellEntry ~= nil and spellEntry.spell then
@@ -311,12 +312,12 @@ function spellscreen:draw()
       self.buttonCount = self.buttonCount + 1
       local useText = ((spell.active and not spell.no_manual_deactivate) and "Stop" or "Use")
       local buttonWidth = fonts.buttonFont:getWidth(useText)+25
-      if player.cooldowns[spell] or spell:requires(player) == false or (spell.active and spell.no_manual_deactivate) then
+      if player.cooldowns[spell] or spell:requires(player) == false or (spell.active and spell.no_manual_deactivate) or (spell.charges and spell.charges < 1) then
         setColor(100,100,100,255)
       end
       self.buttons.use = output:button(printX,printY,buttonWidth,false,(self.cursorX == 2 and self.sidebarCursorY == self.buttonCount and "hover" or nil),useText,true)
       self.buttons.use.buttonNum = self.buttonCount
-      if player.cooldowns[spell] or spell:requires(player) == false or (spell.active and spell.no_manual_deactivate) then
+      if player.cooldowns[spell] or spell:requires(player) == false or (spell.active and spell.no_manual_deactivate) or (spell.charges and spell.charges < 1)  then
         if selected then setColor(255,255,255,255)
         else setColor(175,175,175,255) end
       end
@@ -381,7 +382,7 @@ function spellscreen:draw()
         buttonY = buttonY+1
         local boxW = (prefs['noImages'] and fonts.textFont:getWidth("(Y)") or output:get_tile_size(true))
         local button = self.settingsButtons[buttonY]
-        if self.sidebarCursorY == self.buttonCount or (button and mouseX > button.minX and mouseX < button.maxX and mouseY > button.minY and mouseY < button.maxY) then
+        if self.sidebarCursorY == self.buttonCount or (not self.ignoreMouse and button and mouseX > button.minX and mouseX < button.maxX and mouseY > button.minY and mouseY < button.maxY) then
           setColor(100,100,100,255)
           love.graphics.rectangle('fill',printX-8,printY-8,boxW,settingH)
           setColor(255,255,255,255)
@@ -462,7 +463,7 @@ function spellscreen:draw()
             setColor(175,175,175,255)
           end
           local mouseOver = false
-          if self.upgradeButtons[buttonY] and mouseX > self.upgradeButtons[buttonY].minX and mouseX < self.upgradeButtons[buttonY].maxX and mouseY > self.upgradeButtons[buttonY].minY-self.descScrollY and mouseY < self.upgradeButtons[buttonY].maxY-self.descScrollY then
+          if not self.ignoreMouse and self.upgradeButtons[buttonY] and mouseX > self.upgradeButtons[buttonY].minX and mouseX < self.upgradeButtons[buttonY].maxX and mouseY > self.upgradeButtons[buttonY].minY-self.descScrollY and mouseY < self.upgradeButtons[buttonY].maxY-self.descScrollY then
             mouseOver = true
           end
           self.upgradeButtons[buttonY] = output:tinybutton(printX,printY+1,true,((mouseOver or self.sidebarCursorY==buttonY+mod) and "hover" or false),"+",true)
@@ -548,6 +549,7 @@ function spellscreen:draw()
 end
 
 function spellscreen:buttonpressed(key,scancode,isRepeat,controllerType)
+  self.ignoreMouse = true
   local uiScale = prefs['uiScale']
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
   width,height = round(width/uiScale),round(height/uiScale)
@@ -647,18 +649,22 @@ function spellscreen:buttonpressed(key,scancode,isRepeat,controllerType)
       end
     end
   elseif (key == "east") then
-    if self.spellList[self.cursorY] and self.spellList[self.cursorY].spell then self:select_spell(self.cursorY) end
+    if self.cursorX == 1 and self.spellList[self.cursorY] and self.spellList[self.cursorY].spell then self:select_spell(self.cursorY) end
   elseif (key == "west") then
     self.cursorX = 1
 	end
 end
 
+function spellscreen:mousemoved()
+  self.ignoreMouse = false
+end
+
 function spellscreen:mousepressed(x,y,button)
+  self.ignoreMouse = false
   local uiScale = (prefs['uiScale'] or 1)
   x,y = x/uiScale,y/uiScale
   if button == 2 or (x > self.closebutton.minX and x < self.closebutton.maxX and y > self.closebutton.minY and y < self.closebutton.maxY) then self:switchBack() end
   if x > self.x and x < self.sidebarX-(self.scrollPositions and self.padding or 0) then
-    self.cursorX = 1 --if a spell is selected, unselect it
     for index,coords in ipairs(self.spellList) do
       if coords.spell and y+self.scrollY > coords.minY and y+self.scrollY < coords.maxY then
         self:select_spell(index)
@@ -694,6 +700,7 @@ function spellscreen:mousepressed(x,y,button)
 end
 
 function spellscreen:wheelmoved(x,y)
+  self.ignoreMouse = false
   local uiScale = prefs['uiScale']
   local mouseX,mouseY = love.mouse.getPosition()
   mouseX,mouseY = round(mouseX/uiScale),round(mouseY/uiScale)
@@ -796,18 +803,25 @@ end
 
 function spellscreen:cast_spell(spellIndex)
   local spell = self.spellList[spellIndex].spell
-  if(spell:target(target,player) ~= false) then
-    advance_turn()
+  if player:has_spell(spell.id) and spell.target_type ~= "passive" and (not spell.charges or spell.charges > 0) and not (player.cooldowns[spell] or spell:requires(player) == false or (spell.active and spell.no_manual_deactivate)) then
+    if(spell:target(target,player) ~= false) then
+      advance_turn()
+    end
+    self:switchBack()
   end
-  self:switchBack()
 end
 
 function spellscreen:select_spell(spellIndex)
-  self.cursorY = spellIndex
-  self.cursorX = 2
-  self.sidebarCursorY=1
-  self.upgradeButtons = {}
-  self.descScrollY = 0
+  local spell = self.spellList[spellIndex].spell
+  if self.cursorY == spellIndex and self.cursorX == 2 then
+    self:cast_spell(spellIndex)
+  else
+    self.cursorY = spellIndex
+    self.cursorX = 2
+    self.sidebarCursorY=1
+    self.upgradeButtons = {}
+    self.descScrollY = 0
+  end
 end
 
 function spellscreen:perform_upgrade(upgradeID)
