@@ -36,7 +36,7 @@ function killtownies:can_finish()
   return false,"You still need to kill " .. 5-townies .. " townspeople."
 end
 function killtownies:finish()
-  player.favor.barbariangod = player.favor.barbariangod + 100
+  player.reputation.barbariangod = player.reputation.barbariangod + 100
 end
 possibleMissions['killtownies'] = killtownies
 
@@ -73,7 +73,7 @@ function killdemons:can_finish()
   return false,"You still need to kill " .. 5-demons .. " demons."
 end
 function killdemons:finish()
-  player.favor.lightchurch = player.favor.lightchurch + 100
+  player.reputation.lightchurch = player.reputation.lightchurch + 100
 end
 possibleMissions['killdemons'] = killdemons
 
@@ -125,12 +125,12 @@ end
 function findtreasure:finish()
   local treasure = get_mission_data('findtreasure','item')
   treasure:delete()
-  local favor = nil
+  local reputation = nil
   local source = get_mission_data('findtreasure','source')
   if source and source.baseType == "faction" then
-    favor = 100
-    player.favor[source.id] = player.favor[source.id]+favor
+    reputation = 100
+    player.reputation[source.id] = player.reputation[source.id]+reputation
   end
-  return true,"You turn in " .. treasure:get_name() .. (favor and " for " .. favor .. " favor." or ".")
+  return true,"You turn in " .. treasure:get_name() .. (reputation and " for " .. reputation .. " reputation." or ".")
 end
 possibleMissions['findtreasure'] = findtreasure

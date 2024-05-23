@@ -47,7 +47,7 @@ function Faction:is_enemy(creature)
   if self.attack_all_neutral == true and not self:is_friend(creature) then
     return true
   end
-  --Next, if the creature is a player ally and the faction is always hostile to the player regardless of favor and membership, we can just assume they're an enemy
+  --Next, if the creature is a player ally and the faction is always hostile to the player regardless of reputation and membership, we can just assume they're an enemy
   if creature.playerAlly == true and self.always_attack_player == true then
     return true
   end
@@ -67,8 +67,8 @@ function Faction:is_enemy(creature)
       end --end is_type if
     end --end ctype for
   end --end if self.enemy_types
-  --Next, look if the creature's favor with your faction is low enough to be considered an enemy
-  if self.hostile_threshold and creature.favor and (creature.favor[self.id] or 0) < self.hostile_threshold then
+  --Next, look if the creature's reputation with your faction is low enough to be considered an enemy
+  if self.hostile_threshold and creature.reputation and (creature.reputation[self.id] or 0) < self.hostile_threshold then
     return true
   end
   --Next, if the creature is a player or a friend of the player, we'll look at some player-specific stuff
@@ -108,8 +108,8 @@ function Faction:is_friend(creature)
       end --end is_type if
     end --end ctype for
   end --end if self.friendly_types
-  --Finally, look if the creature's favor with your faction is high enough to be considered an friend
-  if self.hostile_threshold and creature.favor and (creature.favor[self.id] or 0) > self.friendly_threshold then
+  --Finally, look if the creature's reputation with your faction is high enough to be considered an friend
+  if self.hostile_threshold and creature.reputation and (creature.reputation[self.id] or 0) > self.friendly_threshold then
     return true
   end
   return false
@@ -175,8 +175,8 @@ function Faction:can_join(creature)
   if self.never_join then
     return false,"This faction does not accept new members."
   end
-  if (creature.favor[self.id] or 0) < self.join_threshold then
-    reasons = (reasons and reasons .. " " or "") .. "You need more than " .. self.join_threshold .. " favor to join."
+  if (creature.reputation[self.id] or 0) < self.join_threshold then
+    reasons = (reasons and reasons .. " " or "") .. "You need more than " .. self.join_threshold .. " reputation to join."
     canJoin = false
   end
   if self.enemy_factions then
@@ -628,17 +628,17 @@ end
         end
       end --end faction for
     end --end if faction cost modifiers
-    if self.favor_cost_modifiers then
-      local creatFavor = creature.favor[self.id] or 0
+    if self.reputation_cost_modifiers then
+      local creatreputation = creature.reputation[self.id] or 0
       local highest = nil
       local tempMod = 0
-      for favor,mod in pairs(self.favor_cost_modifiers) do
-        if creatFavor >= favor and (not highest or favor > highest) then
-          highest = favor
+      for reputation,mod in pairs(self.reputation_cost_modifiers) do
+        if creatreputation >= reputation and (not highest or reputation > highest) then
+          highest = reputation
           tempMod = mod
         end
-      end --end favor for
+      end --end reputation for
       finalMod = finalMod + tempMod
-    end --end if favor cost modifiers
+    end --end if reputation cost modifiers
     return finalMod+creature:get_bonus('cost_modifier')
   end

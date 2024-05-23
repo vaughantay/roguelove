@@ -216,15 +216,23 @@ function turn_logic()
     projectile:advance()
   end
   
-  --Faction favor decay/growth and event countdown:
+  --Faction reputation and favor decay/growth and event countdown:
   for fid, faction in pairs(currWorld.factions) do
+    if faction.reputation_decay_turns and currGame.stats.turns % faction.reputation_decay_turns == 0 and (faction.reputation_decay_for_non_members or player:is_faction_member(fid)) then
+      local newRep = (player.reputation[fid] or 0) - (faction.reputation_decay or 1)
+      if not faction.reputation_decay_floor or newRep > faction.reputation_decay_floor then player.reputation[fid] = newRep end
+    end
+    if faction.reputation_growth_turns and currGame.stats.turns % faction.reputation_growth_turns == 0 and (faction.reputation_growth_for_non_members or player:is_faction_member(fid)) then
+      local newRep = (player.reputation[fid] or 0) + (faction.reputation_growth or 1)
+      if not faction.reputation_growth_ceiling or newRep < faction.reputation_growth_ceiling then player.reputation[fid] = newRep end
+    end
     if faction.favor_decay_turns and currGame.stats.turns % faction.favor_decay_turns == 0 and (faction.favor_decay_for_non_members or player:is_faction_member(fid)) then
-      local newFavor = (player.favor[fid] or 0) - (faction.favor_decay or 1)
-      if not faction.favor_decay_floor or newFavor > faction.favor_decay_floor then player.favor[fid] = newFavor end
+      local favor = (player.favor[fid] or 0) - (faction.favor_decay or 1)
+      if not faction.favor_decay_floor or favor > faction.favor_decay_floor then player.favor[fid] = favor end
     end
     if faction.favor_growth_turns and currGame.stats.turns % faction.favor_growth_turns == 0 and (faction.favor_growth_for_non_members or player:is_faction_member(fid)) then
-      local newFavor = (player.favor[fid] or 0) + (faction.favor_growth or 1)
-      if not faction.favor_growth_ceiling or newFavor < faction.favor_growth_ceiling then player.favor[fid] = newFavor end
+      local favor = (player.favor[fid] or 0) + (faction.favor_growth or 1)
+      if not faction.favor_growth_ceiling or favor < faction.favor_growth_ceiling then player.favor[fid] = favor end
     end
     faction.event_countdown = math.max(0,faction.event_countdown-1)
   end
@@ -1029,7 +1037,7 @@ end
 function check_event(eid)
   local event = possibleEvents[eid]
   local faction = event.faction and currWorld.factions[event.faction] or false
-  local favor = event.faction and player.favor[event.faction] or 0
+  local reputation = event.faction and player.reputation[event.faction] or 0
   local basic_event_chance = currMap.event_chance or gamesettings.default_event_chance
   local countdown = faction and faction.event_countdown or currGame.event_countdown
   
@@ -1058,7 +1066,7 @@ function check_event(eid)
   --Random event chance and cooldown checks:
   if event.event_type~="random" or ((event.ignore_basic_chance or random(1,100) < basic_event_chance) and (event.ignore_cooldown or countdown < 1)) then
     --Faction checks:
-    if not event.faction or ((not event.faction_members_only or player:is_faction_member(event.faction)) and (not event.max_favor or favor < event.max_favor) and (not event.min_favor or favor > event.min_favor)) then
+    if not event.faction or ((not event.faction_members_only or player:is_faction_member(event.faction)) and (not event.max_reputation or reputation < event.max_reputation) and (not event.min_reputation or reputation > event.min_reputation)) then
       --Standard checks:
       if (not event.chance or random(1,100) < event.chance) and (not event.max_occurances or not currGame.events_occured[eid] or currGame.events_occured[eid] < event.max_occurances) then
         return true

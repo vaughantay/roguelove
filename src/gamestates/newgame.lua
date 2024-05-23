@@ -1117,13 +1117,13 @@ function newgame:get_stat_text(whichSpecies,whichClass)
       desc = desc .. "\t" .. currWorld.factions[fac].name .. " - " .. currWorld.factions[fac].description  .. "\n"
     end
   end
-  if (class.favor and count(class.favor) > 0) or (creature.favor and count(creature.favor) > 0 )then
-    desc = desc .. "\nFaction Favor:\n"
+  if (class.reputation and count(class.reputation) > 0) or (creature.reputation and count(creature.reputation) > 0 )then
+    desc = desc .. "\nFaction Reputation:\n"
     local favs = {}
-    for id,fav in pairs(creature.favor or {}) do
+    for id,fav in pairs(creature.reputation or {}) do
       favs[id] = fav
     end
-    for id,fav in pairs(class.favor or {}) do
+    for id,fav in pairs(class.reputation or {}) do
       favs[id] = (favs[id] or 0)+fav
     end
     for id,fav in pairs(favs) do

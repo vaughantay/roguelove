@@ -294,15 +294,16 @@ local mosquito = {
 }
 possibleMonsters['mosquito'] = mosquito
 
-local swampwitch = {
-  name = "witch",
-  description = "A hideous crone, covered in warts and boils. Apparently living in a swamp is really bad for your skin.",
+local witch = {
+  name = "Witch of the Woods",
+  description = "A hideous crone, covered in warts and boils. Apparently living in the wilderness is really bad for your skin.",
   types={"human","intelligent"},
   nameType = "witch",
   symbol = "w",
   color={r=50,g=50,b=50,a=255},
   level=3,
   skills={strength=9,agility=23,toughness=6,melee=18,magic=20},
+  possible_inventory={{item="bosskey",chance=100}},
   max_hp=90,
   perception=8,
   ranged_chance = 25,
@@ -316,7 +317,7 @@ local swampwitch = {
   image_max=2,
   animation_time = 0.5
 }
-possibleMonsters['swampwitch'] = swampwitch
+possibleMonsters['witch'] = witch
 
 --Graveyard creatures:
 
@@ -639,7 +640,7 @@ local vampireHero = {
   possible_inventory={{item="blood",chance=100,amount=5}},
   spell_purchases={{spell="batform",level=1,point_cost=3,upgrade_stat="upgrade_points_vampirism"}, {spell="auraoffear",level=5,point_cost=1,upgrade_stat="upgrade_points_vampirism"}, {spell="outforblood",level=3,point_cost=1,upgrade_stat="upgrade_points_vampirism"}},
   hit_conditions={{condition="bleeding",crit_chance=100,turns=5}},
-  favor={lightchurch=-1000}, --List of favor scores the character starts with
+  reputation={lightchurch=-1000}, --List of favor scores the character starts with
   nameType = "human",
   max_hp = 50,
   level = 1,

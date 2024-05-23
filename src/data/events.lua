@@ -5,7 +5,7 @@ local demons_demonattack = {
   event_type="random",
   faction="demons", --The faction this event is associated with
   faction_members_only=false, --The event will only occur if the player is a member of the faction
-  max_favor=-10, --This event will only occur if the player's favor is below this value
+  max_reputation=-10, --This event will only occur if the player's reputation is below this value
   chance=10, --% chance that this event will actually occur when it comes up
   cooldown = 100, --If this event occurs, this many turns will pass before another event can. There are separate cooldowns for each faction, and for non-faction events
   action = function()
@@ -37,7 +37,7 @@ possibleEvents['demons_demonattack'] = demons_demonattack
 local angels_blessing = {
   event_type="random",
   faction="angels",
-  min_favor=10, --This event will only occur if the player's favor is above this value
+  min_reputation=10, --This event will only occur if the player's reputation is above this value
   chance=10, --% chance that this event will actually occur when it comes up
   max_occurances=2, --This event will only occur this many times. Optional, if blank can occur an infinite number of times
   cooldown=50,
@@ -60,14 +60,14 @@ local town_guards = {
   tags={}, --The map and branch tags this event can occur on
   chance=10,
   requires = function()
-    if player.favor.town and player.favor.town > -2 then
+    if player.reputation.town and player.reputation.town > -2 then
       return false
     end
     return true
   end,
   action = function()
     output:out("Guards were waiting in ambush for you!")
-    local guards = math.max(math.ceil(math.abs((player.favor.village or 0))/10),2)
+    local guards = math.max(math.ceil(math.abs((player.reputation.village or 0))/10),2)
     local tries = 0
     for i=1,guards,1 do
       local placed = false

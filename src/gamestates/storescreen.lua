@@ -80,9 +80,9 @@ function storescreen:draw()
   local reasonText = nil
   
   if self.faction then
-    if self.faction.enter_threshold and (player.favor[self.faction.id] or 0) < self.faction.enter_threshold then
+    if self.faction.enter_threshold and (player.reputation[self.faction.id] or 0) < self.faction.enter_threshold then
       canEnter = false
-      reasonText = "Your favor with " .. self.faction.name .. " is too low to enter this store."
+      reasonText = "Your reputation with " .. self.faction.name .. " is too low to enter this store."
     end
   end
   if canEnter and possibleStores[storeID].enter_requires then

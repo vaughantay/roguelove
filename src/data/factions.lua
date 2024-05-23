@@ -9,20 +9,21 @@ possibleFactions['lightchurch'] = {
   enemy_types = {"demon","undead"}, --Creature types this faction will always attack
   friendly_factions = {"grievers","angels"}, --Factions whose members this faction will not attack
   enemy_factions = {"chaos","demons"}, --Factions whose members this faction will always attack
-  kill_favor_tags = {evil=2,unholy=2,holy=-5}, --Favor granted for killing certain creature tags. Note: favor gain doesn't stack if a creature matches multiple categories. The biggest loss is subtracted from the biggest gain (as applicable)
   kill_favor_types = {demon=2,undead=1,angel=-10}, --Favor granted for killing certain creature types
   kill_favor_factions = {lightchurch=-5}, --Favor granted for killing members of certain factions
+  kill_reputation_types = {demon=2,undead=1,angel=-10}, --Reputation granted for killing certain creature types
+  kill_reputation_factions = {lightchurch=-5}, --Reputation granted for killing members of certain factions
   attack_all_neutral = false, --Whether or not this faction attacks non-player characters who aren't explicitly friends. By default, they'll attack only enemy NPCs
   attack_own_faction = false, --Whether or not members of this faction will attack each other
-  always_attack_player = false, --If set to true, this faction will always be hostile to the player regardless of faction membership or favor
+  always_attack_player = false, --If set to true, this faction will always be hostile to the player regardless of faction membership or reputaton
   attack_enemy_player_only = true, --If set to true, this faction is only hostile to the player if they're explicitly considered an enemy. If false, they'll be hostile to the player if they're not a friend
-  hostile_threshold = -50, --The amount of favor below which the player is treated as an enemy. If left blank, the player will always be considered an enemy unless something else marks them as a friend (like faction membership or favor meeting the friendly_threshold)
-  friendly_threshold = 100, --The amount of favor above which the player is treated as a friend. If left blank, this faction will never consider the player a friend based on favor alone (they'll still be treated as a friend due to faction membership, unless always_attack_player is true)
-  enter_threshold = 0, --The amount of favor below which you're not allowed to do business with the faction
-  join_threshold = 100, --The amount of favor you need to be eligible to join the faction
-  banish_threshold=0, --If your favor falls below this, you'll be kicked out of the faction
+  hostile_threshold = -50, --The amount of reputation below which the player is treated as an enemy. If left blank, the player will always be considered an enemy unless something else marks them as a friend (like faction membership or reputation meeting the friendly_threshold)
+  friendly_threshold = 100, --The amount of reputatin above which the player is treated as a friend. If left blank, this faction will never consider the player a friend based on reputation alone (they'll still be treated as a friend due to faction membership, unless always_attack_player is true)
+  enter_threshold = 0, --The amount of reputation below which you're not allowed to do business with the faction
+  join_threshold = 100, --The amount of reputation you need to be eligible to join the faction
+  banish_threshold=0, --If your reputation falls below this, you'll be kicked out of the faction
   faction_cost_modifiers={lightchurch=-10,grievers=-5}, --table of percentages by which monetary (not favor!) costs of goods and services are increased/decreased based on faction membership. Does not stack with multiple factions; the highest absolute value is used. Does stack with favor cost modifier.
-  favor_cost_modifiers={[0]=10,[50]=0,[100]=-5,[150]=-10,[200]=-15}, --table of percentages by which monetary (not favor!) costs of goods and services are increased/decreased based on favor with this faction. Stacks with faction cost modifier. The highest absolute value is used.
+  reputation_cost_modifiers={[0]=10,[50]=0,[100]=-5,[150]=-10,[200]=-15}, --table of percentages by which monetary (not favor!) costs of goods and services are increased/decreased based on reputation with this faction. Stacks with faction cost modifier. The highest absolute value is used.
   sells_items = {{item="holywater",favorCost=5,moneyCost=50,amount=10,restock_amount=2,restock_to=5}, {item="dagger",favorCost=250,amount=1,membersOnly=true,artifact=true},{item="dagger",favorCost=10,amount=5,enchantments={"blessed"}},{item="scroll",favorCost=1,moneyCost=5,amount=5,restock_amount=1}}, --pre-defined items that this faction sells to friendly players
   sells_tags = {"holy"}, --Tags for randomly-generated items that will be sold by the shop
   passedTags = {"holy"}, --These tags will be given priority for enchantments applied to items, and passed to items to do with what they will (ex: scrolls, to put preference on spells with these tags)
@@ -68,14 +69,16 @@ possibleFactions['grievers'] = {
   friendly_factions = {"lightchurch"}, --Factions whose members this faction will not attack
   kill_favor_types = {undead=2}, --Favor granted for killing certain creature types
   kill_favor_factions = {grievers=-5}, --Favor granted for killing members of certain factions
+  kill_reputation_types = {undead=2}, --Reputation granted for killing certain creature types
+  kill_reputation_factions = {grievers=-5}, --Reputation granted for killing members of certain factions
   attack_all_neutral = false, --Whether or not this faction everyone who isn't explicitly a friend. By default, they'll attack only enemies
   attack_own_faction = false, --Whether or not members of this faction will attack each other
-  always_attack_player = false, --If set to true, this faction will always be hostile to the player regardless of faction membership or favor
+  always_attack_player = false, --If set to true, this faction will always be hostile to the player regardless of faction membership or reputation
   attack_enemy_player_only = true, --If set to true, this faction is only hostile to the player if they're explicitly considered an enemy. If false, they'll be hostile to the player if they're not a friend
-  hostile_threshold = 0, --The amount of favor below which the player is treated as an enemy. If left blank, the player will always be considered an enemy unless something else marks them as a friend (like faction membership or favor meeting the friendly_threshold)
-  friendly_threshold = 10, --The amount of favor above which the player is treated as a friend. If left blank, this faction will never consider the player a friend based on favor alone (they'll still be treated as a friend due to faction membership, unless always_attack_player is true)
-  enter_threshold = 0, --The amount of favor below which you're not allowed to do business with the faction
-  join_threshold = 25, --The amount of favor you need to be eligible to join the faction
+  hostile_threshold = 0, --The amount of reputation below which the player is treated as an enemy. If left blank, the player will always be considered an enemy unless something else marks them as a friend (like faction membership or reputation meeting the friendly_threshold)
+  friendly_threshold = 10, --The amount of reputation above which the player is treated as a friend. If left blank, this faction will never consider the player a friend based on reputation alone (they'll still be treated as a friend due to faction membership, unless always_attack_player is true)
+  enter_threshold = 0, --The amount of reputation below which you're not allowed to do business with the faction
+  join_threshold = 25, --The amount of reputation you need to be eligible to join the faction
   sells_items = {{item="holywater",favorCost=5,moneyCost=50}}, --items that this faction sells to friendly players
 }
 
@@ -88,15 +91,19 @@ possibleFactions['barbariangod'] = {
   enter_text = "Bow to", --The text that will display for interacting with this faction
   multiple_locations = true, --If set to true, this faction can spawn in multiple locations. Otherwise, will only spawn on one map per game
   kill_favor = 1, --Gain/lose this much favor on any kill
+  kill_reputation = 1, --Gain/lose this much reputation on any kill
   favor_decay_turns=10, --Favor with this faction will decrease by 1 after this many turns
   favor_decay=1, --The amount of favor to lose when favor_decay-turns ticks around. Optional, defaults to 1
-  favor_decay_floor=-100, --The lowest value to which favor will decay over time. Optional, if blank there is no floor
+  reputation_decay_turns=10, --Reputation with this faction will decrease by 1 after this many turns
+  reputation_decay=1, --The amount of reputation to lose when reputation_decay-turns ticks around. Optional, defaults to 1
+  reputation_decay_floor=-100, --The lowest value to which favor will decay over time. Optional, if blank there is no floor
   members_only_favor=true, --If this is true, you can only gain/lose favor with this faction if you're a member
+  members_only_reputation=true, --If this is true, you can only gain/lose reputation with this faction if you're a member
   attack_all_neutral = true, --Whether or not this faction attacks non-player characters who aren't explicitly friends. By default, they'll attack only enemy NPCs
   attack_own_faction = true, --Whether or not members of this faction will attack each other
-  always_attack_player = true, --If set to true, this faction will always be hostile to the player regardless of faction membership or favor
-  enter_threshold = -1000, --The amount of favor below which you're not allowed to do business with the faction
-  join_threshold = -1000, --The amount of favor you need to be eligible to join the faction
+  always_attack_player = true, --If set to true, this faction will always be hostile to the player regardless of faction membership or reputation
+  enter_threshold = -1000, --The amount of reputation below which you're not allowed to do business with the faction
+  join_threshold = -1000, --The amount of reputation you need to be eligible to join the faction
   money_per_favor = 20, --When buying non-predefined items, divide the item's value by this number to get the favor paid (rounded down)
   only_pays_favor = true, --When buying non-predefined items, don't pay money for them, just favor
   teaches_spells = {}, --spells that this faction teaches to friendly players
@@ -125,7 +132,7 @@ possibleFactions['demons'] = {
   name = "The Hosts of Hell",
   description = "While Hell is politically fragmented, demons generally refrain from attacking each other if other enemies are present.",
   enemy_factions = {"angels"}, --Factions whose members this faction will always attack
-  kill_favor_types = {angel=2,demon=-5}, --Favor granted for killing certain creature types
+  kill_reputation_types = {angel=2,demon=-5}, --reputation granted for killing certain creature types
   no_hq = true,
   never_join = true
 }
@@ -136,7 +143,7 @@ possibleFactions['angels'] = {
   friendly_factions = {"lightchurch"}, --Factions this faction will not attack
   enemy_factions = {"demons","chaos"}, --Factions whose members this faction will always attack
   enemy_types = {"demon","undead"}, --Creature types this faction will always attack
-  kill_favor_types = {demon=5,angel=-10}, --Favor granted for killing certain creature types
+  kill_reputation_types = {demon=5,angel=-10}, --reputation granted for killing certain creature types
   no_hq = true,
   never_join = true
 }
@@ -150,9 +157,9 @@ possibleFactions['village'] = {
   attack_enemy_player_only = true,
   hostile_threshold = 0,
   friendly_threshold = -1,
-  kill_favor_factions = {village=-1},
+  kill_reputation_factions = {village=-1},
   faction_cost_modifiers={lightchurch=-5,grievers=-5},
-  favor_cost_modifiers={[-25]=20,[-10]=10,[0]=0},
+  reputation_cost_modifiers={[-25]=20,[-10]=10,[0]=0},
   enter_threshold=-25
 }
 

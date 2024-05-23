@@ -13,7 +13,7 @@ playerClasses = {
   holywarrior = {
     name="Holy Warrior",
     description="A holy warrior dedicated to the eradication of evil.",
-    favor={lightchurch=500,angels=100,demons=-100}, --List of favor scores the character starts with
+    reputation={lightchurch=500,angels=100,demons=-100}, --List of reputation scores the character starts with
     skills={strength=2,agility=2,toughness=2,melee=5,ranged=5,theology=5}, --The skills that this character will start with (in addition to default skills)
     factions={"lightchurch"}, --List of factions the character begins as a member of
     spells={}, --These are spells the character will start with
@@ -52,7 +52,7 @@ playerClasses = {
     spells={"passiverage"}, --These are spells the character will start with
     learns_spells={{spell="auraoffear",level=5}}, --These spells will be automatically granted once a certain level is reached
     spell_purchases={{spell="activerage"},{spell="yawp"},{spell="ragefulsmack"}},
-    favor={village=-1,barbariangod=100}, --List of favor scores the character starts with
+    reputation={village=-1,barbariangod=100}, --List of reputation scores the character starts with
     factions={"barbariangod"}, --List of factions the character begins as a member of
     stat_modifiers={max_hp=25,armor=2}, --These values will be added to the characters' base stats
     skills_per_level={strength=2}, --Stat increase per level
@@ -73,7 +73,7 @@ playerClasses = {
   demonologist = {
     name="Demonologist",
     description="Studies those pesky demons.",
-    favor={lightchurch=-25}, --List of favor scores the character starts with
+    reputation={lightchurch=-25}, --List of reputation scores the character starts with
     skills={agility=1,toughness=1,melee=5,ranged=5,demonology=1}, --The skills that this character will start with (in addition to default skills)
     spells={"demondamager"}, --These Fare spells the character will start with
     items={{item="holywater"},{item="bloodextractor"},{item="soul",amount=2},{item="demonblood"},{item="healthpotionminor",amount=2}}, --These items will be granted on game start
@@ -101,7 +101,7 @@ playerClasses = {
     name="Pyromancer",
     description="A fire-obsessed wizard.",
     resistances={fire=25}, --These will be added the the characters' base resistances
-    favor={lightchurch=-10}, --List of favor scores the character starts with
+    reputation={lightchurch=-10}, --List of reputation scores the character starts with
     skills={melee=3,ranged=5,magic=10,strength=-1,agility=1,toughness=1}, --The skills that this character will start with (in addition to default skills)
     items={}, --These items will be granted on game start
     spells={"smallfireball",'fireaura'},
@@ -116,7 +116,7 @@ playerClasses = {
     name="Necromancer",
     description="A death-obsessed wizard.",
     resistances={unholy=10}, --These will be added the the characters' base resistances
-    favor={lightchurch=-100}, --List of favor scores the character starts with
+    reputation={lightchurch=-100}, --List of reputation scores the character starts with
     skills={strength=-2,toughness=-1,agility=1,ranged=2,magic=15}, --The skills that this character will start with (in addition to default skills)
     items={{item="spellbook",passed_info={'necromancy'},displayName = "Necromancy Spellbook"}}, --These items will be granted on game start
     spells={'lifedrain'}, --These are spells the character will start with

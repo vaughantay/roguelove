@@ -342,25 +342,25 @@ function characterscreen:draw()
       for _,fid in ipairs(player.factions) do
         memberFacs[fid] = true
         local fac = currWorld.factions[fid]
-        local facText = fac.name .. ": " .. (player.favor[fid] or 0) .. " Favor"
+        local facText = fac.name .. " Reputation: " .. (player.reputation[fid] or 0)
         love.graphics.print(facText,padding,printY)
         local _,tlines = fonts.textFont:getWrap(facText,math.floor(width/uiScale)-padding*2)
         printY = printY + round((#tlines+0.5)*fontSize)
       end
       printY = printY + fontSize*2
     end
-    love.graphics.printf("Faction Favor: ",padding,printY,math.floor(width/uiScale)-padding,"center")
+    love.graphics.printf("Known Factions: ",padding,printY,math.floor(width/uiScale)-padding,"center")
     printY = printY + fontSize
-    for fid,favor in pairs(player.favor) do
-      local fac = currWorld.factions[fid]
-      if not memberFacs[fid] and not fac.hidden then
+    
+    for fid,fac in pairs(currWorld.factions) do
+      if not memberFacs[fid] and not fac.hidden and fac.contacted then
         local attitude = (fac:is_enemy(player) and "Hostile" or (fac:is_friend(player) and "Friendly" or "Neutral"))
-        local facText = fac.name .. ": " .. (player.favor[fid] or 0) .. " Favor (" .. attitude .. ")"
+        local facText = fac.name .. " - Reputation: " .. (player.reputation[fid] or 0) .. " (" .. attitude .. "), Favor: " .. (player.favor[fid] or 0)
         love.graphics.printf(facText,padding,printY,math.floor(width/uiScale)-padding*2)
         local _,tlines = fonts.textFont:getWrap(facText,math.floor(width/uiScale)-padding*2)
         printY = printY + round((#tlines+0.5)*fontSize)
       end
-    end --end favor for
+    end --end reputation for
     lastY = printY
   elseif self.screen == "missions" then
     love.graphics.printf("Active Missions: ",padding,printY,math.floor(width/uiScale)-padding*2,"center")

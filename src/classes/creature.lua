@@ -58,6 +58,7 @@ function Creature:init(creatureType,level,tags,info,noTweak,ignoreNewFunc) --TOD
   self.known_recipes = self.known_recipes or {}
   self.forbidden_spell_tags = self.forbidden_spell_tags or self.forbidden_tags or {}
   self.forbidden_item_tags = self.forbidden_item_tags or self.forbidden_tags or {}
+  self.reputation = self.reputation or {}
   self.favor = self.favor or {}
   self.factions = self.factions or {}
   self.types = self.types or {}
@@ -250,17 +251,17 @@ function Creature:generate_inventory(source,tags)
   end
 end
 
----Applies a class definition to a creature, granting it that class's starting favor, spells, factions and items
+---Applies a class definition to a creature, granting it that class's starting reputation, spells, factions and items
 --@param classID String. The ID of the class to apply
 function Creature:apply_class(classID)
   local class = playerClasses[classID]
   self.class = classID
   self.name = self.name .. " " .. class.name
-  if class.favor then
-    for faction,favor in pairs(class.favor) do
-      self.favor[faction] = (self.favor[faction] or 0) + favor
+  if class.reputation then
+    for faction,reputation in pairs(class.reputation) do
+      self.reputation[faction] = (self.reputation[faction] or 0) + reputation
     end
-  end --end favor if
+  end --end reputation if
   if class.factions then
     for _,faction in ipairs(class.factions) do
       if not self:is_faction_member(faction) then
@@ -1605,7 +1606,7 @@ function Creature:die(killer,silent)
         self.killer.master:callbacks('ally_kills',self,killer)
       end
     
-      --Give/Remove Favor:
+      --Give/Remove Favor and Reputation:
       local favor = self:get_kill_favor()
       for fac,favor in pairs(favor) do
         local member = self.killer:is_faction_member(fac)
@@ -1614,13 +1615,23 @@ function Creature:die(killer,silent)
           if self.killer.playerAlly == true and favor ~= 0 then
             output:out("You " .. (favor > 0 and "gain " or "lose ") .. math.abs(favor) .. " favor with " .. currWorld.factions[fac].name .. ".")
           end
-          if currWorld.factions[fac].banish_threshold and member and self.killer.favor[fac] < currWorld.factions[fac].banish_threshold then
+        end --end if member/members only favor
+      end --end faction for
+      local reputation = self:get_kill_reputation()
+      for fac,reputation in pairs(reputation) do
+        local member = self.killer:is_faction_member(fac)
+        if not currWorld.factions[fac].members_only_reputation or member then
+          self.killer.reputation[fac] = (self.killer.reputation[fac] or 0) + reputation
+          if self.killer.playerAlly == true and reputation ~= 0 then
+            output:out("You " .. (reputation > 0 and "gain " or "lose ") .. math.abs(reputation) .. " reputation with " .. currWorld.factions[fac].name .. ".")
+          end
+          if currWorld.factions[fac].banish_threshold and member and self.killer.reputation[fac] < currWorld.factions[fac].banish_threshold then
             currWorld.factions[fac]:leave(self.killer)
             if self.killer.playerAlly == true  then
               output:out("You are kicked out of " .. currWorld.factions[fac].name .. "!")
             end
-          end --end banich favor if
-        end --end if member/members only favor
+          end --end banish reputation if
+        end --end if member/members only reputation
       end --end faction for
       self.killer:decrease_all_conditions('kill')
     elseif seen then --killed by something other than a creature
@@ -2511,19 +2522,6 @@ function Creature:get_kill_favor()
         end --end if kill_favor_types if
       end --end self.types for
     end --end if faction.kill_favor_types
-    --Favor for killing a creature with these tags:
-    if self.tags and faction.kill_favor_tags then
-      for _,tag in pairs(self.tags) do
-        if faction.kill_favor_tags[tag] then
-          local newFavor = faction.kill_favor_tags[tag]
-          if (newFavor > 0 and favorMax[fid] < newFavor) then
-            favorMax[fid] = newFavor
-          elseif (newFavor < 0 and favorMin[fid] > newFavor) then
-            favorMin[fid] = newFavor 
-          end
-        end --end if kill_favor_tags if
-      end --end self.tags for
-    end --end if self.tags
     --Favor for killing creatures of this faction:
     if self.factions and faction.kill_favor_factions then
       for _,fac in pairs(self.factions) do
@@ -2540,6 +2538,59 @@ function Creature:get_kill_favor()
     favor[fid] = favorMax[fid]+favorMin[fid]
   end --end faction for
   return favor
+end
+
+---Gets the reputation you get for killing this creature.
+--@return Table. A table of factions, and the reputation scores
+function Creature:get_kill_reputation()
+  local reputation = {}
+  local reputationMax = {}
+  local reputationMin = {}
+  --Kill reputation defined in the creature definition itself:
+  if self.kill_reputation then
+    for faction,score in pairs(self.kill_reputation) do
+      reputation[faction] = (reputation[faction] or 0) + score
+      if score > 0 then reputationMax[faction] = score
+      else reputationMin[faction] = score end
+    end
+  end --end if self.kill_reputation
+  --Next, loop through all the factions in the game to look at their kill_reputation stats
+  for fid,faction in pairs(currWorld.factions) do
+    reputationMax[fid] = reputationMax[fid] or 0
+    reputationMin[fid] = reputationMin[fid] or 0
+    if faction.kill_reputation then --If the faction has a straight reputation score for killing anything
+      if faction.kill_reputation > 0 then reputationMax[fid] = faction.kill_reputation
+      else reputationMin[fid] = faction.kill_reputation end
+    end
+    --reputation for killing this type of creature:
+    if faction.kill_reputation_types then
+      for _,typ in pairs(self:get_types(true)) do
+        if faction.kill_reputation_types[typ] then
+          local newreputation = faction.kill_reputation_types[typ]
+          if (newreputation > 0 and reputationMax[fid] < newreputation) then
+            reputationMax[fid] = newreputation
+          elseif (newreputation < 0 and reputationMin[fid] > newreputation) then
+            reputationMin[fid] = newreputation 
+          end
+        end --end if kill_reputation_types if
+      end --end self.types for
+    end --end if faction.kill_reputation_types
+    --reputation for killing creatures of this faction:
+    if self.factions and faction.kill_reputation_factions then
+      for _,fac in pairs(self.factions) do
+        if faction.kill_reputation_factions[fac] then
+          local newreputation = faction.kill_reputation_factions[fac]
+          if (newreputation > 0 and reputationMax[fid] < newreputation) then
+            reputationMax[fid] = newreputation
+          elseif (newreputation < 0 and reputationMin[fid] > newreputation) then
+            reputationMin[fid] = newreputation 
+          end
+        end --end if faction.kill_reputation_factions
+      end --end self.factions for
+    end --end if self.factions
+    reputation[fid] = reputationMax[fid]+reputationMin[fid]
+  end --end faction for
+  return reputation
 end
 
 
@@ -4189,7 +4240,7 @@ function Creature:undo_transformation()
   currMap:add_creature(oldBody,x,y)
 end
 
----Permanently evolve into another creature. It uses the initial creature as a base, and changes it to keep the highest value of skills, stats, and favor. Factions membership, spells, and favor are combined, and AI-related stuff is overwritten. Generally will be a net positive. This is differentiated from Creature:transform(), which leaves the original creature intact but effectively creates a new body and moves some limited information over to it.
+---Permanently evolve into another creature. It uses the initial creature as a base, and changes it to keep the highest value of skills, stats, reputation, and favor. Factions membership, spells, reputation, and favor are combined, and AI-related stuff is overwritten. Generally will be a net positive. This is differentiated from Creature:transform(), which leaves the original creature intact but effectively creates a new body and moves some limited information over to it.
 --@param creature Creature or string. The creature to transform into, or the creature ID if a string
 --@param info Anything. Info to pass to the new() function of the new creature
 --@param include_items Boolean. Whether or not to keep the items and equipment the new creature would normally spawn with
@@ -4329,6 +4380,9 @@ function Creature:evolve(newCreature,info,include_items)
   end
   for faction,favor in pairs(newCreature.favor) do
     self.favor[faction] = (newCreature.favor[faction] or 0)+favor
+  end
+  for faction,reputation in pairs(newCreature.reputation) do
+    self.reputation[faction] = (newCreature.reputation[faction] or 0)+reputation
   end
   if newCreature.enemy_factions then
     self.enemy_factions = newCreature.enemy_factions or {}

@@ -61,8 +61,9 @@ function factionscreen:draw()
   --Basic header display:
   love.graphics.printf(faction.name,printX,padding,windowWidth,"center")
   local printY = padding+fontSize*2
+  local reputation = (player.reputation[factionID] or 0)
   local favor = (player.favor[factionID] or 0)
-  love.graphics.printf("Your Favor: " .. favor,printX,printY,windowWidth,"center")
+  love.graphics.printf("Your Reputation: " .. reputation,printX,printY,windowWidth,"center")
   printY = printY+fontSize
   --Relationship text:
   local relationship = nil
@@ -118,7 +119,7 @@ function factionscreen:draw()
     printY=printY+#wrappedtext*fontSize
   end
   
-  if not faction.enter_threshold or ((player.favor[factionID] or 0) >= faction.enter_threshold) then
+  if not faction.enter_threshold or ((player.reputation[factionID] or 0) >= faction.enter_threshold) then
     printY=printY+fontSize
     local padX = 8
     local infobuttonW = fonts.buttonFont:getWidth("Information")+padding
@@ -153,8 +154,8 @@ function factionscreen:draw()
     if self.screen == "Missions" then setColor(255,255,255,255) end
     printY = printY+padX
   else
-    local _, wrappedtext = fonts.textFont:getWrap("You need more than " .. faction.enter_threshold .. " favor to do business with this faction.", windowWidth)
-    love.graphics.printf("You need more than " .. faction.enter_threshold .. " favor to do business with this faction.",printX,printY,windowWidth,"center")
+    local _, wrappedtext = fonts.textFont:getWrap("You need a reputation higher than " .. faction.enter_threshold .. " to do business with this faction.", windowWidth)
+    love.graphics.printf("You need reputation higher than " .. faction.enter_threshold .. " to do business with this faction.",printX,printY,windowWidth,"center")
     printY=printY+(#wrappedtext)*fontSize-math.ceil(padding/2)
   end
   printY=printY+padding
@@ -218,6 +219,28 @@ function factionscreen:draw()
       local _, wrappedtext = fonts.textFont:getWrap(enemyText, maxW)
       printY=printY+(#wrappedtext+1)*fontSize
     end
+    if faction.kill_reputation_factions or faction.kill_reputation_types then
+      love.graphics.printf("Kill Reputation:",printX,printY,maxW,"center")
+      printY=printY+fontSize
+      if faction.kill_reputation_factions then
+        local killtext = ""
+        for fac,reputation in pairs(faction.kill_reputation_factions) do
+          killtext = killtext .. (reputation > 0 and "+" or "") .. reputation .. ": members of " .. currWorld.factions[fac].name .. "\n"
+        end
+        love.graphics.printf(killtext,printX,printY,maxW,"left")
+        local _, wrappedtext = fonts.textFont:getWrap(killtext, maxW)
+        printY=printY+(#wrappedtext)*fontSize
+      end --end kill_reputation faction if
+      if faction.kill_reputation_types then
+        local killtext = ""
+        for typ,reputation in pairs(faction.kill_reputation_types) do
+          killtext = killtext .. (reputation > 0 and "+" or "") .. reputation .. ": creatures of type " .. (creatureTypes[typ] and creatureTypes[typ].name or ucfirst(typ)) .. "\n"
+        end
+        love.graphics.printf(killtext,printX,printY,maxW,"left")
+        local _, wrappedtext = fonts.textFont:getWrap(killtext, maxW)
+        printY=printY+(#wrappedtext+1)*fontSize
+      end --end kill_reputation type if
+    end --end if kill reputation anyhwere
     if faction.kill_favor_factions or faction.kill_favor_types then
       love.graphics.printf("Kill Favor:",printX,printY,maxW,"center")
       printY=printY+fontSize
@@ -282,7 +305,7 @@ function factionscreen:draw()
       local nameMaxLen = priceX-nameX
       local lastY = 0
       local descrItem = nil
-      local costLine = "Cost: " .. self:get_cost_text(self.totalCost.money) .. " (You have " .. player.money .. "), " .. self.totalCost.favor .. " Favor. "
+      local costLine = "Cost: " .. self:get_cost_text(self.totalCost.money) .. " (have " .. player.money .. "), " .. self.totalCost.favor .. " Favor (have " .. favor .. "). "
       local costlineW = fonts.textFont:getWidth(costLine)
       love.graphics.print(costLine,buyButtonX-costlineW,printY+4)
       if self.totalCost.money > player.money or self.totalCost.favor > favor then
