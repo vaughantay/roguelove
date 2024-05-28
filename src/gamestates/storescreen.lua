@@ -98,6 +98,7 @@ function storescreen:draw()
     local sellbuttonW = fonts.buttonFont:getWidth("Selling")+padding
     local servicebuttonW = fonts.buttonFont:getWidth("Services")+padding
     local spellbuttonW = fonts.buttonFont:getWidth("Skills/Abilities")+padding
+    local missionbuttonW = fonts.buttonFont:getWidth("Missions")+padding
     local biggestButton = math.max(buybuttonW,sellbuttonW,servicebuttonW,spellbuttonW)
     buybuttonW,sellbuttonW,servicebuttonW,spellbuttonW= biggestButton,biggestButton,biggestButton,biggestButton
     local totalButtons = (self.store.noBuy and 1 or 2)
@@ -108,16 +109,21 @@ function storescreen:draw()
     if (self.store.teaches_spells and count(self.store.teaches_spells) > 0) or (self.store.teaches_skills and count(self.store.teaches_skills) > 0) then
       totalButtons = totalButtons+1
     end
+    if self.store.offers_missions and count(self.store.offers_missions) > 0 then
+      totalButtons = totalButtons+1
+    end
     local buttonX = windowX+math.floor(windowWidth/2-padding-(totalButtons/2)*biggestButton)+padding
     if self.screen == "Buy" then setColor(150,150,150,255) end
     self.buyButton = output:button(buttonX-padX,printY,buybuttonW+padX,false,((self.cursorX == 1 and self.cursorY == 1) and "hover" or nil),"Buying",true)
     self.navButtons[#self.navButtons+1] = self.buyButton
+    self.buyButton.cursorX = #self.navButtons
     buttonX=buttonX+buybuttonW+padX
     if self.screen == "Buy" then setColor(255,255,255,255) end
     if not self.store.noBuy then
       if self.screen == "Sell" then setColor(150,150,150,255) end
       self.sellButton = output:button(buttonX,printY,sellbuttonW,false,((self.cursorX == 2 and self.cursorY == 1) and "hover" or nil),"Selling",true)
       self.navButtons[#self.navButtons+1] = self.sellButton
+      self.sellButton.cursorX = #self.navButtons
       buttonX=buttonX+sellbuttonW+padX
       if self.screen == "Sell" then setColor(255,255,255,255) end
     end
@@ -125,6 +131,7 @@ function storescreen:draw()
       if self.screen == "Services" then setColor(150,150,150,255) end
       self.serviceButton = output:button(buttonX,printY,servicebuttonW,false,((self.cursorX == #self.navButtons+1 and self.cursorY == 1) and "hover" or nil),"Services",true)
       self.navButtons[#self.navButtons+1] = self.serviceButton
+      self.serviceButton.cursorX = #self.navButtons
       buttonX=buttonX+servicebuttonW+padX
       if self.screen == "Services" then setColor(255,255,255,255) end
     end
@@ -132,9 +139,18 @@ function storescreen:draw()
       if self.screen == "Spells" then setColor(150,150,150,255) end
       self.spellsButton = output:button(buttonX,printY,spellbuttonW,false,((self.cursorX == #self.navButtons+1 and self.cursorY == 1) and "hover" or nil),"Skills/Abilities",true)
       self.navButtons[#self.navButtons+1] = self.spellsButton
+      self.spellsButton.cursorX = #self.navButtons
       buttonX=buttonX+spellbuttonW+padX
       if self.screen == "Spells" then setColor(255,255,255,255) end
     end
+    if self.store.offers_missions and count(self.store.offers_missions) > 0 then
+     if self.screen == "Missions" then setColor(150,150,150,255) end
+    self.missionButton = output:button(buttonX,printY,missionbuttonW,false,((self.cursorX == #self.navButtons+1 and self.cursorY == 1) and "hover" or nil),"Missions",true)
+    self.navButtons[#self.navButtons+1] = self.missionButton
+    self.missionButton.cursorX = #self.navButtons
+    buttonX=buttonX+missionbuttonW+padX
+    if self.screen == "Missions" then setColor(255,255,255,255) end
+  end
     printY = printY+padding
   end
   printY=printY+8
@@ -584,6 +600,90 @@ function storescreen:draw()
     else
       self.scrollMax = 0
     end
+  elseif self.screen == "Missions" then
+    self.missionButtons = {}
+    local missionCount = 0
+    local missions = self.store.offers_missions or {}
+    local lastY = 0
+    local listStartY = printY
+    
+    --Drawing the text:
+    love.graphics.push()
+    --Create a "stencil" that stops 
+    local function stencilFunc()
+      love.graphics.rectangle("fill",windowX,listStartY,windowWidth+padding,height-listStartY)
+    end
+    love.graphics.stencil(stencilFunc,"replace",1)
+    love.graphics.setStencilTest("greater",0)
+    love.graphics.translate(0,-self.scrollY)
+    for i, mData in ipairs(missions) do
+      local missionID = mData.mission
+      local active = currGame.missionStatus[missionID]
+      local mission = possibleMissions[missionID]
+      if possibleMissions[missionID] and (not currGame.finishedMissions[missionID] or (mission.repeatable and (not mission.repeat_limit or currGame.finishedMissions[missionID].repetitions < mission.repeat_limit)))  then
+        missionCount = missionCount+1
+        local missionText = mission.name .. "\n" .. (get_mission_data(missionID,'description') or mission.description)
+        local __, wrappedtext = fonts.textFont:getWrap(missionText, windowWidth)
+        love.graphics.printf(missionText,windowX,printY,windowWidth,"center")
+        printY=math.ceil(printY+(#wrappedtext+0.5)*fontSize)
+        if active then
+          local canFinish,canFinishText = nil,nil
+          if mission.can_finish then
+            canFinish,canFinishText = mission:can_finish(player)
+          end
+          if not canFinish then
+            canFinishText = "You are currently on this mission" .. (canFinishText and ". " .. canFinishText or ".")
+            local __, wrappedtext = fonts.textFont:getWrap(canFinishText, windowWidth)
+            love.graphics.printf(canFinishText,windowX,printY,windowWidth,"center")
+            printY=printY+(#wrappedtext+1)*fontSize
+            self.missionButtons[#self.missionButtons+1] = false
+          else
+            local serviceW = fonts.buttonFont:getWidth("Finish")+padding
+            local buttonX = math.floor(midX-serviceW/2)
+            local buttonHi = false
+            if mouseX > buttonX and mouseX < buttonX+serviceW and mouseY > printY-self.scrollY and mouseY < printY+32-self.scrollY then
+              buttonHi = true
+            end
+            local button = output:button(buttonX,printY,serviceW,false,((buttonHi or self.cursorY == 1+i) and "hover" or false),"Finish",true)
+            self.missionButtons[#self.missionButtons+1] = button
+            printY=printY+32+fontSize
+          end
+        else --Not active mission
+          local canDo,canDoText = (not mission.requires or mission:requires(player))
+          if canDo == false then
+            canDoText = "You're not eligible for this mission" .. (canDoText and ": " .. canDoText or ".")
+            local __, wrappedtext = fonts.textFont:getWrap(canDoText, windowWidth)
+            love.graphics.printf(canDoText,windowX,printY,windowWidth,"center")
+            printY=printY+(#wrappedtext+1)*fontSize
+            self.missionButtons[#self.missionButtons+1] = false
+          else
+            local serviceW = fonts.buttonFont:getWidth("Accept")+padding
+            local buttonX = math.floor(midX-serviceW/2)
+            local buttonHi = false
+            if mouseX > buttonX and mouseX < buttonX+serviceW and mouseY > printY-self.scrollY and mouseY < printY+32-self.scrollY then
+              buttonHi = true
+            end
+            local button = output:button(buttonX,printY,serviceW,false,((buttonHi or self.cursorY == 1+i) and "hover" or false),"Accept",true)
+            self.missionButtons[#self.missionButtons+1] = button
+            printY=printY+32+fontSize
+          end
+          lastY = printY
+        end --end active mission or not if
+      end
+    end
+    if missionCount == 0 then
+      love.graphics.printf("There are currently no missions available.",windowX,printY,windowWidth,"center")
+    end
+    love.graphics.setStencilTest()
+    love.graphics.pop()
+    --Scrollbars
+    if lastY*uiScale > height-padding then
+      self.scrollMax = math.ceil((lastY-(listStartY+(height/uiScale-listStartY))+padding))
+      local scrollAmt = self.scrollY/self.scrollMax
+      self.scrollPositions = output:scrollbar(windowX+windowWidth,listStartY,math.floor((height-padding)/uiScale),scrollAmt,true)
+    else
+      self.scrollMax = 0
+    end
   end
 
   self.closebutton = output:closebutton(windowX+24,24,nil,true)
@@ -614,6 +714,8 @@ function storescreen:buttonpressed(key,scancode,isRepeat,controllerType)
         self.scrollY = 0
       elseif whichButton == self.spellsButton then
         self.screen = "Spells"
+      elseif whichButton == self.missionButton then
+        self.screen = "Missions"
         self.scrollY = 0
       end
     elseif self.screen == "Services" then
@@ -646,6 +748,21 @@ function storescreen:buttonpressed(key,scancode,isRepeat,controllerType)
           if player:upgrade_skill(skillID,1,true) then
             self.outText = "You are trained in " .. skill.name .. "."
           end
+        end
+      end
+    elseif self.screen == "Missions" then
+      if self.cursorY > 1 and self.missionButtons[self.cursorY-1] then
+        local missionData = self.store.offers_missions[self.cursorY-1]
+        local missionID = missionData.mission
+        if currGame.missionStatus[missionID] then
+          local mission = possibleMissions[missionID]
+          if mission.can_finish and mission:can_finish(player) then
+            local ret,useText = finish_mission(missionID)
+            if useText then self.outText = useText end
+          end
+        else
+          local ret,useText = start_mission(missionID,missionData.starting_status,self.store,missionData.starting_data)
+          if useText then self.outText = useText end
         end
       end
     elseif self.cursorY == 2 then
@@ -686,13 +803,15 @@ function storescreen:buttonpressed(key,scancode,isRepeat,controllerType)
       self.cursorY = self.cursorY - 1
       if self.cursorY == 1 then
         if self.screen == "Buy" then
-          self.cursorX = 1
+          self.cursorX = self.buyButton.cursorX
         elseif self.screen == "Sell" then
-          self.cursorX = 2
+          self.cursorX = self.sellButton.cursorX
         elseif self.screen == "Services" then
-          self.cursorX = 2+(self.store.noBuy and 0 or 1)
+          self.cursorX = self.serviceButton.cursorX
         elseif self.screen == "Spells" then
-          self.cursorX = #self.navButtons
+          self.cursorX = self.spellButton.cursorX
+        elseif self.screen == "Missions" then
+          self.cursorX = self.missionButton.cursorX
         end
       elseif self.screen == "Buy" or self.screen == "Sell" then
         local whichList = (self.screen == "Buy" and self.selling_list or self.buying_list)
@@ -716,6 +835,17 @@ function storescreen:buttonpressed(key,scancode,isRepeat,controllerType)
       else
         for i=self.cursorY-1,#self.serviceButtons,1 do
           if self.serviceButtons[i] then
+            self.cursorY = i+1
+            break
+          end
+        end --end cursorY for
+      end --end if 1
+    elseif self.screen == "Missions" then
+      if (self.cursorY == 1 and self.missionButtons[1]) then
+        self.cursorY = 2
+      else
+        for i=self.cursorY-1,#self.missionButtons,1 do
+          if self.missionButtons[i] or (self.cursorY == 1 and self.missionButtons[1]) then
             self.cursorY = i+1
             break
           end
@@ -817,22 +947,27 @@ function storescreen:mousepressed(x,y,button)
   --Buy/Sell Buttons:
   if self.buyButton and x > self.buyButton.minX and x < self.buyButton.maxX and y > self.buyButton.minY and y < self.buyButton.maxY then
       self.screen = "Buy"
-      self.cursorX = 1
+      self.cursorX = self.buyButton.cursorX
       self.cursorY = 1
       self.scrollY = 0
     elseif self.sellButton and x > self.sellButton.minX and x < self.sellButton.maxX and y > self.sellButton.minY and y < self.sellButton.maxY then
       self.screen = "Sell"
-      self.cursorX = 2
+      self.cursorX = self.sellButton.cursorX
       self.cursorY = 1
       self.scrollY = 0
     elseif self.serviceButton and x > self.serviceButton.minX and x < self.serviceButton.maxX and y > self.serviceButton.minY and y < self.serviceButton.maxY then
       self.screen = "Services"
-      self.cursorX = 2+(self.store.noBuy and 0 or 1)
+      self.cursorX = self.serviceButton.cursorX
       self.cursorY = 1
       self.scrollY = 0
     elseif self.spellsButton and x > self.spellsButton.minX and x < self.spellsButton.maxX and y > self.spellsButton.minY and y < self.spellsButton.maxY then
       self.screen = "Spells"
-      self.cursorX = #self.navButtons
+      self.cursorX = self.spellsButton.cursorX
+      self.cursorY = 1
+      self.scrollY = 0
+    elseif self.missionButton and x > self.missionButton.minX and x < self.missionButton.maxX and y > self.missionButton.minY and y < self.missionButton.maxY then
+      self.screen = "Missions"
+      self.cursorX = self.missionButton.cursorX
       self.cursorY = 1
       self.scrollY = 0
   elseif self.screen == "Services" and self.serviceButtons then --Services:
@@ -871,6 +1006,23 @@ function storescreen:mousepressed(x,y,button)
         end
       end --end button coordinate if
     end --end button for
+  elseif self.screen == "Missions" and self.missionButtons then --Services:
+    for i,button in ipairs(self.missionButtons) do
+      if button and x > button.minX and x < button.maxX and y > button.minY-self.scrollY and y < button.maxY-self.scrollY then
+        local missionData = self.store.offers_missions[i]
+        local missionID = missionData.mission
+        if currGame.missionStatus[missionID] then
+          local mission = possibleMissions[missionID]
+          if mission.can_finish and mission:can_finish(player) then
+            local ret, useText = finish_mission(missionID)
+            if useText then self.outText = useText end
+          end
+        else
+          local ret, useText = start_mission(missionID,missionData.starting_status,self.store,missionData.starting_data)
+          if useText then self.outText = useText end
+        end --end active or not if
+      end--end button coordinate if
+    end--end button for
   else --Buying/selling screen:
     if self.actionButton and x > self.actionButton.minX and x < self.actionButton.maxX and y > self.actionButton.minY and y < self.actionButton.maxY then
       if self.screen == "Buy" then

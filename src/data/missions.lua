@@ -36,7 +36,7 @@ function killtownies:can_finish()
   return false,"You still need to kill " .. 5-townies .. " townspeople."
 end
 function killtownies:finish()
-  player.reputation.barbariangod = player.reputation.barbariangod + 100
+  player.reputation.barbariangod = player.reputation.barbariangod or 0 + 100
 end
 possibleMissions['killtownies'] = killtownies
 

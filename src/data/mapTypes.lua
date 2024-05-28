@@ -151,7 +151,7 @@ function town.populate_stores(map)
   local newStores = {}
   for _,store in pairs(map:get_store_list()) do
     local s = Feature('store',store)
-    if not currWorld.stores[store].faction then currWorld.stores[store].faction = "village" end
+    if not s.store.faction then s.store.faction = "village" end
     local tries = 0
     local ix,iy = random(4,map.width-3),random(4,map.height-3)
     while (town.check_building_footprint(ix,iy,map) == false) do

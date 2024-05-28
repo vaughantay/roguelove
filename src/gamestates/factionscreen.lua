@@ -30,7 +30,7 @@ function factionscreen:refresh_store_lists()
 
   for _,ilist in pairs(self.faction:get_inventory()) do
     local item = ilist.item
-    self.selling_list[#self.selling_list+1] = {name=item:get_name(true,1),description=item:get_description(),info=item:get_info(),moneyCost=(ilist.moneyCost and ilist.moneyCost+round(ilist.moneyCost*(self.costMod/100)) or nil),favorCost=ilist.favorCost,membersOnly=ilist.membersOnly,amount=item.amount,buyAmt=0,item=item}
+    self.selling_list[#self.selling_list+1] = {name=item:get_name(true,1),description=item:get_description(),info=item:get_info(),moneyCost=(ilist.moneyCost and ilist.moneyCost+round(ilist.moneyCost*(self.costMod/100)) or nil),favorCost=ilist.favorCost,membersOnly=ilist.membersOnly,amount=item.amount,buyAmt=0,item=item,reputation_requirement=ilist.reputation_requirement}
   end
   for _,ilist in pairs(self.faction:get_buy_list()) do
     local item = ilist.item
@@ -366,7 +366,9 @@ function factionscreen:draw()
         local plusMouse = false
         local minusMouse = false
         local amountMouse = false
-        if self.playerMember or not info.membersOnly then
+        local memberReq = self.playerMember or not info.membersOnly
+        local repReq = not info.reputation_requirement or reputation >= info.reputation_requirement
+        if memberReq and repReq then
           --Minus button:
           if info.minusButton and mouseX > info.minusButton.minX and mouseX < info.minusButton.maxX and mouseY > info.minusButton.minY-self.scrollY and mouseY < info.minusButton.maxY-self.scrollY then
             minusMouse = true
@@ -392,10 +394,15 @@ function factionscreen:draw()
             plusMouse = true
           end
           info.plusButton = output:tinybutton(buyBoxX+buyBoxW+16,printY+4,nil,(plusMouse or (selected and self.cursorX == 4) and "hover" or false),"+")
-        else
+        elseif not memberReq then
           local moMax = buyBoxW+16+48+32
           local _,tl2 = fonts.textFont:getWrap("Members Only",moMax)
           love.graphics.printf("Members Only",buyBoxX-48,buyTextY,moMax,"center")
+          if #tl2 > #tlines then tlines = tl2 end
+         elseif not repReq then
+          local moMax = buyBoxW+16+48+32
+          local _,tl2 = fonts.textFont:getWrap("Requires " .. info.reputation_requirement .. " Reputation",moMax)
+          love.graphics.printf("Requires " .. info.reputation_requirement .. " Reputation",buyBoxX-48,buyTextY,moMax,"center")
           if #tl2 > #tlines then tlines = tl2 end
         end
         --Display description if necessary:
@@ -593,6 +600,9 @@ function factionscreen:draw()
         if skillDef.membersOnly and not self.playerMember then
           reasonText = "This skill is only taught to members."
           canLearn = false
+        elseif skillDef.reputation_requirement and reputation < skillDef.reputation_requirement then
+          reasonText = "Requires at least " .. skillDef.reputation_requirement .. " reputation to learn this skill."
+          canLearn = false
         elseif skillDef.favorCost and favor < skillDef.favorCost then
           reasonText = "You don't have enough favor to learn this skill."
           canLearn = false
@@ -646,6 +656,9 @@ function factionscreen:draw()
         
         if spellDef.membersOnly and not self.playerMember then
           reasonText = "This ability is only taught to members."
+          canLearn = false
+        elseif spellDef.reputation_requirement and reputation < spellDef.reputation_requirement then
+          reasonText = "Requires at least " .. spellDef.reputation_requirement .. " reputation to learn this ability."
           canLearn = false
         elseif spellDef.favorCost and favor < spellDef.favorCost then
           reasonText = "You don't have enough favor to learn this ability."
@@ -738,6 +751,9 @@ function factionscreen:draw()
       if servData.membersOnly and not self.playerMember then
         canDoText = "This service is only provided to members."
         canDo = false
+      elseif servData.reputation_requirement and reputation < servData.reputation_requirement then
+        canDoText = "Requires at least " .. servData.reputation_requirement .. " reputation for this service to be performed."
+        canDo = false
       elseif servData.favorCost and favor < servData.favorCost then
         canDoText = "You don't have enough favor."
         canDo = false
@@ -811,9 +827,14 @@ function factionscreen:draw()
         printY=math.ceil(printY+(#wrappedtext+0.5)*fontSize)
         if mData.membersOnly and not self.playerMember then
           local __, wrappedtext = fonts.textFont:getWrap("This mission is only offered to members.", windowWidth)
-            love.graphics.printf("This mission is only offered to members.",windowX,printY,windowWidth,"center")
-            printY=printY+(#wrappedtext+1)*fontSize
-            self.missionButtons[#self.missionButtons+1] = false
+          love.graphics.printf("This mission is only offered to members.",windowX,printY,windowWidth,"center")
+          printY=printY+(#wrappedtext+1)*fontSize
+          self.missionButtons[#self.missionButtons+1] = false
+        elseif mData.reputation_requirement and reputation < mData.reputation_requirement then
+           local __, wrappedtext = fonts.textFont:getWrap("Requires at least " .. mData.reputation_requirement .. " reputation.", windowWidth)
+          love.graphics.printf("Requires at least " .. mData.reputation_requirement .. " reputation.",windowX,printY,windowWidth,"center")
+          printY=printY+(#wrappedtext+1)*fontSize
+          self.missionButtons[#self.missionButtons+1] = false
         elseif active then
           local canFinish,canFinishText = nil,nil
           if mission.can_finish then
@@ -1171,7 +1192,6 @@ function factionscreen:buttonpressed(key,scancode,isRepeat,controllerType)
       end
     else --services, missions, or spells
       local whichList = (self.screen == "Services" and self.serviceButtons or (self.screen == "Spells" and self.spellButtons or self.missionButtons))
-      print(self.cursorY,self.cursorY-2,#whichList)
       if self.cursorY-2 == #whichList then
         self.cursorY = 2
       end
