@@ -6,7 +6,7 @@ local money = {
   name = "money",
   description = "A pile of money.",
   symbol = "$",
-  itemType="other",
+  category="other",
   color={r=255,g=255,b=0,a=255},
   value=1
 }

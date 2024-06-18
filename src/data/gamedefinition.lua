@@ -67,7 +67,7 @@ gamesettings = {
   default_equipment_slots={wielded=2,head=1,torso=1,hands=1,legs=1,feet=1,accessory=3,ammo=1},
   default_inventory_order={'usable','throwable','weapon','offhand','armorhead','armortorso','armorhands','armorlegs','armorfeet','accessory','ammo','other'},
   default_equipment_order={'wielded','head','torso','hands','legs','feet','accessory','ammo'},
-  inventory_filters={{filter='usable'},{filter='throwable'},{filter='equippable',itemType="weapon",label="Weapons"},{filter='equippable',itemType="weapon",subType="ranged",label="Ranged Weapons"},{filter='equippable',label="All Equipment"},{itemType="other",label="Miscellaneous"}},
+  inventory_filters={{filter='usable'},{filter='throwable'},{filter='equippable',category="weapon",label="Weapons"},{filter='equippable',category="weapon",subcategory="ranged",label="Ranged Weapons"},{filter='equippable',label="All Equipment"},{category="other",label="Miscellaneous"}},
   can_pickup_adjacent_items=true, --Allows picking up items from adjacent tiles, not just the tile you're standing on
   display_item_levels=true, --If true, the levels of items will be displayed. Otherwise they won't (but can still be used behind the scenes)
   money_prefix = nil,

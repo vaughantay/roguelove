@@ -1,6 +1,6 @@
 crafting = {}
 
-function crafting:enter()
+function crafting:enter(previous,recipe_type)
   self.hideUncraftable = self.hideUncraftable or false
   self:refresh_craft_list()
   self.craft_coordinates = {toggle={minX=0,maxX=0,minY=0,maxY=0}}
@@ -19,13 +19,14 @@ function crafting:enter()
   self.buttons = {}
   self.maxButtonY = 0
   self.lineCountdown = 0.5
+  self.recipe_type = recipe_type
   
   tween(0.2,self,{yModPerc=0})
   output:sound('stoneslideshort',2)
 end
 
 function crafting:refresh_craft_list()
-  local craft_list = player:get_all_possible_recipes(self.hideUncraftable)
+  local craft_list = player:get_all_possible_recipes(self.hideUncraftable,self.recipe_type)
   local crafts = {}
   for _,craftID in ipairs(craft_list) do
     local craftData = {id=craftID,craftable=true,secondary_ingredients={}}
@@ -73,17 +74,17 @@ function crafting:refresh_craft_list()
     end --end specific tool for
 
     --Tool Tag Check:
-    if recipe.tool_tags then
-      craftData.tool_tags = {}
-      for _,tag in ipairs(recipe.tool_tags) do
-        craftData.tool_tags[tag] = false
+    if recipe.tool_properties then
+      craftData.tool_properties = {}
+      for _,prop in ipairs(recipe.tool_properties) do
+        craftData.tool_properties[prop] = false
         for _,item in pairs(player:get_inventory()) do
-          if item:has_tag(tag) then
-            craftData.tool_tags[tag] = item
+          if item.crafting_tool_properties and in_table(prop,item.crafting_tool_properties) then
+            craftData.tool_properties[prop] = item
             break
           end --end if has_tag
         end -- end inventory for
-        if not craftData.tool_tags[tag] then
+        if not craftData.tool_properties[prop] then
           craftData.craftable=false
         end
       end --end tag for
@@ -334,7 +335,9 @@ function crafting:draw()
     local buttonY = 0
     
     --Craft Buttons:
-    if craftInfo.ingredient_properties then
+    if not craftInfo.craftable then
+      setColor(150,150,150,255)
+    elseif craftInfo.ingredient_properties then
       for _,prop in pairs(craftInfo.ingredient_properties) do
         if prop.selected < prop.required then
           setColor(150,150,150,255)
@@ -473,12 +476,12 @@ function crafting:draw()
       descY=descY+prefs['fontSize']
     end
     
-    if craftInfo.tool_tags then
-      local toolCount = count(craftInfo.tool_tags)
-      love.graphics.printf("Requires tool" .. (toolCount > 1 and "s" or "") .. " with tag" .. (toolCount > 1 and "s:" or ":"),sidebarX+padX,descY,window2w,"left")
+    if craftInfo.tool_properties then
+      local toolCount = count(craftInfo.tool_properties)
+      love.graphics.printf("Requires tool" .. (toolCount > 1 and "s" or "") .. " with propert" .. (toolCount > 1 and "ies:" or "y:"),sidebarX+padX,descY,window2w,"left")
       descY = descY + prefs['fontSize']+8
-      for tag,item in pairs(craftInfo.tool_tags) do
-        local toolText = "*" .. ucfirst(tag) .. (item and " (" .. ucfirst(item.name) .. ")" or "")
+      for prop,item in pairs(craftInfo.tool_properties) do
+        local toolText = "*" .. ucfirst(prop) .. (item and " (" .. ucfirst(item.name) .. ")" or "")
         if not item then
           setColor(200,0,0,255)
         end

@@ -59,13 +59,14 @@ function inventory:sort()
   for i,item in ipairs(self.entity.inventory) do
     if not self.entity:is_equipped(item) then
       local filter_info = self.filter
-      if (filter_info == nil) or ((not filter_info.filter or item[filter_info.filter] == true) and (not filter_info.itemType or item.itemType == filter_info.itemType) and (not filter_info.equipSlot or filter_info.equipSlot == item.equipSlot) and (not filter_info.subType or item.subType == filter_info.subType)) then
-        local iType = item.itemType or "other"
-        local subType = item.subType or ""
-        if not sorted[iType .. subType] then
-          sorted[iType .. subType] = {text=iType .. (subType ~= "" and " (" .. ucfirst(subType) .. ")" or "")}
+      if (filter_info == nil) or ((not filter_info.filter or item[filter_info.filter] == true) and (not filter_info.category or item.category == filter_info.category) and (not filter_info.equipSlot or filter_info.equipSlot == item.equipSlot) and (not filter_info.subcategory or item.subcategory == filter_info.subcategory)) then
+        local iType = item.category or "other"
+        local subcategory = item.subcategory or ""
+        print(item.name,iType,subcategory)
+        if not sorted[iType .. subcategory] then
+          sorted[iType .. subcategory] = {text=iType .. (subcategory ~= "" and " (" .. ucfirst(subcategory) .. ")" or "")}
         end
-        sorted[iType .. subType][#sorted[iType .. subType]+1] = item
+        sorted[iType .. subcategory][#sorted[iType .. subcategory]+1] = item
       end --end filter if
     end --end equiiped if
   end --end inventory for
@@ -241,15 +242,15 @@ function inventory:draw()
     --Calculate location of all filter buttons:
     for _,filter_info in pairs(gamesettings.inventory_filters) do
       local filter = filter_info.filter
-      local itemType = filter_info.itemType
-      local subType = filter_info.subType
-      local label = ucfirst(filter_info.label or filter_info.itemType or filter_info.filter)
-      local fid = (filter or "") .. (itemType or "") .. (subType or "")
+      local category = filter_info.category
+      local subcategory = filter_info.subcategory
+      local label = ucfirst(filter_info.label or filter_info.category or filter_info.filter)
+      local fid = (filter or "") .. (category or "") .. (subcategory or "")
       local previous = self.filterButtons[#self.filterButtons]
       optionX = previous.maxX+boxpadding
       optionW = fonts.textFont:getWidth(label)
-      self.filterButtons[#self.filterButtons+1] = {filter=filter, itemType=itemType, subType = subType, label=label, id = fid, minX = optionX, maxX = optionX+boxpadding+optionW,minY=printY-4,maxY=printY+fontSize+10}
-      if self.filter and ((not self.filter.id or self.filter.id == filter_info.id) and ((self.filter.filter == filter_info.filter) and (self.filter.itemType == filter_info.itemType) and (self.filter.subType == filter_info.subType))) then
+      self.filterButtons[#self.filterButtons+1] = {filter=filter, category=category, subcategory = subcategory, label=label, id = fid, minX = optionX, maxX = optionX+boxpadding+optionW,minY=printY-4,maxY=printY+fontSize+10}
+      if self.filter and ((not self.filter.id or self.filter.id == filter_info.id) and ((self.filter.filter == filter_info.filter) and (self.filter.category == filter_info.category) and (self.filter.subcategory == filter_info.subcategory))) then
         self:scrollToFilter(self.filterButtons[#self.filterButtons])
         self.cursorX = #self.filterButtons
         self.filter = self.filterButtons[#self.filterButtons]

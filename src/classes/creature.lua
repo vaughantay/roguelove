@@ -56,8 +56,8 @@ function Creature:init(creatureType,level,tags,info,noTweak,ignoreNewFunc) --TOD
   self.equipment_list = {}
   self.hotkeys = {}
   self.known_recipes = self.known_recipes or {}
-  self.forbidden_spell_tags = self.forbidden_spell_tags or self.forbidden_tags or {}
-  self.forbidden_item_tags = self.forbidden_item_tags or self.forbidden_tags or {}
+  self.forbidden_spell_types = self.forbidden_spell_types or self.forbidden_content_types or {}
+  self.forbidden_item_types = self.forbidden_item_types or self.forbidden_content_types or {}
   self.reputation = self.reputation or {}
   self.favor = self.favor or {}
   self.factions = self.factions or {}
@@ -2196,9 +2196,9 @@ function Creature:can_use_item(item,verb)
       end
     end
   end
-  if self.forbidden_item_tags and count(self.forbidden_item_tags) > 0 then
-    for _,tag in ipairs(self.forbidden_item_tags) do
-      if item:has_tag(tag) then
+  if self.forbidden_item_types and count(self.forbidden_item_types) > 0 then
+    for _,itype in ipairs(self.forbidden_item_types) do
+      if item:is_type(itype) then
         return false,"You can't " .. verb .. " this type of item."
       end
     end
@@ -3910,9 +3910,9 @@ function Creature:can_learn_spell(spellID)
     end
   end
   --Check spell tags:
-  if self.forbidden_spell_tags and count(self.forbidden_spell_tags) > 0 then
-    for _,tag in ipairs(self.forbidden_spell_tags) do
-      if spell.tags and in_table(tag,spell.tags) then
+  if self.forbidden_spell_types and count(self.forbidden_spell_types) > 0 then
+    for _,stype in ipairs(self.forbidden_spell_types) do
+      if spell:is_type(stype) then
         return false,"You're unable to learn this type of ability."
       end
     end
@@ -4429,14 +4429,17 @@ end
 
 ---Get all possible recipes the creature can craft
 --@param hide_uncraftable Boolean. If true, only show recipes that are currently craftable. If false or nil, show all known crafts even if they can't be crafted right now (optional)
+--@param recipe_type String. Filter by recipe type (optional)
 --@return Table. A table with the IDs of all craftable recipes
-function Creature:get_all_possible_recipes(hide_uncraftable)
+function Creature:get_all_possible_recipes(hide_uncraftable,recipe_type)
   local canCraft = {}
   for id,recipe in pairs(possibleRecipes) do
-    local known = self.known_recipes and self.known_recipes[id]
-    if self:can_craft_recipe(id) or (known and not hide_uncraftable) then
-      canCraft[#canCraft+1] = id
-      self:learn_recipe(id)
+    if not recipe_type or (recipe.types and in_table(recipe_type,recipe.types)) then
+      local known = self.known_recipes and self.known_recipes[id]
+      if self:can_craft_recipe(id) or (known and not hide_uncraftable) then
+        canCraft[#canCraft+1] = id
+        self:learn_recipe(id)
+      end
     end
   end
   return canCraft
@@ -4507,11 +4510,11 @@ function Creature:can_craft_recipe(recipeID)
       if found < amt then return false end
     end --end property for
   end --end if ingredient_properties
-  if recipe.tool_tags then
-    for _,tag in ipairs(recipe.tool_tags) do
+  if recipe.tool_properties then
+    for _,prop in ipairs(recipe.tool_properties) do
       local has = false
       for _,item in pairs(self:get_inventory()) do
-        if item:has_tag(tag) then
+        if item.crafting_tool_properties and in_table(prop,item.crafting_tool_properties) then
           has = true
           break
         end --end if has_tag
@@ -4561,6 +4564,7 @@ function Creature:craft_recipe(recipeID,secondary_ingredients)
   
   local passedTags = {}
   local givenTags = {}
+  local givenTypes = {}
   local enchantments = {}
   if recipe.ingredients then
     for item,amt in pairs(recipe.ingredients) do
@@ -4596,6 +4600,11 @@ function Creature:craft_recipe(recipeID,secondary_ingredients)
         givenTags[#givenTags+1] = tag
       end
     end
+    if item.crafting_given_types then
+      for _,itype in pairs(item.crafting_given_types) do
+        givenTypes[#givenTypes+1] = itype
+      end
+    end
     if item.crafting_given_enchantments then
       for _,tag in pairs(item.crafting_given_enchantments) do
         enchantments[#enchantments+1] = tag
@@ -4612,6 +4621,11 @@ function Creature:craft_recipe(recipeID,secondary_ingredients)
     for _,tag in ipairs(givenTags) do
       if not newItem:has_tag(tag) then
         newItem.tags[#newItem.tags+1] = tag
+      end
+    end
+    for _,itype in ipairs(givenTypes) do
+      if not newItem:is_type(itype) then
+        newItem.types[#newItem.types+1] = itype
       end
     end
     for _,enchantment in ipairs(enchantments) do

@@ -2,16 +2,16 @@
 Item = Class{}
 
 ---Create an instance of the item. Don't call this directly. Called via Item('itemID')
---@param type_name String. The ID of the item.
+--@param itemID String. The ID of the item.
 --@param tags Table. A table of tags to pass to the item's new() function
 --@param info Anything. Argument to pass into the item's new() function.
 --@param ignoreNewFunc Boolean. Whether to ignore the item's new() function
 --@return Item. The item itself.
-function Item:init(type_name,tags,info,ignoreNewFunc)
-  local data = possibleItems[type_name]
+function Item:init(itemID,tags,info,ignoreNewFunc)
+  local data = possibleItems[itemID]
   if not data then
-    output:out("Error: Tried to create non-existent item " .. type_name)
-    print("Error: Tried to create non-existent item " .. type_name)
+    output:out("Error: Tried to create non-existent item " .. itemID)
+    print("Error: Tried to create non-existent item " .. itemID)
     return false
   end
 	for key, val in pairs(data) do
@@ -22,15 +22,16 @@ function Item:init(type_name,tags,info,ignoreNewFunc)
       self[key] = data[key]
     end
 	end
-  self.id = self.id or type_name
+  self.id = self.id or itemID
 	self.baseType = "item"
-  self.itemType = self.itemType or "other"
+  self.types = self.types or {}
+  self.category = self.category or "other"
   self.amount = self.amount or 1
   if self.max_charges then
     self.charges = self.charges or 0
   end
-  if not ignoreNewFunc and (possibleItems[type_name].new ~= nil) then
-		possibleItems[type_name].new(self,tags,info)
+  if not ignoreNewFunc and (possibleItems[itemID].new ~= nil) then
+		possibleItems[itemID].new(self,tags,info)
 	end
   if data.spells_granted then
     self.spells_granted = {}
@@ -48,10 +49,6 @@ function Item:init(type_name,tags,info,ignoreNewFunc)
 end
 
 ---Clones an instance of the item.
---@param type_name String. The ID of the item.
---@param info Anything. Argument to pass into the item's new() function.
---@param amt Number. The amount of the item to create.
---@param ignoreNewFunc Boolean. Whether to ignore the item's new() function
 --@return Item. The item itself.
 function Item:clone()
   local newItem = Item(self.id,nil,nil,true)
@@ -703,18 +700,32 @@ function Item:qualifies_for_enchantment(eid,permanent)
     end
   end
   
-  if enchantment.itemType and (self.itemType ~= enchantment.itemType or (enchantment.subType and self.subType ~= enchantment.subType)) then
+  if enchantment.item_type and (not self:is_type(enchantment.item_type)) then
     return false
-  elseif enchantment.itemTypes then
+  elseif enchantment.item_types then
     local ok = false
-    for _,itype in pairs(enchantment.itemTypes) do
-      if self.itemType == itype then
+    for _,itype in pairs(enchantment.item_types) do
+      if self:is_type(itype) then
         ok = true
         break
       end
     end --end item type for
     if not ok then
       return false
+    end
+  end
+  if enchantment.requires_types then
+    for _,itype in ipairs(enchantment.requires_types) do
+      if not self:is_type(itype) then
+        return false
+      end --end if self:is_type
+    end --end tag for
+  end --end requires_types if
+  if enchantment.forbidden_types then
+    for _,itype in ipairs(enchantment.forbidden_types) do
+      if self:is_type(itype) then
+        return false
+      end
     end
   end
   if enchantment.requires_tags then
@@ -924,7 +935,7 @@ function Item:has_tag(tag,ignore_enchantments)
   if not ignore_enchantments then
     for e,_ in pairs(self:get_enchantments()) do
       local enchantment = enchantments[e]
-      if enchantment.tags and in_table(tag,enchantment.tags) then
+      if enchantment.applies_tags and in_table(tag,enchantment.applies_tags) then
         return true
       end --end if it has the right bonus
     end --end enchantment for
@@ -1138,3 +1149,57 @@ function Item:get_buyer_list()
   end
   return options
 end
+
+---Gets a list of all types a item is
+--@param base_only Boolean. If true, don't look at types applied by enchantments
+--@return Table. A table of item types
+function Item:get_types(base_only)
+  if base_only then
+    return self.types
+  end
+  
+  local temptypes = {}
+  local blockedtypes = {}
+  for ench,_ in pairs(self:get_enchantments()) do
+    local enchantment = enchantments[ench]
+    if enchantment and enchantment.removes_item_types then
+      for _,blocked in ipairs(enchantment.removes_item_types) do
+        blockedtypes[blocked] = blocked
+        temptypes[blocked] = nil
+      end
+    end
+    if enchantment and enchantment.applies_item_types then
+      for _,itype in ipairs(enchantment.applies_item_types) do
+        if not blockedtypes[itype] then
+          temptypes[itype] = itype
+        end
+      end
+    end
+  end
+  for _,itype in ipairs(self.types) do
+    if not blockedtypes[itype] then
+      temptypes[itype] = itype
+    end
+  end
+  local itypes = {}
+  for _,itype in pairs(temptypes) do
+    itypes[#itypes+1] = itype
+  end
+ 
+  return itypes
+end
+
+---Checks if an item is of a certain type
+--@param ctype String. The item type to check for
+--@param base_only Boolean. If true, don't look at types applied by enchantments
+--@return Boolean. Whether or not the item is that type
+function Item:is_type(itype,base_only)
+  if base_only then
+    if not self.types then return false end
+    return in_table(itype,self.types)
+  end
+  for _,i in pairs(self:get_types()) do
+    if i == itype then return true end
+  end --end for
+  return false
+end --end function

@@ -27,7 +27,8 @@ possibleFactions['lightchurch'] = {
   sells_items = {{item="holywater",favorCost=5,moneyCost=50,amount=10,restock_amount=2,restock_to=5,reputation_requirement=10}, {item="dagger",favorCost=250,amount=1,membersOnly=true,artifact=true},{item="dagger",favorCost=10,amount=5,enchantments={"blessed"}},{item="scroll",favorCost=1,moneyCost=5,amount=5,restock_amount=1}}, --pre-defined items that this faction sells to friendly players
   sells_tags = {"holy"}, --Tags for randomly-generated items that will be sold by the shop
   passedTags = {"holy"}, --These tags will be given priority for enchantments applied to items, and passed to items to do with what they will (ex: scrolls, to put preference on spells with these tags)
-  buy_markup=2, --Randomly-selected items' values will be multiplied by this number to determine how much this shop will sell the items for
+  sell_markup=100, --Randomly-selected items' values will have this % added to determine how much this shop will sell the items for
+  item_type_buy_markups={unholy=100},
   random_item_amount=5, --How many random items to fill the shop with
   random_item_restock_amount=1, --How many random items to restock each restock cycle
   random_item_restock_to=3, --Don't restock random items if the random item count is above this amount

@@ -142,7 +142,25 @@ end
 function Store:add_item(item,info)
   local makeNew = true
   info = info or {}
-  info.cost = info.cost or math.max(math.ceil((item:get_value()*(self.sell_markup or 1))/(self.currency_item and (self.money_per_currency_item or 10) or 1)),1)
+  info.cost = info.cost 
+  if not info.cost then
+    local price = item:get_value()
+    local markup = self.sell_markup or 0
+    if self.item_type_sell_markups then
+      local largest = 0
+      local smallest = 0
+      for itype,mark in pairs(self.item_type_sell_markups) do
+        if item:is_type(itype) then
+          largest = math.max(largest,mark)
+          smallest = math.min(smallest,mark)
+        end
+      end
+      markup = markup+largest+smallest
+    end
+    price = price + (price * markup/100)
+    local currency_mod = (self.currency_item and (self.money_per_currency_item or 10) or 1)
+    info.cost =  math.max(math.floor(price/currency_mod),1)
+  end
   local index = self:get_inventory_index(item)
   if index then
     if self.inventory[index].item.amount ~= -1 then --dont "increase" the amount if the amount is supposed to be infinite
@@ -204,6 +222,41 @@ end
 function Store:get_buy_cost(item)
   if self.buys_items and self.buys_items[item.id] then
     return self.buys_items[item.id]
+  elseif self.buys_types and item:get_value() > 0 then
+    if self.forbidden_buys_types then
+      for _,itype in ipairs(self.forbidden_buys_types) do
+        if item:is_type(itype) then
+          return false
+        end
+      end
+    end
+    if self.required_buys_types then
+      for _,itype in ipairs(self.required_buys_types) do
+        if not item:is_type(itype) then
+          return false
+        end
+      end
+    end
+    for _,itype in ipairs(self.buys_types) do
+      if item:is_type(itype) then
+        local price = item:get_value()
+        local markup = self.buy_markup or 0
+        if self.item_type_buy_markups then
+          local largest = 0
+          local smallest = 0
+          for itype,mark in pairs(self.item_type_buy_markups) do
+            if item:is_type(itype) then
+              largest = math.max(largest,mark)
+              smallest = math.min(smallest,mark)
+            end
+          end
+          markup = markup+largest+smallest
+        end
+        price = price + (price * markup/100)
+        local currency_mod = (self.currency_item and (self.money_per_currency_item or 10) or 1)
+        return math.max(math.floor(price/currency_mod),1)
+      end
+    end
   elseif self.buys_tags and item:get_value() > 0 then
     if self.forbidden_buys_tags then
       for _,tag in ipairs(self.forbidden_buys_tags) do
@@ -220,8 +273,23 @@ function Store:get_buy_cost(item)
       end
     end
     for _,tag in ipairs(self.buys_tags) do
-      if item:has_tag(tag) or item.itemType == tag then
-        return math.max(math.floor((item:get_value()*(self.buy_markup or 1))/(self.currency_item and (self.money_per_currency_item or 10) or 1)),1)
+      if item:has_tag(tag) then
+        local price = item:get_value()
+        local markup = self.buy_markup or 0
+        if self.item_type_buy_markups then
+          local largest = 0
+          local smallest = 0
+          for itype,mark in pairs(self.item_type_buy_markups) do
+            if item:is_type(itype) then
+              largest = math.max(largest,mark)
+              smallest = math.min(smallest,mark)
+            end
+          end
+          markup = markup+largest+smallest
+        end
+        price = price + (price * markup/100)
+        local currency_mod = (self.currency_item and (self.money_per_currency_item or 10) or 1)
+        return math.max(math.floor(price/currency_mod),1)
       end
     end
   end
@@ -391,7 +459,31 @@ function Store:get_possible_random_items()
       end --end sells_Items for
       if not alreadySells then
         local done = false
-        if self.forbidden_sells_tags then
+        if self.forbidden_sells_types then
+          for _,itype in ipairs(self.forbidden_sells_types) do
+            if item.types and in_table(itype,item.types) then
+              done = true
+              break
+            end
+          end
+        end
+        if not done and self.required_sells_types then
+          for _,itype in ipairs(self.required_sells_types) do
+            if not item.types or not in_table(types,item.ttypesags) then
+              done = true
+              break
+            end
+          end
+        end
+        if not done and self.sells_types then
+          for _,itype in ipairs(self.sells_types) do --check tags
+            if (item.types and in_table(itype,item.types)) then
+              possibles[#possibles+1] = id
+              break
+            end --end tags if
+          end --end sells_tag for
+        end
+        if not done and self.forbidden_sells_tags then
           for _,tag in ipairs(self.forbidden_sells_tags) do
             if item.tags and in_table(tag,item.tags) then
               done = true
@@ -407,9 +499,9 @@ function Store:get_possible_random_items()
             end
           end
         end
-        if not done then
+        if not done and self.sells_tags then
           for _,tag in ipairs(self.sells_tags) do --check tags
-            if (item.tags and in_table(tag,item.tags)) or item.itemType == tag then
+            if (item.tags and in_table(tag,item.tags)) then
               possibles[#possibles+1] = id
               break
             end --end tags if

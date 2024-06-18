@@ -342,8 +342,24 @@ function Faction:add_item(item,info)
   local makeNew = true
   info = info or {}
   if not info.moneyCost and not info.favorCost then
-    info.moneyCost = (not self.only_sells_favor and math.max(item:get_value()*(self.sell_markup or 1),1) or nil)
-    info.favorCost = math.max(math.ceil((item:get_value()*(self.buy_markup or 1))/(self.money_per_favor or 10)),1)
+    local price = item:get_value()
+    local markup = self.sell_markup or 0
+    if self.item_type_sell_markups then
+      local largest = 0
+      local smallest = 0
+      for itype,mark in pairs(self.item_type_sell_markups) do
+        if item:is_type(itype) then
+          largest = math.max(largest,mark)
+          smallest = math.min(smallest,mark)
+        end
+      end
+      markup = markup+largest+smallest
+    end
+    price = price + (price * markup/100)
+    local favor_mod = (self.money_per_favor or 10)
+    info.moneyCost =  math.max(price,1)
+    info.favorCost = math.max(math.floor(info.moneyCost/favor_mod),1)
+    if self.only_sells_favor then info.moneyCost = nil end
   end
   local index = self:get_inventory_index(item)
   if index then
@@ -404,6 +420,42 @@ end
 function Faction:get_buy_cost(item)
   if self.buys_items and self.buys_items[item.id] then
     return self.buys_items[item.id]
+  elseif self.buys_types and item:get_value() > 0 then
+    if self.forbidden_buys_types then
+      for _,itype in ipairs(self.forbidden_buys_types) do
+        if item:is_type(itype) then
+          return false
+        end
+      end
+    end
+    if self.required_buys_types then
+      for _,itype in ipairs(self.required_buys_types) do
+        if not item:is_type(itype) then
+          return false
+        end
+      end
+    end
+    for _,itype in ipairs(self.buys_types) do
+      if item:is_type(itype) then
+        local price = item:get_value()
+        local markup = self.buy_markup or 0
+        if self.item_type_buy_markups then
+          local largest = 0
+          local smallest = 0
+          for itype,mark in pairs(self.item_type_buy_markups) do
+            if item:is_type(itype) then
+              largest = math.max(largest,mark)
+              smallest = math.min(smallest,mark)
+            end
+          end
+          markup = markup+largest+smallest
+        end
+        price = price + (price * markup/100)
+        local moneyCost = math.max(price,1)
+        local favorCost = math.max(math.floor(moneyCost/(self.money_per_favor or 10)),1)
+        return {favorCost=favorCost,moneyCost=(not self.only_buys_favor and moneyCost or nil)}
+      end
+    end
   elseif self.buys_tags and item:get_value() > 0 then
     if self.forbidden_buys_tags then
       for _,tag in ipairs(self.forbidden_buys_tags) do
@@ -420,8 +472,25 @@ function Faction:get_buy_cost(item)
       end
     end
     for _,tag in ipairs(self.buys_tags) do
-      if item:has_tag(tag) or item.itemType == tag then
-        return {favorCost=math.max(math.floor((item:get_value()*(self.buy_markup or 1))/(self.money_per_favor or 10)),1),moneyCost=(not self.only_buys_favor and math.max(item:get_value()*(self.buy_markup or 1),1) or nil)}
+      if item:has_tag(tag) then
+        local price = item:get_value()
+        local markup = self.buy_markup or 0
+        if self.item_type_buy_markups then
+          local largest = 0
+          local smallest = 0
+          for itype,mark in pairs(self.item_type_buy_markups) do
+            if item:is_type(itype) then
+              largest = math.max(largest,mark)
+              smallest = math.min(smallest,mark)
+            end
+          end
+          markup = markup+largest+smallest
+          print(item.name,markup)
+        end
+        price = price + (price * markup/100)
+        local moneyCost = math.max(price,1)
+        local favorCost = math.max(math.floor(moneyCost/(self.money_per_favor or 10)),1)
+        return {favorCost=favorCost,moneyCost=(not self.only_buys_favor and moneyCost or nil)}
       end
     end
   end
@@ -565,7 +634,31 @@ function Faction:get_possible_random_items()
       end --end sells_Items for
       if not alreadySells then
         local done = false
-        if self.forbidden_sells_tags then
+        if self.forbidden_sells_types then
+          for _,itype in ipairs(self.forbidden_sells_types) do
+            if item.types and in_table(itype,item.types) then
+              done = true
+              break
+            end
+          end
+        end
+        if not done and self.required_sells_types then
+          for _,itype in ipairs(self.required_sells_types) do
+            if not item.types or not in_table(itype,item.types) then
+              done = true
+              break
+            end
+          end
+        end
+        if not done and self.sells_types then
+          for _,itype in ipairs(self.sells_types) do --check tags
+            if (item.types and in_table(itype,item.types)) then
+              possibles[#possibles+1] = id
+              break
+            end --end tags if
+          end --end sells_tag for
+        end
+        if not done and self.forbidden_sells_tags then
           for _,tag in ipairs(self.forbidden_sells_tags) do
             if item.tags and in_table(tag,item.tags) then
               done = true
@@ -581,9 +674,9 @@ function Faction:get_possible_random_items()
             end
           end
         end
-        if not done then
+        if not done and self.sells_tags then
           for _,tag in ipairs(self.sells_tags) do --check tags
-            if (item.tags and in_table(tag,item.tags)) or item.itemType == tag then
+            if (item.tags and in_table(tag,item.tags)) then
               possibles[#possibles+1] = id
               break
             end --end tags if

@@ -312,7 +312,7 @@ function mapgen:make_artifact(item,tags)
     end
   end
   if not item.properName then
-    local nameType = (item.nameType or item.itemType)
+    local nameType = (item.nameType or item.category)
     item.properName = namegen:generate_item_name(nameType)
   end
 end
