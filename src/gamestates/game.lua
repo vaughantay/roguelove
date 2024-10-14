@@ -9,7 +9,7 @@ function game:leave()
   love.graphics.setFont(fonts.textFont)
   love.mouse.setGrabbed(false)
 end
-  
+
 function game:draw()
   local dtime1 = os.clock()
   --profiler:reset()
@@ -1871,8 +1871,12 @@ function game:buttonpressed(key,scancode,isRepeat)
   elseif key == "action" then
     local actions = currMap:get_tile_actions(player.x,player.y)
     if #actions == 1 then
-      if actions[1].entity:action(player,actions[1].id) ~= false then
-        advance_turn()
+      if actions[1].entity.baseType == "feature" then
+        if actions[1].entity:action(player,actions[1].id) ~= false then
+          advance_turn()
+        end
+      elseif actions[1].entity.baseType == "creature" then
+        Gamestate.switch(conversation,actions[1].entity,player,actions[1].dialogID)
       end
     elseif #actions > 1 then
       local list = {}
@@ -1883,7 +1887,9 @@ function game:buttonpressed(key,scancode,isRepeat)
         elseif entity.y > player.y then direction = direction .. "south" end
         if entity.x < player.x then direction = direction .. "west"
         elseif entity.x > player.x then direction = direction .. "east" end
-        list[#list+1] = {text=action.text .. ((direction ~= "" and not action.noDirection) and " (" .. ucfirst(direction) .. ")" or ""),description=action.description,selectFunction=entity.action,selectArgs={entity,player,action.id},image=(action.image or 'feature' .. (entity.image_name or entity.id)),image_color=(action.image_color or (entity.use_color_with_tiles or (gamesettings.always_use_color_with_tiles and entity.use_color_with_tiles ~= false) and entity.color) or nil),order=action.order}
+        local selectFunction = (entity.baseType == "feature" and entity.action or (entity.baseType == "creature" and Gamestate.switch))
+        local selectArgs = (entity.baseType == "feature" and {entity,player,action.id} or {conversation,entity,player,action.dialogID})
+        list[#list+1] = {text=action.text .. ((direction ~= "" and not action.noDirection) and " (" .. ucfirst(direction) .. ")" or ""),description=action.description,selectFunction=selectFunction,selectArgs=selectArgs,image=(action.image or 'feature' .. (entity.image_name or entity.id)),image_color=(action.image_color or (entity.use_color_with_tiles or (gamesettings.always_use_color_with_tiles and entity.use_color_with_tiles ~= false) and entity.color) or nil),order=action.order}
       end
       Gamestate.switch(multiselect,list,"Select an Action",true,true)
     end

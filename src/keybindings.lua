@@ -176,7 +176,7 @@ keybindings = {
   action = {
     keyboard = {"e"},
     
-    description = "Interact with Map Feature",
+    description = "Interact/Talk",
     category = "Game Commands"
   },
 

@@ -4683,3 +4683,63 @@ function Creature:refresh()
   self.bonus_cache = {}
   self.can_move_cache = {}
 end
+
+---Returns the ID of the dialog most applicable to this creature at the moment
+--@param asker Creature. The creature speaking to this creature
+function Creature:get_dialog(asker)
+  asker = asker or player
+  local dialogID
+  
+  if possibleMonsters[self.id].get_dialog then
+    local status,r = pcall(possibleMonsters[self.id].get_dialog,self,asker)
+    if status == false then
+      output:out("Error in creature " .. self.name .. " get_dialog code: " .. r)
+      print("Error in creature " .. self.name .. " get_dialog code: " .. r)
+    end
+    if r == false then
+      return false
+    elseif r ~= true and r ~= nil and possibleDialogs[r] then
+      return r
+    end
+  end
+  
+  local possible_moods = {}
+  local selected
+  --These are ordered in order of preference
+  if self:get_fear() >= self:get_bravery()  then
+    possible_moods[#possible_moods+1] = "afraid"
+  end
+  if self.shitlist[asker] or self:is_enemy(asker) then
+    possible_moods[#possible_moods+1] = "hostile"
+  end
+  if self.master == asker then
+    possible_moods[#possible_moods+1] = "thrall"
+  end
+  if self:is_friend(asker) then
+    possible_moods[#possible_moods+1] = "friendly"
+  end
+  if #possible_moods > 0 then
+    --First check to see if the creature instance has any dialogs specifically set
+    for _,mood in pairs(possible_moods) do
+      if self['dialog_' .. mood] then
+        return self['dialog_mood']
+      end
+    end
+  end
+  --If no specific mood dialogs set, but there's a generic dialog ID set, use that
+  if self.dialog then return self.dialog end 
+  
+  if #possible_moods > 0 then
+    --If no dialog IDs are not set in the creature instance, look at dialog IDs in the game and use any that match the creature ID
+    for _,mood in pairs(possible_moods) do
+      if possibleDialogs[self.id .. "_" .. mood] then
+        return self.id .. "_" .. mood
+      end
+    end
+  end
+  --If no specific mood dialogs set, but there's a generic dialog for this creature, use that
+  if possibleDialogs[self.id] then
+    return self.id
+  end
+  return false
+end

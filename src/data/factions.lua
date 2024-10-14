@@ -156,9 +156,9 @@ possibleFactions['village'] = {
   no_hq = true,
   never_join = true,
   attack_enemy_player_only = true,
-  hostile_threshold = 0,
+  hostile_threshold = -2,
   friendly_threshold = -1,
-  kill_reputation_factions = {village=-1},
+  kill_reputation_factions = {village=-10},
   faction_cost_modifiers={lightchurch=-5,grievers=-5},
   reputation_cost_modifiers={[-25]=20,[-10]=10,[0]=0},
   enter_threshold=-25

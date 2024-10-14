@@ -363,6 +363,14 @@ function Map:get_tile_actions(x,y,user,noAdjacent)
         end --end action for
       end --end if
     end --end entity for
+    local creat = self:get_tile_creature(x,y)
+    if creat and creat ~= user then
+      local dialogID = creat:get_dialog(user)
+      if dialogID then
+        local name = creat:get_name()
+        actions[#actions+1] = {id='speak_' .. name, entity=creat, text="Talk to " .. name, image=('creature' .. (creat.image_name or creat.id)),image_color=(creat.use_color_with_tiles or (gamesettings.always_use_color_with_tiles and creat.use_color_with_tiles ~= false) and creat.color or nil),dialogID = dialogID}
+      end --end if dialogID
+    end --end if creat
   else
     for x2=x-1,x+1,1 do
       for y2=y-1,y+1,1 do
@@ -375,6 +383,14 @@ function Map:get_tile_actions(x,y,user,noAdjacent)
             end --end action for
           end --end if
         end --end entity for
+        local creat = self:get_tile_creature(x2,y2)
+        if creat and creat ~= user then
+          local dialogID = creat:get_dialog(user)
+          if dialogID then
+            local name = creat:get_name()
+            actions[#actions+1] = {id='speak_' .. name, entity=creat, text="Talk to " .. name, image=('creature' .. (creat.image_name or creat.id)),image_color=(creat.use_color_with_tiles or (gamesettings.always_use_color_with_tiles and creat.use_color_with_tiles ~= false) and creat.color or nil),dialogID = dialogID}
+          end --end if dialogID
+        end --end if creat
       end --end yfor
     end --end xfor
   end

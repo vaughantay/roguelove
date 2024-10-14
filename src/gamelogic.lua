@@ -79,7 +79,7 @@ end
 
 ---Create the currGame object
 function initialize_game()
-  currGame = {startTime=os.date(),tutorialsSeen={},missionStatus={},finishedMissions={},achievementDisqualifications={},cheats={},autoSave=prefs['autosaveTurns'],stats={},events_occured={},event_countdown=0,identified_items={},unidentified_item_info={}}
+  currGame = {startTime=os.date(),tutorialsSeen={},missionStatus={},finishedMissions={},achievementDisqualifications={},cheats={},autoSave=prefs['autosaveTurns'],stats={},events_occured={},event_countdown=0,identified_items={},unidentified_item_info={},dialog_seen={}}
 end
 
 ---Generate stores, factions, and dungeon branches
