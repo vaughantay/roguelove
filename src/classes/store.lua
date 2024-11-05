@@ -163,7 +163,7 @@ function Store:add_item(item,info)
   end
   local index = self:get_inventory_index(item)
   if index then
-    if self.inventory[index].item.amount ~= -1 then --dont "increase" the amount if the amount is supposed to be infinite
+    if self.inventory[index].item.amount ~= -1 and item.amount ~= -1 then --dont "increase" the amount if the amount is supposed to be infinite
       self.inventory[index].item.amount = self.inventory[index].item.amount+item.amount
     end
     makeNew = false
@@ -301,21 +301,23 @@ end
 --@param cost Number. The amount the store will pay per item.
 --@param amt Number. The amount of the item being sold. Optional, defaults to 1.
 --@param creat Creature. The creature selling to the store. Optional, defaults to the player.
-function Store:creature_sells_item(item,cost,amt,creature)
+--@para stash Entity. Where the item is actually being held. Optional, defaults to the creature
+function Store:creature_sells_item(item,cost,amt,creature,stash)
   creature = creature or player
+  stash = stash or creature
   local totalAmt = item.amount or 1
   if amt > totalAmt then amt = totalAmt end
   local totalCost = cost*amt
   local givenItem = item
   if item.amount > amt then
-    item.owner = nil --This is done because item.owner is the creature who owns the item, and Item:clone() does a deep copy of all tables, which means it will create a copy of the owner, which owns a copy of the item, which is owned by another copy of the owner which owns another copy of the item etc etc leading to a crash
+    item.possessor = nil --This is done because item.possessor is the creature who owns the item, and Item:clone() does a deep copy of all tables, which means it will create a copy of the owner, which owns a copy of the item, which is owned by another copy of the owner which owns another copy of the item etc etc leading to a crash
     givenItem = item:clone()
     givenItem.amount = amt
-    item.owner = creature
+    item.possessor = stash
   end
   self:add_item(givenItem)
-  givenItem.owner=self
-  creature:delete_item(item,amt)
+  givenItem.possessor=self
+  stash:delete_item(item,amt)
   if self.currency_item then
     local creatureItem = creature:has_item(self.currency_item)
     if not creatureItem then

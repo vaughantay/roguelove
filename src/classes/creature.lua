@@ -1820,12 +1820,12 @@ function Creature:pickup(item,tileOnly)
     return false,pickupText
   end
   local x,y = self.x,self.y
-  if ((tileOnly ~= true and not self:touching(item)) or (tileOnly == true and (item.x ~= x or item.y ~= y))) and (not item.owner or not item.owner.inventory_accessible_anywhere) then return false end
-  if item.owner then
+  if ((tileOnly ~= true and not self:touching(item)) or (tileOnly == true and (item.x ~= x or item.y ~= y))) and (not item.possessor or not item.possessor.inventory_accessible_anywhere) then return false end
+  if item.possessor then
     if player:can_sense_creature(self) then
-      output:out(pickupText or self:get_name() .. " takes " .. item:get_name() .. " from " .. item.owner:get_name() .. ".")
+      output:out(pickupText or self:get_name() .. " takes " .. item:get_name() .. " from " .. item.possessor:get_name() .. ".")
     end
-    item.owner:drop_item(item)
+    item.possessor:drop_item(item)
   elseif player:can_sense_creature(self) then
     output:out(pickupText or self:get_name() .. " picks up " .. item:get_name() .. ".")
   end
@@ -1864,7 +1864,7 @@ function Creature:give_item(item)
     else
       table.insert(self.inventory,item)
       item.x,item.y=self.x,self.y
-      item.owner = self
+      item.possessor = self
       while item.max_stack and item.amount > item.max_stack do --if the item stack is too large then split it up into multiple items
         item:splitStack(item.max_stack)
       end
@@ -1873,7 +1873,7 @@ function Creature:give_item(item)
     table.insert(self.inventory,item)
   end
   item.x,item.y=self.x,self.y
-  item.owner = self
+  item.possessor = self
   return item
 end
 
@@ -1890,7 +1890,7 @@ function Creature:drop_item(item,silent)
       self:unequip(item)
     end
     item.x,item.y=self.x,self.y
-    item.owner=nil
+    item.possessor=nil
     item.equipped=false
 	end
 end
@@ -1904,14 +1904,14 @@ function Creature:drop_all_items(deathItems)
       self:unequip(item)
     end
     item.x,item.y=self.x,self.y
-    item.owner=nil
+    item.possessor=nil
     item.equipped=false
 	end --end inventory for loop
   if deathItems and self.death_items then
     for _,item in ipairs(self.death_items) do
       currMap:add_item(item,self.x,self.y,true)
       item.x,item.y=self.x,self.y
-      item.owner=nil
+      item.possessor=nil
       item.equipped=false
     end --end inventory for loop
   end
@@ -4453,9 +4453,9 @@ end
 function Creature:can_craft_recipe(recipeID)
   if debugMode then return true end
   local recipe = possibleRecipes[recipeID]
-  local no_auto_learn = recipe.no_auto_learn or (not gamesettings.auto_learn_possible_crafts)
+  local auto_learn = (recipe.auto_learn == nil and gamesettings.auto_learn_possible_crafts or recipe.auto_learn)
   local known = self.known_recipes and self.known_recipes[id]
-  if no_auto_learn and not known then
+  if not auto_learn and not known then
     return false
   end
   if recipe.requires then
@@ -4684,6 +4684,23 @@ function Creature:refresh()
   self.can_move_cache = {}
 end
 
+---Registers an incident as having occured, to be processed by all other creatures who observe it
+--@param incidentID String. The incident type
+--@param actor Entity. The creature (or other entity) that caused the incident. Optional
+--@param target Entity. The entity (or coordinates), that was the target of the incident. Optional
+--@param args Table. Other information to use when processing this incident
+function Creature:process_incident(incidentID,actor,target,args)
+  local bool,ret = self:callbacks('process_incident',incidentID,actor,target,args)
+  if (bool == false) then return end
+  if possibleIncidents and possibleIncidents[incidentID] and possibleIncidents[incidentID].process then
+    local status,r = pcall(possibleIncidents[incidentID].process,possibleIncidents[incidentID],self,actor,target,args)
+    if status == false then
+      output:out("Error in incident " .. incidentID .. " process code: " .. r)
+      print("Error in incident " .. incidentID .. " process code: " .. r)
+    end
+  end
+end
+
 ---Returns the ID of the dialog most applicable to this creature at the moment
 --@param asker Creature. The creature speaking to this creature
 function Creature:get_dialog(asker)
@@ -4727,19 +4744,21 @@ function Creature:get_dialog(asker)
     end
   end
   --If no specific mood dialogs set, but there's a generic dialog ID set, use that
-  if self.dialog then return self.dialog end 
+  if self.dialog then return self.dialog end
+  
+  local dialog_base = (self.dialog_base or self.id)
   
   if #possible_moods > 0 then
     --If no dialog IDs are not set in the creature instance, look at dialog IDs in the game and use any that match the creature ID
     for _,mood in pairs(possible_moods) do
-      if possibleDialogs[self.id .. "_" .. mood] then
-        return self.id .. "_" .. mood
+      if possibleDialogs[dialog_base .. "_" .. mood] then
+        return dialog_base .. "_" .. mood
       end
     end
   end
   --If no specific mood dialogs set, but there's a generic dialog for this creature, use that
-  if possibleDialogs[self.id] then
-    return self.id
+  if possibleDialogs[dialog_base] then
+    return dialog_base
   end
   return false
 end

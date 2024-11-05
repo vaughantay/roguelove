@@ -962,12 +962,12 @@ end
 
 function inventory:splitStack(item,amount)
   if item and item.stacks and amount > 0 and amount < item.amount then
-    local oldOwner = item.owner
-    item.owner = nil --This is done because item.owner is the creature who owns the item, and Item:clone() does a deep copy of all tables, which means it will create a copy of the owner, which owns a copy of the item, which is owned by another copy of the owner which owns another copy of the item etc etc leading to a crash
+    local oldOwner = item.possessor
+    item.possessor = nil --This is done because item.possessor is the creature who has the item, and Item:clone() does a deep copy of all tables, which means it will create a copy of the owner, which owns a copy of the item, which is owned by another copy of the owner which owns another copy of the item etc etc leading to a crash
     local newItem = item:clone()
     item.amount = item.amount - amount
     newItem.amount = amount
-    item.owner,newItem.owner = oldOwner
+    item.possessor,newItem.possessor = oldOwner
     newItem.stacks = false
     self.entity:give_item(newItem)
     newItem.stacks = true

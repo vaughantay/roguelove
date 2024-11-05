@@ -82,6 +82,11 @@ function RangedAttack:use(target, attacker, item)
   if item then
     if item.preserve_on_throw then
       proj.miss_item = item
+    elseif item.miss_item then
+      proj.miss_item = item.miss_item
+    end
+    if item.miss_item_on_hit then
+      proj.miss_item_on_hit = true
     end
     if item.hit_effect then
       proj.hit_effect = item.hit_effect

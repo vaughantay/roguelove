@@ -285,6 +285,7 @@ function load_data()
   require "data.factions"
   require "data.features"
   require "data.gamedefinition"
+  require "data.incidents"
   require "data.items"
   require "data.layouts"
   require "data.mapModifiers"

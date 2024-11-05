@@ -35,6 +35,18 @@ function Faction:init(fid)
 	return self
 end
 
+---Returns the faction's name
+--@return Text. The name
+function Faction:get_name()
+  return self.name
+end
+
+---Returns the faction's description
+--@return Text. The description
+function Faction:get_description()
+  return self.description
+end
+
 ---Determine if a creature is an enemy of the faction.
 --@param creature Creature. The creature to test for enmity.
 --@return Boolean. Whether the creature is an enemy or not.
@@ -363,7 +375,9 @@ function Faction:add_item(item,info)
   end
   local index = self:get_inventory_index(item)
   if index then
-    self.inventory[index].item.amount = self.inventory[index].item.amount+item.amount
+    if self.inventory[index].item.amount ~= -1 and item.amount ~= -1 then
+      self.inventory[index].item.amount = self.inventory[index].item.amount+item.amount
+    end
     makeNew = false
   end
   if makeNew == true then
@@ -503,8 +517,10 @@ end
 --@param favorCost Number. The amount of favor the faction will pay per item.
 --@param amt Number. The amount of the item being sold. Optional, defaults to 1
 --@param creat Creature. The creature selling. Optional, defaults to the player
-function Faction:creature_sells_item(item,moneyCost,favorCost,amt,creature)
+--@para stash Entity. Where the item is actually being held. Optional, defaults to the creature
+function Faction:creature_sells_item(item,moneyCost,favorCost,amt,creature,stash)
   creature = creature or player
+  stash = stash or creature
   moneyCost = moneyCost or 0
   favorCost = favorCost or 0
   local totalAmt = item.amount or 1
@@ -513,13 +529,13 @@ function Faction:creature_sells_item(item,moneyCost,favorCost,amt,creature)
   local totalFavor = favorCost*amt
   local givenItem = item
   if item.amount > amt then
-    item.owner = nil --This is done because item.owner is the creature who owns the item, and Item:clone() does a deep copy of all tables, which means it will create a copy of the owner, which owns a copy of the item, which is owned by another copy of the owner which owns another copy of the item etc etc leading to a crash
+    item.possessor = nil --This is done because item.possessor is the creature who owns the item, and Item:clone() does a deep copy of all tables, which means it will create a copy of the owner, which owns a copy of the item, which is owned by another copy of the owner which owns another copy of the item etc etc leading to a crash
     givenItem = item:clone()
     givenItem.amount = amt
-    item.owner = creature
+    item.possessor = stash
   end
   self:add_item(givenItem)
-  creature:delete_item(item,amt)
+  stash:delete_item(item,amt)
   creature.favor[self.id] = (creature.favor[self.id] or 0) + totalFavor
   if self.currency_item then
     local creatureItem = creature:has_item(self.currency_item)
@@ -688,50 +704,72 @@ function Faction:get_possible_random_items()
   return possibles
 end
   
-  ---Generate a random item from the faction's possible random items list
+---Generate a random item from the faction's possible random items list
 --@param list Table. A list of item IDs to pull from. Optional, defaults to the list from get_possible_random_items()
-  function Faction:generate_random_item(list)
-    local possibles = list or self:get_possible_random_items()
-    local itemID = possibles[random(#possibles)]
-    local tags = self.passedTags
-    local item = Item(itemID,tags)
-    if random(1,100) <= (self.artifact_chance or gamesettings.artifact_chance) then
-      mapgen:make_artifact(item,tags)
-    elseif random(1,100) <= gamesettings.enchantment_chance then
-      local possibles = item:get_possible_enchantments(true)
-      if count(possibles) > 0 then
-        local eid = get_random_element(possibles)
-        item:apply_enchantment(eid,-1)
-      end
+function Faction:generate_random_item(list)
+  local possibles = list or self:get_possible_random_items()
+  local itemID = possibles[random(#possibles)]
+  local tags = self.passedTags
+  local item = Item(itemID,tags)
+  if random(1,100) <= (self.artifact_chance or gamesettings.artifact_chance) then
+    mapgen:make_artifact(item,tags)
+  elseif random(1,100) <= gamesettings.enchantment_chance then
+    local possibles = item:get_possible_enchantments(true)
+    if count(possibles) > 0 then
+      local eid = get_random_element(possibles)
+      item:apply_enchantment(eid,-1)
     end
-    if not item.amount then item.amount = 1 end --This is here because non-stackable items don't generate with amounts
-    self:add_item(item,{randomly_generated=true,delete_on_restock=self.delete_random_items_on_restock})
   end
+  if not item.amount then item.amount = 1 end --This is here because non-stackable items don't generate with amounts
+  self:add_item(item,{randomly_generated=true,delete_on_restock=self.delete_random_items_on_restock})
+end
   
-  ---Gets the modifier for items sold in the faction store
-  function Faction:get_cost_modifier(creature)
-    creature = creature or player
-    local finalMod = 0
-    if self.faction_cost_modifiers then
-      for faction,mod in pairs(self.faction_cost_modifiers) do
-        if creature:is_faction_member(faction) then
-          if math.abs(mod) > math.abs(finalMod) then
-            finalMod = mod
-          end
+---Gets the modifier for items sold in the faction store
+function Faction:get_cost_modifier(creature)
+  creature = creature or player
+  local finalMod = 0
+  if self.faction_cost_modifiers then
+    for faction,mod in pairs(self.faction_cost_modifiers) do
+      if creature:is_faction_member(faction) then
+        if math.abs(mod) > math.abs(finalMod) then
+          finalMod = mod
         end
-      end --end faction for
-    end --end if faction cost modifiers
-    if self.reputation_cost_modifiers then
-      local creatreputation = creature.reputation[self.id] or 0
-      local highest = nil
-      local tempMod = 0
-      for reputation,mod in pairs(self.reputation_cost_modifiers) do
-        if creatreputation >= reputation and (not highest or reputation > highest) then
-          highest = reputation
-          tempMod = mod
-        end
-      end --end reputation for
-      finalMod = finalMod + tempMod
-    end --end if reputation cost modifiers
-    return finalMod+creature:get_bonus('cost_modifier')
+      end
+    end --end faction for
+  end --end if faction cost modifiers
+  if self.reputation_cost_modifiers then
+    local creatreputation = creature.reputation[self.id] or 0
+    local highest = nil
+    local tempMod = 0
+    for reputation,mod in pairs(self.reputation_cost_modifiers) do
+      if creatreputation >= reputation and (not highest or reputation > highest) then
+        highest = reputation
+        tempMod = mod
+      end
+    end --end reputation for
+    finalMod = finalMod + tempMod
+  end --end if reputation cost modifiers
+  return finalMod+creature:get_bonus('cost_modifier')
+end
+  
+---Registers an incident as having occured, to be processed by all other creatures who observe it
+--@param incidentID String. The incident type
+--@param actor Entity. The creature (or other entity) that caused the incident. Optional
+--@param target Entity. The entity (or coordinates), that was the target of the incident. Optional
+--@param args Table. Other information to use when processing this incident
+function Faction:process_incident(incidentID,actor,target,args)
+  if possibleFactions[self.id].process_incident then
+    local status,r = pcall(possibleFactions[self.id].generate_items,self,incidentID,actor,target,args)
+    if status == false then
+      output:out("Error in faction " .. self.name .. " process_incident code: " .. r)
+      print("Error in faction " .. self.name .. " process_incident code: " .. r)
+    end
+    if r == false then
+      return r
+    end
   end
+  local incidentText = possibleIncidents[incidentID] and possibleIncidents[incidentID].name
+  if self.incident_reputation and self.incident_reputation[incidentID] then
+    actor:update_reputation(self.id,self.incident_reputation[incidentID],true,incidentText)
+  end
+end

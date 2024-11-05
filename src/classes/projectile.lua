@@ -202,13 +202,13 @@ function Projectile:hits(target,force_generic)
     --Hit effect:
     if self.hit_effect then
       local args = self.hit_effect_args or {}
-      local eff = Effect(self.miss_effect,unpack(args))
+      local eff = Effect(self.hit_effect,unpack(args))
       eff.creator = self.source
       currMap:add_effect(eff,target.x,target.y)
     end
     if self.hit_feature then
       local args = self.hit_feature_args or {}
-      local feat = Feature(self.miss_feature,args)
+      local feat = Feature(self.hit_feature,args)
       feat.creator = self.source
       currMap:add_feature(feat,target.x,target.y)
     end

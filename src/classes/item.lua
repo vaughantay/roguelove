@@ -80,11 +80,11 @@ function Item:get_info()
   if self.charges and not self.hide_charges then
     uses = uses .. "\n" .. (self.charge_name and ucfirst(self.charge_name) or (self.ammo_name and "Current Ammo" or "Charges")) .. (self.ammo_name and " (" .. self.ammo_name .. ")" or "") .. ": " .. self.charges .. (self.max_charges and "/" .. self.max_charges or "") .."\n"
   end
-  if self.owner and self.owner.cooldowns and self.owner.cooldowns[self] then
-    uses = uses .. "\nYou can't use this item again for another " .. self.owner.cooldowns[self] .. " turns."
+  if self.possessor and self.possessor.cooldowns and self.possessor.cooldowns[self] then
+    uses = uses .. "\nYou can't use this item again for another " .. self.possessor.cooldowns[self] .. " turns."
   end
 	if self.melee_attack then
-    local damage = self:get_damage(self.owner)
+    local damage = self:get_damage(self.possessor)
     local base_damage = self:get_damage()
     local ap = self:get_armor_piercing()
     local accuracy = self:get_accuracy()
@@ -112,7 +112,7 @@ function Item:get_info()
       if projectile.extra_damage_per_level and self.level then
         damage = damage+(projectile.extra_damage_per_level*self.level)
       end
-      damage = damage+self:get_ranged_damage() + (not self.no_creature_damage and self.owner and self.owner.get_ranged_damage and self.owner:get_ranged_damage(self.ranged_damage_stats) or 0)
+      damage = damage+self:get_ranged_damage() + (not self.no_creature_damage and self.possessor and self.possessor.get_ranged_damage and self.possessor:get_ranged_damage(self.ranged_damage_stats) or 0)
       uses = uses .. "\nDamage: " .. damage .. (projectile.damage_type and " (" .. projectile.damage_type .. ")" or "")
     end
   end
@@ -966,8 +966,8 @@ end
 --@param map Map. The map to the delete the item off of (optional, defaults to current map)
 --@param amount Number. The amount of the item to delete. If nil, delete it all
 function Item:delete(map,amount)
-  if self.owner then
-    return self.owner:delete_item(self,amount)
+  if self.possessor then
+    return self.possessor:delete_item(self,amount)
   end
   map = map or currMap
   if amount and amount < self.amount then
@@ -1104,14 +1104,14 @@ end
 --@return Item. The new item stack
 function Item:splitStack(amount)
   if self.stacks and amount > 0 and amount < self.amount then
-    local oldOwner = self.owner
-    self.owner = nil --This is done because item.owner is the creature who owns the item, and Item:clone() does a deep copy of all tables, which means it will create a copy of the owner, which owns a copy of the item, which is owned by another copy of the owner which owns another copy of the item etc etc leading to a crash
+    local oldOwner = self.possessor
+    self.possessor = nil --This is done because item.possessor is the creature who has the item, and Item:clone() does a deep copy of all tables, which means it will create a copy of the owner, which owns a copy of the item, which is owned by another copy of the owner which owns another copy of the item etc etc leading to a crash
     local newItem = self:clone()
     self.amount = self.amount - amount
     newItem.amount = amount
     newItem.stacks = false --To prevent the new stack from being re-added to the old stack
     if oldOwner then
-      self.owner,newItem.owner = oldOwner
+      self.possessor,newItem.possessor = oldOwner
       oldOwner:give_item(newItem)
     end
     newItem.stacks = true

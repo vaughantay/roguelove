@@ -165,7 +165,11 @@ end
 --@param y Number. The y-coordinate
 --@return Table. A table of all the contents of the tile
 function Map:get_contents(x,y)
-  return self.contents[x][y]
+  if self:in_map(x,y) then
+    return self.contents[x][y]
+  else
+    return {}
+  end
 end
 
 ---Run the terrain can_enter() callbacks for the creature's location
@@ -357,7 +361,7 @@ function Map:get_tile_actions(x,y,user,noAdjacent)
     for id, entity in pairs(self:get_tile_features(x,y)) do
       if entity.actions then
         for id,act in pairs(entity.actions) do
-          if entity:action_requires(user,id) then
+          if entity:action_requires(user,id) ~= false then
             actions[#actions+1] = {id=id,entity=entity,text=act.text,description=act.description,order=act.order,image=(act.image or 'feature' .. (entity.image_name or entity.id)),image_color=(act.image_color or (entity.use_color_with_tiles or (gamesettings.always_use_color_with_tiles and entity.use_color_with_tiles ~= false) and entity.color) or nil),noDirection=act.noDirection}
           end --end requires if
         end --end action for
@@ -377,7 +381,7 @@ function Map:get_tile_actions(x,y,user,noAdjacent)
         for id, entity in pairs(self:get_tile_features(x2,y2)) do
           if entity.actions then
             for id,act in pairs(entity.actions) do
-              if (not act.noAdjacent or (x2 == x and y2 == y)) and entity:action_requires(user,id) then
+              if (not act.noAdjacent or (x2 == x and y2 == y)) and entity:action_requires(user,id) ~= false then
                 actions[#actions+1] = {id=id,entity=entity,text=act.text,description=act.description,order=act.order,image=(act.image or 'feature' .. (entity.image_name or entity.id)),image_color=(act.image_color or (entity.use_color_with_tiles or (gamesettings.always_use_color_with_tiles and entity.use_color_with_tiles ~= false) and entity.color) or nil),noDirection=act.noDirection}
               end --end requires if
             end --end action for
@@ -457,7 +461,7 @@ end
 --@param id String. The ID of the effect to check for.
 --@return Boolean. Whether or not the tile has this effect
 function Map:tile_has_effect(x,y,id)
-  if x<2 or y<2 or x>self.width-1 or y>self.height-1 then return false end
+  if not self:in_map(x,y) then return false end
   for _,eff in pairs(self:get_tile_effects(x,y)) do
     if eff.id == id then return eff end
   end
@@ -518,6 +522,7 @@ function Map:add_feature(feature,x,y,args)
   if feature.creature_spawn_point then
     self.creature_spawn_points[#self.creature_spawn_points+1] = feature
   end
+  feature:refresh_image_name(self)
   return feature --return the feature so if it's created when this function is called, you can still access it
 end
 
@@ -538,11 +543,12 @@ function Map:add_effect(effect,x,y,args)
   if effects[effect.id].placed then effects[effect.id].placed(effect,self,args) end
 	self.effects[effect] = effect
   if effect.castsLight then self.lights[effect] = effect end
+  effect:refresh_image_name(self)
   return effect --return the effect so if it's created when this function is called, you can still access it
 end
 
 ---Add an item to a tile
---@param item Item. A specific item object, NOT its ID. Usually a new creature, called using Item('itemID')
+--@param item Item. A specific item object, NOT its ID. Usually a new item, called using Item('itemID')
 --@param x Number. The x-coordinate
 --@param y Number. The y-coordinate
 --@param ignoreFunc Boolean. Whether to ignore the item's new() function (optional)
@@ -619,13 +625,14 @@ end
 function Map:findPath(fromX,fromY,toX,toY,cType,terrainLimit)
   if not pathfinders[self] then pathfinders[self] = {} end
   if not grids[self] then grids[self] = {} end
-  if pathfinders[self][(cType or 'basic') .. (terrainLimit or "")] == nil then
+  local pathLabel = (cType or 'basic') .. (terrainLimit or "")
+  if pathfinders[self][pathLabel] == nil then
     self:refresh_pathfinder(cType,terrainLimit)
   end
-	local path = pathfinders[self][(cType or 'basic') .. (terrainLimit or "")]:getPath(fromX,fromY,toX,toY,true)
+	local path = pathfinders[self][pathLabel]:getPath(fromX,fromY,toX,toY,true)
 	if not path then
-    if pathfinders[self][(cType or 'basic') .. (terrainLimit or "") .. "unsafe"] == nil then self:refresh_pathfinder(cType,terrainLimit,true) end
-    path = pathfinders[self][(cType or 'basic') .. (terrainLimit or "") .. "unsafe"]:getPath(fromX,fromY,toX,toY,true)
+    if pathfinders[self][pathLabel .. "unsafe"] == nil then self:refresh_pathfinder(cType,terrainLimit,true) end
+    path = pathfinders[self][pathLabel .. "unsafe"]:getPath(fromX,fromY,toX,toY,true)
 	end
   if path then
     --Sanitize the path so it's just coordinates, making it safe to save:
@@ -748,41 +755,45 @@ end
 ---Refresh a specific tile's tile image
 --@param x Number. The x-coordinate
 --@param y Number. The y-coordinate
-function Map:refresh_tile_image(x,y)
+--@param contentsOnly Boolean. If true, don't refresh the base tile image, just the contents
+function Map:refresh_tile_image(x,y,contentsOnly)
+  if not self[x] or not self[x][y] then return end
   if not self.images then return self:refresh_images() end
   local name = ""
   local directions = ""
   local tileset = tilesets[self.tileset]
   if not tileset then return false end
   if type(self[x][y]) == "table" then
-    self[x][y]:refresh_image_name()
-    name = "floor" .. (tileset.different_outside_floor and self.tile_info[x][y].outside and "_outside" or "")
-  elseif self[x][y] == "." then
-    name = "floor" .. (tileset.different_outside_floor and self.tile_info[x][y].outside and "_outside" or "")
-  elseif self[x][y] == "#" then
-    if self[x][y-1] and not self:isWall(x,y-1) then directions = directions .. "n" end
-    if self[x][y+1] and not self:isWall(x,y+1) then directions = directions .. "s" end
-    if self[x+1] and not self:isWall(x+1,y) then directions = directions .. "e" end
-    if self[x-1] and not self:isWall(x-1,y) then directions = directions .. "w" end
-    if tileset.southOnly then
-      if directions:find('s') then name = 'walls' else name = 'wall' end
-    elseif tileset.tilemap then --if all wall tiles are in a single image (uses quads)
-      name = "wall"
-    else
-      name = "wall" .. directions
-    end
-  end --end tile type check
-  if (tileset[name .. '_tiles']) then
-    if random(1,100) <= (tileset[name .. '_tile_chance'] or 25) then name = name .. random(1,tileset[name .. '_tiles'])
-    else name = name .. 1 end
-  end -- end tileset if
-  --OK, now that we figured out what image to load, go ahead and load it:
-  --if images[self.tileset .. name] and images[self.tileset .. name] ~= -1 then --if image is already loaded, set it
+      self[x][y]:refresh_image_name(self)
+      name = "floor" .. (tileset.different_outside_floor and self.tile_info[x][y].outside and "_outside" or "")
+  elseif not contentsOnly then
+    if self[x][y] == "." then
+      name = "floor" .. (tileset.different_outside_floor and self.tile_info[x][y].outside and "_outside" or "")
+    elseif self[x][y] == "#" then
+      if not self:isWall(x,y-1) then directions = directions .. "n" end
+      if not self:isWall(x,y+1) then directions = directions .. "s" end
+      if not self:isWall(x+1,y) then directions = directions .. "e" end
+      if not self:isWall(x-1,y) then directions = directions .. "w" end
+      if tileset.southOnly then
+        if directions:find('s') then name = 'walls' else name = 'wall' end
+      elseif tileset.tilemap then --if all wall tiles are in a single image (uses quads)
+        name = "wall"
+      else
+        name = "wall" .. directions
+      end
+    end --end tile type check
+    if (tileset[name .. '_tiles']) then
+      if random(1,100) <= (tileset[name .. '_tile_chance'] or 25) then name = name .. random(1,tileset[name .. '_tiles'])
+      else name = name .. 1 end
+    end -- end tileset if
+    --OK, now that we figured out what image to load, go ahead and load it:
+    --if images[self.tileset .. name] and images[self.tileset .. name] ~= -1 then --if image is already loaded, set it
     if tileset.tilemap and name:find('wall') then
       self.images[x][y] = {image=self.tileset .. name,direction=(directions == "" and "middle" or directions)}
     else
       self.images[x][y] = self.tileset .. name
     end
+  end
   for _, feat in pairs(self.contents[x][y]) do
     if feat.baseType == "feature" then feat:refresh_image_name() end
   end
@@ -822,8 +833,8 @@ function Map:refresh_lightMap(clear) --I have a feeling this is a HORRIBLE and i
     if not light.castsLight then
       self.lights[lid] = nil
     else
-      if light.owner then
-        light.x,light.y = light.owner.x,light.owner.y
+      if light.possessor then
+        light.x,light.y = light.possessor.x,light.possessor.y
       end
       self:refresh_light(light,clear)
     end
@@ -1159,8 +1170,8 @@ function Map:populate_creatures(creatTotal,forceGeneric)
   end
   
   --Populate based on rooms:
-  if self.rooms then
-    for roomID,room in pairs(self.rooms) do
+  if self.rooms and not self.noCreatures then
+    for roomID,room in ipairs(self.rooms) do
       local decID = room.decorator
       if decID then
         local dec = roomDecorators[decID]
@@ -1289,7 +1300,7 @@ function Map:populate_items(itemTotal,forceGeneric)
   end
   
   --Populate based on rooms:
-  if self.rooms then
+  if self.rooms and not self.noItems then
     for roomID,room in pairs(self.rooms) do
       local decID = room.decorator
       if decID then
@@ -1317,7 +1328,7 @@ function Map:populate_items(itemTotal,forceGeneric)
   local item_spawn_points = {}
   if self.item_spawn_points and #self.item_spawn_points > 0 then
     for i,sp in ipairs(self.item_spawn_points) do
-      if not sp.used and not self.tile_info[sp.x][sp.y].noItems and not self:tile_has_feature(sp.x,sp.y,'exit') and ((sp.inventory and #sp:get_inventory() < (sp.inventory_space or 1)) or (self:isClear(sp.x,sp.y,nil,true) and #self:get_tile_items(sp.x,sp.y) == 0)) then
+      if not sp.used and not self:tile_has_feature(sp.x,sp.y,'exit') and ((sp.inventory and #sp:get_inventory() < (sp.inventory_space or 1)) or (self:isClear(sp.x,sp.y,nil,true) and #self:get_tile_items(sp.x,sp.y) == 0 and not self.tile_info[sp.x][sp.y].noItems)) then
         item_spawn_points[#item_spawn_points+1] = sp
       end
     end
@@ -1551,13 +1562,13 @@ end
 ---Get the minimum creature level for this map
 function Map:get_min_level()
   local branch = currWorld.branches[self.branch]
-  return round((branch.min_level_base or 1)+(self.depth-1)*(branch.level_increase_per_depth or 1))
+  return round((branch.min_level_base or 1)+(self.depth-1)*(branch.level_increase_per_depth or 1)+(currGame.level_boost or 0))
 end
 
 ---Get the maximum creature level for this map
 function Map:get_max_level()
   local branch = currWorld.branches[self.branch]
-  return round((branch.max_level_base or 1)+(self.depth-1)*(branch.level_increase_per_depth or 1))
+  return round((branch.max_level_base or 1)+(self.depth-1)*(branch.level_increase_per_depth or 1)+(currGame.level_boost or 0))
 end
 
 ---Get a map's content tags
@@ -1575,6 +1586,17 @@ function Map:get_content_tags(tagType,noBranch)
     end
   end
   return tags
+end
+
+---Checks if a map has a given content tag
+--@param tag String. The tag to check for
+--@param tagType String. The type of tag
+--@return Boolean. Whether or not it has the tag.
+function Map:has_content_tag(tag,tagType)
+  if in_table(tag,self:get_content_tags(tagType)) then
+    return true
+  end
+  return false
 end
 
 ---Checks if a map has a descriptive tag.
@@ -1603,10 +1625,11 @@ end
 --@param tweak Boolean. If true, tweak the damage number.
 --@param conditions Table. A table of conditions to possible inflict, in the same format as hitConditions elsewhere.
 --@param source_name String. The name to display for the source of the damage.
+--@param creatureSafe Boolean. A table of creatures not to damage
 --@return Table. A table of all damaged entities and the damage done to them.
 function Map:damage_all(x,y,damage,attacker,damage_type,args)
   local creat = currMap:get_tile_creature(x,y)
-  if creat and (creat ~= attacker or not args.attackerSafe) then
+  if creat and not args.creatureSafe and (creat ~= attacker or not args.attackerSafe) then
     local dmg = creat:damage((args.tweak and tweak(damage) or damage),attacker,damage_type,args.armor_piercing,args.noSound,args.item,args.ignore_weakness)
     if dmg and dmg > 0 and player:can_sense_creature(creat) then
       output:out(creat:get_name() .. " takes " .. dmg .. " " .. (damage_type and damage_types[damage_type] and damage_types[damage_type].name and damage_types[damage_type].name .. " " or "") .. "damage" .. (args.source_name and " from the " .. args.source_name .. "." or "."))
@@ -1628,4 +1651,46 @@ function Map:damage_all(x,y,damage,attacker,damage_type,args)
       end
     end
   end --end feature for
+end
+
+---Registers an incident as having occured, to be processed by all other creatures who observe it
+--@param incidentID String. The incident type
+--@param actor Entity. The creature (or other entity) that caused the incident. Optional
+--@param target Entity. The entity (or coordinates), that was the target of the incident. Optional
+--@param args Table. Other information to use when processing this incident
+function Map:register_incident(incidentID,actor,target,args)
+  args = args or {}
+  local seen_factions = {}
+  for _,creat in pairs(self.creatures) do
+    if not (creat.isDead or creat.hp < 1) and not creat:has_condition('asleep') then
+      local can_see_actor = not actor or (actor.baseType ~= "creature" and creat:can_see_tile(actor.x,actor.y) or (actor.baseType == "creature" and creat:can_sense_creature(actor)))
+      local can_see_target = not target or (target.baseType ~= "creature" and creat:can_see_tile(target.x,target.y) or (target.baseType == "creature" and creat:can_sense_creature(target)))
+      if can_see_actor or can_see_target then
+        creat:process_incident(incidentID,actor,target,args)
+        if #creat.factions > 0 then
+          for _,factionID in ipairs(creat.factions) do
+            seen_factions[factionID] = currWorld.factions[factionID]
+          end
+        end
+      end
+    end
+  end
+  if actor and actor.baseType == "creature" then
+    if currMap.aware_factions then
+      for _,factionID in ipairs(currMap.aware_factions) do
+        seen_factions[factionID] = currWorld.factions[factionID]
+      end
+    end
+    for fid,faction in pairs(seen_factions) do
+      faction:process_incident(incidentID,actor,target,args)
+    end
+  end
+end
+
+---Clear all map caches
+function Map:clear_caches()
+  currMap.sightblock_cache = {}
+  currMap.creature_cache = {}
+  currMap.feature_cache = {}
+  currMap.effect_cache = {}
 end

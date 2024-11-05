@@ -87,7 +87,7 @@ function Spell:get_info()
     statText = statText .. "Cooldown: " .. self.cooldown .. " Turns" .. "\n"
   end
   if self.min_range then
-    statText = statText .. "Min Range: " .. self.range .. "\n"
+    statText = statText .. "Min Range: " .. self.min_range .. "\n"
   end
   if self.range then
     statText = statText .. "Max Range: " .. self.range .. "\n"
@@ -106,7 +106,11 @@ function Spell:get_info()
       local display_order = info.display_order
       if display_order then
         lastorder = math.max(lastorder,display_order)
-        table.insert(tempstats,display_order,info)
+        if not tempstats[display_order] then
+          tempstats[display_order] = info
+        else
+          table.insert(unsorted,info)
+        end
       else
         table.insert(unsorted,info)
       end
@@ -121,7 +125,7 @@ function Spell:get_info()
         stats[#stats+1] = tempstats[i]
       end
     end
-    for i,stat in pairs(stats) do
+    for i,stat in ipairs(stats) do
       local value = self:get_stat(stat.id)
       if value ~= false and stat.hide ~= true and (value ~= 0 or stat.hide_when_zero ~= true) then
         statText = statText .. stat.name .. (type(value) ~= "boolean" and ": " .. value .. (stat.is_percentage and "%" or "") or "") .. (stat.description and " (" .. stat.description .. ")" or "") .. "\n"

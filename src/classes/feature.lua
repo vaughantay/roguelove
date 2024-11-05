@@ -366,7 +366,7 @@ function Feature:give_item(item)
     table.insert(self.inventory,item)
   end
   item.x,item.y=self.x,self.y
-  item.owner = self
+  item.possessor = self
   return item
 end
 
@@ -378,7 +378,7 @@ function Feature:drop_item(item)
     currMap:add_item(item,self.x,self.y,true)
 		table.remove(self.inventory,id)
     item.x,item.y=self.x,self.y
-    item.owner=nil
+    item.possessor=nil
 	end
 end
 
@@ -388,7 +388,7 @@ function Feature:drop_all_items()
     for _,item in ipairs(self.inventory) do
       currMap:add_item(item,self.x,self.y,true)
       item.x,item.y=self.x,self.y
-      item.owner=nil
+      item.possessor=nil
     end --end inventory for loop
     self.inventory = {}
   end

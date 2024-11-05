@@ -966,9 +966,9 @@ function coffin:placed(onMap)
     self.creature = Creature(creatures[random(#creatures)],onMap:get_min_level())
   else --bones
     local bones = Item('bone')
-    bones.owner,bones.x,bones.y=self,self.x,self.y
+    bones.possessor,bones.x,bones.y=self,self.x,self.y
     local skull = Item('humanskull')
-    skull.owner,skull.x,skull.y=self,self.x,self.y
+    skull.possessor,skull.x,skull.y=self,self.x,self.y
     local boneAmt = random(5,10)
     bones.amount = boneAmt
     self:give_item(bones)

@@ -1,6 +1,6 @@
 examine_item = {}
 
-function examine_item:enter(previous,item,container)
+function examine_item:enter(previous,item,container,noUse)
   if previous ~= hotkey and previous ~= splitstack and previous ~= nameitem then
     local width, height = love.graphics:getWidth(),love.graphics:getHeight()
     local uiScale = (prefs['uiScale'] or 1)
@@ -8,7 +8,7 @@ function examine_item:enter(previous,item,container)
     self.previous=previous
     self.item=item
     self.container = container
-    self.has_item = player:has_specific_item(self.item)
+    self.has_item = (not noUse and player:has_specific_item(self.item))
     self.cursorX,self.cursorY=1,1
     self.scroll=0
     self.scrollMax=0
@@ -617,6 +617,7 @@ function examine_item:buttonpressed(key,scancode,isRepeat,controllerType)
 	elseif key == "enter" or key == "wait" then
     if self.buttons.values[self.cursorY][self.cursorX] == "pickup" then
       player:pickup(self.item)
+      advance_turn()
       self:switchBack()
     elseif self.buttons.values[self.cursorY][self.cursorX] == "use" then
       self:switchBack()
@@ -682,6 +683,7 @@ function examine_item:buttonpressed(key,scancode,isRepeat,controllerType)
     inventory:useItem(self.item)
   elseif key == "pickup" and self.buttons.pickup then
     player:pickup(self.item)
+    advance_turn()
     self:switchBack()
   elseif key == "equip" and self.buttons.equip then
     self:switchBack()
@@ -761,6 +763,7 @@ function examine_item:mousepressed(x,y,button)
   --Item use buttons:
   if self.buttons.pickup and x > self.buttons.pickup.minX and x < self.buttons.pickup.maxX and y > self.buttons.pickup.minY and y < self.buttons.pickup.maxY then
     player:pickup(self.item)
+    advance_turn()
     self:switchBack()
   elseif self.buttons.use and x > self.buttons.use.minX and x < self.buttons.use.maxX and y > self.buttons.use.minY and y < self.buttons.use.maxY then
     self:switchBack()

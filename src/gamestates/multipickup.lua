@@ -102,11 +102,11 @@ function multipickup:draw()
     --Add extra text if needed:
     local extra = nil
     local direction = ""
-    if (item.y or item.owner.y) < player.y then direction = direction .. "north"
-    elseif (item.y or item.owner.y) > player.y then direction = direction .. "south" end
-    if (item.x or item.owner.x) < player.x then direction = direction .. "west"
-    elseif (item.x or item.owner.x) > player.x then direction = direction .. "east" end
-    if item.owner then extra = " (In " .. item.owner.name .. (direction ~= "" and ", " .. direction or "") .. ")" end
+    if (item.y or item.possessor.y) < player.y then direction = direction .. "north"
+    elseif (item.y or item.possessor.y) > player.y then direction = direction .. "south" end
+    if (item.x or item.possessor.x) < player.x then direction = direction .. "west"
+    elseif (item.x or item.possessor.x) > player.x then direction = direction .. "east" end
+    if item.possessor then extra = " (In " .. item.possessor.name .. (direction ~= "" and ", " .. direction or "") .. ")" end
     if extra == nil and direction ~= "" then extra = " (" .. ucfirst(direction) .. ")" end
     
     --Display line:

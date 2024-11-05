@@ -1,6 +1,6 @@
 storescreen = {}
 
-function storescreen:enter(previous,whichStore)
+function storescreen:enter(previous,whichStore,stash)
   if previous ~= examine_item then
     self.yModPerc = 100
     self.blackScreenAlpha=0
@@ -17,6 +17,7 @@ function storescreen:enter(previous,whichStore)
     self.scrollMax=1000
     self.currency_item = self.store.currency_item and possibleItems[self.store.currency_item]
     self.costMod = 0
+    self.stash = stash
     if self.store.faction then
       self.faction = currWorld.factions[self.store.faction]
       self.playerMember = player:is_faction_member(self.store.faction)
@@ -39,6 +40,13 @@ function storescreen:refresh_lists()
   for _,ilist in pairs(self.store:get_buy_list()) do
     local item = ilist.item
     self.buying_list[#self.buying_list+1] = {name=item:get_name(true,1),description=item:get_description(),info=item:get_info(),cost=(ilist.cost and ilist.cost-round(ilist.cost*(self.costMod/100)) or 0),amount=(item.amount or 1),buyAmt=0,item=item}
+  end
+  --Add items from stash:
+  if self.stash then
+    for _,ilist in pairs(self.store:get_buy_list(self.stash)) do
+      local item = ilist.item
+      self.buying_list[#self.buying_list+1] = {name=item:get_name(true,1),description=item:get_description(),info=item:get_info(),cost=(ilist.cost and ilist.cost-round(ilist.cost*(self.costMod/100)) or 0),amount=(item.amount or 1),buyAmt=0,item=item,stash=self.stash}
+    end
   end
 end
 
@@ -94,8 +102,8 @@ function storescreen:draw()
   if canEnter and (not self.store.noBuy or count(self.store.offers_services) > 0 or count((self.store.teaches_spells or {})) > 0 or count((self.store.teaches_skills or {})) > 0) then
     printY=printY+fontSize
     local padX = 8
-    local buybuttonW = fonts.buttonFont:getWidth("Buying")+padding
-    local sellbuttonW = fonts.buttonFont:getWidth("Selling")+padding
+    local buybuttonW = fonts.buttonFont:getWidth("Buy")+padding
+    local sellbuttonW = fonts.buttonFont:getWidth("Sell")+padding
     local servicebuttonW = fonts.buttonFont:getWidth("Services")+padding
     local spellbuttonW = fonts.buttonFont:getWidth("Skills/Abilities")+padding
     local missionbuttonW = fonts.buttonFont:getWidth("Missions")+padding
@@ -114,14 +122,14 @@ function storescreen:draw()
     end
     local buttonX = windowX+math.floor(windowWidth/2-padding-(totalButtons/2)*biggestButton)+padding
     if self.screen == "Buy" then setColor(150,150,150,255) end
-    self.buyButton = output:button(buttonX-padX,printY,buybuttonW+padX,false,((self.cursorX == 1 and self.cursorY == 1) and "hover" or nil),"Buying",true)
+    self.buyButton = output:button(buttonX-padX,printY,buybuttonW+padX,false,((self.cursorX == 1 and self.cursorY == 1) and "hover" or nil),"Buy",true)
     self.navButtons[#self.navButtons+1] = self.buyButton
     self.buyButton.cursorX = #self.navButtons
     buttonX=buttonX+buybuttonW+padX
     if self.screen == "Buy" then setColor(255,255,255,255) end
     if not self.store.noBuy then
       if self.screen == "Sell" then setColor(150,150,150,255) end
-      self.sellButton = output:button(buttonX,printY,sellbuttonW,false,((self.cursorX == 2 and self.cursorY == 1) and "hover" or nil),"Selling",true)
+      self.sellButton = output:button(buttonX,printY,sellbuttonW,false,((self.cursorX == 2 and self.cursorY == 1) and "hover" or nil),"Sell",true)
       self.navButtons[#self.navButtons+1] = self.sellButton
       self.sellButton.cursorX = #self.navButtons
       buttonX=buttonX+sellbuttonW+padX
@@ -227,7 +235,7 @@ function storescreen:draw()
         setColor(50,50,50,255)
         love.graphics.rectangle('fill',info.minX,info.minY,windowWidth+yPad*2,(info.maxY-info.minY))
         setColor(255,255,255,255)
-      elseif mouseX > windowX and mouseX < windowX+windowWidth and mouseY > info.minY and mouseY < info.maxY then
+      elseif mouseX > windowX and mouseX < windowX+windowWidth and mouseY > info.minY-self.scrollY and mouseY < info.maxY-self.scrollY then
         setColor(33,33,33,255)
         love.graphics.rectangle('fill',info.minX,info.minY,windowWidth+yPad*2,(info.maxY-info.minY))
         setColor(255,255,255,255)
@@ -344,7 +352,7 @@ function storescreen:draw()
         setColor(50,50,50,255)
         love.graphics.rectangle('fill',info.minX,info.minY,windowWidth+yPad,fontSize+yPad*2)
         setColor(255,255,255,255)
-      elseif mouseX > windowX and mouseX < windowX+windowWidth and mouseY > info.minY and mouseY < info.maxY then
+      elseif mouseX > windowX and mouseX < windowX+windowWidth and mouseY > info.minY-self.scrollY and mouseY < info.maxY-self.scrollY then
         setColor(33,33,33,255)
         love.graphics.rectangle('fill',info.minX,info.minY,windowWidth+yPad*2,(info.maxY-info.minY))
         setColor(255,255,255,255)
@@ -358,7 +366,7 @@ function storescreen:draw()
       --Icon:
       output.display_entity(info.item,imageX,sellTextY-8,true,true)
       --Name:
-      love.graphics.printf(name,nameX,sellTextY,nameMaxLen)
+      love.graphics.printf(name .. (info.stash and " (From " .. info.stash.name .. ")" or ""),nameX,sellTextY,nameMaxLen)
       --Cost:
       love.graphics.print(self:get_cost_text(info.cost),priceX,sellTextY)
       --Minus button:
@@ -434,10 +442,16 @@ function storescreen:draw()
       local servID = servData.service
       local service = possibleServices[servID]
       local costText = service:get_cost_text(player) or servData.costText or service.costText or (servData.cost and self:get_cost_text(servData.cost+round(servData.cost*(self.costMod/100))) or nil)
-      local serviceText = service.name .. (costText and " (Cost: " .. costText .. ")" or "") .. "\n" .. service.description
+      love.graphics.setFont(fonts.headerFont)
+      local serviceHeader = service.name
+      local __, wrappedtext = fonts.textFont:getWrap(serviceHeader, windowWidth)
+      love.graphics.printf(serviceHeader,printX,printY,windowWidth,"center")
+      printY=math.ceil(printY+(#wrappedtext*fonts.headerFont:getHeight()))
+      love.graphics.setFont(fonts.textFont)
+      local serviceText = (costText and " (Cost: " .. costText .. ")" or "") .. "\n" .. service.description
       local __, wrappedtext = fonts.textFont:getWrap(serviceText, windowWidth)
       love.graphics.printf(serviceText,windowX,printY,windowWidth,"center")
-      printY=printY+(#wrappedtext)*fontSize
+      printY=printY+(#wrappedtext+1)*fontSize
       
       local canDo,canDoText = true,nil
       if servData.cost then
@@ -454,20 +468,24 @@ function storescreen:draw()
         canDo,canDoText = service:requires(player)
       end
       if canDo == false then
+        setColor(150,150,150,255)
+      end
+      local serviceW = fonts.buttonFont:getWidth("Select " .. service.name)+padding
+      local buttonX = math.floor(midX-serviceW/2)
+      local buttonHi = false
+      if mouseX > buttonX and mouseX < buttonX+serviceW and mouseY > printY-self.scrollY and mouseY < printY+32-self.scrollY then
+        buttonHi = true
+      end
+      local button = output:button(buttonX,printY,serviceW,false,((buttonHi or self.cursorY == 1+i) and "hover" or false),"Select " .. service.name,true)
+      self.serviceButtons[#self.serviceButtons+1] = button
+      setColor(255,255,255,255)
+      printY=printY+32
+      if canDo == false then
         canDoText = "You're not eligible for this service" .. (canDoText and ": " .. canDoText or ".")
         local __, wrappedtext = fonts.textFont:getWrap(canDoText, windowWidth)
         love.graphics.printf(canDoText,windowX,printY,windowWidth,"center")
         printY=printY+(#wrappedtext)*fontSize
-        self.serviceButtons[#self.serviceButtons+1] = false
-      else
-        local serviceW = fonts.buttonFont:getWidth("Select " .. service.name)+padding
-        local buttonX = math.floor(midX-serviceW/2)
-        local buttonHi = false
-        if mouseX > buttonX and mouseX < buttonX+serviceW and mouseY > printY-self.scrollY and mouseY < printY+32-self.scrollY then
-          buttonHi = true
-        end
-        self.serviceButtons[#self.serviceButtons+1] = output:button(buttonX,printY+8,serviceW,false,((buttonHi or self.cursorY == 1+i) and "hover" or false),"Select " .. service.name,true)
-        printY=printY+32
+        button.disabled = true
       end
       printY=printY+fontSize
       lastY = printY
@@ -622,51 +640,72 @@ function storescreen:draw()
       local mission = possibleMissions[missionID]
       if possibleMissions[missionID] and (not currGame.finishedMissions[missionID] or (mission.repeatable and (not mission.repeat_limit or currGame.finishedMissions[missionID].repetitions < mission.repeat_limit)))  then
         missionCount = missionCount+1
-        local missionText = mission.name .. "\n" .. (get_mission_data(missionID,'description') or mission.description)
+        love.graphics.setFont(fonts.headerFont)
+        local missionHeader = mission.name
+        local __, wrappedtext = fonts.textFont:getWrap(missionHeader, windowWidth)
+        love.graphics.printf(missionHeader,printX,printY,windowWidth,"center")
+        printY=math.ceil(printY+(#wrappedtext+0.5)*fonts.headerFont:getHeight())
+        love.graphics.setFont(fonts.textFont)
+        local missionText =(get_mission_data(missionID,'description') or mission.description)
         local __, wrappedtext = fonts.textFont:getWrap(missionText, windowWidth)
         love.graphics.printf(missionText,windowX,printY,windowWidth,"center")
-        printY=math.ceil(printY+(#wrappedtext+0.5)*fontSize)
+        printY=math.ceil(printY+(#wrappedtext+1)*fontSize)
         if active then
           local canFinish,canFinishText = nil,nil
           if mission.can_finish then
             canFinish,canFinishText = mission:can_finish(player)
           end
           if not canFinish then
+            setColor(150,150,150,255)
+          end
+          local serviceW = fonts.buttonFont:getWidth("Finish")+padding
+          local buttonX = math.floor(midX-serviceW/2)
+          local buttonHi = false
+          if mouseX > buttonX and mouseX < buttonX+serviceW and mouseY > printY-self.scrollY and mouseY < printY+32-self.scrollY then
+            buttonHi = true
+          end
+          local button = output:button(buttonX,printY,serviceW,false,((buttonHi or self.cursorY == 1+i) and "hover" or false),"Finish",true)
+          self.missionButtons[#self.missionButtons+1] = button
+          setColor(255,255,255,255)
+          printY=printY+32
+          if not canFinish then
             canFinishText = "You are currently on this mission" .. (canFinishText and ". " .. canFinishText or ".")
+            canFinish = nil
             local __, wrappedtext = fonts.textFont:getWrap(canFinishText, windowWidth)
             love.graphics.printf(canFinishText,windowX,printY,windowWidth,"center")
             printY=printY+(#wrappedtext+1)*fontSize
-            self.missionButtons[#self.missionButtons+1] = false
-          else
-            local serviceW = fonts.buttonFont:getWidth("Finish")+padding
-            local buttonX = math.floor(midX-serviceW/2)
-            local buttonHi = false
-            if mouseX > buttonX and mouseX < buttonX+serviceW and mouseY > printY-self.scrollY and mouseY < printY+32-self.scrollY then
-              buttonHi = true
-            end
-            local button = output:button(buttonX,printY,serviceW,false,((buttonHi or self.cursorY == 1+i) and "hover" or false),"Finish",true)
-            self.missionButtons[#self.missionButtons+1] = button
-            printY=printY+32+fontSize
+            button.disabled=true
           end
+          printY = printY+fontSize
+          lastY = printY
         else --Not active mission
-          local canDo,canDoText = (not mission.requires or mission:requires(player))
+          local canDo,canDoText = nil,nil
+          if not mission.requires then
+            canDo = true
+          else
+            canDo,canDoText = mission:requires(player)
+          end
+          if canDo == false then
+            setColor(150,150,150,255)
+          end
+          local serviceW = fonts.buttonFont:getWidth("Accept")+padding
+          local buttonX = math.floor(midX-serviceW/2)
+          local buttonHi = false
+          if mouseX > buttonX and mouseX < buttonX+serviceW and mouseY > printY-self.scrollY and mouseY < printY+32-self.scrollY then
+            buttonHi = true
+          end
+          local button = output:button(buttonX,printY,serviceW,false,((buttonHi or self.cursorY == 1+i) and "hover" or false),"Accept",true)
+          self.missionButtons[#self.missionButtons+1] = button
+          setColor(255,255,255,255)
+          printY=printY+32
           if canDo == false then
             canDoText = "You're not eligible for this mission" .. (canDoText and ": " .. canDoText or ".")
             local __, wrappedtext = fonts.textFont:getWrap(canDoText, windowWidth)
             love.graphics.printf(canDoText,windowX,printY,windowWidth,"center")
             printY=printY+(#wrappedtext+1)*fontSize
-            self.missionButtons[#self.missionButtons+1] = false
-          else
-            local serviceW = fonts.buttonFont:getWidth("Accept")+padding
-            local buttonX = math.floor(midX-serviceW/2)
-            local buttonHi = false
-            if mouseX > buttonX and mouseX < buttonX+serviceW and mouseY > printY-self.scrollY and mouseY < printY+32-self.scrollY then
-              buttonHi = true
-            end
-            local button = output:button(buttonX,printY,serviceW,false,((buttonHi or self.cursorY == 1+i) and "hover" or false),"Accept",true)
-            self.missionButtons[#self.missionButtons+1] = button
-            printY=printY+32+fontSize
+            button.disabled = true
           end
+          printY=printY+fontSize
           lastY = printY
         end --end active mission or not if
       end
@@ -719,7 +758,7 @@ function storescreen:buttonpressed(key,scancode,isRepeat,controllerType)
         self.scrollY = 0
       end
     elseif self.screen == "Services" then
-      if self.cursorY > 1 and self.serviceButtons[self.cursorY-1] then
+      if self.cursorY > 1 and self.serviceButtons[self.cursorY-1] and not self.serviceButtons[self.cursorY-1].disabled then
         local serviceData = self.store.offers_services[self.cursorY-1]
         local service = possibleServices[serviceData.service]
         local didIt, useText = service:activate(player)
@@ -735,7 +774,7 @@ function storescreen:buttonpressed(key,scancode,isRepeat,controllerType)
         end
       end
     elseif self.screen == "Spells" then
-      if self.cursorY > 1 and self.spellButtons[self.cursorY-1] then
+      if self.cursorY > 1 and self.spellButtons[self.cursorY-1] and not self.spellButtons[self.cursorY-1].disabled then
         local spellID = self.spellButtons[self.cursorY-1].spellID
         local skillID = self.spellButtons[self.cursorY-1].skillID
         local spell = possibleSpells[spellID]
@@ -751,7 +790,7 @@ function storescreen:buttonpressed(key,scancode,isRepeat,controllerType)
         end
       end
     elseif self.screen == "Missions" then
-      if self.cursorY > 1 and self.missionButtons[self.cursorY-1] then
+      if self.cursorY > 1 and self.missionButtons[self.cursorY-1] and not self.missionButtons[self.cursorY-1].disabled then
         local missionData = self.store.offers_missions[self.cursorY-1]
         local missionID = missionData.mission
         if currGame.missionStatus[missionID] then
@@ -775,7 +814,7 @@ function storescreen:buttonpressed(key,scancode,isRepeat,controllerType)
       local id = self.cursorY-2
       local list = (self.screen == "Buy" and self.selling_list or self.buying_list)
       if self.cursorX == 1 and self.cursorY > 2 then
-        Gamestate.switch(examine_item,list[id].item)
+        Gamestate.switch(examine_item,list[id].item,nil,true)
       elseif self.cursorX == 2 and self.cursorY > 2 then --minus button
         list[id].buyAmt = math.max(list[id].buyAmt-1,0)
       elseif self.cursorX == 4 and self.cursorY > 2 then --plus button
@@ -972,7 +1011,7 @@ function storescreen:mousepressed(x,y,button)
       self.scrollY = 0
   elseif self.screen == "Services" and self.serviceButtons then --Services:
     for i,button in ipairs(self.serviceButtons) do
-      if button and x > button.minX and x < button.maxX and y > button.minY-self.scrollY and y < button.maxY-self.scrollY then
+      if button and not button.disabled and x > button.minX and x < button.maxX and y > button.minY-self.scrollY and y < button.maxY-self.scrollY then
         local serviceData = self.store.offers_services[i]
         local service = possibleServices[serviceData.service]
         local didIt, useText = service:activate(player)
@@ -990,7 +1029,7 @@ function storescreen:mousepressed(x,y,button)
     end--end button for
   elseif self.screen == "Spells" and self.spellButtons then
     for i,button in ipairs(self.spellButtons) do
-      if button and x > button.minX and x < button.maxX and y > button.minY-self.scrollY and y < button.maxY-self.scrollY then
+      if button and not button.disabled and x > button.minX and x < button.maxX and y > button.minY-self.scrollY and y < button.maxY-self.scrollY then
         local spellID = self.spellButtons[i].spellID
         local skillID = self.spellButtons[i].skillID
         local spell = possibleSpells[spellID]
@@ -1008,7 +1047,7 @@ function storescreen:mousepressed(x,y,button)
     end --end button for
   elseif self.screen == "Missions" and self.missionButtons then --Services:
     for i,button in ipairs(self.missionButtons) do
-      if button and x > button.minX and x < button.maxX and y > button.minY-self.scrollY and y < button.maxY-self.scrollY then
+      if button and not button.disabled and x > button.minX and x < button.maxX and y > button.minY-self.scrollY and y < button.maxY-self.scrollY then
         local missionData = self.store.offers_missions[i]
         local missionID = missionData.mission
         if currGame.missionStatus[missionID] then
@@ -1048,7 +1087,7 @@ function storescreen:mousepressed(x,y,button)
       elseif x > numberEntry.minX and x < numberEntry.maxX and y > numberEntry.minY-self.scrollY and y < numberEntry.maxY-self.scrollY then
         self.cursorX = 3
       elseif x > examine.minX and x < examine.maxX and y > examine.minY-self.scrollY and y < examine.maxY-self.scrollY then
-        Gamestate.switch(examine_item,listItem.item)
+        Gamestate.switch(examine_item,listItem.item,nil,true)
       end
       break --no reason to continue looking at other list items if we've already seen one
     end --end x/y check
@@ -1115,7 +1154,7 @@ end
 function storescreen:player_sells()
   for id,info in ipairs(self.buying_list) do
     if info.buyAmt > 0 then
-      self.store:creature_sells_item(info.item,info.cost,info.buyAmt,player)
+      self.store:creature_sells_item(info.item,info.cost,info.buyAmt,player,info.stash)
       info.buyAmt = 0
     end
     self:refresh_lists()
