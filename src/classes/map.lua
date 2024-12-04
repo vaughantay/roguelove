@@ -483,7 +483,13 @@ function Map:add_creature(creature,x,y,ignoreFunc)
 	creature.x, creature.y = x,y
 	self.contents[x][y][creature] = creature
 	self.creatures[creature] = creature
-  if not ignoreFunc and possibleMonsters[creature.id].placed then possibleMonsters[creature.id].placed(creature,self) end
+  if not ignoreFunc and possibleMonsters[creature.id].placed then
+    local status,r = pcall(possibleMonsters[creature.id].placed,creature,self)
+    if status == false then
+      output:out("Error in creature " .. creature.id .. " placed code: " .. r)
+      print("Error in creature " .. creature.id .. " placed code: " .. r)
+    end
+  end
   if creature.castsLight then self.lights[creature] = creature end
   self.creature_cache[x .. "," .. y] = creature
   if not creature.origin_map then
@@ -514,7 +520,13 @@ function Map:add_feature(feature,x,y,args)
 	self.contents[x][y][feature] = feature
   feature.x,feature.y = x,y
   self.feature_cache[x .. ',' .. y] = nil
-  if possibleFeatures[feature.id].placed then possibleFeatures[feature.id].placed(feature,self,args) end
+  if possibleFeatures[feature.id].placed then
+    local status,r = pcall(possibleFeatures[feature.id].placed,feature,self,args)
+    if status == false then
+      output:out("Error in feature " .. feature.id .. " placed code: " .. r)
+      print("Error in feature " .. feature.id .. " placed code: " .. r)
+    end
+  end
   if feature.castsLight then self.lights[feature] = feature end
   if feature.item_spawn_point then
     self.item_spawn_points[#self.item_spawn_points+1] = feature
@@ -540,7 +552,13 @@ function Map:add_effect(effect,x,y,args)
   end
   effect.x,effect.y = x,y
   self.effect_cache[x .. ',' .. y] = nil
-  if effects[effect.id].placed then effects[effect.id].placed(effect,self,args) end
+  if effects[effect.id].placed then
+    local status,r = pcall(effects[effect.id].placed,effect,self,args)
+    if status == false then
+      output:out("Error in effect " .. effect.id .. " placed code: " .. r)
+      print("Error in effect " .. effect.id .. " placed code: " .. r)
+    end
+  end
 	self.effects[effect] = effect
   if effect.castsLight then self.lights[effect] = effect end
   effect:refresh_image_name(self)
@@ -560,7 +578,13 @@ function Map:add_item(item,x,y,ignoreFunc)
   end
 	item.x, item.y = x,y
 	self.contents[x][y][item] = item
-  if not ignoreFunc and possibleItems[item.id].placed then possibleItems[item.id].placed(item,self) end
+  if not ignoreFunc and possibleItems[item.id].placed then
+    local status,r = pcall(possibleItems[item.id].placed,item,self)
+    if status == false then
+      output:out("Error in item " .. item.id .. " placed code: " .. r)
+      print("Error in item " .. item.id .. " placed code: " .. r)
+    end
+  end
   if item.castsLight then self.lights[item] = item end
   
   if not item.origin_map then
@@ -604,7 +628,13 @@ function Map:change_tile(feature,x,y,dontRefreshSight)
 	self[x][y] = feature
   if type(feature) == "table" then
     feature.x,feature.y = x,y
-    if possibleFeatures[feature.id].placed then possibleFeatures[feature.id].placed(feature,self) end
+    if possibleFeatures[feature.id].placed then
+      local status,r = pcall(possibleFeatures[feature.id].placed,feature,self)
+      if status == false then
+        output:out("Error in feature " .. feature.id .. " placed code: " .. r)
+        print("Error in feature " .. feature.id .. " placed code: " .. r)
+      end
+    end
     if feature.castsLight then
       self.lights[feature] = feature
       self:refresh_lightMap()
@@ -1534,7 +1564,12 @@ function Map:cleanup()
   end
   --Run custom cleanup code:
   if mapTypes[self.mapType].cleanup then
-    return mapTypes[self.mapType].cleanup(self)
+    local status,r = pcall(mapTypes[self.mapType].cleanup,self)
+    if status == false then
+      output:out("Error in map " .. self.mapType .. " cleanup code: " .. r)
+      print("Error in map " .. self.mapType .. " cleanup code: " .. r)
+    end
+    return r
   end
 end
 

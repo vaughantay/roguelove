@@ -35,7 +35,12 @@ end
 function Store:generate_items()
   --Do custom stocking code:
   if possibleStores[self.id].generate_items then
-    if possibleStores[self.id].generate_items(self) == false then
+    local status,r = pcall(possibleStores[self.id].generate_items,self)
+    if status == false then
+      output:out("Error in store " .. self.id .. " generate_items code: " .. r)
+      print("Error in store " .. self.id .. " generate_Items code: " .. r)
+    end
+    if r == false then
       return
     end
   end
@@ -81,7 +86,12 @@ function Store:restock()
   
   --Do custom restocking code:
   if possibleStores[self.id].restock then
-    if possibleStores[self.id].restock(self) == false then
+    local status,r = pcall(possibleStores[self.id].restock,self)
+    if status == false then
+      output:out("Error in store " .. self.id .. " restock code: " .. r)
+      print("Error in store " .. self.id .. " restock code: " .. r)
+    end
+    if r == false then
       return
     end
   end

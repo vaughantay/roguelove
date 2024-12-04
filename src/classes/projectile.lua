@@ -90,7 +90,14 @@ function Projectile:advance()
     end --end if neverinstant
   end --end line if
   
-	if (projectiles[self.id].advance) then return projectiles[self.id].advance(self) end
+	if (projectiles[self.id].advance) then
+    local status,r = pcall(projectiles[self.id].advance,self)
+    if status == false then
+      output:out("Error in projectile " .. self.id .. " advance code: " .. r)
+      print("Error in projectile " .. self.id .. " advance code: " .. r)
+    end
+    return r
+  end
 end
 
 ---This code runs every tick a projectile is active. You shouldn't call it explicitly.
@@ -102,7 +109,14 @@ function Projectile:update(dt,force_generic)
     return
   end
   if (self.timer <= 0 or force_generic == true) then
-    if (force_generic ~= true and projectiles[self.id].update) then return projectiles[self.id].update(self,dt) end
+    if (force_generic ~= true and projectiles[self.id].update) then
+      local status,r = pcall(projectiles[self.id].advance,self,dt)
+      if status == false then
+        output:out("Error in projectile " .. self.id .. " update code: " .. r)
+        print("Error in projectile " .. self.id .. " update code: " .. r)
+      end
+      return r
+    end
     if (self.timer <= 0) then self.timer = self.time_per_tile end --rechecks in case it's being forced
     --Generic update: (Move to next point on line. If collides with something, call hits()
     if (self.path and #self.path > 0) then
@@ -123,7 +137,11 @@ function Projectile:update(dt,force_generic)
           local dmg = self:hits(creat)
           for ench,_ in pairs(self:get_enchantments()) do
           if enchantments[ench].after_damage then
-            enchantments[ench]:after_damage(self,creat,dmg)
+            local status,r = pcall(enchantments[ench].after_damage,enchantments[ench],self,creat,dmg)
+            if status == false then
+              output:out("Error in enchantment " .. ench .. " after_damage code: " .. r)
+              print("Error in enchantment " .. ench.. " after_damage code: " .. r)
+            end
           end
         end --end enchantment after_damage for
         end
@@ -134,14 +152,22 @@ function Projectile:update(dt,force_generic)
         local dmg = self:hits(creat)
         for ench,_ in pairs(self:get_enchantments()) do
           if enchantments[ench].after_damage then
-            enchantments[ench]:after_damage(self,creat,dmg)
+            local status,r = pcall(enchantments[ench].after_damage,enchantments[ench],self,creat,dmg)
+            if status == false then
+              output:out("Error in enchantment " .. ench .. " after_damage code: " .. r)
+              print("Error in enchantment " .. ench.. " after_damage code: " .. r)
+            end
           end
         end --end enchantment after_damage for
       else
         self:hits({x=self.x,y=self.y})
         for ench,_ in pairs(self:get_enchantments()) do
           if enchantments[ench].after_miss then
-            enchantments[ench]:after_miss(self,{x=self.x,y=self.y})
+            local status,r = pcall(enchantments[ench].after_miss,enchantments[ench],self,{x=self.x,y=self.y})
+            if status == false then
+              output:out("Error in enchantment " .. ench .. " after_miss code: " .. r)
+              print("Error in enchantment " .. ench.. " after_miss code: " .. r)
+            end
           end
         end --end enchantment after_miss for
       end --defaults to just deleting itself, but can be overwritten by projectiles
@@ -155,7 +181,14 @@ end --end update() function
 --@param target Entity. The thing it hit. Must be a table with an X and Y coordinate, probably a creature.
 --@param force_generic Boolean. If set to true, run this code and don't run the projectile's custom hits() code.
 function Projectile:hits(target,force_generic)
-  if (force_generic ~= true and projectiles[self.id].hits) then return projectiles[self.id].hits(self,target) end
+  if (force_generic ~= true and projectiles[self.id].hits) then
+    local status,r = pcall(projectiles[self.id].hits,self,target)
+    if status == false then
+      output:out("Error in projectile " .. self.id .. " hits code: " .. r)
+      print("Error in projectile " .. self.id.. " hits code: " .. r)
+    end
+    return r
+  end
   --Generic hits:
   local dmg = false
   local playersees = player:can_see_tile(target.x,target.y)

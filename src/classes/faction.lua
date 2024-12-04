@@ -252,7 +252,12 @@ end
 function Faction:generate_items()
   --Do custom stocking code:
   if possibleFactions[self.id].generate_items then
-    if possibleFactions[self.id].generate_items(self) == false then
+    local status,r = pcall(possibleFactions[self.id].generate_items,self)
+    if status == false then
+      output:out("Error in faction " .. self.id .. " generate_items code: " .. r)
+      print("Error in faction " .. self.id .. " generate_Items code: " .. r)
+    end
+    if r == false then
       return
     end
   end
@@ -295,7 +300,12 @@ function Faction:restock()
   
   --Do custom restocking code:
   if possibleFactions[self.id].restock then
-    if possibleFactions[self.id].restock(self) == false then
+    local status,r = pcall(possibleFactions[self.id].restock,self)
+    if status == false then
+      output:out("Error in faction " .. self.id .. " restock code: " .. r)
+      print("Error in faction " .. self.id .. " restock code: " .. r)
+    end
+    if r == false then
       return
     end
   end
@@ -759,7 +769,7 @@ end
 --@param args Table. Other information to use when processing this incident
 function Faction:process_incident(incidentID,actor,target,args)
   if possibleFactions[self.id].process_incident then
-    local status,r = pcall(possibleFactions[self.id].generate_items,self,incidentID,actor,target,args)
+    local status,r = pcall(possibleFactions[self.id].process_incident,self,incidentID,actor,target,args)
     if status == false then
       output:out("Error in faction " .. self.name .. " process_incident code: " .. r)
       print("Error in faction " .. self.name .. " process_incident code: " .. r)

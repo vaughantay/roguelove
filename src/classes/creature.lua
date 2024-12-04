@@ -159,12 +159,25 @@ function Creature:init(creatureType,level,tags,info,noTweak,ignoreNewFunc) --TOD
   
   --Run new() function
   if not ignoreNewFunc and (possibleMonsters[creatureType].new ~= nil) then
-		possibleMonsters[creatureType].new(self,tags,info)
+    local status,r = pcall(possibleMonsters[creatureType].new,self,tags,info)
+    if status == false then
+      output:out("Error in creature " .. self.id .. " new code: " .. r)
+      print("Error in creature " .. self.id .. " new code: " .. r)
+    end
 	end
   
   --Generate Name:
-  if possibleMonsters[self.id].nameGen then self.properName = possibleMonsters[self.id].nameGen(self)
-  elseif self.nameType then self.properName = namegen:generate_name(self.nameType,self) end
+  if possibleMonsters[self.id].nameGen then
+    local status,r = pcall(possibleMonsters[self.id].nameGen,self)
+    if status == false then
+      output:out("Error in creature " .. self.id.. " nameGen code: " .. r)
+      print("Error in creature " .. self.id .. " nameGen code: " .. r)
+    else
+      self.properName = r
+    end
+  elseif self.nameType then
+    self.properName = namegen:generate_name(self.nameType,self)
+  end
   
   --Inventory:
   if not noItems then
@@ -737,8 +750,8 @@ function Creature:callbacks(callback_type,...)
   if type(possibleMonsters[self.id][callback_type]) == "function" then
     local status,r = pcall(possibleMonsters[self.id][callback_type],self,unpack({...}))
     if status == false then
-        output:out("Error in creature " .. self.name .. " callback \"" .. callback_type .. "\": " .. r)
-        print("Error in creature " .. self.name .. " callback \"" .. callback_type .. "\": " .. r)
+        output:out("Error in creature " .. self.id .. " callback \"" .. callback_type .. "\": " .. r)
+        print("Error in creature " .. self.id .. " callback \"" .. callback_type .. "\": " .. r)
       end
 		if (r == false) then return false end
     if r ~= nil and type(r) ~= "boolean" then table.insert(ret,r) end
@@ -1811,10 +1824,7 @@ function Creature:pickup(item,tileOnly)
     if self == player then output:out(tooBigText) end
     return false,tooBigText
   end
-  local didIt,pickupText = nil,nil
-  if possibleItems[item.id].pickup then
-    didIt,pickupText = possibleItems[item.id].pickup(item,self)
-  end
+  local didIt,pickupText = item:callbacks('pickup',self)
   if didIt == false then
     output:out(pickupText)
     return false,pickupText
@@ -2103,10 +2113,7 @@ function Creature:equip(item)
   if equipSlot then
     for i=1,equipSlot.slots,1 do
       if not equipSlot[i] then --if there's an empty slot, just use that
-        local didIt = true
-        if possibleItems[item.id].equip then
-          didIt,equipText = possibleItems[item.id].equip(item,self)
-        end
+        local didIt,equipText = item:callbacks('equip',self)
         if didIt ~= false then
           equipSlot[i] = item
           equipText = (equipText or "") .. (item.equipText or "You equip " .. item:get_name() .. ".")
@@ -2146,10 +2153,7 @@ function Creature:unequip(item)
   
   for i=1,self.equipment[equipSlot].slots,1 do
     if self.equipment[equipSlot][i] == item then
-      local didIt = true
-      if possibleItems[item.id].unequip then
-        didIt,unequipText = possibleItems[item.id].unequip(item,self)
-      end
+      local didIt,unequipText = item:callbacks('unequip',self)
       if didIt ~= false then
         self.equipment[equipSlot][i] = nil
         unequipText = (unequipText or "") .. (item.unequipText or "You unequip " .. item:get_name() .. ".")
@@ -2868,7 +2872,13 @@ function Creature:update(dt) --for charging, and other special effects
   end --end if self zoomto
 
   for condition, info in pairs(self.conditions) do --for special effects like glowing, shaking, whatever
-		if (conditions[condition].update ~= nil) then conditions[condition]:update(self,dt) end
+		if (conditions[condition].update ~= nil) then
+      local status,r = pcall(conditions[condition].update,conditions[condition],self,dt)
+      if status == false then
+        output:out("Error in condition " .. condition .. " update code: " .. r)
+        print("Error in condition " .. condition .. " update code: " .. r)
+      end
+    end
   end -- end for
   
   if self.animated and prefs['creatureAnimations'] and not prefs['noImages'] and (self.animateSleep or not self:has_condition('asleep')) and player:does_notice(self) and player:can_sense_creature(self) then
@@ -3838,8 +3848,8 @@ function Creature:learn_spell(spellID,force)
       end
       return newSpell
     else
-      output:out("Error: Creature " .. self.name .. " tried to learn non-existent spell " .. spellID)
-      print("Error: Creature " .. self.name .. " tried to learn non-existent spell " .. spellID)
+      output:out("Error: Creature " .. self:get_name() .. " " .. self.id .. " tried to learn non-existent spell " .. spellID)
+      print("Error: Creature " .. self:get_name() .. " " .. self.id .. " tried to learn non-existent spell " .. spellID)
     end
   end
 end
@@ -4710,8 +4720,8 @@ function Creature:get_dialog(asker)
   if possibleMonsters[self.id].get_dialog then
     local status,r = pcall(possibleMonsters[self.id].get_dialog,self,asker)
     if status == false then
-      output:out("Error in creature " .. self.name .. " get_dialog code: " .. r)
-      print("Error in creature " .. self.name .. " get_dialog code: " .. r)
+      output:out("Error in creature " .. self.id .. " get_dialog code: " .. r)
+      print("Error in creature " .. self.id .. " get_dialog code: " .. r)
     end
     if r == false then
       return false

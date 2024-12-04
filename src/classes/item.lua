@@ -31,7 +31,11 @@ function Item:init(itemID,tags,info,ignoreNewFunc)
     self.charges = self.charges or 0
   end
   if not ignoreNewFunc and (possibleItems[itemID].new ~= nil) then
-		possibleItems[itemID].new(self,tags,info)
+    local status,r = pcall(possibleItems[itemID].new,self,tags,info)
+    if status == false then
+      output:out("Error in item " .. itemID .. " new code: " .. r)
+      print("Error in item " .. itemID .. " new code: " .. r)
+    end
 	end
   if data.spells_granted then
     self.spells_granted = {}
@@ -198,7 +202,12 @@ function Item:target(target,user,skip,ignoreCooldowns)
   end
   
   if not skip and possibleItems[self.id].target then
-    return possibleItems[self.id].target(self,target,user)
+    local status,r = pcall(possibleItems[self.id].target,self,target,user)
+    if status == false then
+      output:out("Error in item " .. self.id .. " target code: " .. r)
+      print("Error in item " .. self.id .. " target code: " .. r)
+    end
+    return r
   end
   
   if (self.target_type == "self" or self.target_type == "passive") then
@@ -268,7 +277,16 @@ end
 --@return Number. The damage the item will deal.
 function Item:get_damage(wielder)
   if possibleItems[self.id].get_damage then
-    return possibleItems[self.id].get_damage(self,wielder)
+    local status,r = pcall(possibleItems[self.id].get_damage,self,wielder)
+    if status == false then
+      output:out("Error in item " .. self.id .. " get_damage code: " .. r)
+      print("Error in item " .. self.id .. " get_damage code: " .. r)
+    end
+    if r == false then
+      return 0
+    elseif type(r) == "number" then
+      return r
+    end
   end
   local dmg = (self.damage or 0)
   local bonus = .01*self:get_enchantment_bonus('damage_percent')

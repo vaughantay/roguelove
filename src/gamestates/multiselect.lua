@@ -14,29 +14,33 @@ function multiselect:enter(previous,list,title,closeAfter,advanceAfter,descripti
   self.scrollPositions=nil
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
   local uiScale = (prefs['uiScale'] or 1)
-  local boxW,boxH = 450,300
-  local padX,padY = 0,0
-  local descY = 0
-  local x,y=math.floor(width/2/uiScale-boxW/2),math.floor(height/2/uiScale-boxH/2)
-  local fontSize = prefs['fontSize']
-  self.x,self.y,self.boxW,self.boxH=x,y,boxW,boxH
+  self.boxW,self.boxH = math.min(550,width),math.min(550,height)
+  self.x,self.y=math.floor(width/2/uiScale-self.boxW/2),math.floor(height/2/uiScale-self.boxH/2)
   if prefs['noImages'] == true then
-    padX,padY=5,5
+    self.padX,self.padY=5,5
   else
-    padX,padY=20,20
+    self.padX,self.padY=20,20
   end
-  self.padX,self.padY = padX,padY
   self.yModPerc = 100
   tween(0.2,self,{yModPerc=0})
   output:sound('stoneslideshort',2)
-  local _,titleLines = fonts.textFont:getWrap(self.title,boxW-padX)
-  local startY = y+(#titleLines+2)*fontSize
+  self:refresh_list()
+  --Resize box based on list size:
+  self.boxH = math.ceil(self.list[#self.list].maxY-self.y)
+  self.y = math.floor(height/2/uiScale-self.boxH/2)
+  self:refresh_list()
+end
+
+function multiselect:refresh_list()
+  local fontSize = fonts.textFont:getHeight()
+  local _,titleLines = fonts.textFont:getWrap(self.title,self.boxW-self.padX)
+  local startY = self.y+(#titleLines+2)*fontSize
   if self.description then
-    local _,descLines = fonts.textFont:getWrap(self.description,boxW-padX)
+    local _,descLines = fonts.textFont:getWrap(self.description,self.boxW-self.padX)
     startY = startY+(#descLines*fontSize)
   end
   local tileSize = output:get_tile_size(true)
-  local scrollMod = (self.scrollPositions and padX or 0)
+  local scrollMod = (self.scrollPositions and self.padX or 0)
   for i,item in ipairs(self.list) do
     if not item.order then item.order = 10000 end
   end
@@ -48,7 +52,7 @@ function multiselect:enter(previous,list,title,closeAfter,advanceAfter,descripti
     local letterW = fonts.textFont:getWidth(letterText)
     local imageW = (item.image and images[item.image] and tileSize or 0)
     local imageH = (item.image and images[item.image] and tileSize or 0)
-    local _,textLines = fonts.textFont:getWrap((letter and letter .. ") " or "") .. item.text,boxW-padX-letterW-imageW-scrollMod)
+    local _,textLines = fonts.textFont:getWrap(item.text,self.boxW-self.padX-letterW-imageW-scrollMod)
     item.y = (i == 1 and startY or self.list[i-1].maxY)
     item.height = math.max(imageH,#textLines*fontSize)+2
     item.maxY = item.y+item.height
@@ -75,7 +79,7 @@ function multiselect:draw()
   local boxW,boxH = self.boxW,self.boxH
   local padX,padY = self.padX,self.padY
   local x,y=self.x,self.y
-  local fontSize = prefs.fontSize
+  local fontSize = fonts.textFont:getHeight()
 	
   output:draw_window(x,y,x+boxW,y+boxH)
   
@@ -135,7 +139,7 @@ function multiselect:draw()
     love.graphics.printf(item.text,x+padX+imageW+letterW+2,item.y+2,boxW-padX-imageW-letterW-scrollMod)
     setColor(255,255,255,255)
 	end
-  local bottom = self.list[#self.list].maxY+2
+  local bottom = self.list[#self.list].maxY
   
   love.graphics.setStencilTest()
   
