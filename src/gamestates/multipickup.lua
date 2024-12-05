@@ -5,7 +5,7 @@ function multipickup:enter()
   self.scrollY = 0
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
   local uiScale = (prefs['uiScale'] or 1)
-  local boxW,boxH = 450,300
+  local boxW,boxH = math.min(550,width),math.min(550,height)
   local padX,padY = 0,0
   local fontSize = prefs['fontSize']
   local x,y=math.floor(width/2/uiScale-boxW/2),math.floor(height/2/uiScale-boxH/2)
@@ -27,6 +27,7 @@ end
 
 function multipickup:refresh_items()
   self.scrollPositions=nil
+  self.itemLines = {}
   self.items = currMap:get_tile_items(player.x,player.y,true)
   if count(self.items) == 0 then
     self:switchBack()
@@ -148,6 +149,11 @@ function multipickup:draw()
     y = y-self.scrollY
     output:description_box(ucfirst(descText),x,y)
     love.graphics.setFont(oldFont)
+  end
+  
+  if bottom < self.y+self.boxH then
+    self.boxH = bottom-self.y
+    self.y = math.floor(height/uiScale/2-self.boxH/2)
   end
   
   love.graphics.pop()

@@ -23,7 +23,8 @@ function conversation:enter(previous,speaker,asker,dialogID)
   tween(0.2,self,{yModPerc=0})
   output:sound('stoneslideshort',2)
   
-  self.startX,self.startY,self.windowW,self.windowH = 50,50,500,500
+  self.startX,self.startY,self.windowW,self.windowH = 5,50,500,500
+  self.endX,self.endY = self.startX+self.windowW,self.startY+self.windowH
   
   currGame.dialog_seen = currGame.dialog_seen or {}
   if speaker then
@@ -46,7 +47,7 @@ function conversation:draw()
   end
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
   local uiScale = (prefs['uiScale'] or 1)
-  local fontSize = prefs['fontSize']
+  local fontSize = fonts.textFont:getHeight()
   local tileSize = output:get_tile_size()
   local padding = round(tileSize/2)
   local mouseX,mouseY = love.mouse.getPosition()
@@ -57,11 +58,12 @@ function conversation:draw()
   love.graphics.translate(0,height*(self.yModPerc/100))
   love.graphics.setFont(fonts.textFont)
   
-  local startX,startY,windowW,windowH = self.startX,self.startY,self.windowW,self.windowH
-  local textWidth = windowW-padding*2-(self.maxScrollY > 0 and tileSize or 0)
-  local endX,endY = startX+windowW,startY+windowH
-  self.startX,self.startY,self.endX,self.endY = startX,startY,endX,endY
-  output:draw_window(startX,startY,windowW,windowH)
+  self.startX = math.ceil(width/2-self.windowW/2)
+  self.endX = self.startX + self.windowW
+  
+  local startX,startY,windowW,windowH,endX,endY = self.startX,self.startY,self.windowW,self.windowH,self.endX,self.endY
+  local textWidth = windowW-padding*2
+  output:draw_window(startX,startY,endX,endY)
   love.graphics.push()
   
   local printX = startX+padding
@@ -79,11 +81,11 @@ function conversation:draw()
     
     if self.cursorY == i then
       setColor(150,150,150,125)
-      love.graphics.rectangle("fill",printX-2,response.minY-2,windowW-printX,(response.maxY-response.minY)+4)
+      love.graphics.rectangle("fill",printX-2,response.minY-2,endX-printX,(response.maxY-response.minY)+4)
       setColor(255,255,255,255)
     elseif response.minY and response.maxY and mouseY > response.minY and mouseY <= response.maxY and mouseX > self.startX and mouseX < self.endX then
       setColor(100,100,100,125)
-      love.graphics.rectangle("fill",printX-2,response.minY-2,windowW-printX,(response.maxY-response.minY)+4)
+      love.graphics.rectangle("fill",printX-2,response.minY-2,endX-printX,(response.maxY-response.minY)+4)
       setColor(255,255,255,255)
     end
     
@@ -94,12 +96,15 @@ function conversation:draw()
     setColor(255,255,255,255)
     printY = printY + thisHeight+4
   end
-  love.graphics.line(startX+16,endY-self.responseHeight-4,endX-32,endY-self.responseHeight-4)
+  love.graphics.line(startX+16,endY-self.responseHeight-4,endX+8,endY-self.responseHeight-4)
   printY = endY-self.responseHeight-8
   self.maxTextY = printY
   
+  --If scrollbars, adjust the text width
+  textWidth = textWidth-(self.maxScrollY > 0 and tileSize or 0)
+  
   local function stencilFunc()
-    love.graphics.rectangle("fill",startX,startY,windowW-round(tileSize/2),self.maxTextY-startY+4)
+    love.graphics.rectangle("fill",printX,startY,windowW,self.maxTextY-startY+4)
   end
   love.graphics.stencil(stencilFunc,"replace",1)
   love.graphics.setStencilTest("greater",0)
@@ -174,10 +179,10 @@ function conversation:draw()
     local scrollAmt = self.scrollY/self.maxScrollY
     if self.cursorY == 0 then
       setColor(150,150,150,125)
-      love.graphics.rectangle('fill',startX+windowW-tileSize*2,startY+8,tileSize,self.maxTextY-4)
+      love.graphics.rectangle('fill',endX-tileSize,startY+8,tileSize,self.maxTextY-4)
       setColor(255,255,255,255)
     end
-    self.scrollPositions = output:scrollbar(startX+windowW-tileSize*2,startY+8,self.maxTextY,scrollAmt,true)
+    self.scrollPositions = output:scrollbar(endX-tileSize,startY+8,self.maxTextY,scrollAmt,true)
   end
   
   love.graphics.setStencilTest()
@@ -288,18 +293,17 @@ function conversation:load_responses()
 end
 
 function conversation:refresh_response_height()
-  local fontSize = prefs['fontSize']
+  local fontSize = fonts.textFont:getHeight()
   local tileSize = output:get_tile_size()
   local padding = tileSize
-  local textWidth = self.windowW-padding*2-(self.maxScrollY > 0 and tileSize or 0)
+  local textWidth = self.windowW-padding
   self.responseHeight = 0
   for i,response in ipairs(self.responses) do
     local text = response.text
     local _,tlines = fonts.textFont:getWrap(text,textWidth)
     local thisHeight = #tlines*fontSize
-    self.responseHeight = self.responseHeight + thisHeight+4
+    self.responseHeight = self.responseHeight + thisHeight
   end
-  self.responseHeight = self.responseHeight + fontSize
 end
 
 function conversation:advance_dialog()
