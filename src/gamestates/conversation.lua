@@ -1,6 +1,10 @@
 conversation = {}
 
 function conversation:enter(previous,speaker,asker,dialogID)
+  local width, height = love.graphics:getWidth(),love.graphics:getHeight()
+  local uiScale = (prefs['uiScale'] or 1)
+  local tileSize = output:get_tile_size()
+  width,height = round(width/uiScale), round(height/uiScale)
   self.speaker = speaker
   self.asker = asker
   self.history = {}
@@ -23,7 +27,8 @@ function conversation:enter(previous,speaker,asker,dialogID)
   tween(0.2,self,{yModPerc=0})
   output:sound('stoneslideshort',2)
   
-  self.startX,self.startY,self.windowW,self.windowH = 5,50,500,500
+  self.windowW,self.windowH = math.min(width-tileSize,550),math.min(height-tileSize,550)
+  self.startX,self.startY = round(width/2-self.windowW/2)-round(tileSize/2),round(height/2-self.windowH/2)-round(tileSize/2)
   self.endX,self.endY = self.startX+self.windowW,self.startY+self.windowH
   
   currGame.dialog_seen = currGame.dialog_seen or {}
@@ -47,6 +52,7 @@ function conversation:draw()
   end
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
   local uiScale = (prefs['uiScale'] or 1)
+  width = round(width/uiScale), round(height/uiScale)
   local fontSize = fonts.textFont:getHeight()
   local tileSize = output:get_tile_size()
   local padding = round(tileSize/2)
@@ -57,9 +63,7 @@ function conversation:draw()
   love.graphics.scale(uiScale,uiScale)
   love.graphics.translate(0,height*(self.yModPerc/100))
   love.graphics.setFont(fonts.textFont)
-  
-  self.startX = math.ceil(width/2-self.windowW/2)
-  self.endX = self.startX + self.windowW
+
   
   local startX,startY,windowW,windowH,endX,endY = self.startX,self.startY,self.windowW,self.windowH,self.endX,self.endY
   local textWidth = windowW-padding*2
@@ -74,7 +78,7 @@ function conversation:draw()
   printY = endY-self.responseHeight
   for i,response in ipairs(self.responses) do
     response.minY = printY
-    local text = response.text
+    local text = response.text or "[NO RESPONSE TEXT FOUND]"
     local _,tlines = fonts.textFont:getWrap(text,textWidth)
     local thisHeight = #tlines*fontSize
     response.maxY = response.minY + thisHeight
@@ -96,7 +100,7 @@ function conversation:draw()
     setColor(255,255,255,255)
     printY = printY + thisHeight+4
   end
-  love.graphics.line(startX+16,endY-self.responseHeight-4,endX+8,endY-self.responseHeight-4)
+  love.graphics.line(startX+16,endY-self.responseHeight-4,endX+16,endY-self.responseHeight-4)
   printY = endY-self.responseHeight-8
   self.maxTextY = printY
   
@@ -104,7 +108,7 @@ function conversation:draw()
   textWidth = textWidth-(self.maxScrollY > 0 and tileSize or 0)
   
   local function stencilFunc()
-    love.graphics.rectangle("fill",printX,startY,windowW,self.maxTextY-startY+4)
+    love.graphics.rectangle("fill",printX,startY+18,windowW,self.maxTextY-startY-16)
   end
   love.graphics.stencil(stencilFunc,"replace",1)
   love.graphics.setStencilTest("greater",0)
@@ -127,19 +131,16 @@ function conversation:draw()
           textHeight = textHeight + fontSize
           if speaker then
             output.display_entity(speaker,printX,printY-8,true,true)
-            love.graphics.printf(speaker:get_name() .. ":",printX+tileSize,printY,textWidth)
+            love.graphics.printf(ucfirst(speaker:get_name()) .. ":",printX+tileSize,printY,textWidth)
             printY = printY + tileSize
             textHeight = textHeight + tileSize
           end
         end
         local _,tlines = fonts.textFont:getWrap((speaker and "\t" or "") .. text,textWidth)
+        local currHeight = fontSize*#tlines+4
         love.graphics.printf((speaker and "\t" or "") .. text,printX,printY,textWidth)
-        printY = printY+fontSize*#tlines+4
-        textHeight = textHeight+fontSize*#tlines+4
-        if #tlines > 1 then
-          printY = printY + round(fontSize/2)
-          textHeight = textHeight + round(fontSize/2)
-        end
+        printY = printY+currHeight
+        textHeight = textHeight+currHeight
         lastSpeaker = speaker
       end
     end
@@ -151,20 +152,17 @@ function conversation:draw()
     textHeight = textHeight+fontSize
     if self.current_text.speaker then
       output.display_entity(self.current_text.speaker,printX,printY-8,true,true)
-      love.graphics.printf(self.current_text.speaker:get_name() .. ":",printX+tileSize,printY,textWidth)
+      love.graphics.printf(ucfirst(self.current_text.speaker:get_name()) .. ":",printX+tileSize,printY,textWidth)
       printY = printY + tileSize
       textHeight = textHeight+tileSize
     end
   end
   local text = (type(self.current_text.text) == "table" and self.current_text.text[self.text_index] or self.current_text.text) or ""
   local _,tlines = fonts.textFont:getWrap((self.current_text.speaker and "\t" or "") .. text,textWidth)
+  local currSize = fontSize*#tlines+4
   love.graphics.printf((self.current_text.speaker and "\t" or "") .. text,printX,printY,textWidth)
-  printY = printY+fontSize*#tlines+4
-  textHeight = textHeight+fontSize*#tlines+4
-  if #tlines > 1 then
-    printY = printY + round(fontSize/2)
-    textHeight = textHeight + round(fontSize/2)
-  end
+  printY = printY+currSize
+  textHeight = textHeight+currSize
   self.textHeight = textHeight
   
   love.graphics.pop()
@@ -182,12 +180,15 @@ function conversation:draw()
       love.graphics.rectangle('fill',endX-tileSize,startY+8,tileSize,self.maxTextY-4)
       setColor(255,255,255,255)
     end
-    self.scrollPositions = output:scrollbar(endX-tileSize,startY+8,self.maxTextY,scrollAmt,true)
+    self.scrollPositions = output:scrollbar(endX-tileSize,startY+18,self.maxTextY,scrollAmt,true)
   end
   
   love.graphics.setStencilTest()
   love.graphics.pop()
-  self.closebutton = output:closebutton(startX+8,startY+8,nil,true)
+  if not self.dialog or not self.dialog.noEscape then
+    self.closebutton = output:closebutton(startX+16,startY+18,nil,true)
+  end
+  
   love.graphics.pop()
 end
 
@@ -197,7 +198,6 @@ function conversation:load_dialog(dialogID,speaker)
     self:set_text("ERROR: No dialog with ID " .. dialogID .. " found.")
     return false
   end
-
 	local text
   --Use the text function if it has one
   if dialog.display_text then
@@ -299,10 +299,10 @@ function conversation:refresh_response_height()
   local textWidth = self.windowW-padding
   self.responseHeight = 0
   for i,response in ipairs(self.responses) do
-    local text = response.text
+    local text = response.text or "[NO RESPONSE TEXT FOUND]"
     local _,tlines = fonts.textFont:getWrap(text,textWidth)
     local thisHeight = #tlines*fontSize
-    self.responseHeight = self.responseHeight + thisHeight
+    self.responseHeight = self.responseHeight + thisHeight+4
   end
 end
 
@@ -406,7 +406,7 @@ end
 function conversation:mousepressed(x,y,button)
   local uiScale = (prefs['uiScale'] or 1)
   x,y = x/uiScale, y/uiScale
-  if button == 2 or (x > self.closebutton.minX and x < self.closebutton.maxX and y > self.closebutton.minY and y < self.closebutton.maxY) then
+  if button == 2 or (self.closebutton and x > self.closebutton.minX and x < self.closebutton.maxX and y > self.closebutton.minY and y < self.closebutton.maxY) then
     self:switchBack()
   end
   for _,response in ipairs(self.responses) do
@@ -435,7 +435,9 @@ function conversation:scrollDown()
 end
 
 function conversation:switchBack()
-  tween(0.2,self,{yModPerc=100})
-  output:sound('stoneslideshortbackwards',2)
-  Timer.after(0.2,function() self.switchNow=true end)
+  if not self.dialog or not self.dialog.noEscape then
+    tween(0.2,self,{yModPerc=100})
+    output:sound('stoneslideshortbackwards',2)
+    Timer.after(0.2,function() self.switchNow=true end)
+  end
 end

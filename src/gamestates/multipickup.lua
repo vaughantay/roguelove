@@ -1,6 +1,9 @@
 multipickup = {}
 
-function multipickup:enter()
+function multipickup:enter(previous,itemX,itemY,adjacentItems)
+  self.adjacentItems = (adjacentItems == nil and gamesettings.can_pickup_adjacent_items or adjacentItems)
+  self.itemX = itemX or player.x
+  self.itemY = itemY or player.y
   self.cursorY = 0
   self.scrollY = 0
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
@@ -28,7 +31,7 @@ end
 function multipickup:refresh_items()
   self.scrollPositions=nil
   self.itemLines = {}
-  self.items = currMap:get_tile_items(player.x,player.y,true)
+  self.items = currMap:get_tile_items(self.itemX,self.itemY,self.adjacentItems)
   if count(self.items) == 0 then
     self:switchBack()
   end
