@@ -28,7 +28,7 @@ function Item:init(itemID,tags,info,ignoreNewFunc)
   self.category = self.category or "other"
   self.amount = self.amount or 1
   if self.max_charges then
-    self.charges = self.charges or 0
+    self.charges = self.charges or self.max_charges or 0
   end
   if not ignoreNewFunc and (possibleItems[itemID].new ~= nil) then
     local status,r = pcall(possibleItems[itemID].new,self,tags,info)
@@ -240,7 +240,7 @@ function Item:use(target,user,ignoreCooldowns)
 		return false,"You can't use that item again for another " .. user.cooldowns[self] .. " turns."
   end
 	if possibleItems[self.id].use then
-    local status,r = pcall(possibleItems[self.id].use,self,target,user)
+    local status,r,other = pcall(possibleItems[self.id].use,self,target,user)
     if not status then
       local errtxt = "Error from " .. user:get_name() .. " using item " .. self.name .. ": " .. r
       output:out(errtxt)
@@ -253,9 +253,9 @@ function Item:use(target,user,ignoreCooldowns)
         user.cooldowns[self] = (user ~= player and self.AIcooldown or self.cooldown)
       end
       if self.consumed then
-        player:delete_item(self,1)
-      elseif self.charges then
-        self.charges = self.charges - 1
+        self:delete(nil,1)
+      elseif self.charges and not self.no_automatic_charge_decrease then
+        self.charges = math.max(0,self.charges - 1)
       end
     end
     --Deactivate applicable spells:
@@ -267,7 +267,7 @@ function Item:use(target,user,ignoreCooldowns)
       data.spell:finish(t, user, cd, mp)
     end
   end
-    return (status == nil and true or status),r
+    return (r == nil and true or r),other
   end
   --TODO: Generic item use here:
 end
@@ -277,16 +277,7 @@ end
 --@return Number. The damage the item will deal.
 function Item:get_damage(wielder)
   if possibleItems[self.id].get_damage then
-    local status,r = pcall(possibleItems[self.id].get_damage,self,wielder)
-    if status == false then
-      output:out("Error in item " .. self.id .. " get_damage code: " .. r)
-      print("Error in item " .. self.id .. " get_damage code: " .. r)
-    end
-    if r == false then
-      return 0
-    elseif type(r) == "number" then
-      return r
-    end
+    return possibleItems[self.id].get_damage(self,wielder)
   end
   local dmg = (self.damage or 0)
   local bonus = .01*self:get_enchantment_bonus('damage_percent')
@@ -385,14 +376,7 @@ function Item:attack(target,wielder,forceHit,ignore_callbacks,forceBasic)
   --Basic attack:
   if target.baseType == "feature" and wielder:touching(target) then
     local dmg = target:damage(self:get_damage(wielder),wielder,self.damage_type)
-    if possibleItems[self.id].after_damage then
-      possibleItems[self.id].after_damage(self,target,wielder,dmg)
-    end
-    for ench,_ in pairs(self:get_enchantments()) do
-      if enchantments[ench].after_damage then
-        enchantments[ench]:after_damage(self,wielder,target,dmg)
-      end
-    end --end enchantment after_damage for
+    self:callbacks('after_damage',target,wielder,dmg)
     self:decrease_all_enchantments('attack') --decrease the turns left for any enchantments that decrease on attack
     wielder:decrease_all_conditions('attack')
     if dmg > 0 then
@@ -417,7 +401,7 @@ function Item:attack(target,wielder,forceHit,ignore_callbacks,forceBasic)
 		if (result == "miss") then
 			txt = txt .. ucfirst(wielder:get_pronoun('n')) .. " misses."
       dmg = 0
-      if player:can_see_tile(self.x,self.y) or player:can_see_tile(target.x,target.y) and player:does_notice(wielder) and player:does_notice(target) then
+      if player:can_see_tile(wielder.x,wielder.y) or player:can_see_tile(target.x,target.y) and player:does_notice(wielder) and player:does_notice(target) then
         output:out(txt)
       end
       for ench,_ in pairs(self:get_enchantments()) do
@@ -465,14 +449,7 @@ function Item:attack(target,wielder,forceHit,ignore_callbacks,forceBasic)
           end
           txt = txt .. "."
           output:out(txt)
-          if possibleItems[self.id].after_damage then
-            possibleItems[self.id].after_damage(self,target,wielder)
-          end
-          for ench,_ in pairs(self:get_enchantments()) do
-            if enchantments[ench].after_damage then
-              enchantments[ench]:after_damage(self,wielder,target,dmg)
-            end
-          end --end enchantment after_damage for
+          self:callbacks('after_damage',target,wielder,dmg)
         end
         return ret
       end
@@ -533,15 +510,8 @@ function Item:attack(target,wielder,forceHit,ignore_callbacks,forceBasic)
         output:out(txt)
       end
       --Callbacks
-      if possibleItems[self.id].after_damage then
-        possibleItems[self.id].after_damage(self,target,wielder,dmg)
-      end
-      for ench,_ in pairs(self:get_enchantments()) do
-        if enchantments[ench].after_damage then
-          enchantments[ench]:after_damage(self,wielder,target,dmg)
-        end
-      end --end enchantment after_damage for
-			wielder:callbacks('damages',target,dmg)
+      self:callbacks('after_damage',target,wielder,dmg)
+			wielder:callbacks('melee_attack_hits',target,dmg)
       --Handle conditions:
 			for _, condition in pairs (hitConditions) do
         local targetNum = (result == "critical" and condition.crit_chance or (condition.hit_chance or 0)) --If a critical, use critical chance, defaulting to regular chance. If it's a critical-only condition, regular chance defaults to 0
@@ -693,11 +663,11 @@ end
 --@param enchantment Text. The enchantment ID
 --@param permanent Boolean. Whether the enchantment has to qualify as a permanent enchantment (optional)
 --@return Boolean. Whether or not the item qualifies for the enchantment
-function Item:qualifies_for_enchantment(eid,permanent)
+function Item:qualifies_for_enchantment(eid,permanent,artifactOnly)
   if not self.enchantable then return false end
   local enchantment = enchantments[eid]
   
-  if permanent and enchantment.neverPermanent then
+  if (permanent and enchantment.neverPermanent) or (artifactOnly and enchantment.neverArtifact) then
     return false
   end
   if self.max_enchantments and #self.enchantments >= self.max_enchantments then
@@ -772,12 +742,13 @@ end
 
 ---Get a list of all possible enchantments the item could have
 --@param permanent Boolean. Whether the enchantment has to qualify as a permanent enchantment (optional)
+--@param artifactOnly Boolean. Whether to only consider enchantments without the neverArtifact flag
 --@return Table. A list of all enchantment IDs
-function Item:get_possible_enchantments(permanent)
+function Item:get_possible_enchantments(permanent,artifactOnly)
   if not self.enchantable then return {} end
   local possibles = {}
   for eid,ench in pairs(enchantments) do
-    if not ench.specialOnly and self:qualifies_for_enchantment(eid,permanent) then
+    if not ench.specialOnly and self:qualifies_for_enchantment(eid,permanent,artifactOnly) then
       possibles[#possibles+1] = eid
     end
   end
@@ -1051,8 +1022,9 @@ function Item:is_ingredient_in(all)
   local tool_recipes = {}
   local done = false
   for _,rid in pairs(player:get_all_possible_recipes()) do
+    done = false
     local recipe = possibleRecipes[rid]
-    if recipe.ingredients and recipe.ingredients[self.id] then
+    if recipe.ingredients and recipe.ingredients[self.id] and not recipe.results[self.id] then
       local name = recipe.name
       if not name then
         name = ""
@@ -1070,7 +1042,7 @@ function Item:is_ingredient_in(all)
       recipes[#recipes+1] = {id=rid,name=name}
       done = true
     end
-    if not done then
+    if not done and not recipe.results[self.id] then
       if recipe.ingredient_properties and self.crafting_ingredient_properties then
         for prop,_ in pairs(self.crafting_ingredient_properties) do
           if recipe.ingredient_properties[prop] then
@@ -1150,7 +1122,7 @@ function Item:get_buyer_list()
     if faction.contacted and not faction.hidden then
       local cost = faction:get_buy_cost(self)
       if cost then
-        options[#options+1] = {text=faction.name,moneyCost=cost.moneyCost,favorCost=cost.moneyCost}
+        options[#options+1] = {text=faction.name,moneyCost=cost.moneyCost,favorCost=cost.favorCost}
       end
     end
   end --end faction for
@@ -1158,7 +1130,7 @@ function Item:get_buyer_list()
     if store.contacted then
       local cost = store:get_buy_cost(self)
       if cost then
-        options[#options+1] = {text=store.name, cost=cost}
+        options[#options+1] = {text=store.name, moneyCost=cost}
       end
     end
   end --end store for
@@ -1221,3 +1193,69 @@ function Item:is_type(itype,base_only)
   end --end for
   return false
 end --end function
+
+---Checks the callbacks of the base item type and any enchantments the item has
+--@param callback_type String. The callback type to check.
+--@param … Anything. Any info you want to pass to the callback. Each callback type is probably looking for something specific (optional)
+--@return Boolean. If any of the callbacks returned true or false.
+--@return Table. Any other information that the callbacks might return.
+function Item:callbacks(callback_type,...)
+  local ret = nil
+  if type(possibleItems[self.id][callback_type]) == "function" then
+    local status,r,other = pcall(possibleItems[self.id][callback_type],self,unpack({...}))
+    if status == false then
+        output:out("Error in item " .. self.id .. " callback \"" .. callback_type .. "\": " .. r)
+        print("Error in item " .. self.id .. " callback \"" .. callback_type .. "\": " .. r)
+      end
+		if (r == false) then return false end
+    ret = other
+  end
+  for ench,_ in pairs(self:get_enchantments()) do
+    if type(enchantments[ench][callback_type]) == "function" then
+      local status,r,other = pcall(enchantments[ench][callback_type],enchantments[ench],self,unpack({...}))
+      if status == false then
+        output:out("Error in enchantment " .. ench .. " callback \"" .. callback_type .. "\": " .. r)
+        print("Error in enchantment " .. ench .. " callback \"" .. callback_type .. "\": " .. r)
+      end
+			if (r == false) then return false end
+      if not ret then
+        ret = other
+      elseif type(ret) == "string" and type(other) == "string" then
+        ret = ret .. " " .. other
+      else
+        ret = other
+      end
+    end
+  end
+  return true,ret
+end
+
+---Gets potential targets of a item. Uses the item's own get_potential_targets() function if it has one, or defaults to seen creatures if it doesn't and it's a creature-targeting item
+--@param user Creature. The caster of the spell
+--@param previous_targets Table. The already-targeted targets of the item, if applicable
+--@return Table. A list of potential targets
+function Item:get_potential_targets(user,previous_targets)
+  if possibleItems[self.id].get_potential_targets then
+    local status,r = pcall(possibleItems[self.id].get_potential_targets,self,user,previous_targets)
+    if status == false then
+      output:out("Error in item " .. self.name .. " get_potential_targets code: " .. r)
+      print("Error in item " .. self.name .. " get_potential_targets code: " .. r)
+    end
+    if type(r) ~= "table" then r = {} end
+    return r
+  end
+  local targets = {}
+  if self.target_type == "creature" then
+    for _,creat in pairs(user:get_seen_creatures()) do
+      local dist = ((self.range or self.min_range) and calc_distance(user.x,user.y,creat.x,creat.y) or 0)
+      if user:does_notice(creat) and (self.range == nil or calc_distance(user.x,user.y,creat.x,creat.y) <= self.range) and (self.min_range == nil or dist >= self.min_range) then
+        targets[#targets+1] = {x=creat.x,y=creat.y}
+      end --end range if
+    end --end creature for
+    if self.can_target_self then
+      targets[#targets+1] = {x=user.x,y=user.y}
+    end
+    return targets
+  end --end creature if
+  return {}
+end
