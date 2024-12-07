@@ -12,10 +12,10 @@ function examine_item:enter(previous,item,container,noUse)
     self.cursorX,self.cursorY=1,1
     self.scroll=0
     self.scrollMax=0
-    self.width = round(width/2)
-    self.x = round(width/2-self.width/2)
+    self.width = math.min(550,width-output:get_tile_size())
+    self.x = round(width/2-self.width/2-output:get_tile_size()/2)
     self.height = self:calculate_height()
-    self.y = round(height/2-self.height/2-(prefs['noImages'] and 0 or output:get_tile_size())/2)
+    self.y = round(height/2-self.height/2-output:get_tile_size()/2)
     self.yModPerc = 100
     tween(0.2,self,{yModPerc=0})
     output:sound('stoneslideshort',2)
@@ -28,7 +28,8 @@ function examine_item:draw()
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
   local uiScale = (prefs['uiScale'] or 1)
   width,height = round(width/uiScale),round(height/uiScale)
-  local fontSize = prefs['fontSize']
+  local fontSize = fonts.textFont:getHeight()
+  local tileSize = output:get_tile_size()
   local padding = 16
   
   love.graphics.push()
@@ -45,9 +46,9 @@ function examine_item:draw()
   local info = item:get_info(true)
   local textW = (self.scrollMax > 0 and self.width-32 or self.width)
   local _, nlines = fonts.textFont:getWrap(name,self.width)
-  local nameH = #nlines*(fontSize+1)
+  local nameH = #nlines*fontSize
   local _, dlines = fonts.textFont:getWrap(desc,textW)
-  local descH = #dlines*(fontSize+2)
+  local descH = #dlines*fontSize
   local _, ilines = fonts.textFont:getWrap(info,textW)
   local infoH = (info == "" and fontSize or (#ilines+2)*fontSize)
   local printY = self.y+padding
@@ -56,7 +57,7 @@ function examine_item:draw()
   if level and gamesettings.display_item_levels then
     local ltext = "Level " .. level
     local _, llines = fonts.textFont:getWrap(ltext,textW)
-    local levelH = #llines*(fontSize+1)
+    local levelH = #llines*fontSize
     love.graphics.printf("Level " .. level,self.x+padding,printY,self.width,"center")
     printY=printY+levelH
   end
@@ -289,12 +290,12 @@ function examine_item:draw()
   --Create a "stencil" that stops 
   love.graphics.push()
   local function stencilFunc()
-    love.graphics.rectangle("fill",self.x,startY,self.width+output:get_tile_size(),self.height)
+    love.graphics.rectangle("fill",self.x,startY,self.width+tileSize,self.height)
   end
   love.graphics.stencil(stencilFunc,"replace",1)
   love.graphics.setStencilTest("greater",0)
   love.graphics.translate(0,-self.scroll)
-  local scrollPadding = (self.scrollMax == 0 and 0 or output:get_tile_size())
+  local scrollPadding = (self.scrollMax == 0 and 0 or tileSize)
   printY=printY+padding
   love.graphics.printf(desc,self.x+padding,printY,self.width-scrollPadding,"center")
   printY=printY+descH
@@ -353,12 +354,12 @@ function examine_item:draw()
   if printY > self.y+self.height then
     if self.cursorY == #self.buttons.values+1 then
       setColor(50,50,50,255)
-      love.graphics.rectangle("fill",self.x+self.width-padding,startY+round(output:get_tile_size()/2),output:get_tile_size(),self.height-startY)
+      love.graphics.rectangle("fill",self.x+self.width-padding,startY+round(tileSize/2),tileSize,self.height-startY)
       setColor(255,255,255,255)
     end
     self.scrollMax = math.ceil(printY-(self.y+self.height))
     local scrollAmt = self.scroll/self.scrollMax
-    self.scrollPositions = output:scrollbar(self.x+self.width-padding,startY+round(output:get_tile_size()/2),self.y+self.height+padding,scrollAmt,true)
+    self.scrollPositions = output:scrollbar(self.x+self.width-padding,startY+round(tileSize/2),self.y+self.height+padding,scrollAmt,true)
   else
     self.scrollMax = 0
   end
@@ -370,7 +371,7 @@ function examine_item:calculate_height()
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
   local uiScale = (prefs['uiScale'] or 1)
   width,height = round(width/uiScale),round(height/uiScale)
-  local fontSize = prefs['fontSize']
+  local fontSize = fonts.textFont:getHeight()
   local padding = 16
   
   local item = self.item
@@ -380,9 +381,9 @@ function examine_item:calculate_height()
   local info = item:get_info(true)
   local textW = (self.scrollMax > 0 and self.width-32 or self.width)
   local _, nlines = fonts.textFont:getWrap(name,self.width)
-  local nameH = #nlines*(fontSize+1)
+  local nameH = #nlines*fontSize
   local _, dlines = fonts.textFont:getWrap(desc,textW)
-  local descH = #dlines*(fontSize+2)
+  local descH = #dlines*fontSize
   local _, ilines = fonts.textFont:getWrap(info,textW)
   local infoH = (info == "" and fontSize or (#ilines+2)*fontSize)
   local valueH, recipeH, buyH = 0,0,0
@@ -427,7 +428,7 @@ function examine_item:calculate_height()
   if level and gamesettings.display_item_levels then
     local ltext = "Level " .. level
     local _, llines = fonts.textFont:getWrap(ltext,textW)
-    local levelH = #llines*(fontSize+1)
+    local levelH = #llines*fontSize
     printY=printY+levelH
   end
   
@@ -605,7 +606,6 @@ function examine_item:calculate_height()
   printY=printY+descH
   printY=printY+infoH
   printY=printY+padding
-  printY=printY+fontSize
   return math.min(height-(prefs['noImages'] and 0 or output:get_tile_size()),printY)
 end
 

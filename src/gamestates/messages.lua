@@ -12,26 +12,25 @@ function messages:draw()
   game:draw()
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
   local uiScale = (prefs['uiScale'] or 1)
+  width, height = round(width/uiScale), round(height/uiScale)
+  local tileSize = output:get_tile_size()
   love.graphics.push()
   love.graphics.scale(uiScale,uiScale)
   love.graphics.translate(0,height*(self.yModPerc/100))
   love.graphics.setFont(fonts.textFont)
-  local startX,startY,windowW,windowH
-  if prefs['noImages'] then
-    startX,startY,windowW,windowH = 1,1,width/uiScale-12,height/uiScale-12
-  else
-    startX,startY,windowW,windowH = 1,1,width/uiScale-32,height/uiScale-32
-  end
-  output:draw_window(startX,startY,windowW,windowH)
+  local startX,startY,windowW,windowH = 1,1,math.min(550,width-tileSize),height-tileSize
+  startX = round(width/2-windowW/2-tileSize/2)
+  output:draw_window(startX,startY,startX+windowW,startY+windowH)
   local fontSize = prefs['fontSize']
-	local cursor = math.floor(height/uiScale)-fontSize
-  local textWidth = math.floor(width/uiScale)-84
+	local cursor = height-fontSize
+  local textWidth = windowW-tileSize*2
+  local printX = startX+tileSize
   
   --Drawing the text:
   love.graphics.push()
   --Create a "stencil" that stops 
   local function stencilFunc()
-    love.graphics.rectangle("fill",startX+math.min(24,fontSize),startY+math.min(24,fontSize),width-math.min(48,fontSize*2),height-math.min(48,fontSize*2))
+    love.graphics.rectangle("fill",round(startX+tileSize/2),round(startY+tileSize/2),windowW,windowH)
   end
   love.graphics.stencil(stencilFunc,"replace",1)
   love.graphics.setStencilTest("greater",0)
@@ -39,7 +38,7 @@ function messages:draw()
 	for i = #output.text,1,-1 do
     local _, tlines = fonts.textFont:getWrap(ucfirst(output.text[i]),textWidth)
     cursor = cursor - math.floor(#tlines*(fontSize*1.25))
-    love.graphics.printf(ucfirst(output.text[i]),24,cursor,textWidth,"left")
+    love.graphics.printf(ucfirst(output.text[i]),printX,cursor,textWidth,"left")
 	end
   love.graphics.setStencilTest()
   love.graphics.pop()
@@ -47,9 +46,9 @@ function messages:draw()
   self.smallestY = cursor-math.floor(fontSize/2)
   if self.smallestY < 1 then
     local scrollAmt = (self.smallestY-self.cursorY)/self.smallestY
-    self.scrollPositions = output:scrollbar(math.floor(width/uiScale)-48,16,math.floor(height/uiScale)-(prefs['noImages'] and 24 or 16),scrollAmt,true)
+    self.scrollPositions = output:scrollbar(startX+windowW-tileSize,tileSize,height-tileSize,scrollAmt,true)
   end
-  self.closebutton = output:closebutton(24,24,nil,true)
+  self.closebutton = output:closebutton(startX+18,startY+18,nil,true)
   love.graphics.pop()
 end
 
@@ -66,12 +65,12 @@ end
 
 function messages:scrollUp()
   if self.cursorY > self.smallestY then
-    self.cursorY = self.cursorY - prefs.fontSize
+    self.cursorY = math.max(self.cursorY - prefs.fontSize,self.smallestY)
   end
 end
 
 function messages:scrollDown()
-  if self.cursorY < 0 then self.cursorY = self.cursorY+prefs.fontSize end
+  if self.cursorY < 0 then self.cursorY = math.min(self.cursorY+prefs.fontSize,0) end
 end
 
 function messages:mousepressed(x,y,button)

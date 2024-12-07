@@ -237,6 +237,10 @@ function multipickup:update(dt)
     Gamestate.update(dt)
     return
   end
+  game:update(dt)
+  if player.hp ~= game.hp or player.hp < 1 then
+    self:switchBack()
+  end
 	local x,y = love.mouse.getPosition()
   local uiScale = (prefs['uiScale'] or 1)
   local fontSize = prefs['fontSize']
