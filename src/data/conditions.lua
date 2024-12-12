@@ -486,7 +486,7 @@ chilled = Condition({
 	
 	invincibility = Condition({
 		name = "Invincibility",
-		bonuses={dodge_chance=1000,armor=1000},
+		bonuses={dodge_chance=1000,all_armor=1000},
 		damaged = function(self,possessor)
 			output:out("The attack passes through you, as you are not completely corporeal yet.")
 			return false
@@ -495,7 +495,7 @@ chilled = Condition({
 	
 	stoneskin = Condition({
 		name = "Stoneskin",
-		bonuses={bravery=30,armor=5,speed=-20,animation_time_percent=1.25,possession_chance=-1000,electric_resistance=100},
+		bonuses={bravery=30,all_armor=5,speed=-20,animation_time_percent=1.25,possession_chance=-1000,electric_resistance=100},
     ai = function(self,possessor)
       ai.basic(possessor,{forceStupid=true})
       return false
@@ -1722,7 +1722,7 @@ illusorydouble = Condition({
 
   shieldwall = Condition({
     name = "Shield Wall",
-    bonuses={speed=-25,damage_percent=-25,notice_chance=-5,armor=10,hit_chance=-10},
+    bonuses={speed=-25,damage_percent=-25,notice_chance=-5,all_armor=10,hit_chance=-10},
     apply = function(self,possessor)
       if possessor.id == "templeguard" then possessor.image_name = "templeguardshielding" .. (possessor == player and "possessed" or "") end
     end,

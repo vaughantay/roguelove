@@ -23,6 +23,7 @@ creatureTypes = {
     friendly_types = {},
     enemy_types = {},
     weaknesses = {holy=50},
-    resistances = {unholy=50,poison=100}
+    resistances = {unholy=50,poison=100},
+    armor = {unholy=5}
   }
 }

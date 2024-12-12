@@ -39,7 +39,7 @@ playerClasses = {
     learns_spells={}, --These spells will be automatically granted once a certain level is reached
     spell_purchases={}, --These spells will show up as options to learn (requiring spending points on them)
     spell_choices={}, --These spells will show up as options when you reach their level, and you can choose one of them
-    stat_modifiers={max_hp=25,armor=1}, --These values will be added to the characters' base stats
+    stat_modifiers={max_hp=25}, --These values will be added to the characters' base stats
     skills_per_level={strength=1}, --Stat increase per level
     money=100, --Amount of money the character starts with
     require_species={"player_human"} --This class will only be available if the player's species is listed in this table (or their species has tags or types in the require_species_tags table)
@@ -54,9 +54,8 @@ playerClasses = {
     spell_purchases={{spell="activerage"},{spell="yawp"},{spell="ragefulsmack"}},
     reputation={village=-1,barbariangod=100}, --List of reputation scores the character starts with
     factions={"barbariangod"}, --List of factions the character begins as a member of
-    stat_modifiers={max_hp=25,armor=2}, --These values will be added to the characters' base stats
+    stat_modifiers={max_hp=25}, --These values will be added to the characters' base stats
     skills_per_level={strength=2}, --Stat increase per level
-    stats_per_x_levels={[3]={armor=1}},
     starting_branch="wilderness",
     placed = function(creature,map)
       for x=2,map.width,1 do

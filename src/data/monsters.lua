@@ -8,7 +8,6 @@ local rabidnerd = {
   tags={"mainbranch"},
   nameType = "human",
   possible_inventory={{item="healthpotionminor",chance=100,min_amt=2,max_amt=5},{item="scroll",chance=50}},
-  possible_death_items={{item="uglyring",chance=75}},
   possible_weapon={"dagger"},
   possible_accessory={false,false,false,false,false,false,"sexyring","uglyring","strengthring","sadring"},
   max_hp = 6,
@@ -199,7 +198,6 @@ local dragonfly = {
   perception=7,
   speed = 120,
   bravery=60,
-  armor=-5,
   ranged_chance=65,
   resistances={fire=50},
   weaknesses={ice=50},
@@ -285,7 +283,6 @@ local mosquito = {
   weaknesses={cold=50,fire=25},
   speed = 120,
   bravery=60,
-  armor=-1,
   specialOnly = true,
   animated=true,
   spritesheet=true,
@@ -520,6 +517,7 @@ local townsperson = {
     local careers = {'butcher','baker','candlestick maker','hot dog vendor','clockmaker','banker','shopkeeper','IT specialist','town drunk','wastrel','drug dealer','hunter','lumberjack','carpenter','beekeeper','innkeeper','brewer','bartender','soapmaker','cheesemaker','farmer','dairy farmer','naturalist','doctor','witch doctor','apothecary','chemist','pharmacist','lawyer','beggar','cowhand','engineer','scientist','writer','musician','painter','artist','sculptor','dancer','construction worker','stonemason','priest','medium','atheist','bookkeeper','librarian','accountant','food scientist','tinker','tailor','soldier','spy','philosopher'}
     local career = careers[random(#careers)]
     self.name = career
+    self.description = "A simple " .. career .. ", salt of the earth."
   end
 }
 possibleMonsters['townsperson'] = townsperson

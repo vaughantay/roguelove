@@ -179,8 +179,16 @@ end
 --@param source Entity. What is damaging the feature.
 --@param damage_type String. The damage type. (optional)
 --@param force Boolean. Whether or not to ignore the feature's damage() callback (optional)
+--@param armor_piercing True/False, or Number. If set to true, it ignores all armor. If set to a number, ignores that much armor. (optional)
 --@return Number. The final damage that was done.
-function Feature:damage(amt,source,damage_type,force)
+function Feature:damage(amt,source,damage_type,force,armor_piercing)
+  amt = math.ceil(amt) --just in case! to prevent fractional damage
+  amt = self:calculate_damage_received(amt,damage_type,armor_piercing)
+  
+  if amt <= 0 then
+    return 0
+  end
+
   if not force and possibleFeatures[self.id].damage then --has custom damaged code?
     local status,ret = pcall(possibleFeatures[self.id].damage,self,amt,source,damage_type)
     if status == false then
@@ -217,6 +225,50 @@ function Feature:damage(amt,source,damage_type,force)
 	return amt
 end
 
+---Calculates the damage amount a feature would receive based on damage types, weaknesses, armor, etc
+--@param amt Number. The damage to deal.
+--@param damage_type String. The damage type of the attack. (optional)
+--@param armor_piercing True/False, or Number. If set to true, it ignores all armor. If set to a number, ignores that much armor. (optional)
+--@param ignoreWeakness Boolean. If true, don't apply weakness (optional)
+--@return Number. The final damage done.
+function Feature:calculate_damage_received(amt,damage_type,armor_piercing,ignoreWeakness)
+  local bonuses = 0
+  --Apply damage weaknesses, resistances, and armor
+  if damage_type then
+    if self.damage_type_healing and in_table(damage_type,self.damage_type_healing) then
+      self:updateHP(amt)
+      return -amt
+    end
+    if self.damage_type_immunities and in_table(damage_type,self.damage_type_immunities) then
+      return 0
+    end
+    if not ignoreWeakness and self.weaknesses and self.weaknesses[damage_type] then
+      bonuses = bonuses + math.ceil(amt*(self.weaknesses[damage_type]/100))
+    end
+    bonuses = bonuses - math.ceil(amt*((self.resistances and self.resistances[damage_type] or 0)/100))
+  end
+  if not ignoreWeakness and self.weaknesses and self.weaknesses.all then
+    bonuses = bonuses + math.ceil(amt*(self.weaknesses.all/100))
+  end
+  bonuses = bonuses - math.ceil(amt*((self.resistances and self.resistances.all or 0)/100))
+  amt = amt + bonuses
+  
+  --Apply armor
+  if self.armor and armor_piercing ~= true and (not damage_type or not damage_types[damage_type] or not damage_types[damage_type].armor_piercing) then
+    local totalArmor = 0
+    if type(self.armor) == "number" then
+      totalArmor = self.armor
+    else
+      totalArmor = totalArmor + (self.armor.all or 0)
+      if damage_type then totalArmor = totalArmor + (self.armor[damage_type] or 0) end
+    end
+    if type(armor_piercing) == "number" then
+      totalArmor = math.max(totalArmor - armor_piercing,0)
+    end
+    amt = amt - totalArmor
+  end
+  return amt
+end
 
 ---Destroy a feature. This is different from Feature:delete() in that it calls the destroy() callback and drops any items in its inventory
 --@param source Entity. The source of the damage (optional)

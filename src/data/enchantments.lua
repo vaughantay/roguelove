@@ -137,7 +137,7 @@ enchantments['damaging'] = damaging
 local armorInvincible = {
   name = "Invicibility",
   suffix = "of Invincibility",
-  bonuses = {armor=1000},
+  bonuses = {all_armor=1000},
   description = "Makes you immune to damage.",
   item_type="armor",
   removal_type="damaged",

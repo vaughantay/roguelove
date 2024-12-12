@@ -397,7 +397,7 @@ function Projectile:get_extra_damage(target,dmg)
     if ench.extra_damage then
       local ed = ench.extra_damage
       local apply = true
-      if ed.only_creature_types then
+      if ed.only_creature_types and target.baseType == "creature" then
         apply = false
         for _,ctype in ipairs(ed.only_creature_types) do
           if target:is_type(ctype) then
@@ -406,7 +406,7 @@ function Projectile:get_extra_damage(target,dmg)
           end
         end --end creature type for
       end --end if only creature types
-      if ed.safe_creature_types and apply then
+      if ed.safe_creature_types and apply and target.baseType == "creature"  then
         for _,ctype in ipairs(ed.safe_creature_types) do
           if target:is_type(ctype) then
             apply = false

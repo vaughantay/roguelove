@@ -223,6 +223,9 @@ function Creature:generate_inventory(source,tags)
           if it.requires_identification and not def.unidentified then
             it.identified=true
           end
+          if def.drop_chance then
+            it.drop_chance = def.drop_chance
+          end
           self:give_item(it)
         end
       end --end chance
@@ -237,6 +240,9 @@ function Creature:generate_inventory(source,tags)
         for i=1,amt,1 do
           local item = Item(def.item,tags)
           self.death_items[#self.death_items+1] = item
+          if def.drop_chance then
+            item.drop_chance = def.drop_chance
+          end
         end
       end --end chance
     end --end loopthrough possible_inventory
@@ -521,39 +527,7 @@ function Creature:damage(amt,attacker,damage_type,armor_piercing,noSound,item,ig
   amt = math.ceil(amt) --just in case! to prevent fractional damage
   damage_type = damage_type or gamesettings.default_damage_type
   
-  local bonuses = 0
-  --Apply damage weaknesses, resistances, and armor
-  if damage_type then
-    if self:is_healed_by_damage_type(damage_type) then
-      self:updateHP(amt)
-      return -amt
-    end
-    if self:is_immune_to_damage_type(damage_type) then
-      return 0
-    end
-    if not ignoreWeakness then
-      bonuses = bonuses + self:get_weakness(amt,damage_type)
-    end
-    bonuses = bonuses - self:get_resistance(amt,damage_type)
-    bonuses = bonuses + self:get_bonus('exta_' .. damage_type .. '_damage_taken')
-  end
-  if not ignoreWeakness then
-    bonuses = bonuses + self:get_weakness(amt,'all')
-  end
-  bonuses = bonuses - self:get_resistance(amt,'all')
-  bonuses = bonuses + self:get_bonus('exta_damage_taken')
-  amt = amt + bonuses
-  
-  --Apply armor
-  if armor_piercing ~= true and (not damage_type or not damage_types[damage_type] or not damage_types[damage_type].armor_piercing) then
-    local totalArmor = (self.armor or 0)
-    totalArmor = totalArmor + round(totalArmor*(self:get_bonus('armor_percent')/100)) + self:get_bonus('armor')
-    if damage_type then totalArmor = totalArmor + round(totalArmor*(self:get_bonus(damage_type .. '_armor_percent')/100)) + self:get_bonus(damage_type .. '_armor') end
-    if type(armor_piercing) == "number" then
-      totalArmor = totalArmor - armor_piercing
-    end
-    amt = amt - totalArmor
-  end
+  amt = self:calculate_damage_received(amt,damage_type,armor_piercing)
 
   if (amt < 0) then
     return 0
@@ -637,6 +611,48 @@ function Creature:damage(amt,attacker,damage_type,armor_piercing,noSound,item,ig
 	else
 		return 0
 	end
+end
+
+---Calculates the damage amount a creature would receive based on damage types, weaknesses, armor, etc
+--@param amt Number. The damage to deal.
+--@param damage_type String. The damage type of the attack. (optional)
+--@param armor_piercing True/False, or Number. If set to true, it ignores all armor. If set to a number, ignores that much armor. (optional)
+--@param ignoreWeakness Boolean. If true, don't apply weakness (optional)
+--@return Number. The final damage done.
+function Creature:calculate_damage_received(amt,damage_type,armor_piercing,ignoreWeakness)
+  local bonuses = 0
+  --Apply damage weaknesses, resistances, and armor
+  if damage_type then
+    if self:is_healed_by_damage_type(damage_type) then
+      self:updateHP(amt)
+      return -amt
+    end
+    if self:is_immune_to_damage_type(damage_type) then
+      return 0
+    end
+    if not ignoreWeakness then
+      bonuses = bonuses + self:get_weakness(amt,damage_type)
+    end
+    bonuses = bonuses - self:get_resistance(amt,damage_type)
+    bonuses = bonuses + self:get_bonus('exta_' .. damage_type .. '_damage_taken')
+  end
+  if not ignoreWeakness then
+    bonuses = bonuses + self:get_weakness(amt,'all')
+  end
+  bonuses = bonuses - self:get_resistance(amt,'all')
+  bonuses = bonuses + self:get_bonus('exta_damage_taken')
+  amt = amt + bonuses
+  
+  --Apply armor
+  if armor_piercing ~= true and (not damage_type or not damage_types[damage_type] or not damage_types[damage_type].armor_piercing) then
+    local totalArmor = self:get_armor(damage_type)
+    
+    if type(armor_piercing) == "number" then
+      totalArmor = totalArmor - armor_piercing
+    end
+    amt = amt - totalArmor
+  end
+  return amt
 end
 
 ---Checks if a creature qualifies for a condition
@@ -791,6 +807,17 @@ function Creature:callbacks(callback_type,...)
       if status == false then
         output:out("Error in skill " .. skill.name .. " callback \"" .. callback_type .. "\": " .. r)
         print("Error in skill " .. skill.name .. " callback \"" .. callback_type .. "\": " .. r)
+      end
+			if (r == false) then return false end
+      if r ~= nil and type(r) ~= "boolean" then table.insert(ret,r) end
+    end
+  end
+  for _,ctype in ipairs(self:get_types()) do
+    if creatureTypes[ctype] and type(creatureTypes[ctype][callback_type]) == "function" then
+      local status,r = pcall(creatureTypes[ctype][callback_type],creatureTypes[ctype],self,unpack({...}))
+      if status == false then
+        output:out("Error in creature type " .. (creatureTypes[ctype].name or ctype) .. " callback \"" .. callback_type .. "\": " .. r)
+        print("Error in creature type " .. (creatureTypes[ctype].name or ctype) .. " callback \"" .. callback_type .. "\": " .. r)
       end
 			if (r == false) then return false end
       if r ~= nil and type(r) ~= "boolean" then table.insert(ret,r) end
@@ -1135,6 +1162,75 @@ function Creature:is_healed_by_damage_type(damageType)
     end
   end
   return false
+end
+
+---Returns the armor value for a given damage type
+--@param damage_type String. The damage type. If blank, look only at "all" armor value
+--@param noBonus Boolean. If true, don't apply bonuses
+--@param equipSlot String. If set, only look at equipment from this equipment slot. If false, don't apply equipment armor at all
+--@return Number. The armor value
+function Creature:get_armor(damage_type,noBonus,equipSlot)
+  local totalArmor = 0
+  --First, apply built in armor values:
+  if self.armor then
+    if type(self.armor) == "number" then
+      totalArmor = totalArmor + self.armor
+    else
+      if self.armor.all then
+        totalArmor = totalArmor + self.armor.all
+      end
+      if damage_type and self.armor[damage_type] then
+        totalArmor = totalArmor + self.armor[damage_type]
+      end
+    end
+  end
+  
+  --Next, apply armor values for creature types:
+  if self.types then
+    for _,ctype in ipairs(self.types) do
+      local ctypeInfo = creatureTypes[ctype]
+      if ctypeInfo and ctypeInfo.armor then
+        if type(ctypeInfo.armor) == "number" then
+          totalArmor = totalArmor + ctypeInfo.armor
+        else
+          if ctypeInfo.armor.all then
+            totalArmor = totalArmor + ctypeInfo.armor.all
+          end
+          if damage_type and ctypeInfo.armor[damage_type] then
+            totalArmor = totalArmor + ctypeInfo.armor[damage_type]
+          end
+        end
+      end
+    end
+  end
+  
+  --Next, apply armor values from equipment:
+  if equipSlot ~= false then
+    local equipment = (equipSlot and self:get_equipped_in_slot(equipSlot) or self:get_all_equipped())
+    for _,eq in ipairs(equipment) do
+      if eq.armor then
+        if type(eq.armor) == "number" then
+          totalArmor = totalArmor + eq.armor
+        else
+          if eq.armor.all then
+            totalArmor = totalArmor + eq.armor.all
+          end
+          if damage_type and eq.armor[damage_type] then
+            totalArmor = totalArmor + eq.armor[damage_type]
+          end
+        end
+      end
+      
+    end
+  end
+  
+  --Finally, apply bonuses:
+  if not noBonus then
+    totalArmor = totalArmor + round(totalArmor*(self:get_bonus('all_armor_percent')/100)) + self:get_bonus('all_armor')
+    if damage_type then totalArmor = totalArmor + round(totalArmor*(self:get_bonus(damage_type .. '_armor_percent')/100)) + self:get_bonus(damage_type .. '_armor') end
+  end
+  if totalArmor < 0 then totalArmor = 0 end
+  return totalArmor
 end
 
 ---Checks whether a creature has immunity to a condition type
@@ -1909,20 +2005,28 @@ end
 --@param deathItems Boolean. Whether to also drop death items
 function Creature:drop_all_items(deathItems)
 	for _,item in ipairs(self.inventory) do
-    currMap:add_item(item,self.x,self.y,true)
-    if self:is_equipped(item) then
-      self:unequip(item)
-    end
-    item.x,item.y=self.x,self.y
-    item.possessor=nil
-    item.equipped=false
-	end --end inventory for loop
-  if deathItems and self.death_items then
-    for _,item in ipairs(self.death_items) do
+    if not item.drop_chance or random(1,100) <= item.drop_chance then
       currMap:add_item(item,self.x,self.y,true)
+      if self:is_equipped(item) then
+        self:unequip(item)
+      end
       item.x,item.y=self.x,self.y
       item.possessor=nil
       item.equipped=false
+    else
+      self:delete_item(item)
+    end
+	end --end inventory for loop
+  if deathItems and self.death_items then
+    for _,item in ipairs(self.death_items) do
+      if not item.drop_chance or random(1,100) <= item.drop_chance then
+        currMap:add_item(item,self.x,self.y,true)
+        item.x,item.y=self.x,self.y
+        item.possessor=nil
+        item.equipped=false
+      else
+        self:delete_item(item)
+      end
     end --end inventory for loop
   end
   --Money:
@@ -4278,8 +4382,7 @@ function Creature:evolve(newCreature,info,include_items)
   self.perception = math.max(self.perception,newCreature.perception)
   local speedMod = self.speed-(possibleMonsters[self.id].speed or 100)
   self.speed = newCreature.speed+speedMod
-  local armorMod = (self.armor or 0)-(possibleMonsters[self.id].armor or 0)
-  self.armor =(newCreature.armor or 0)+armorMod
+  self.armor = newCreature.armor
   local stealthMod = (self.stealth or 0)-(possibleMonsters[self.id].stealth or 0)
   self.stealth = (newCreature.stealth or 0)+stealthMod
   self.ranged_attack = newCreature.ranged_attack

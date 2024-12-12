@@ -857,6 +857,7 @@ local breastplate = {
   tags={'iron'},
   value=25,
   level=1,
+  armor={all=5},
   bonuses={dodge_chance=-15},
   bonuses_per_level={dodge_chance=1},
   equip = function(self,equipper)
@@ -942,8 +943,9 @@ local uglyring = {
   equipSlot="accessory",
   bonuses={armor=1000},
 	color={r=0,g=255,b=255,a=255},
-   types={'magic','ring','accessory'},
+  types={'magic','ring','accessory'},
   tags={'magic'},
+  drop_chance=25,
   value=5
 }
 possibleItems['uglyring'] = uglyring
