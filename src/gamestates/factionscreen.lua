@@ -59,7 +59,7 @@ function factionscreen:draw()
   love.graphics.scale(uiScale,uiScale)
   love.graphics.translate(0,height*(self.yModPerc/100))
   local padding = (prefs['noImages'] and 16 or 32)
-  local fontSize = prefs['fontSize']+2
+  local fontSize = fonts.textFont:getHeight()
   local windowWidth = math.floor((width*.75)/uiScale)
   local midX = math.floor(width/2/uiScale)
   local windowX = math.floor(midX-windowWidth/2)
@@ -587,125 +587,97 @@ function factionscreen:draw()
     love.graphics.setStencilTest("greater",0)
     love.graphics.translate(0,-self.scrollY)
     
-    for i,skillDef in ipairs(faction.teaches_skills or {}) do
-      if not player.skills[skillDef.skill] then
-        spellCount = spellCount + 1
-        local skill = possibleSkills[skillDef.skill]
-        local costText = nil
-        if skillDef.moneyCost then
-          costText = " (Cost: " .. get_money_name(skillDef.moneyCost+round(skillDef.moneyCost*(self.costMod/100)))
-        end
-        if skillDef.favorCost then
-          if costText == nil then
-            costText = " (Cost: "
-          else
-            costText = costText .. ", "
-          end
-          costText = costText .. skillDef.favorCost .. " Favor"
-        end
-        if costText then costText = costText .. ")" end
-        local spellText = skill.name .. (costText or "") .. "\n" .. skill.description
-        local canLearn = true
-        local reasonText = nil
-        
-        if skillDef.membersOnly and not self.playerMember then
-          reasonText = "This skill is only taught to members."
-          canLearn = false
-        elseif skillDef.reputation_requirement and reputation < skillDef.reputation_requirement then
-          reasonText = "Requires at least " .. skillDef.reputation_requirement .. " reputation to learn this skill."
-          canLearn = false
-        elseif skillDef.favorCost and favor < skillDef.favorCost then
-          reasonText = "You don't have enough favor to learn this skill."
-          canLearn = false
-        elseif skillDef.moneyCost and player.money < skillDef.moneyCost+round(skillDef.moneyCost*(self.costMod/100)) then
-          reasonText = "You don't have enough money to learn this skill."
-          canLearn = false
-        end
-        if reasonText then
-          spellText = spellText .. "\n" .. reasonText
-        end
-        local __, wrappedtext = fonts.textFont:getWrap(spellText, maxX)
-        love.graphics.printf(spellText,printX,printY,maxX,"center")
-        printY=printY+(#wrappedtext+1)*fontSize
-        
-        if canLearn then
-          local spellW = fonts.buttonFont:getWidth("Learn " .. skill.name)+padding
-          local buttonX = math.floor(midX-spellW/2+padding/2)
-          local buttonHi = false
-          if mouseX > buttonX and mouseX < buttonX+spellW and mouseY > printY-self.scrollY and mouseY < printY+32-self.scrollY then
-            buttonHi = true
-          end
-          local button = output:button(buttonX,printY,spellW,false,((buttonHi or self.cursorY == 2+#self.spellButtons+1) and "hover" or false),"Learn " .. skill.name)
-          button.skillID = skillDef.skill
-          self.spellButtons[#self.spellButtons+1] = button 
-          printY=printY+32
-        end
-        printY=printY+fontSize
-        lastY = printY
+    for i,skillDef in ipairs(faction:get_teachable_skills()) do
+      spellCount = spellCount + 1
+      local skill = possibleSkills[skillDef.skill]
+      local costText = nil
+      if skillDef.moneyCost and skillDef.moneyCost > 0 then
+        costText = "\n(Cost: " .. get_money_name(skillDef.moneyCost)
       end
-    end
-    for i,spellDef in ipairs(faction.teaches_spells or {}) do
-      if not player:has_spell(spellDef.spell,true,true) then
-        spellCount = spellCount + 1
-        local spell = possibleSpells[spellDef.spell]
-        local costText = nil
-        if spellDef.moneyCost then
-          costText = " (Cost: " .. get_money_name(spellDef.moneyCost+round(spellDef.moneyCost*(self.costMod/100)))
-        end
-        if spellDef.favorCost then
-          if costText == nil then
-            costText = " (Cost: "
-          else
-            costText = costText .. ", "
-          end
-          costText = costText .. spellDef.favorCost .. " Favor"
-        end
-        if costText then costText = costText .. ")" end
-        local spellText = spell.name .. (costText or "") .. "\n" .. spell.description
-        local canLearn = true
-        local reasonText = nil
-        
-        if spellDef.membersOnly and not self.playerMember then
-          reasonText = "This ability is only taught to members."
-          canLearn = false
-        elseif spellDef.reputation_requirement and reputation < spellDef.reputation_requirement then
-          reasonText = "Requires at least " .. spellDef.reputation_requirement .. " reputation to learn this ability."
-          canLearn = false
-        elseif spellDef.favorCost and favor < spellDef.favorCost then
-          reasonText = "You don't have enough favor to learn this ability."
-          canLearn = false
-        elseif spellDef.moneyCost and player.money < spellDef.moneyCost+round(spellDef.moneyCost*(self.costMod/100)) then
-          reasonText = "You don't have enough money to learn this ability."
-          canLearn = false
+      if skillDef.favorCost and skillDef.favorCost > 0 then
+        if costText == nil then
+          costText = "\n(Cost: "
         else
-          local ret,text = player:can_learn_spell(spellDef.spell)
-          if ret == false then
-            reasonText = (text or "You're unable to learn this ability.")
-            canLearn = false
-          end
+          costText = costText .. ", "
         end
-        if reasonText then
-          spellText = spellText .. "\n" .. reasonText
-        end
-        local __, wrappedtext = fonts.textFont:getWrap(spellText, maxX)
-        love.graphics.printf(spellText,printX,printY,maxX,"center")
-        printY=printY+(#wrappedtext+1)*fontSize
-        
-        if canLearn then
-          local spellW = fonts.buttonFont:getWidth("Learn " .. spell.name)+padding
-          local buttonX = math.floor(midX-spellW/2+padding/2)
-          local buttonHi = false
-          if mouseX > buttonX and mouseX < buttonX+spellW and mouseY > printY-self.scrollY and mouseY < printY+32-self.scrollY then
-            buttonHi = true
-          end
-          local button = output:button(buttonX,printY,spellW,false,((buttonHi or self.cursorY == 2+#self.spellButtons+1) and "hover" or false),"Learn " .. spell.name)
-          button.spellID = spellDef.spell
-          self.spellButtons[#self.spellButtons+1] = button 
-          printY=printY+32
-        end
-        printY=printY+fontSize
-        lastY = printY
+        costText = costText .. skillDef.favorCost .. " Favor"
       end
+      if costText then costText = costText .. ")" end
+      local spellText = skill.name .. (skillDef.level > 1 and " Level " .. skillDef.level or "") .. (costText  and costText or "") .. "\n" .. skill.description
+      local __, wrappedtext = fonts.textFont:getWrap(spellText, windowWidth)
+      love.graphics.printf(spellText,printX,printY,windowWidth,"center")
+      printY=printY+#wrappedtext*fontSize+8
+      
+      local canLearn = skillDef.canLearn
+      local reasonText = skillDef.reasonText or "You're unable to learn this skill."
+      if not canLearn then
+        setColor(150,150,150,255)
+      end
+      local spellW = fonts.buttonFont:getWidth("Learn " .. skill.name)+padding
+      local buttonX = math.floor(midX-spellW/2)
+      local buttonHi = false
+      if mouseX > buttonX and mouseX < buttonX+spellW and mouseY > printY-self.scrollY and mouseY < printY+32-self.scrollY then
+        buttonHi = true
+      end
+      local button = output:button(buttonX,printY,spellW,false,((buttonHi or self.cursorY == 1+#self.spellButtons+1) and "hover" or false),"Learn " .. skill.name,true)
+      button.skillID = skillDef.skill
+      self.spellButtons[#self.spellButtons+1] = button 
+      printY=printY+32
+      setColor(255,255,255,255)
+      if not canLearn then
+        local _,rlines = fonts.textFont:getWrap(reasonText,windowWidth)
+        love.graphics.printf(reasonText,windowX,printY,windowWidth,"center")
+        printY = printY+fontSize*#rlines
+        button.disabled=true
+      end
+      printY=printY+fontSize
+      lastY = printY
+    end
+    for i,spellDef in ipairs(faction:get_teachable_spells()) do
+      local spell = possibleSpells[spellDef.spell]
+      spellCount = spellCount + 1
+      local costText = nil
+      if spellDef.moneyCost then
+        costText = "\n(Cost: " .. get_money_name(spellDef.moneyCost)
+      end
+      if spellDef.favorCost then
+        if costText == nil then
+          costText = "\n(Cost: "
+        else
+          costText = costText .. ", "
+        end
+        costText = costText .. spellDef.favorCost .. " Favor"
+      end
+      if costText then costText = costText .. ")" end
+      local spellText = spell.name .. (costText or "") .. "\n" .. spell.description
+      local __, wrappedtext = fonts.textFont:getWrap(spellText, maxX)
+      love.graphics.printf(spellText,printX,printY,maxX,"center")
+      printY=printY+#wrappedtext*fontSize+8
+      
+      local canLearn = spellDef.canLearn
+      local reasonText = spellDef.reasonText or "You're unable to learn this ability."
+      if not canLearn then
+        setColor(150,150,150,255)
+      end
+      local spellW = fonts.buttonFont:getWidth("Learn " .. spell.name)+padding
+      local buttonX = math.floor(midX-spellW/2+padding/2)
+      local buttonHi = false
+      if mouseX > buttonX and mouseX < buttonX+spellW and mouseY > printY-self.scrollY and mouseY < printY+32-self.scrollY then
+        buttonHi = true
+      end
+      local button = output:button(buttonX,printY,spellW,false,((buttonHi or self.cursorY == 2+#self.spellButtons+1) and "hover" or false),"Learn " .. spell.name)
+      button.spellID = spellDef.spell
+      self.spellButtons[#self.spellButtons+1] = button 
+      printY=printY+32
+      setColor(255,255,255,255)
+      if not canLearn then
+        local _,rlines = fonts.textFont:getWrap(reasonText,windowWidth)
+        love.graphics.printf(reasonText,windowX,printY,windowWidth,"center")
+        printY = printY+fontSize*#rlines
+        button.disabled=true
+      end
+      printY=printY+fontSize
+      lastY = printY
     end
     if spellCount == 0 then
       love.graphics.printf("There are currently no skills or abilities available to learn.",windowX,printY,windowWidth,"center")
@@ -996,7 +968,7 @@ function factionscreen:buttonpressed(key,scancode,isRepeat,controllerType)
               self.outText = "You learn " .. spell.name .. "."
             end
           elseif skillID and skill then
-            if player:upgrade_skill(skillID,1,true) then
+            if self.faction:teach_skill(skillID,player)then
               self.outText = "You are trained in " .. skill.name .. "."
             end
           end
@@ -1318,7 +1290,7 @@ function factionscreen:mousepressed(x,y,button)
             self.outText = "You learn " .. spell.name .. "."
           end
         elseif skillID and skill then
-          if player:upgrade_skill(skillID,1,true) then
+          if self.faction:teach_skill(skillID,player) then
             self.outText = "You are trained in " .. skill.name .. "."
           end
         end

@@ -9,7 +9,8 @@ local healthstore = {
   buys_items = {healthpotionminor=5,scroll=1},
   buys_tags = {"magic","healing"}, --Tags for non-predefined items that will be bought by the shop
   offers_services = {{service="healing"}}, --Services that this store offers
-  teaches_spells = {{spell="heal_other",cost = 100}}, --spells that this store teaches
+  teaches_spell_types={'healing'},
+  spell_cost=100,
   tags={"organized"}, --Tags to be used to determine if a store can spawn in a map
   multiple_locations=true --If this is set to true, this store can spawn in multiple locations, each with separate inventory. If not set, the store can only spawn once per game
 }
@@ -54,6 +55,8 @@ local alchemystore = {
   random_item_amount=10, --How many random items to fill the shop with
   random_item_restock_amount=5,
   random_item_restock_to=5, --Only restock random items to this amount
-  teaches_skills={{skill="alchemy",cost=50}}
+  teaches_skills={{skill="alchemy",cost=50,max=3}},
+  teaches_skill_tags={'healing'},
+  skill_cost=100
 }
 possibleStores['alchemystore'] = alchemystore

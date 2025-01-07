@@ -117,7 +117,8 @@ local divinity = {
   stats_per_level={spellPoints=1,max_mp=5},
   stats_per_x_levels={[5]={spell_slots=1}},
   stats_at_level={[1]={spell_slots=1,max_mp=10}},
-  learns_spells={{spell='smite',level=1}}
+  learns_spells={{spell='smite',level=1}},
+  tags={'holy'}
 }
 possibleSkills['divinity'] = divinity
 

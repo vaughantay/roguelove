@@ -229,7 +229,7 @@ function Faction:teach_spell(spellID,creature)
   
   --Get the spell info:
   local spellInfo = nil
-  for _,s in ipairs(self.teaches_spells) do
+  for _,s in ipairs(self:get_teachable_spells()) do
     if s.spell == spellID then
       spellInfo = s
       break
@@ -238,14 +238,44 @@ function Faction:teach_spell(spellID,creature)
   if not spellInfo then return false end
   
   --Pay the price:
-  if spellInfo.moneyCost then
+  if spellInfo.moneyCost and spellInfo.moneyCost > 0 then
     creature.money = creature.money - (spellInfo.moneyCost+round(spellInfo.moneyCost*(self:get_cost_modifier(player)/100)))
   end
-  if spellInfo.favorCost then
+  if spellInfo.favorCost and spellInfo.favorCost > 0  then
     creature.favor[self.id] = creature.favor[self.id] - spellInfo.favorCost
   end
   --Teach it, finally:
   creature:learn_spell(spellID)
+end
+
+---Have a creature learn a skill from a faction.
+--@param skillID String. The ID of the skill they're trying to learn.
+--@param creature Creature. The creature learning the skill. (optional, defaults to the player)
+--@return Boolean. Whether learning the skill was successful or not.
+function Faction:teach_skill(skillID,creature)
+  creature = creature or player
+  
+  --Get the skill info:
+  local skillInfo = nil
+  for _,s in ipairs(self:get_teachable_skills()) do
+    if s.skill == skillID then
+      skillInfo = s
+      break
+    end
+  end
+  if not skillInfo then return false end
+  
+  --Pay the price:
+  if skillInfo.moneyCost and skillInfo.moneyCost > 0 then
+    creature.money = creature.money - skillInfo.moneyCost
+  end
+  
+  if skillInfo.favorCost and skillInfo.favorCost > 0 then
+    creature.favor[self.id] = (creature.favor[self.id] or 0) - skillInfo.favorCost
+  end
+  
+  --Teach it, finally:
+  creature:upgrade_skill(skillID,1,true)
 end
 
 ---Generates the faction's inventory
@@ -676,14 +706,6 @@ function Faction:get_possible_random_items()
             end
           end
         end
-        if not done and self.sells_types then
-          for _,itype in ipairs(self.sells_types) do --check tags
-            if (item.types and in_table(itype,item.types)) then
-              possibles[#possibles+1] = id
-              break
-            end --end tags if
-          end --end sells_tag for
-        end
         if not done and self.forbidden_sells_tags then
           for _,tag in ipairs(self.forbidden_sells_tags) do
             if item.tags and in_table(tag,item.tags) then
@@ -699,6 +721,15 @@ function Faction:get_possible_random_items()
               break
             end
           end
+        end
+        if not done and self.sells_types then
+          for _,itype in ipairs(self.sells_types) do --check tags
+            if (item.types and in_table(itype,item.types)) then
+              done = true
+              possibles[#possibles+1] = id
+              break
+            end --end tags if
+          end --end sells_tag for
         end
         if not done and self.sells_tags then
           for _,tag in ipairs(self.sells_tags) do --check tags
@@ -760,6 +791,215 @@ function Faction:get_cost_modifier(creature)
     finalMod = finalMod + tempMod
   end --end if reputation cost modifiers
   return finalMod+creature:get_bonus('cost_modifier')
+end
+
+---Gets the list of spells the faction can teach a given creature
+--@param creature Creature. Optional, defaults to player
+--@return Table. A list of possible spells
+function Faction:get_teachable_spells(creature)
+  creature = creature or player
+  local spell_list = {}
+  local spells = copy_table(self.teaches_spells or {})
+  local costMod = self:get_cost_modifier(creature)
+  
+  --Determine any teachable spells from tags
+  if self.teaches_spell_tags or self.teaches_spell_types then
+    local alreadyTeaches = {}
+    if count(spells) > 0 then
+      for _,spInfo in ipairs(spells) do
+        alreadyTeaches[spInfo.spell] = true
+      end
+    end
+    for spellID,spell in pairs(possibleSpells) do
+      if not alreadyTeaches[spellID] and (spell.tags or spell.types) then
+        local canTeach = true
+        local doTeach = false
+        if self.forbidden_spell_types then
+          for _,tag in ipairs(self.forbidden_spell_types) do
+            if spell.types and in_table(tag,spell.types) then
+              canTeach = false
+              break
+            end
+          end
+        end
+        if canTeach and self.required_spell_types then
+          for _,tag in ipairs(self.required_spell_types) do
+            if not spell.types or not in_table(tag,spell.types) then
+              canTeach = false
+              break
+            end
+          end
+        end
+        if canTeach and self.forbidden_spell_tags then
+          for _,tag in ipairs(self.forbidden_spell_tags) do
+            if spell.tags and in_table(tag,spell.tags) then
+              canTeach = false
+              break
+            end
+          end
+        end
+        if canTeach and self.required_spell_tags then
+          for _,tag in ipairs(self.required_spell_tags) do
+            if not spell.tags or not in_table(tag,spell.tags) then
+              canTeach = false
+              break
+            end
+          end
+        end
+        if canTeach and self.teaches_spell_types and spell.types then
+          for _,tag in ipairs(self.teaches_spell_types) do
+            if spell.types and in_table(tag,spell.types) then
+              doTeach = true
+              break
+            end
+          end
+        end
+        if canTeach and not doTeach and self.teaches_spell_tags and spell.tags then
+          for _,tag in ipairs(self.teaches_spell_tags) do
+            if in_table(tag,spell.tags) then
+              doTeach = true
+              break
+            end
+          end
+        end
+        if doTeach then
+          local moneyCost = (self.spell_money_cost_per_level and self.spell_money_cost_per_level*(spell.level or 1) or self.spell_money_cost or 0)
+          local favorCost = (self.spell_favor_cost_per_level and self.spell_favor_cost_per_level*(spell.level or 1) or self.spell_favor_cost or 0)
+          local membersOnly = self.spells_members_only
+          local reputation_requirement = (self.spell_reputation_requirement_per_level and self.spell_reputation_requirement_per_level*(spell.level or 1) or self.spell_reputation_requirement or 0)
+          spells[#spells+1] = {spell=spellID,moneyCost=moneyCost,favorCost=favorCost,reputation_requirement=reputation_requirement,membersOnly=membersOnly}
+        end
+      end
+    end
+  end
+  
+  --Determine which spells are available:
+  for _,spellDef in pairs(spells) do
+    if not player:has_spell(spellDef.spell,true,true) then
+      local spellID = spellDef.spell
+      local spell = possibleSpells[spellID]
+      local moneyCost = (spellDef.moneyCost or 0)
+      moneyCost = moneyCost + round(moneyCost*(costMod/100))
+      local favorCost = (spellDef.favorCost or 0)
+      local canLearn = true
+      local reasonText = nil
+      
+      if spellDef.membersOnly and not self.playerMember then
+        reasonText = "This ability is only taught to members."
+        canLearn = false
+      elseif spellDef.reputation_requirement and (creature.reputation[self.id] or 0) < spellDef.reputation_requirement then
+        reasonText = "Requires at least " .. spellDef.reputation_requirement .. " reputation to learn this ability."
+        canLearn = false
+      elseif spellDef.favorCost and (creature.favor[self.id] or 0) < spellDef.favorCost then
+        reasonText = "You don't have enough favor to learn this ability."
+        canLearn = false
+      elseif spellDef.moneyCost and creature.money < moneyCost then
+        reasonText = "You don't have enough money to learn this ability."
+        canLearn = false
+      else
+        local ret,text = creature:can_learn_spell(spellDef.spell)
+        if ret == false then
+          reasonText = (text or "You're unable to learn this ability.")
+          canLearn = false
+        end
+      end
+      
+      spell_list[#spell_list+1] = {spell=spellID,name=spell.name,description=spell.description,canLearn=canLearn,reasonText=reasonText,moneyCost=moneyCost,favorCost=favorCost}
+    end
+  end
+  
+  return spell_list
+end
+
+---Gets the list of skills the store can teach a given creature
+--@param creature Creature. Optional, defaults to player
+--@return Table. A list of possible skills
+function Faction:get_teachable_skills(creature)
+  creature = creature or player
+  local skill_list = {}
+  local skills = copy_table(self.teaches_skills or {})
+  local costMod = self:get_cost_modifier(creature)
+  
+  --Determine any teachable skills from tags
+  if self.teaches_skill_tags then
+    local alreadyTeaches = {}
+    if count(skills) > 0 then
+      for _,spInfo in ipairs(skills) do
+        alreadyTeaches[spInfo.skill] = true
+      end
+    end
+    for skillID,skill in pairs(possibleSkills) do
+      if not alreadyTeaches[skillID] and skill.tags then
+        local canTeach = true
+        local doTeach = false
+        if canTeach and self.forbidden_skill_tags then
+          for _,tag in ipairs(self.forbidden_skill_tags) do
+            if skill.tags and in_table(tag,skill.tags) then
+              canTeach = false
+              break
+            end
+          end
+        end
+        if canTeach and self.required_skill_tags then
+          for _,tag in ipairs(self.required_skill_tags) do
+            if not skill.tags or not in_table(tag,skill.tags) then
+              canTeach = false
+              break
+            end
+          end
+        end
+        if canTeach and not doTeach and self.teaches_skill_tags and skill.tags then
+          for _,tag in ipairs(self.teaches_skill_tags) do
+            if in_table(tag,skill.tags) then
+              doTeach = true
+              break
+            end
+          end
+        end
+        if doTeach then
+          skills[#skills+1] = {skill=skillID,moneyCost=self.skill_money_cost,favorCost=self.skill_favor_cost,membersOnly=self.skills_members_only,reputation_requirement=self.skill_reputation_requirement,max=skill.max}
+        end
+      end
+    end
+  end
+  
+  --Determine which skills are available:
+  for _,skillDef in pairs(skills) do
+    local player_val = creature:get_skill(skillDef.skill,true)
+    if not player_val or not skillDef.max or player_val < skillDef.max then
+      local skillID = skillDef.skill
+      local skill = possibleSkills[skillID]
+      local moneyCost = (skillDef.moneyCost or 0)*(player_val+1)
+      moneyCost = moneyCost + round(moneyCost*(costMod/100))
+      local favorCost = (skillDef.favorCost or 0)
+      local canLearn = true
+      local reasonText = nil
+      
+      if skillDef.membersOnly and not self.playerMember then
+        reasonText = "This skill is only taught to members."
+        canLearn = false
+      elseif skillDef.reputation_requirement and (creature.reputation[self.id] or 0) < skillDef.reputation_requirement then
+        reasonText = "Requires at least " .. skillDef.reputation_requirement .. " reputation to learn this skill."
+        canLearn = false
+      elseif skillDef.favorCost and (creature.favor[self.id] or 0) < favorCost then
+        reasonText = "You don't have enough favor to learn this skill."
+        canLearn = false
+      elseif skillDef.moneyCost and creature.money < moneyCost then
+        reasonText = "You don't have enough money to learn this skill."
+        canLearn = false
+      elseif skill.upgrade_requires then
+        local ret,text = skill:upgrade_requires(creature)
+        if ret == false then
+          reasonText = (text or "You're unable to learn this skill.")
+          canLearn = false
+        end
+      end
+      
+      skill_list[#skill_list+1] = {skill=skillID,level=player_val+1,name=skill.name,description=skill.description,canLearn=canLearn,reasonText=reasonText,moneyCost=moneyCost,favorCost=favorCost}
+    end
+  end
+  
+  return skill_list
 end
   
 ---Registers an incident as having occured, to be processed by all other creatures who observe it

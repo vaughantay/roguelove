@@ -45,6 +45,7 @@ blast = {
   max_charges=5,
   min_targets=1,
   max_targets=2,
+  cooldown=2,
   settings={confusion={name="Confusion",description="Chance of causing confusion in the target.",requires_upgrades={confusion=1,stun=1},setting_exclusions={'stun'}},stun={name="Stunning",description="Chance of stunning the target.",requires_upgrades={stun=1,confusion=1},setting_exclusions={'confusion'}}},
   stats={
     min_damage={value=8,name="Minimum Damage",stat_type="damage",display_order=1},
@@ -1356,6 +1357,7 @@ heal_other = {
     cooldown = 5,
     description = "Practice the healing arts on a nearby creature. If cast on an unfriendly creature, there's a chance they will become friendly towards you.",
     flags={friendly=true},
+    types={'healing','holy'},
     always_learnable = true,
     learn_point_cost = 3,
     cast = function(self,target,caster)

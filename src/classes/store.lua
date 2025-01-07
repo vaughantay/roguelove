@@ -418,7 +418,7 @@ function Store:teach_spell(spellID,creature)
   
   --Get the spell info:
   local spellInfo = nil
-  for _,s in ipairs(self.teaches_spells) do
+  for _,s in ipairs(self:get_teachable_spells()) do
     if s.spell == spellID then
       spellInfo = s
       break
@@ -427,10 +427,10 @@ function Store:teach_spell(spellID,creature)
   if not spellInfo then return false end
   
   --Pay the price:
-  if spellInfo.cost then
+  if spellInfo.cost and spellInfo.cost > 0 then
     local costMod = 0
     if self.faction then
-      costMod = self.faction:get_cost_modifier(creature)
+      costMod = currWorld.factions[self.faction]:get_cost_modifier(creature)
     end
     if self.currency_item then
       local creatureItem = player:has_item(self.currency_item)
@@ -442,6 +442,41 @@ function Store:teach_spell(spellID,creature)
   
   --Teach it, finally:
   creature:learn_spell(spellID)
+end
+
+---Have a creature learn a skill from a store.
+--@param skillID String. The ID of the skill they're trying to learn.
+--@param creature Creature. The creature learning the skill. (optional, defaults to the player)
+--@return Boolean. Whether learning the skill was successful or not.
+function Store:teach_skill(skillID,creature)
+  creature = creature or player
+  
+  --Get the skill info:
+  local skillInfo = nil
+  for _,s in ipairs(self:get_teachable_skills()) do
+    if s.skill == skillID then
+      skillInfo = s
+      break
+    end
+  end
+  if not skillInfo then return false end
+  
+  --Pay the price:
+  if skillInfo.cost and skillInfo.cost > 0 then
+    local costMod = 0
+    if self.faction then
+      costMod = currWorld.factions[self.faction]:get_cost_modifier(creature)
+    end
+    if self.currency_item then
+      local creatureItem = player:has_item(self.currency_item)
+      creature:delete_item(creatureItem,skillInfo.cost+round(skillInfo.cost*(costMod/100)))
+    else
+      creature.money = creature.money - skillInfo.cost+round(skillInfo.cost*(costMod/100))
+    end
+  end
+  
+  --Teach it, finally:
+  creature:upgrade_skill(skillID,1,true)
 end
 
 ---Gets the index within the store's inventory of the item in question
@@ -487,14 +522,6 @@ function Store:get_possible_random_items()
             end
           end
         end
-        if not done and self.sells_types then
-          for _,itype in ipairs(self.sells_types) do --check tags
-            if (item.types and in_table(itype,item.types)) then
-              possibles[#possibles+1] = id
-              break
-            end --end tags if
-          end --end sells_tag for
-        end
         if not done and self.forbidden_sells_tags then
           for _,tag in ipairs(self.forbidden_sells_tags) do
             if item.tags and in_table(tag,item.tags) then
@@ -510,6 +537,15 @@ function Store:get_possible_random_items()
               break
             end
           end
+        end
+        if not done and self.sells_types then
+          for _,itype in ipairs(self.sells_types) do --check tags
+            if (item.types and in_table(itype,item.types)) then
+              done = true
+              possibles[#possibles+1] = id
+              break
+            end --end tags if
+          end --end sells_tag for
         end
         if not done and self.sells_tags then
           for _,tag in ipairs(self.sells_tags) do --check tags
@@ -546,6 +582,202 @@ function Store:generate_random_item(list)
     item.identified = true
   end
   self:add_item(item,{randomly_generated=true,delete_on_restock=self.delete_random_items_on_restock})
+end
+
+---Gets the list of spells the store can teach a given creature
+--@param creature Creature. Optional, defaults to player
+--@return Table. A list of possible spells
+function Store:get_teachable_spells(creature)
+  creature = creature or player
+  local spell_list = {}
+  local spells = copy_table(self.teaches_spells or {})
+  local costMod = (self.faction and currWorld.factions[self.faction]:get_cost_modifier(player) or 0)
+  
+  --Determine any teachable spells from tags
+  if self.teaches_spell_tags or self.teaches_spell_types then
+    local alreadyTeaches = {}
+    if count(spells) > 0 then
+      for _,spInfo in ipairs(spells) do
+        alreadyTeaches[spInfo.spell] = true
+      end
+    end
+    for spellID,spell in pairs(possibleSpells) do
+      if not alreadyTeaches[spellID] and (spell.tags or spell.types) then
+        local canTeach = true
+        local doTeach = false
+        if self.forbidden_spell_types then
+          for _,tag in ipairs(self.forbidden_spell_types) do
+            if spell.types and in_table(tag,spell.types) then
+              canTeach = false
+              break
+            end
+          end
+        end
+        if canTeach and self.required_spell_types then
+          for _,tag in ipairs(self.required_spell_types) do
+            if not spell.types or not in_table(tag,spell.types) then
+              canTeach = false
+              break
+            end
+          end
+        end
+        if canTeach and self.forbidden_spell_tags then
+          for _,tag in ipairs(self.forbidden_spell_tags) do
+            if spell.tags and in_table(tag,spell.tags) then
+              canTeach = false
+              break
+            end
+          end
+        end
+        if canTeach and self.required_spell_tags then
+          for _,tag in ipairs(self.required_spell_tags) do
+            if not spell.tags or not in_table(tag,spell.tags) then
+              canTeach = false
+              break
+            end
+          end
+        end
+        if canTeach and self.teaches_spell_types and spell.types then
+          for _,tag in ipairs(self.teaches_spell_types) do
+            if spell.types and in_table(tag,spell.types) then
+              doTeach = true
+              break
+            end
+          end
+        end
+        if canTeach and not doTeach and self.teaches_spell_tags and spell.tags then
+          for _,tag in ipairs(self.teaches_spell_tags) do
+            if in_table(tag,spell.tags) then
+              doTeach = true
+              break
+            end
+          end
+        end
+        if doTeach then
+          local cost = (self.spell_cost_per_level and self.spell_cost_per_level*(spell.level or 1) or self.spell_cost or 0)
+          spells[#spells+1] = {spell=spellID,cost=cost}
+        end
+      end
+    end
+  end
+  
+  --Determine which spells are available:
+  for _,spellDef in pairs(spells) do
+    if not player:has_spell(spellDef.spell,true,true) then
+      local spellID = spellDef.spell
+      local spell = possibleSpells[spellID]
+      local cost = (spellDef.cost or 0)
+      cost = cost + round(cost*(costMod/100))
+      local currencyItem = self.currency_item
+      local playerItem = (currencyItem and player:has_item(currencyItem) or nil)
+      local canLearn = true
+      local reasonText = nil
+      
+      if not currencyItem and spellDef.cost and creature.money < cost then
+        reasonText = "You don't have enough money to learn this ability."
+        canLearn = false
+      elseif currencyItem and (not playerItem or playerItem.amount < cost) then
+        reasonText = "You don't have enough " .. (possibleItems[currencyItem].pluralName or possibleItems[currencyItem].name) .. " to learn this ability."
+        canLearn = false
+      else
+        local ret,text = creature:can_learn_spell(spellDef.spell)
+        if ret == false then
+          reasonText = (text or "You're unable to learn this ability.")
+          canLearn = false
+        end
+      end
+      
+      spell_list[#spell_list+1] = {spell=spellID,name=spell.name,description=spell.description,canLearn=canLearn,reasonText=reasonText,cost=cost}
+    end
+  end
+  
+  return spell_list
+end
+
+---Gets the list of skills the store can teach a given creature
+--@param creature Creature. Optional, defaults to player
+--@return Table. A list of possible skills
+function Store:get_teachable_skills(creature)
+  creature = creature or player
+  local skill_list = {}
+  local skills = copy_table(self.teaches_skills or {})
+  local costMod = (self.faction and currWorld.factions[self.faction]:get_cost_modifier(player) or 0)
+  
+  --Determine any teachable skills from tags
+  if self.teaches_skill_tags then
+    local alreadyTeaches = {}
+    if count(skills) > 0 then
+      for _,spInfo in ipairs(skills) do
+        alreadyTeaches[spInfo.skill] = true
+      end
+    end
+    for skillID,skill in pairs(possibleSkills) do
+      if not alreadyTeaches[skillID] and skill.tags then
+        local canTeach = true
+        local doTeach = false
+        if canTeach and self.forbidden_skill_tags then
+          for _,tag in ipairs(self.forbidden_skill_tags) do
+            if skill.tags and in_table(tag,skill.tags) then
+              canTeach = false
+              break
+            end
+          end
+        end
+        if canTeach and self.required_skill_tags then
+          for _,tag in ipairs(self.required_skill_tags) do
+            if not skill.tags or not in_table(tag,skill.tags) then
+              canTeach = false
+              break
+            end
+          end
+        end
+        if canTeach and not doTeach and self.teaches_skill_tags and skill.tags then
+          for _,tag in ipairs(self.teaches_skill_tags) do
+            if in_table(tag,skill.tags) then
+              doTeach = true
+              break
+            end
+          end
+        end
+        if doTeach then
+          skills[#skills+1] = {skill=skillID,cost=self.skill_cost,max=skill.max}
+        end
+      end
+    end
+  end
+  
+  --Determine which skills are available:
+  for _,skillDef in pairs(skills) do
+    local player_val = creature:get_skill(skillDef.skill,true)
+    if not player_val or not skillDef.max or player_val < skillDef.max then
+      local skillID = skillDef.skill
+      local skill = possibleSkills[skillID]
+      local cost = (skillDef.cost or 0)*(player_val+1)
+      cost = cost + round(cost*(costMod/100))
+      local currencyItem = self.currency_item
+      local playerItem = (currencyItem and player:has_item(currencyItem) or nil)
+      local canLearn = true
+      local reasonText = nil
+      
+      if not currencyItem and skillDef.cost and creature.money < cost then
+        reasonText = "You don't have enough money to learn this skill."
+        canLearn = false
+      elseif currencyItem and (not playerItem or playerItem.amount < cost) then
+        reasonText = "You don't have enough " .. (possibleItems[currencyItem].pluralName or possibleItems[currencyItem].name) .. " to learn this skill."
+        canLearn = false
+      elseif skill.upgrade_requires then
+        local ret,text = skill:upgrade_requires(creature)
+        if ret == false then
+          reasonText = (text or "You're unable to learn this skill.")
+          canLearn = false
+        end
+      end
+      
+      skill_list[#skill_list+1] = {skill=skillID,level=player_val+1,name=skill.name,description=skill.description,canLearn=canLearn,reasonText=reasonText,cost=cost}
+    end
+  end
+  
+  return skill_list
 end
 
 ---Placeholder for the requires() code, which is run to determine if the player can enter the store or not.
