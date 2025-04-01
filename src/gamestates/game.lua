@@ -2249,28 +2249,31 @@ end
 
 function Warning:init(text,afterFunc,afterArgs)
   local uiScale = prefs['uiScale']
-  local fontSize = prefs['fontSize']
+  local fontSize = fonts.textFont:getHeight()
+  local tileSize = output:get_tile_size(true)
   self.text = text or "Are you sure you want to do that?"
   self.afterFunc = type(afterFunc) == "function" and afterFunc or nil
   self.afterArgs = afterArgs
-  self.width = math.ceil(love.graphics.getWidth()/uiScale/2)
+  self.width = math.min(math.max(tileSize*3,fonts.textFont:getWidth(self.text)+tileSize),math.ceil(love.graphics.getWidth()/uiScale/2))
   local _,hlines = fonts.textFont:getWrap(self.text,self.width)
-  self.height = #hlines*(fontSize+1)+32
+  self.height = (#hlines+2)*fontSize+(tileSize*1.5)
   self.x,self.y=round(love.graphics.getWidth()/uiScale/2-self.width/2),round(love.graphics.getHeight()/uiScale/2-self.height/2)
 end
 
 function Warning:draw()
   local uiScale = prefs['uiScale']
-  local fontSize = prefs['fontSize']
+  local fontSize = fonts.textFont:getHeight()
+  local tileSize = output:get_tile_size(true)
+  local midX = round(self.x+self.width/2+tileSize/2)
   love.graphics.push()
   love.graphics.scale(uiScale,uiScale)
   love.graphics.setFont(fonts.textFont)
   output:draw_window(self.x,self.y,self.x+self.width,self.y+self.height)
-  love.graphics.printf(self.text,self.x,self.y+fontSize,self.width,"center")
-  local buttonPad = 16
+  love.graphics.printf(self.text,self.x+math.ceil(tileSize/2),self.y+tileSize,self.width,"center")
+  local buttonPad = tileSize
   local buttonW = math.max(fonts.buttonFont:getWidth("(Y)es"),fonts.buttonFont:getWidth("(N)o"))+buttonPad
-  self.yesButton = output:button(round(self.x+(self.width)/2)-(buttonW-buttonPad),self.y+self.height-8,buttonW,nil,nil,"(Y)es",true)
-  self.noButton = output:button(round(self.x+(self.width)/2)+(buttonW-buttonPad),self.y+self.height-8,buttonW,nil,nil,"(N)o",true)
+  self.yesButton = output:button(midX-buttonW,self.y+self.height-tileSize,buttonW,nil,nil,"(Y)es",true)
+  self.noButton = output:button(midX,self.y+self.height-tileSize,buttonW,nil,nil,"(N)o",true)
   love.graphics.pop()
 end
 
@@ -2292,20 +2295,23 @@ end
 
 function Popup:init(text,header,extraLines,blackout,enterOnly,afterFunc)
   local uiScale = prefs['uiScale']
+  local fontSize = fonts.textFont:getHeight()
+  local tileSize = output:get_tile_size(true)
   self.text,self.header=text,(header or "")
   self.blackout,self.enterOnly = blackout,enterOnly
-  self.width = math.ceil(love.graphics.getWidth()/uiScale/2)
-  self.padding = (prefs['noImages'] and 8 or 16)
+  self.exitText = (self.enterOnly and "Press enter, escape, or click to continue..." or "Press any key or click to continue...")
+  self.width = math.min(550,round(love.graphics.getWidth()/uiScale/2))
+  self.padding = (prefs['noImages'] and 8 or 32)
   self.afterFunc = afterFunc
   extraLines = extraLines or 4
-  self.exitText = (self.enterOnly and "Press enter or click to continue..." or "Press any key or click to continue...")
-  local _,hlines = fonts.textFont:getWrap(self.header,self.width)
-  local _,tlines = fonts.textFont:getWrap(text,self.width)
-  local _,elines = fonts.textFont:getWrap(self.exitText,self.width)
-  self.headerHeight = #hlines*prefs['fontSize']
-  self.height = (#tlines+extraLines)*prefs['fontSize']+self.headerHeight
-  self.x,self.y=round(love.graphics.getWidth()/uiScale/4),round(love.graphics.getHeight()/uiScale/2-self.height/uiScale/2)
-  self.exitHeight = self.y+self.height-(#elines*prefs['fontSize'])
+  
+  local _,hlines = fonts.textFont:getWrap(self.header,self.width-self.padding)
+  local _,tlines = fonts.textFont:getWrap(text,self.width-self.padding)
+  local _,elines = fonts.textFont:getWrap(self.exitText,self.width-self.padding)
+  self.headerHeight = (self.header ~= "" and #hlines*fontSize or 0)
+  self.height = (#tlines+extraLines)*fontSize+self.headerHeight
+  self.x,self.y=round(love.graphics.getWidth()/uiScale/2-self.width/2-tileSize/2),round(love.graphics.getHeight()/uiScale/2-self.height/uiScale/2-tileSize/2)
+  self.exitHeight = self.y+self.height-(#elines*fontSize)
 end
 
 function Popup:draw()
@@ -2314,10 +2320,10 @@ function Popup:draw()
   love.graphics.scale(uiScale,uiScale)
   output:draw_window(self.x,self.y,self.x+self.width,self.y+self.height)
   love.graphics.setFont(fonts.textFont)
-  if self.header then
+  if self.header and self.header ~= "" then
     love.graphics.printf(self.header,self.x+self.padding,self.y+self.padding,self.width-self.padding,"center")
   end
   love.graphics.printf(self.text,self.x+self.padding+5,self.y+self.padding+self.headerHeight+5,self.width-self.padding,"left")
-  love.graphics.printf(self.exitText,self.x,self.exitHeight,self.width,"center")
+  love.graphics.printf(self.exitText,self.x,self.exitHeight,self.width-self.padding,"center")
   love.graphics.pop()
 end

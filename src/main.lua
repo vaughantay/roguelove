@@ -335,6 +335,7 @@ function load_data()
 end
 
 function load_engine()
+  require "ui.setting"
   require "achievement"
   require "input"
   require "mapgen"

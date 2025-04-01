@@ -1,5 +1,4 @@
 settings = {}
-local Setting = Class{}
 
 function settings:enter(previous)
   self.previous = previous
@@ -32,15 +31,25 @@ function settings:make_controls()
   local controlIncrease = fontSize+4
   
   self.labels.controls[1] = {}
-  local cwidth = fonts.menuFont:getWidth('Controls')
-  local gwidth = fonts.menuFont:getWidth("Graphics/Sound")
+  local cwidth = fonts.buttonFont:getWidth('Controls')
+  local gwidth = fonts.buttonFont:getWidth("Graphics/Sound")
   local twidth = round(cwidth+gwidth)/2
-  self.labels.controls[1][1] = Setting('screen:controls','Controls',math.floor(width/2)-twidth,50,nil,false,nil,nil,fonts.menuFont,true)
-  self.labels.controls[1][2] = Setting('screen:graphics','Graphics/Sound',(width/2),50,nil,false,nil,nil,fonts.menuFont,true)
+  self.labels.controls[1][1] = Setting('screen:controls','Controls',math.floor(width/2)-twidth,50,nil,false,nil,nil,nil,true)
+  self.labels.controls[1][2] = Setting('screen:graphics','Graphics/Sound',(width/2),50,nil,false,nil,nil,nil,true)
   self.labels.controls[1][1].disabled = true
-  self.labels.controls[2] = Setting('mouseMovesMap',"Mouse on Screen Edge Scrolls Map",startX,startY,prefs['mouseMovesMap'],true,startX)
-  self.labels.controls[3] = Setting('captureMouse',"Capture Mouse While on Game Screen",startX,startY+increase,prefs['captureMouse'],true,startX)
-  local controlStartY=startY+increase*(#self.labels.controls+1)
+  local controlY = startY
+  self.labels.controls[#self.labels.controls+1] = Setting('mouseMovesMap',"Mouse on Screen Edge Scrolls Map",startX,controlY,prefs['mouseMovesMap'],true,startX)
+  controlY = controlY + increase
+  if self.labels.controls[#self.labels.controls].checkbox then
+    local scrollW = fonts.textFont:getWidth("Mouse Scroll Delay (ms): " .. prefs['mouseScrollTime']*1000)
+    local plusW = math.ceil(scrollW/2)+16
+    self.labels.controls[#self.labels.controls+1] = Setting(nil,"Mouse Scroll Delay (ms): " .. prefs['mouseScrollTime']*1000,startX,controlY,nil,true,startX)
+    self.labels.controls[#self.labels.controls][1] = Setting('scrollSpeedDown',"-",width/2-plusW,controlY)
+    self.labels.controls[#self.labels.controls][2] = Setting('scrollSpeedUp',"+",width/2+plusW,controlY)
+    controlY = controlY+increase
+  end
+  self.labels.controls[#self.labels.controls+1] = Setting('captureMouse',"Lock Mouse to Game Screen",startX,controlY,prefs['captureMouse'],true,startX)
+  local controlStartY=startY+increase*(#self.labels.controls)
   
   --Sort out the keybindings first:
   local sortedKB = {}
@@ -68,12 +77,15 @@ function settings:make_controls()
   local leftColumnLineX = leftColumnX+biggestLeftLabel
   local rightColumnLineX = leftColumnLineX+biggestLeft
   local totalW = biggestLeft*2+biggestLeftLabel
-  local kb = 4
+  local kb = #self.labels.controls+1
   local printY = controlStartY-2
   self.controlStartY=printY
   
+  local controlCount = 0
+  
   for _,kb_category in ipairs(self.keybindings) do
     printY=printY+controlIncrease
+    controlCount = controlCount+1
     for command,info in pairs(kb_category) do
       self.labels.controls[kb] = {}
       --self.labels.controls[kb][1] = Setting('keybindings:' .. command,info.description,leftColumnX,printY,nil,nil,leftW)
@@ -85,56 +97,55 @@ function settings:make_controls()
       self.labels.controls[kb][2].x,self.labels.controls[kb][2].width = rightColumnLineX,biggestLeft
       self.labels.controls[kb][2].description = info.description
       printY=printY+controlIncrease
+      controlCount = controlCount+1
       kb=kb+1
     end
   end
-  self.controlCount = kb+1
-  self.labels.controls[kb] = Setting('defaultkeys',"Restore Default Keys",startX,printY,nil,true,startX,nil,fonts.menuFont,true)
+  self.controlCount = controlCount
+  self.labels.controls[kb] = Setting('defaultkeys',"Restore Default Keys",startX,printY+controlIncrease,nil,true,startX,nil,nil,true)
   local lastControl = self.labels.controls[#self.labels.controls]
   self.controlsMaxY = lastControl.maxY
   
   self.labels.graphics[1] = {}
-  self.labels.graphics[1][1] = Setting('screen:controls','Controls',math.floor(width/2)-twidth,50,nil,false,nil,nil,fonts.menuFont,true)
-  self.labels.graphics[1][2] = Setting('screen:graphics','Graphics/Sound',(width/2),50,nil,false,nil,nil,fonts.menuFont,true)
-  self.labels.graphics[1][2].disabled = true
-  self.labels.graphics[2] = {}
+  self.labels.graphics[#self.labels.graphics][1] = Setting('screen:controls','Controls',math.floor(width/2)-twidth,50,nil,false,nil,nil,nil,true)
+  self.labels.graphics[#self.labels.graphics][2] = Setting('screen:graphics','Graphics/Sound',(width/2),50,nil,false,nil,nil,nil,true)
+  self.labels.graphics[#self.labels.graphics][2].disabled = true
   local soundW = fonts.textFont:getWidth("Sound Volume: " .. prefs['soundVolume'] .. "%")
   local musicW = fonts.textFont:getWidth("Music Volume: " .. prefs['musicVolume'] .. "%")
   local uiScaleW = fonts.textFont:getWidth("UI Scaling: " .. prefs['uiScale']*100 .. "%")
   local fontSizeW = fonts.textFont:getWidth("Font Size: " .. prefs['fontSize'])
   local descFontSizeW = fonts.textFont:getWidth("Tooltip Font Size: " .. prefs['descFontSize'])
   local plusW = math.ceil(math.max(soundW,musicW,uiScaleW,fontSizeW,descFontSizeW)/2)+16
-  self.labels.graphics[2][1] = Setting('soundDown',"-",width/2-plusW,startY)
-  self.labels.graphics[2][2] = Setting('soundUp',"+",width/2+plusW,startY)
-  self.labels.graphics[3] = {}
-  self.labels.graphics[3][1] = Setting('musicDown',"-",width/2-plusW,startY+increase)
-  self.labels.graphics[3][2] = Setting('musicUp',"+",width/2+plusW,startY+increase)
-  self.labels.graphics[4] = {}
-  self.labels.graphics[4][1] = Setting('uiScaleDown',"-",width/2-plusW,startY+increase*2)
-  self.labels.graphics[4][2] = Setting('uiScaleUp',"+",width/2+plusW,startY+increase*2)
-  self.labels.graphics[5] = {}
-  self.labels.graphics[5][1] = Setting('fontSizeDown',"-",width/2-plusW,startY+increase*3)
-  self.labels.graphics[5][2] = Setting('fontSizeUp',"+",width/2+plusW,startY+increase*3)
-  self.labels.graphics[6] = {}
-  self.labels.graphics[6][1] = Setting('descFontSizeDown',"-",width/2-plusW,startY+increase*4)
-  self.labels.graphics[6][2] = Setting('descFontSizeUp',"+",width/2+plusW,startY+increase*4)
-  self.labels.graphics[7] = Setting('minimap',"Mini-map",startX,startY+increase*5,prefs['minimap'],true,startX)
-  self.labels.graphics[8] = Setting('noSmoothCamera',"Disable Smooth Camera",startX,startY+increase*6,prefs['noSmoothCamera'],true,startX)
-  self.labels.graphics[9] = Setting('noSmoothMovement',"Disable Smooth Movement",startX,startY+increase*7,prefs['noSmoothMovement'],true,startX)
-  self.labels.graphics[10] = Setting('plainFonts',"Plain Fonts on Sidebar",startX,startY+increase*9,prefs['plainFonts'],true,startX)
-  self.labels.graphics[11] = Setting('bigButtons',"Larger Buttons on Sidebar",startX,startY+increase*10,prefs['bigButtons'],true,startX)
-  self.labels.graphics[12] = Setting('healthbars',"Show Health Bars on Map",startX,startY+increase*11,prefs['healthbars'],true,startX)
-  self.labels.graphics[13] = Setting('fullscreen',"Fullscreen",startX,startY+increase*12,prefs['fullscreen'],true,startX)
-  self.labels.graphics[14] = Setting('vsync',"Vsync",startX,startY+increase*13,prefs['vsync'],true,startX)
-  self.labels.graphics[15] = Setting('noImages',"ASCII Mode",startX,startY+increase*14,prefs['noImages'],true,startX)
+  self.labels.graphics[#self.labels.graphics+1] = {}
+  self.labels.graphics[#self.labels.graphics][1] = Setting('soundDown',"-",width/2-plusW,startY)
+  self.labels.graphics[#self.labels.graphics][2] = Setting('soundUp',"+",width/2+plusW,startY)
+  self.labels.graphics[#self.labels.graphics+1] = {}
+  self.labels.graphics[#self.labels.graphics][1] = Setting('musicDown',"-",width/2-plusW,startY+increase)
+  self.labels.graphics[#self.labels.graphics][2] = Setting('musicUp',"+",width/2+plusW,startY+increase)
+  self.labels.graphics[#self.labels.graphics+1] = {}
+  self.labels.graphics[#self.labels.graphics][1] = Setting('uiScaleDown',"-",width/2-plusW,startY+increase*2)
+  self.labels.graphics[#self.labels.graphics][2] = Setting('uiScaleUp',"+",width/2+plusW,startY+increase*2)
+  self.labels.graphics[#self.labels.graphics+1] = {}
+  self.labels.graphics[#self.labels.graphics][1] = Setting('fontSizeDown',"-",width/2-plusW,startY+increase*3)
+  self.labels.graphics[#self.labels.graphics][2] = Setting('fontSizeUp',"+",width/2+plusW,startY+increase*3)
+  self.labels.graphics[#self.labels.graphics+1] = {}
+  self.labels.graphics[#self.labels.graphics][1] = Setting('descFontSizeDown',"-",width/2-plusW,startY+increase*4)
+  self.labels.graphics[#self.labels.graphics][2] = Setting('descFontSizeUp',"+",width/2+plusW,startY+increase*4)
+  self.labels.graphics[#self.labels.graphics+1] = Setting('fullscreen',"Fullscreen",startX,startY+increase*5,prefs['fullscreen'],true,startX)
+  self.labels.graphics[#self.labels.graphics+1] = Setting('vsync',"Vsync",startX,startY+increase*6,prefs['vsync'],true,startX)
+  self.labels.graphics[#self.labels.graphics+1] = Setting('minimap',"Mini-map",startX,startY+increase*7,prefs['minimap'],true,startX)
+  self.labels.graphics[#self.labels.graphics+1] = Setting('healthbars',"Show Health Bars on Map",startX,startY+increase*8,prefs['healthbars'],true,startX)
+  self.labels.graphics[#self.labels.graphics+1] = Setting('noSmoothCamera',"Disable Smooth Camera",startX,startY+increase*9,prefs['noSmoothCamera'],true,startX)
+  self.labels.graphics[#self.labels.graphics+1] = Setting('noSmoothMovement',"Disable Smooth Movement",startX,startY+increase*10,prefs['noSmoothMovement'],true,startX)
+  self.labels.graphics[#self.labels.graphics+1] = Setting('noImages',"ASCII Mode",startX,startY+increase*11,prefs['noImages'],true,startX)
   if prefs['noImages'] then
     local asciiW = math.ceil(fonts.textFont:getWidth("ASCII Font Size: " .. prefs['asciiSize'])/2)+16
-    self.labels.graphics[16] = {}
-    self.labels.graphics[16][1] = Setting('asciiSizeDown',"-",width/2-asciiW,startY+increase*15)
-    self.labels.graphics[16][2] = Setting('asciiSizeUp',"+",width/2+asciiW,startY+increase*15)
+    self.labels.graphics[#self.labels.graphics+1] = {}
+    self.labels.graphics[#self.labels.graphics][1] = Setting('asciiSizeDown',"-",width/2-asciiW,startY+increase*12)
+    self.labels.graphics[#self.labels.graphics][2] = Setting('asciiSizeUp',"+",width/2+asciiW,startY+increase*12)
   else
-    self.labels.graphics[16] = Setting('creatureShadows',"Creature Shadows",startX,startY+increase*15,prefs['creatureShadows'],true,startX)
-    self.labels.graphics[17] = Setting('creatureAnimations',"Creature Animations",startX,startY+increase*16,prefs['creatureAnimations'],true,startX)
+    self.labels.graphics[#self.labels.graphics+1] = Setting('creatureShadows',"Creature Shadows",startX,startY+increase*12,prefs['creatureShadows'],true,startX)
+    self.labels.graphics[#self.labels.graphics+1] = Setting('creatureAnimations',"Creature Animations",startX,startY+increase*13,prefs['creatureAnimations'],true,startX)
   end
   local lastGraphic = self.labels.graphics[#self.labels.graphics]
   self.graphicsMaxY = (lastGraphic.maxY or lastGraphic[1].maxY)
@@ -163,7 +174,7 @@ function settings:draw()
   love.graphics.push()
   --Create a "stencil" that stops 
   local function stencilFunc()
-    love.graphics.rectangle("fill",1,self.startY,math.floor(width-padding),height-self.startY-4)
+    love.graphics.rectangle("fill",1,self.startY,math.floor(width-padding),height-self.startY-2-math.floor(padding/2))
   end
   love.graphics.stencil(stencilFunc,"replace",1)
   love.graphics.setStencilTest("greater",0)
@@ -195,7 +206,7 @@ function settings:draw()
   --Draw settings:
   for id,setting in ipairs(self.labels[self.screen]) do
     if setting[1] then --an array holding more 
-      for _,s in pairs(setting) do
+      for _,s in ipairs(setting) do
         if id ~= 1 then s:draw() end
         if s == activeSetting then
           s.selected = true
@@ -203,6 +214,7 @@ function settings:draw()
           s.selected = nil
         end
       end --end nested for
+      if setting.label then setting:draw() end
     else
       if id ~= 1 then setting:draw() end
       if setting == activeSetting then
@@ -311,6 +323,7 @@ function settings:buttonpressed(key,scancode,isRepeat,controllerType)
           return
         end
        end -- end for loop
+      keybindings[self.replaceKey].keyboard = (keybindings[self.replaceKey].keyboard or {})
       keybindings[self.replaceKey].keyboard[self.replaceWhich] = key
       self:make_controls() --refresh all the control labels
       self.replaceKey = nil
@@ -361,6 +374,7 @@ function settings:buttonpressed(key,scancode,isRepeat,controllerType)
         if setting.checkbox ~= nil then 
           prefs[setting.id] = not prefs[setting.id]
           setting.checkbox = not setting.checkbox
+          self:make_controls()
         end
         --Handle special cases:
         local split = explode(setting.id,":")
@@ -392,15 +406,15 @@ function settings:buttonpressed(key,scancode,isRepeat,controllerType)
           action = "moving"
         elseif setting.id == "fullscreen" then
           if prefs['fullscreen'] then
-            love.window.setMode(prefs['width'],prefs['height'],{fullscreen=prefs['fullscreen'],resizable=true,minwidth=1024,minheight=768})
+            love.window.setMode(prefs['width'],prefs['height'],{fullscreen=prefs['fullscreen'],resizable=true,minwidth=1280,minheight=720})
           else
-            love.window.setMode((prefs['oldwidth'] or prefs['width']),(prefs['oldheight'] or prefs['height']),{fullscreen=prefs['fullscreen'],resizable=true,minwidth=1024,minheight=768})
+            love.window.setMode((prefs['oldwidth'] or prefs['width']),(prefs['oldheight'] or prefs['height']),{fullscreen=prefs['fullscreen'],resizable=true,minwidth=1280,minheight=720})
           end
           self:make_controls() -- remake controls so it shows/hides the resolutions, as necessary
         elseif setting.id == "vsync" then
-          love.window.setMode(prefs['width'],prefs['height'],{fullscreen=prefs['fullscreen'],vsync=prefs['vsync'],resizable=true,minwidth=1024,minheight=768})
+          love.window.setMode(prefs['width'],prefs['height'],{fullscreen=prefs['fullscreen'],vsync=prefs['vsync'],resizable=true,minwidth=1280,minheight=720})
         elseif split[1] == "resolution" then
-          love.window.setMode(split[2],split[3],{fullscreen=prefs['fullscreen'],resizable=true,minwidth=1024,minheight=768})
+          love.window.setMode(split[2],split[3],{fullscreen=prefs['fullscreen'],resizable=true,minwidth=1280,minheight=720})
           prefs['width'] = split[2]
           prefs['height'] = split[3]
           self:make_controls()
@@ -412,6 +426,12 @@ function settings:buttonpressed(key,scancode,isRepeat,controllerType)
           self.replaceSetting = nil
           self.keyError=nil
           action = "moving"
+        elseif setting.id == "scrollSpeedUp" then
+          prefs['mouseScrollTime'] = prefs['mouseScrollTime'] + .01
+          self:make_controls()
+        elseif setting.id == "scrollSpeedDown" then
+          prefs['mouseScrollTime'] = math.max(prefs['mouseScrollTime'] - .01,.01)
+          self:make_controls()
         elseif setting.id == "soundDown" then
           prefs['soundVolume'] = prefs['soundVolume'] - 10
           if prefs['soundVolume'] < 0 then prefs['soundVolume'] = 0 end
@@ -500,13 +520,13 @@ function settings:update(dt)
       local stop = false
       local scrollY = (sy ~= 1 and self.scrollY or 0)
       if setting[1] then
-        for sx,s in pairs(setting) do
+        for sx,s in ipairs(setting) do
           if x > s.x-8 and x < s.x+s.width+8 and y+scrollY > s.y-4 and y+scrollY < s.y+s.height+4 then
             self.cursorX,self.cursorY = sx,sy
             stop = true
           end --end x setting check if
         end --end x setting for
-      elseif x > setting.x-8 and x < setting.x+setting.width+8 and y+scrollY > setting.y-4 and y+scrollY < setting.y+setting.height+4 then
+      elseif setting and x > setting.x-8 and x < setting.x+setting.width+8 and y+scrollY > setting.y-4 and y+scrollY < setting.y+setting.height+4 then
         self.cursorY = sy
         stop = true
       end --end y setting check if
@@ -584,61 +604,5 @@ function settings:scrollDown()
     if self.labels[self.screen][self.cursorY] and (self.labels[self.screen][self.cursorY].y or self.labels[self.screen][self.cursorY][1].y)-self.scrollY < self.startY then
       self.cursorY = self.cursorY+1
     end
-  end
-end
-
-function Setting:init(id,label,x,y,checkbox,center,width,xMod,font,button)
-  xMod = xMod or 0
-  self.id = id
-  self.font = font or fonts.textFont
-  self.label = label
-  self.checkbox = checkbox
-  self.button = button
-  self.center = center
-  self.y = math.floor(y)
-  self.height = math.floor(self.image and images[self.image]:getHeight() or self.font:getHeight())
-  self.maxY = self.y+self.height
-  local textWidth = self.font:getWidth(label)
-  if center or not width then
-    self.width = math.floor(textWidth + (checkbox ~= nil and 32 or 0))
-  else
-    self.width=width
-  end
-  if center then
-    self.x = math.floor((x+width/2)-textWidth/2 + xMod)
-  else
-    self.x = math.floor(x + xMod)
-  end
-end
-
-function Setting:draw()
-  if love.graphics.getFont ~= self.font then love.graphics.setFont(self.font) end
-  if self.checkbox == nil then
-    if self.disabled then setColor(150,150,150,255) end
-    if self.button then
-      output:button(self.x,self.y,self.width,(self.button == "small" and "small" or nil),(self.selected and "hover" or nil),self.label,true)
-    else
-      if self.center then
-        love.graphics.printf(self.label,self.x,self.y,self.width,"center")
-      else
-        love.graphics.print(self.label,self.x,self.y)
-      end
-    end
-    if self.disabled then setColor(255,255,255,255) end
-  else
-    if prefs['noImages'] then
-      if self.disabled then setColor(150,150,150,255) end
-      love.graphics.print((self.checkbox and "(Y)" or "(N)"),self.x,self.y)
-      if self.disabled then setColor(255,255,255,255) end
-    else
-      love.graphics.draw((self.checkbox and images.uicheckboxchecked or images.uicheckbox),self.x,self.y)
-    end
-    if self.disabled then setColor(150,150,150,255) end
-    if self.button then
-      output:button(self.x,self.y,self.width,(self.button == "small" and "small" or nil),(self.selected and "hover" or nil),self.label,true)
-    else
-      love.graphics.print(self.label,self.x+32,self.y)
-    end
-    if self.disabled then setColor(255,255,255,255) end
   end
 end

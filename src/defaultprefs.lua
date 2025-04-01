@@ -12,6 +12,7 @@ prefs={
   soundVolume = 100,
   musicVolume = 100,
   mouseMovesMap = true,
+  mouseScrollTime = 0.01,
   captureMouse = true,
   autosaveTurns=false,
   noSmoothMovement=false,

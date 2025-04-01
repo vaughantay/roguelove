@@ -13,20 +13,27 @@ function in_table(needle, haystack)
 	return false
 end
 
----Returns a number between -25% and +25% of the original number.
+---Returns a number between -10% and +10% of the original number.
 --@param val Number. The number to tweak.
 --@return Number. The tweaked number.
 function tweak(val)
   if val == 0 then return 0 end
   if val >= 1 then
-    local min = math.ceil(val*.75)
-    local max = math.floor(val*1.25)
-    if min == max or max - min < 1 then return val end
+    local min = math.floor(val*.9)
+    local max = math.ceil(val*1.1)
+    if min == 0 then min = 1 end
+    if min == max then return val end
     return random(min,max)
-  else
-    local min = val*75
-    local max = val*125
-    if min == max or max - min < 1 then return val end
+  elseif val <= -1 then
+    local min = math.floor(val*1.1)
+    local max = math.ceil(val*.9)
+    if max == 0 then max = -1 end
+    if min == max then return val end
+    return random(min,max)
+  else --fractional number
+    local min = val*90
+    local max = val*110
+    if min == max then return val end
     return random(min,max)/100
   end
 end
@@ -124,7 +131,7 @@ end
 --@return Boolean. Whether the string starts with a vowel or not.
 function vowel(string)
 	local s = string:sub(1,1)
-	if (s == "a" or s == "e" or s=="i" or s=="o" or s=="u" or s=="sometimes y") then
+	if (s == "a" or s == "e" or s=="i" or s=="o" or s=="u" or s == "A" or s == "E" or s == "I" or s == "O" or s == "U" or s=="sometimes y") then
 		return true
 	end
 	return false
@@ -193,7 +200,7 @@ function copy_table(t)
 	return newT
 end
 
----Shuffles the order of table. Does not change the original table, but returns a new one.
+---Shuffles the order of table
 --Also useful at turning an associative table into a numbered array
 --Note: Only use if you want the resulting table to have sequentially numbered values!
 --@param t Table. The table to shuffle.
@@ -205,6 +212,9 @@ function shuffle(t)
     local k = get_random_key(t)
     newT[#newT+1] = t[k]
     t[k] = nil
+  end
+  for i,v in pairs(newT) do
+    t[i] = v
   end
   return newT
 end
@@ -250,6 +260,23 @@ function sort_table(t,key)
     table.sort(t,basicSort)
   else
     table.sort(t,subSort)
+  end
+  return t
+end
+
+---Prints the keys and values in a table
+--@param t Table. The table to print
+function print_table(t,key)
+  if type(t) ~= "table" then
+    print(t)
+    return
+  end
+  for i,v in pairs(t) do
+    if type(v) == "table" then
+      print(i,v[key])
+    else
+      print(i,v)
+    end
   end
 end
 
