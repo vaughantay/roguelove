@@ -898,8 +898,24 @@ function output.timer(...)
   return Timer.after(unpack({...}))
 end
 
----Shows an achievement popup.
+---Shows an achievement notification.
 --@param achievement Text. The ID of the achievement to show.
-function output:show_achievement_popup(achievement)
-  self.popup = AchievementPopup(achievement)
+function output:show_achievement_notification(achievement)
+  if not self.notifications then self.notifications = {} end
+  self.notifications[#self.notifications+1] = AchievementNotification(achievement)
+end
+
+---Shows a notification.
+--@param achievemtextent Text. The text for the notificaiton
+--@param image Image. The full image name to display (optional
+function output:show_notification(text,image)
+  if not self.notifications then self.notifications = {} end
+  self.notifications[#self.notifications+1] = Notification(text,image)
+end
+
+---Shows a popup.
+--@param achievement Text. The ID of the achievement to show.
+function output:show_popup(text,header,extraLines,blackout,enterOnly,afterFunc,sound)
+  self.popup = Popup(text,header,extraLines,blackout,enterOnly,afterFunc)
+  if sound then output:sound('interface_bang') end
 end

@@ -105,19 +105,33 @@ end
 
 function love.draw()
 	Gamestate.draw()
+  if output.notifications and output.notifications[1] then output.notifications[1]:draw() end
   if output.popup then output.popup:draw() end
   if debugMode then love.graphics.print("FPS: "..tostring(love.timer.getFPS( )), 10, 10) end
   if debugMode then love.graphics.print("Gamepad: "..tostring(input:is_gamepad()), 10, 25) end
 end
 
 function love.update(dt)
-  Gamestate.update(dt)
   Timer.update(dt)
-  if output.popup then output.popup:update(dt) end
+  if output.notifications and output.notifications[1] then
+    output.notifications[1]:update(dt)
+    if output.notifications[1].done then
+      table.remove(output.notifications,1)
+    end
+  end
+  Gamestate.update(dt)
 end
 
-function love.keypressed(key, scancode, isrepeat)
-  Gamestate.buttonpressed(key, scancode, isrepeat, 'keyboard')
+function love.keypressed(key, scancode, isRepeat)
+  if output.popup then
+    key,scancode,isRepeat = input:parse_key(key,scancode,isRepeat)
+    if not output.popup.enterOnly or key == "enter" then
+      if output.popup.afterFunc then output.popup.afterFunc() end
+      output.popup = nil
+    end
+    return
+  end
+  Gamestate.buttonpressed(key, scancode, isRepeat, 'keyboard')
 end
 
 function love.textinput(text)
@@ -153,6 +167,11 @@ if love._os == "NX" then
   end  
 else
   function love.mousepressed(x,y,button)
+    if output.popup then
+      if output.popup.afterFunc then output.popup.afterFunc() end
+      output.popup = nil
+      return
+    end
     Gamestate.mousepressed(x,y,button)
   end
   
@@ -174,6 +193,11 @@ function love.gamepadaxis(joystick,axis,value)
 end
 
 function love.gamepadpressed(joystick,button)
+  if output.popup then
+    if output.popup.afterFunc then output.popup.afterFunc() end
+    output.popup = nil
+    return
+  end
   Gamestate.buttonpressed(button,nil,nil,'gamepad')
 end
 
@@ -335,6 +359,9 @@ function load_data()
 end
 
 function load_engine()
+  require "ui.achievement_notification"
+  require "ui.notification"
+  require "ui.popup"
   require "ui.setting"
   require "achievement"
   require "input"

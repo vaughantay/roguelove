@@ -72,20 +72,6 @@ function game:draw()
     setColor(0,0,0,self.blackAmt)
     love.graphics.rectangle('fill',0,0,width,height)
   end
-  if self.popup then
-    --Autosave before drawing, so the screenshot won't have the popup in it
-    if currGame.autoSave == true then
-      love.graphics.captureScreenshot("saves/" .. currGame.fileName .. ".png")
-      save_game()
-      currGame.autoSave = prefs['autosaveTurns']
-    end
-    if self.popup.blackout then
-      setColor(0,0,0,185)
-      love.graphics.rectangle('fill',0,0,width,height)
-    end
-    self.popup:draw()
-    setColor(255,255,255,255)
-  end
   --profiler:stop()
   --print(profiler.report(10))
   --print('total draw time: ' .. os.clock()-dtime1)
@@ -1261,7 +1247,7 @@ function game:update(dt)
 		action = "dying"
 	end
   
-  if self.popup then return end
+  if output.popup then return end
   
   --Auto-move along player path
   if (player.path ~= nil) then
@@ -1425,15 +1411,6 @@ end
 
 function game:mousepressed(x,y,button)
   local uiScale = (prefs['uiScale'] or 1)
-  if self.popup then
-    if self.popup.afterFunc then self.popup.afterFunc() end
-    self.popup = nil
-    if self.blackAmt and action ~= "winning" and not self.blackOutTween then
-      tween(.5,self,{blackAmt=0})
-      Timer.after(.5,function() self.blackAmt = nil end)
-    end
-    return
-  end
   
   if x/uiScale > self.menuButton.minX and x/uiScale < self.menuButton.maxX and y/uiScale > self.menuButton.minY and y/uiScale < self.menuButton.maxY then
     Gamestate.switch(pausemenu)
@@ -1599,17 +1576,6 @@ end
 function game:buttonpressed(key,scancode,isRepeat)
   key,scancode,isRepeat = input:parse_key(key,scancode,isRepeat)
   --Pie:keypressed(key)
-  if self.popup then
-    if not self.popup.enterOnly or key == "enter" then
-      if self.popup.afterFunc then self.popup.afterFunc() end
-      self.popup = nil
-      if self.blackAmt and action ~= "winning" and not self.blackOutTween then
-        tween(.5,self,{blackAmt=0})
-        Timer.after(.5,function() self.blackAmt = nil end)
-      end
-    end
-    return
-  end
   
   if self.moveBlocked then return false end -- If something is preventing movement, don't do anything
   
@@ -2278,52 +2244,13 @@ function Warning:draw()
 end
 
 --Popup stuff:
-local Popup = Class{}
-
 function game:show_map_description()
   local desc = currMap.description or ""
   local _, count = string.gsub(desc, "\n", "\n")
   local branch = currWorld.branches[currMap.branch]
-  self.popup = Popup(desc,currMap:get_name() .. "\n" .. " ",4+count,true)
-  output:sound('interface_bang')
+  output:show_popup(desc,currMap:get_name() .. "\n" .. " ",4+count,true,false,nil,true)
 end
 
-function game:show_popup(text,header,extraLines,blackout,enterOnly,afterFunc,sound)
-  self.popup = Popup(text,header,extraLines,blackout,enterOnly,afterFunc)
-  if sound then output:sound('interface_bang') end
-end
-
-function Popup:init(text,header,extraLines,blackout,enterOnly,afterFunc)
-  local uiScale = prefs['uiScale']
-  local fontSize = fonts.textFont:getHeight()
-  local tileSize = output:get_tile_size(true)
-  self.text,self.header=text,(header or "")
-  self.blackout,self.enterOnly = blackout,enterOnly
-  self.exitText = (self.enterOnly and "Press enter, escape, or click to continue..." or "Press any key or click to continue...")
-  self.width = math.min(550,round(love.graphics.getWidth()/uiScale/2))
-  self.padding = (prefs['noImages'] and 8 or 32)
-  self.afterFunc = afterFunc
-  extraLines = extraLines or 4
-  
-  local _,hlines = fonts.textFont:getWrap(self.header,self.width-self.padding)
-  local _,tlines = fonts.textFont:getWrap(text,self.width-self.padding)
-  local _,elines = fonts.textFont:getWrap(self.exitText,self.width-self.padding)
-  self.headerHeight = (self.header ~= "" and #hlines*fontSize or 0)
-  self.height = (#tlines+extraLines)*fontSize+self.headerHeight
-  self.x,self.y=round(love.graphics.getWidth()/uiScale/2-self.width/2-tileSize/2),round(love.graphics.getHeight()/uiScale/2-self.height/uiScale/2-tileSize/2)
-  self.exitHeight = self.y+self.height-(#elines*fontSize)
-end
-
-function Popup:draw()
-  local uiScale = prefs['uiScale']
-  love.graphics.push()
-  love.graphics.scale(uiScale,uiScale)
-  output:draw_window(self.x,self.y,self.x+self.width,self.y+self.height)
-  love.graphics.setFont(fonts.textFont)
-  if self.header and self.header ~= "" then
-    love.graphics.printf(self.header,self.x+self.padding,self.y+self.padding,self.width-self.padding,"center")
-  end
-  love.graphics.printf(self.text,self.x+self.padding+5,self.y+self.padding+self.headerHeight+5,self.width-self.padding,"left")
-  love.graphics.printf(self.exitText,self.x,self.exitHeight,self.width-self.padding,"center")
-  love.graphics.pop()
+function game:show_popup(...)
+  return output:show_popup(...)
 end
