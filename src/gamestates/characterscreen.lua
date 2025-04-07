@@ -1,6 +1,6 @@
 characterscreen = {}
 
-function characterscreen:enter()
+function characterscreen:enter(previous)
   self.yModPerc = 100
   tween(0.2,self,{yModPerc=0})
   output:sound('stoneslideshort',2)
@@ -11,6 +11,7 @@ function characterscreen:enter()
   self.scrollY = 0
   self:refresh_spell_purchase_list()
   self.screen = "character"
+  self.previous = previous
 end
 
 function characterscreen:draw()
@@ -27,9 +28,16 @@ function characterscreen:draw()
   love.graphics.scale(uiScale,uiScale)
   love.graphics.translate(0,height*(self.yModPerc/100))
   local padding = (prefs['noImages'] and 16 or 32)
-  local fontSize = prefs['fontSize']+2
+  local fontSize = fonts.textFont:getHeight()
+  local tileSize = output:get_tile_size()+2
+  local headerSize = fonts.headerFont:getHeight()+2
   local printX = padding
   local printXbuttoned = printX+32
+  local textW = math.floor(width/uiScale)-padding-(self.scrollPositions and padding*2 or 0)
+  local padYtext = math.ceil((tileSize-fontSize)/2)
+  local windowW = width-padding
+  
+  --Start drawing:
   output:draw_window(1,1,math.floor(width/uiScale-padding),math.floor(height/uiScale-padding))
   love.graphics.setFont(fonts.textFont)
   local printY = padding
@@ -40,6 +48,20 @@ function characterscreen:draw()
 	love.graphics.printf(levelText,padding,printY,math.floor(width/uiScale)-44,"center")
   local _,tlines = fonts.textFont:getWrap(levelText,math.floor(width/uiScale)-44)
   printY = printY + #tlines*fontSize
+  local ctypes = player:get_types()
+  if count(ctypes) > 0 then
+    local types = ""
+    for _,ctype in ipairs(ctypes) do
+      local typeName = (creatureTypes[ctype] and creatureTypes[ctype].name or ucfirst(ctype))
+      if types ~= "" then types = types .. ", " .. typeName
+      else types = typeName end
+    end
+    local _,tlines = fonts.textFont:getWrap(types,math.floor(width/uiScale)-44)
+    love.graphics.printf(types,padding,printY,math.floor(width/uiScale)-44,"center")
+    printY = printY + #tlines*fontSize
+  end
+  printY=printY+fontSize
+  
   --Buttons:
   local padX = 16
   local midX = round(width/2/uiScale)
@@ -62,7 +84,7 @@ function characterscreen:draw()
   love.graphics.push()
   --Create a "stencil" that stops 
   local function stencilFunc()
-    love.graphics.rectangle("fill",padding-4,screenStartY,width-padding,height-screenStartY)
+    love.graphics.rectangle("fill",padding-4,screenStartY,width-padding,height-screenStartY-math.ceil(padding/2)-2)
   end
   love.graphics.stencil(stencilFunc,"replace",1)
   love.graphics.setStencilTest("greater",0)
@@ -75,13 +97,10 @@ function characterscreen:draw()
     end
     printY = printY+fontSize
     love.graphics.print("Sight Radius: " .. player.perception,padding,printY)
-    if player.armor then
-      printY = printY+fontSize
-      love.graphics.print("Damage Absorption: " .. player.armor,padding,printY)
-    end
+    printY = printY+fontSize
     if player.stealth then
-      printY = printY+fontSize
       love.graphics.print("Stealth Modifier: " .. player.stealth .. "%",padding,printY)
+      printY = printY+fontSize
     end
     --Extra stats:
     if count(player.extra_stats) > 0 then
@@ -90,29 +109,99 @@ function characterscreen:draw()
         love.graphics.print(stat.name .. ": " .. stat.value .. (stat.max and "/" .. stat.max or "") .. (stat.description and " - " .. stat.description or ""),printX,printY)
       end
     end
+    printY = printY + fontSize
+    
+    if count(player.conditions) > 0 then
+      love.graphics.setFont(fonts.headerFont)
+      love.graphics.printf("Current Conditions:",printX,printY,windowW,"left")
+      love.graphics.setFont(fonts.textFont)
+      printY = printY+headerSize
+      for condition, info in pairs(player.conditions) do
+        local turns = info.turns
+        local conInfo = conditions[condition]
+        if conInfo and conInfo.hidden ~= true then
+          local name = conInfo.name .. (turns ~= -1 and " (" .. turns .. ")" or "") .. (conInfo.description and " - " .. conInfo.description or "")
+          local color = conInfo.color
+          if color then
+            setColor(color.r,color.g,color.b,color.a)
+          end
+          if images['condition' .. (conInfo.image_name or condition)] then
+            love.graphics.draw(images['condition' .. (conInfo.image_name or condition)],printX,printY)
+          elseif images['conditiondefault'] then
+            love.graphics.draw(images['conditiondefault'],printX,printY)
+          else
+            love.graphics.printf("!",printX,printY+padYtext,tileSize,"left")
+          end
+          if info.bonuses or conInfo.bonuses then
+            local bonuses = {}
+            if info.bonuses then
+              for bonus,amt in pairs(info.bonuses) do
+                bonuses[bonus] = amt
+              end
+            end
+            if conInfo.bonuses then
+              for bonus,amt in pairs(conInfo.bonuses) do
+                if not bonuses[bonus] then
+                  bonuses[bonus] = amt
+                end
+              end
+            end
+            for bonus,amt in pairs(bonuses) do
+              if bonus ~= 'xMod' and bonus ~= 'yMod' and bonus ~= 'scale' and bonus ~= 'angle' then
+                local isPercent = (string.find(bonus,"percent") or string.find(bonus,"chance"))
+                name = name .. "\n\t* " .. ucfirstall(string.gsub(string.gsub(bonus, "_", " "), "percent", "")) .. ": " .. (amt > 0 and "+" or "") .. amt .. (isPercent and "%" or "")
+              end
+            end
+          end
+          setColor(255,255,255,255)
+          love.graphics.printf(name,printX+tileSize,printY+padYtext,textW-tileSize,"left")
+          local _,nlines = fonts.textFont:getWrap(name,textW)
+          printY = printY + math.max(#nlines*fontSize+padYtext,tileSize)
+        end
+      end
+      printY=printY+headerSize
+    end
+    
     --Weaknesses/resistances
-    local weaknesses = player:get_all_weaknesses()
-    local resistances= player:get_all_resistances()
-    if count(weaknesses) > 0 then
-      printY = printY + fontSize
-      local weakstring = "Weaknesses: "
-      local first = true
-      for dtype,amt in pairs(weaknesses) do
-        weakstring = weakstring .. (not first and ", " or "") .. ucfirst(dtype) .. " " .. amt .. "%"
-        first = false
+    local resistances = player:get_all_total_resistances()
+    local armors = player:get_all_armor()
+    love.graphics.setFont(fonts.headerFont)
+    love.graphics.print("Damage Resistance and Armor:",padding,printY)
+    love.graphics.setFont(fonts.textFont)
+    printY = printY + fonts.headerFont:getHeight()
+    for dtype,amt in pairs(resistances) do
+      local thisPadX = 0
+      if amt ~= 0 then
+        local dtinfo = damage_types[dtype] or {}
+        if dtinfo.color then
+          setColor(dtinfo.color.r,dtinfo.color.g,dtinfo.color.b,dtinfo.color.a)
+        end
+        if images['damage_type' .. (dtinfo.image_name or dtype)] then
+          love.graphics.draw(images['damage_type' .. (dtinfo.image_name or dtype)],padding,printY)
+          thisPadX = tileSize
+        end
+        setColor(255,255,255,255)
+        love.graphics.print(ucfirst(dtinfo.name or dtype) .. ": " .. (amt == 10000 and "Healed" or (amt == 1000 and "Immune") or amt .. "%") .. (armors[dtype] and armors[dtype] ~= 0 and ", " .. armors[dtype] or ""),padding+thisPadX,printY+padYtext)
+        printY = printY + tileSize
+        if armors[dtype] then armors[dtype] = nil end
       end
-      love.graphics.print(weakstring,padding,printY)
-    end --end weaknesses
-    if count(resistances) > 0 then
-      printY = printY+fontSize
-      local resiststring = "Resistances: "
-      local first = true
-      for dtype,amt in pairs(resistances) do
-        resiststring = resiststring .. (not first and ", " or "") .. ucfirst(dtype) .. " " .. amt .. "%"
-        first = false
-      end
-      love.graphics.print(resiststring,padding,printY)
     end --end resistances
+    for dtype,amt in pairs(armors) do
+      local thisPadX = 0
+      if amt ~= 0 then
+        local dtinfo = damage_types[dtype] or {}
+        if dtinfo.color then
+          setColor(dtinfo.color.r,dtinfo.color.g,dtinfo.color.b,dtinfo.color.a)
+        end
+        if images['damage_type' .. (dtinfo.image_name or dtype)] then
+          love.graphics.draw(images['damage_type' .. (dtinfo.image_name or dtype)],padding,printY)
+          thisPadX = tileSize
+        end
+        setColor(255,255,255,255)
+        love.graphics.print(ucfirst(dtinfo.name or dtype) .. ": " .. armors[dtype],padding+thisPadX,printY+padYtext)
+        printY = printY + tileSize
+      end
+    end --end armors
     
     if player.hit_conditions then
       printY = printY+fontSize
@@ -173,17 +262,39 @@ function characterscreen:draw()
         if list then
           sort_table(list,'name')
           local typeDef = possibleSkillTypes[sType]
-          love.graphics.printf((typeDef and typeDef.name .. ":" or ucfirst(sType) .. ":"),padding,printY,math.floor(width/uiScale)-padding,"center")
-          printY=printY+fontSize
+          love.graphics.setFont(fonts.headerFont)
+          love.graphics.printf((typeDef and typeDef.name .. ":" or ucfirst(sType) .. ":"),padding,printY,math.floor(width/uiScale)-padding,"left")
+          printY=printY+headerSize
+          love.graphics.setFont(fonts.textFont)
           local pointID = typeDef and typeDef.upgrade_stat or "upgrade_points_" .. sType
           local pointName = typeDef and typeDef.upgrade_stat_name or (ucfirst(sType) .. " Point")
           local pluralName = typeDef and typeDef.upgrade_stat_plural_name or pointName .. "s"
           local points = player[pointID] or 0
-          if points > 0 then
-            love.graphics.printf(points .. " " .. (points == 1 and pointName or pluralName) .. " available.",padding,printY,math.floor(width/uiScale)-padding,"center")
-            printY=printY+fontSize
+          if  count(list) > 0 then
+            if points > 0 then
+              love.graphics.printf(points .. " " .. (points == 1 and pointName or pluralName) .. " available.",padding,printY,math.floor(width/uiScale)-padding,"center")
+              printY=printY+fontSize
+            end
+            if typeDef and typeDef.item_cost then
+              for _,itemInfo in ipairs(typeDef.item_cost) do
+                local itemID = itemInfo.item
+                local itemDef = possibleItems[itemID]
+                local item,_,amt = player:has_item(itemID)
+                if itemID and itemDef and amt > 0 then
+                  output.display_entity(item,printX,printY,true,true,1)
+                  love.graphics.printf(amt .. " " .. (amt == 1 and itemDef.name or itemDef.pluralName) .. " available.",printX+tileSize,printY+padYtext,math.floor(width/uiScale)-padding,"left")
+                  printY=printY+tileSize
+                end
+              end
+            end
           end
+          local first = true
           for _,skillInfo in pairs(list) do
+            if first then
+              first = false
+            else
+              printY=printY+math.ceil(fontSize/2)
+            end
             local skillID,skillLvl,skillBase = skillInfo.skillID, skillInfo.value, player.skills[skillInfo.skillID]
             local skill = possibleSkills[skillID]
             if skill and skillBase ~= false then
@@ -191,7 +302,7 @@ function characterscreen:draw()
               --Create cost text:
               local costText = "" 
               local cost = player:get_skill_upgrade_cost(skillID)
-              if not maxed and (cost.point_cost > 1 or cost.item_cost or (cost.upgrade_stat and cost.upgrade_stat ~= pointID)) then
+              if not maxed and ((cost.point_post and cost.point_cost > 1) or cost.item_cost or (cost.upgrade_stat and cost.upgrade_stat ~= pointID)) then
                 costText = costText .. " - Cost: "
                 local firstCost = true
                 if cost.point_cost and cost.point_cost > 0 then
@@ -204,14 +315,19 @@ function characterscreen:draw()
                     local sortByVal = item_details.sortBy
                     local _,_,has_amt = player:has_item(item_details.item,sortByVal)
                     local name = item_details.displayName or (amount > 1 and possibleItems[item_details.item].pluralName or possibleItems[item_details.item].name)
-                    costText = costText .. (firstCost == false and ", " or "") .. amount .. " " .. name .. " (You have " .. has_amt .. ")"
+                    costText = costText .. (firstCost == false and ", " or "") .. amount .. " " .. name .. " (have " .. has_amt .. ")"
                     firstCost = false
                   end --end item cost for
                 end --end item cost if
               end
               local skillText = skill.name .. (skill.max == 1 and "" or ": " .. (skillLvl ~= skillBase and skillLvl .. " (" .. skillBase .. " base)" or skillLvl) .. (skill_increases[skillID] and " (" .. (skill_increases[skillID] >= 0 and "+" or "-") .. skill_increases[skillID] .. " next level)" or "")) .. costText .. (skill.description and "\n\t" .. skill.description or "")
+              local bonuses = player:get_bonuses_from_skill(skillID)
+              for bonus,amt in pairs(bonuses) do
+                local isPercent = (string.find(bonus,"percent") or string.find(bonus,"chance"))
+                skillText = skillText .. "\n\t\t* " .. ucfirstall(string.gsub(string.gsub(bonus, "_", " "), "percent", "")) .. ": " .. (amt > 0 and "+" or "") .. amt .. (isPercent and "%" or "")
+              end
               local req, reqtext = player:can_upgrade_skill(skillID)
-              love.graphics.printf(skillText .. (reqtext and " (" .. reqtext .. ")" or ""),(req and printXbuttoned or printX),printY,width-padding,"left")
+              love.graphics.printf(skillText .. (reqtext and " (" .. reqtext .. ")" or ""),(req and printXbuttoned or printX),printY,textW,"left")
               if req then
                 local buttonMouse = false
                 if self.skillButtons[buttonY] and mouseX > self.skillButtons[buttonY].minX and mouseX < self.skillButtons[buttonY].maxX and mouseY > self.skillButtons[buttonY].minY-self.scrollY and mouseY < self.skillButtons[buttonY].maxY-self.scrollY then
@@ -221,7 +337,7 @@ function characterscreen:draw()
                 self.skillButtons[buttonY].skill = skillID
                 buttonY = buttonY+1
               end
-              local _, wrappedtext = fonts.textFont:getWrap(skillText, math.floor(width/uiScale))
+              local _, wrappedtext = fonts.textFont:getWrap(skillText,textW)
               printY=printY+#wrappedtext*fontSize
             end --end skill exists
           end --end skill for
@@ -229,15 +345,36 @@ function characterscreen:draw()
           local purchases = player:get_purchasable_skills(sType)
           if #purchases > 0 then
             sort_table(purchases,'name')
-            love.graphics.printf(("\nAvailable to Learn:"),padding,printY,math.floor(width/uiScale)-padding,"center")
-            printY=printY+(fontSize*2)
+            love.graphics.setFont(fonts.headerFont)
+            love.graphics.printf(("\n" .. "New " .. (typeDef and typeDef.name or ucfirst(sType))  .. " Available:"),padding,printY,math.floor(width/uiScale)-padding,"left")
+            printY=printY+headerSize
+            love.graphics.setFont(fonts.textFont)
+            printY=printY+fontSize
+            if typeDef and typeDef.item_cost then
+              for _,itemInfo in ipairs((typeDef.learn_item_cost or typeDef.item_cost)) do
+                local itemID = itemInfo.item
+                local itemDef = possibleItems[itemID]
+                local item,_,amt = player:has_item(itemID)
+                if itemID and itemDef and amt > 0 then
+                  output.display_entity(item,printX,printY,true,true,1)
+                  love.graphics.printf(amt .. " " .. (amt == 1 and itemDef.name or itemDef.pluralName) .. " available.",printX+tileSize,printY+padYtext,math.floor(width/uiScale)-padding,"left")
+                  printY=printY+tileSize
+                end
+              end
+            end
+            first = true
             for _,skillInfo in pairs(purchases) do
+              if first then
+                first = false
+              else
+                printY=printY+fontSize
+              end
               local skillID = skillInfo.skill
               local skill = possibleSkills[skillID]
               if player.skills[skillID] ~= false then
                 local costText = "" 
                 local cost = player:get_skill_upgrade_cost(skillID)
-                if not maxed and (cost.point_cost > 1 or cost.item_cost) then
+                if ((cost.point_cost and cost.point_cost > 1) or cost.item_cost) then
                   costText = costText .. " - Cost: "
                   local firstCost = true
                   if cost.point_cost and cost.point_cost > 0 then
@@ -245,17 +382,22 @@ function characterscreen:draw()
                     firstCost = false
                   end
                   if cost.item_cost then
-                    for _,item_details in ipairs(cost.item_cost) do
+                    for _,item_details in pairs(cost.item_cost) do
                       local amount = item_details.amount or 1
                       local sortByVal = item_details.sortBy
                       local _,_,has_amt = player:has_item(item_details.item,sortByVal)
                       local name = item_details.displayName or (amount > 1 and possibleItems[item_details.item].pluralName or possibleItems[item_details.item].name)
-                      costText = costText .. (firstCost == false and ", " or "") .. amount .. " " .. name .. " (You have " .. has_amt .. ")"
+                      costText = costText .. (firstCost == false and ", " or "") .. amount .. " " .. name .. " (have " .. has_amt .. ")"
                       firstCost = false
                     end --end item cost for
                   end --end item cost if
                 end
                 local skillText = skill.name .. costText .. (skill.description and "\n\t" .. skill.description or "")
+                local bonuses = player:get_bonuses_from_skill(skillID)
+                for bonus,amt in pairs(bonuses) do
+                  local isPercent = (string.find(bonus,"percent") or string.find(bonus,"chance"))
+                  skillText = skillText .. "\n\t\t* " .. ucfirstall(string.gsub(string.gsub(bonus, "_", " "), "percent", "")) .. ": " .. (amt > 0 and "+" or "") .. amt .. (isPercent and "%" or "")
+                end
                 local buttonMouse = false
                 if self.learnButtons[buttonY] and mouseX > self.learnButtons[buttonY].minX and mouseX < self.learnButtons[buttonY].maxX and mouseY > self.learnButtons[buttonY].minY-self.scrollY and mouseY < self.learnButtons[buttonY].maxY-self.scrollY then
                   buttonMouse = true
@@ -263,18 +405,18 @@ function characterscreen:draw()
                 self.learnButtons[buttonY] = output:tinybutton(printX,printY,true,((self.cursorY==buttonY or buttonMouse) and "hover" or false),"+",true)
                 self.learnButtons[buttonY].info = skillInfo
                 buttonY = buttonY+1
-                love.graphics.printf(skillText,printXbuttoned,printY,width-padding,"left")
-                local _, wrappedtext = fonts.textFont:getWrap(skillText, math.floor(width/uiScale))
+                love.graphics.printf(skillText,printXbuttoned,printY,textW,"left")
+                local _, wrappedtext = fonts.textFont:getWrap(skillText,textW)
                 printY=printY+#wrappedtext*fontSize
               end --end if skillID ~= false
             end --end skill for
           end --end purchases if
+          printY=printY+headerSize
         end --end list if
-        printY=printY+fontSize
       end --end ordered_list for
     end --if skill lists exist
     
-    --Purchasable spells:
+    --[[Purchasable spells:
     --TODO: Add "choose-between" abilities:
     if #self.spell_purchases > 0 then
       printY = printY + fontSize*2
@@ -301,7 +443,7 @@ function characterscreen:draw()
           if not upgrade_stat_name then upgrade_stat_name = "Point" end
           local upgrade_stat_plural_name = info.upgrade_stat_plural_name or upgrade_stat_name .. "s"
           local player_has = player[upgrade_stat] or 0
-          local costText = (points and points > 0 and points .. " " .. (points == 1 and upgrade_stat_name or upgrade_stat_plural_name) .. (upgrade_stat ~= "spellPoints" and " (You have " .. player_has .. ")" or "") or nil)
+          local costText = (points and points > 0 and points .. " " .. (points == 1 and upgrade_stat_name or upgrade_stat_plural_name) .. (upgrade_stat ~= "spellPoints" and " (have " .. player_has .. ")" or "") or nil)
           local text = spell.name .. (spell.target_type == "passive" and " (Passive)" or "") .. (costText and " - " .. costText or "") .. "\n" .. spell.description
           local buttonMouse = false
           if self.learnButtons[buttonY] and mouseX > self.learnButtons[buttonY].minX and mouseX < self.learnButtons[buttonY].maxX and mouseY > self.learnButtons[buttonY].minY-self.scrollY and mouseY < self.learnButtons[buttonY].maxY-self.scrollY then
@@ -326,13 +468,13 @@ function characterscreen:draw()
           buttonY = buttonY+1
         end --end player having spell
       end --end if 
-    end --end if spell.purchases
+    end --end if spell.purchases]]
     
-    printY = printY + fontSize*2
+    --[[printY = printY + fontSize
     love.graphics.print("Turns played this game: " .. (currGame.stats.turns or 0),padding,printY)
     printY = printY + fontSize
     love.graphics.print("Kills this game: " .. (currGame.stats.kills or 0),padding,printY)
-    printY = printY + fontSize
+    printY = printY + fontSize]]
     lastY = printY
   elseif self.screen == "factions" then
     local memberFacs = {}
@@ -342,34 +484,60 @@ function characterscreen:draw()
       for _,fid in ipairs(player.factions) do
         memberFacs[fid] = true
         local fac = currWorld.factions[fid]
-        local facText = fac.name .. " Reputation: " .. (player.reputation[fid] or 0)
+        local imgPad = 0
+        if images['faction' .. (fac.image_name or fid)] then
+          imgPad = imgPad + output:get_tile_size()
+          if fac.color then
+            setColor(fac.color.r,fac.color.g,fac.color.b,fac.color.a)
+          end
+          love.graphics.draw(images['faction' .. (fac.image_name or fid)],padding,printY-padYtext)
+          setColor(255,255,255,255)
+        end
+        local facText = fac.name .. " Reputation: " .. (player.reputation[fid] or 0) .. ", Favor: " .. (player.favor[fid] or 0) .. "\n" .. (fac.map_description or fac.description)
         love.graphics.print(facText,padding,printY)
         local _,tlines = fonts.textFont:getWrap(facText,math.floor(width/uiScale)-padding*2)
-        printY = printY + round((#tlines+0.5)*fontSize)
+        printY = printY + math.max(tileSize,round((#tlines+0.5)*fontSize))
       end
       printY = printY + fontSize*2
     end
     love.graphics.printf("Known Factions: ",padding,printY,math.floor(width/uiScale)-padding,"center")
     printY = printY + fontSize
     
+    local factions_known = {}
     for fid,fac in pairs(currWorld.factions) do
       if not memberFacs[fid] and not fac.hidden and fac.contacted then
-        local attitude = (fac:is_enemy(player) and "Hostile" or (fac:is_friend(player) and "Friendly" or "Neutral"))
-        local facText = fac.name .. " - Reputation: " .. (player.reputation[fid] or 0) .. " (" .. attitude .. "), Favor: " .. (player.favor[fid] or 0)
-        love.graphics.printf(facText,padding,printY,math.floor(width/uiScale)-padding*2)
-        local _,tlines = fonts.textFont:getWrap(facText,math.floor(width/uiScale)-padding*2)
-        printY = printY + round((#tlines+0.5)*fontSize)
+        factions_known[#factions_known+1] = fac
       end
+    end
+    sort_table(factions_known,'name')
+    for _,fac in ipairs(factions_known) do
+      local fid = fac.id
+      local imgPad = 0
+      if images['faction' .. (fac.image_name or fid)] then
+        imgPad = imgPad + tileSize
+        if fac.color then
+          setColor(fac.color.r,fac.color.g,fac.color.b,fac.color.a)
+        end
+        love.graphics.draw(images['faction' .. (fac.image_name or fid)],padding,printY-padYtext)
+        setColor(255,255,255,255)
+      end
+      local attitude = (fac:is_enemy(player) and "Hostile" or (fac:is_friend(player) and "Friendly" or "Neutral"))
+      local facText = fac.name .. " - Reputation: " .. (player.reputation[fid] or 0) .. " (" .. attitude .. "), Favor: " .. (player.favor[fid] or 0) .. "\n" .. (fac.map_description or fac.description)
+      love.graphics.printf(facText,padding+imgPad,printY,math.floor(width/uiScale)-padding*2-imgPad)
+      local _,tlines = fonts.textFont:getWrap(facText,math.floor(width/uiScale)-padding*2-imgPad)
+      printY = printY + math.max(tileSize,round((#tlines+0.5)*fontSize))
     end --end reputation for
     lastY = printY
   elseif self.screen == "missions" then
+    love.graphics.setFont(fonts.headerFont)
     love.graphics.printf("Active Missions: ",padding,printY,math.floor(width/uiScale)-padding*2,"center")
-    printY = printY+fontSize*2
+    love.graphics.setFont(fonts.textFont)
+    printY = printY+headerSize
     if count(currGame.missionStatus) > 0 then
-      for mid,status in pairs(currGame.missionStatus) do
+      for mid,minfo in pairs(currGame.missionStatus) do
         local source = get_mission_data(mid,'source')
         local mission = possibleMissions[mid]
-        local statusText = (mission.get_status and mission:get_status(get_status)) or (mission.status_text and mission.status_text[status]) or nil
+        local statusText = (mission.get_status and mission:get_status(minfo.status)) or (mission.status_text and mission.status_text[minfo.status]) or nil
         local totalText = mission.name .. "\n" .. (source and "(Given by " .. (source.baseType == "creature" and source:get_name() or source.name) ..")\n" or "") .. (get_mission_data(mid,'description') or mission.description) .. (statusText and "\nStatus: " .. statusText or "")
         love.graphics.printf(totalText,padding,printY,math.floor(width/uiScale)-padding*2,"center")
         local _, wrappedtext = fonts.textFont:getWrap(totalText, math.floor(width/uiScale)-padding*2)
@@ -380,9 +548,11 @@ function characterscreen:draw()
     end
     
     if count(currGame.finishedMissions) > 0 then
-      printY = printY+fontSize
+      printY = printY+headerSize
+      love.graphics.setFont(fonts.headerFont)
       love.graphics.printf("Completed Missions: ",padding,printY,math.floor(width/uiScale)-padding*2,"center")
-      printY = printY+fontSize*2
+      love.graphics.setFont(fonts.textFont)
+      printY = printY+headerSize
       for mid,status in pairs(currGame.finishedMissions) do
         local mission = possibleMissions[mid]
         local totalText = mission.name .. "\n" .. (mission.finished_description or mission.description)
@@ -399,10 +569,11 @@ function characterscreen:draw()
   if lastY*uiScale > height-padding then
     self.scrollMax = math.ceil((lastY-(screenStartY+(height/uiScale-screenStartY))+padding))
     local scrollAmt = self.scrollY/self.scrollMax
-    self.scrollPositions = output:scrollbar(math.floor(width/uiScale-padding),screenStartY,math.floor((height-padding)/uiScale),scrollAmt,true)
+    self.scrollPositions = output:scrollbar(math.floor(width/uiScale-padding*2),screenStartY,math.floor((height-padding)/uiScale),scrollAmt,true)
   else
     self.scrollMax = 0
   end
+  if self.scrollY > self.scrollMax then self.scrollY = self.scrollMax end
   self.closebutton = output:closebutton(24,24,nil,true)
   love.graphics.pop()
 end
@@ -457,7 +628,7 @@ function characterscreen:buttonpressed(key,scancode,isRepeat,controllerType)
     if self.cursorY == 0 then self.cursorX = math.min(self.cursorX+1,3) end
   elseif key == "west" then
     if self.cursorY == 0 then self.cursorX = math.max(self.cursorX-1,1) end
-  elseif key == "escape" then
+  elseif key == "escape" or key == "charScreen" then
     self:switchBack()
   end
 end
@@ -520,7 +691,7 @@ end
 function characterscreen:update(dt)
   if self.switchNow == true then
     self.switchNow = nil
-    Gamestate.switch(game)
+    Gamestate.switch(self.previous or game)
     Gamestate.update(dt)
     return
   end

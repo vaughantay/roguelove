@@ -47,7 +47,7 @@
   <li><a href="../classes/Item.html">Item</a></li>
   <li><a href="../classes/Map.html">Map</a></li>
   <li><a href="../classes/Projectile.html">Projectile</a></li>
-  <li><a href="../classes/ranged_attack.html">ranged_attack</a></li>
+  <li><a href="../classes/RangedAttack.html">RangedAttack</a></li>
   <li><a href="../classes/Service.html">Service</a></li>
   <li><a href="../classes/Spell.html">Spell</a></li>
   <li><a href="../classes/Store.html">Store</a></li>
@@ -97,7 +97,7 @@
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#creature:apply_class">creature:apply_class (classID)</a></td>
-	<td class="summary">Applies a class definition to a creature, granting it that class's starting favor, spells, factions and items</td>
+	<td class="summary">Applies a class definition to a creature, granting it that class's starting reputation, spells, factions and items</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#creature:get_name">creature:get_name (full, force)</a></td>
@@ -116,19 +116,27 @@
 	<td class="summary">Get the max magic points of a creature</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#creature:updateHP">creature:updateHP (amt)</a></td>
+	<td class="name" nowrap><a href="#creature:updateHP">creature:updateHP (amt, damage_type)</a></td>
 	<td class="summary">Change the HP of a creature</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#creature:damage">creature:damage (amt, attacker, damage_type, armor_piercing, noSound, item)</a></td>
+	<td class="name" nowrap><a href="#creature:damage">creature:damage (amt, attacker, damage_type, armor_piercing, noSound, item, ignoreWeakness)</a></td>
 	<td class="summary">Damage a creature</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#creature:give_condition">creature:give_condition (name, turns, applier, force)</a></td>
+	<td class="name" nowrap><a href="#creature:calculate_damage_received">creature:calculate_damage_received (amt, damage_type, armor_piercing, ignoreWeakness)</a></td>
+	<td class="summary">Calculates the damage amount a creature would receive based on damage types, weaknesses, armor, etc</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#creature:qualifies_for_condition">creature:qualifies_for_condition (name)</a></td>
+	<td class="summary">Checks if a creature qualifies for a condition</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#creature:give_condition">creature:give_condition (name, turns, applier, args, force, stack, silent)</a></td>
 	<td class="summary">Give a condition to a creature</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#creature:cure_condition">creature:cure_condition (condition)</a></td>
+	<td class="name" nowrap><a href="#creature:cure_condition">creature:cure_condition (condition, silent)</a></td>
 	<td class="summary">Cure a condition.</td>
 	</tr>
 	<tr>
@@ -145,7 +153,11 @@
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#creature:get_description">creature:get_description (noInfo)</a></td>
-	<td class="summary">Get the extended description of a creature, including information like its health info, friendliness to the player, etc.</td>
+	<td class="summary">Get the name and description of a creature, including information like its health info, friendliness to the player, etc.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#creature:get_info">creature:get_info (noHealth)</a></td>
+	<td class="summary">Gets the extended description of a creature</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#creature:get_health_text">creature:get_health_text (full)</a></td>
@@ -156,12 +168,52 @@
 	<td class="summary">Get the bonus of a certain type, looking at conditions and equipment.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#creature:get_resistance">creature:get_resistance (amt, damageType)</a></td>
+	<td class="name" nowrap><a href="#creature:get_bonuses_from_skill">creature:get_bonuses_from_skill (skillID, skillVal)</a></td>
+	<td class="summary">Returns the total bonus from a skill</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#creature:get_resistance">creature:get_resistance (damageType, noBonus, base_only)</a></td>
 	<td class="summary">Check how much damage of a given damage type is reduced by a creature's resistances and bonuses</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#creature:get_weakness">creature:get_weakness (amt, damageType)</a></td>
+	<td class="name" nowrap><a href="#creature:get_weakness">creature:get_weakness (damageType, noBonus, base_only)</a></td>
 	<td class="summary">Check how much damage of a given damage type is increased by a creature's weaknesses and bonuses</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#creature:get_total_resistance">creature:get_total_resistance (damageType, noBonus, base_only)</a></td>
+	<td class="summary">Check the total damage modifier (resistance - weakness) for a damage type.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#creature:get_all_weaknesses">creature:get_all_weaknesses (noBonus, base_only)</a></td>
+	<td class="summary">Gets a list of all damage type weaknesses a creature has</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#creature:get_all_resistances">creature:get_all_resistances (noBonus, base_only)</a></td>
+	<td class="summary">Gets a list of all damage type resistances a creature has</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#creature:get_all_total_resistances">creature:get_all_total_resistances (noBonus, base_only)</a></td>
+	<td class="summary">Gets a list of all damage type weaknesses a creature has</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#creature:is_immune_to_damage_type">creature:is_immune_to_damage_type (damageType)</a></td>
+	<td class="summary">Checks whether a creature has blanket immunity to a damage type</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#creature:is_healed_by_damage_type">creature:is_healed_by_damage_type (damageType)</a></td>
+	<td class="summary">Checks whether a creature is healed by a damage type</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#creature:get_armor">creature:get_armor (damage_type, noBonus, equipSlot, no_all)</a></td>
+	<td class="summary">Returns the armor value for a given damage type</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#creature:get_all_armor">creature:get_all_armor (noBonus, base_only)</a></td>
+	<td class="summary">Gets a list of all armor values a creature has</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#creature:is_immune_to_condition_type">creature:is_immune_to_condition_type (conditionType)</a></td>
+	<td class="summary">Checks whether a creature has immunity to a condition type</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#creature:get_hit_conditions">creature:get_hit_conditions ()</a></td>
@@ -176,7 +228,7 @@
 	<td class="summary">This function is run every turn.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#creature:can_move_to">creature:can_move_to (x, y, inMap)</a></td>
+	<td class="name" nowrap><a href="#creature:can_move_to">creature:can_move_to (x, y, inMap, ignoreCache)</a></td>
 	<td class="summary">Check whether a creature can move to a given tile</td>
 	</tr>
 	<tr>
@@ -192,7 +244,7 @@
 	<td class="summary">Check if a creature is touching something else</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#creature:die">creature:die (killer)</a></td>
+	<td class="name" nowrap><a href="#creature:die">creature:die (killer, silent)</a></td>
 	<td class="summary">Kill a creature.</td>
 	</tr>
 	<tr>
@@ -220,11 +272,11 @@
 	<td class="summary">Gets the total inventory space the creature has *MAY WANT TO CHANGE FOR YOUR OWN GAME*</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#creature:pickup">creature:pickup (item, tileOnly)</a></td>
+	<td class="name" nowrap><a href="#creature:pickup">creature:pickup (item, tileOnly, silent)</a></td>
 	<td class="summary">Have a creature pick up an item from a tile.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#creature:give_item">creature:give_item (item)</a></td>
+	<td class="name" nowrap><a href="#creature:give_item">creature:give_item (item, silent)</a></td>
 	<td class="summary">Transfer an item to a creature's inventory</td>
 	</tr>
 	<tr>
@@ -236,11 +288,11 @@
 	<td class="summary">Have a creature drop all their items on the tile they're on</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#creature:delete_item">creature:delete_item (item, amt)</a></td>
+	<td class="name" nowrap><a href="#creature:delete_item">creature:delete_item (item, amt, silent)</a></td>
 	<td class="summary">Remove an item from a creature's inventory</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#creature:has_item">creature:has_item (item, sortBy, enchantments, level, ignore_full_stack)</a></td>
+	<td class="name" nowrap><a href="#creature:has_item">creature:has_item (item, sortBy, enchantments, level)</a></td>
 	<td class="summary">Check if a creature has an instance of an item ID</td>
 	</tr>
 	<tr>
@@ -254,6 +306,10 @@
 	<tr>
 	<td class="name" nowrap><a href="#creature:get_equipped_in_slot">creature:get_equipped_in_slot (slot)</a></td>
 	<td class="summary">Get a list of all equipment a creature has equipped in an equipment slot</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#creature:get_all_equipped">creature:get_all_equipped ()</a></td>
+	<td class="summary">Get a list of all equipment a creature has equipped</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#creature:equip">creature:equip (item)</a></td>
@@ -288,7 +344,11 @@
 	<td class="summary">Check if a creature is a potential friend.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#creature:is_type">creature:is_type (ctype)</a></td>
+	<td class="name" nowrap><a href="#creature:get_types">creature:get_types (base_only)</a></td>
+	<td class="summary">Gets a list of all creature types a creature is</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#creature:is_type">creature:is_type (ctype, base_only)</a></td>
 	<td class="summary">Checks if a creature is of a certain type</td>
 	</tr>
 	<tr>
@@ -298,6 +358,10 @@
 	<tr>
 	<td class="name" nowrap><a href="#creature:is_friendly_type">creature:is_friendly_type (target)</a></td>
 	<td class="summary">Determine if a creature is a friendly type of yours (this function ignores factions, but does look at your creature types' friendly types list)</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#creature:is_ignore_type">creature:is_ignore_type (target)</a></td>
+	<td class="summary">Determine if a creature is an ignored type of yours (this function ignores factions, but does look at your creature types' ignore types list)</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#creature:is_faction_enemy">creature:is_faction_enemy (target)</a></td>
@@ -312,8 +376,20 @@
 	<td class="summary">Gets the favor you get for killing this creature.</td>
 	</tr>
 	<tr>
+	<td class="name" nowrap><a href="#creature:get_kill_reputation">creature:get_kill_reputation ()</a></td>
+	<td class="summary">Gets the reputation you get for killing this creature.</td>
+	</tr>
+	<tr>
 	<td class="name" nowrap><a href="#creature:notice">creature:notice (creat, skip_callbacks, force)</a></td>
 	<td class="summary">Cause the creature to notice another creature</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#creature:update_reputation">creature:update_reputation (factionID, amount, display, reason, noEnemies)</a></td>
+	<td class="summary">Modifies the reputation of a creatue with a faction TODO: custom rep change callbacks</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#creature:update_favor">creature:update_favor (factionID, amount, display, reason, track)</a></td>
+	<td class="summary">Modifies the favor of a creatue with a faction</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#creature:does_notice">creature:does_notice (creat)</a></td>
@@ -332,7 +408,7 @@
 	<td class="summary">Forget that you saw a creature</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#creature:become_hostile">creature:become_hostile (creat, skip_callbacks., noSound)</a></td>
+	<td class="name" nowrap><a href="#creature:become_hostile">creature:become_hostile (creat, force., silent)</a></td>
 	<td class="summary">Become hostile to another creature</td>
 	</tr>
 	<tr>
@@ -356,6 +432,10 @@
 	<td class="summary">This function is run every tick and updates various things.</td>
 	</tr>
 	<tr>
+	<td class="name" nowrap><a href="#creature:collide">creature:collide (target, dist)</a></td>
+	<td class="summary">Collide with another creature or object</td>
+	</tr>
+	<tr>
 	<td class="name" nowrap><a href="#creature:refresh_image_name">creature:refresh_image_name ()</a></td>
 	<td class="summary">Placeholder.</td>
 	</tr>
@@ -366,6 +446,10 @@
 	<tr>
 	<td class="name" nowrap><a href="#creature:get_perception">creature:get_perception (self)</a></td>
 	<td class="summary">Gets a creature's perception stat value, including bonuses</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#creature:get_threat">creature:get_threat ()</a></td>
+	<td class="summary">Gets the threat level of a given creature</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#creature:flyTo">creature:flyTo (target, result)</a></td>
@@ -394,6 +478,10 @@
 	<tr>
 	<td class="name" nowrap><a href="#creature:level_up">creature:level_up (force, ignore_callback)</a></td>
 	<td class="summary">Level Up, granting stat points (for players), or randomly increasing stats (for NPCs)</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#creature:learn_random_spells">creature:learn_random_spells ()</a></td>
+	<td class="summary">Learns random spells based on spells this creature is capable of learning.</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#creature:get_stat_increases_for_level">creature:get_stat_increases_for_level (level)</a></td>
@@ -456,6 +544,10 @@
 	<td class="summary">Gets the creature's critical_chance stat value, including bonuses</td>
 	</tr>
 	<tr>
+	<td class="name" nowrap><a href="#creature:get_pathType">creature:get_pathType ()</a></td>
+	<td class="summary">Gets the creature's pathType, set in the creature definition or in the</td>
+	</tr>
+	<tr>
 	<td class="name" nowrap><a href="#creature:get_stat">creature:get_stat (stat, noBonus)</a></td>
 	<td class="summary">A generic function for getting a stat and its bonus.</td>
 	</tr>
@@ -488,6 +580,10 @@
 	<td class="summary">A generic function for getting an extra stat and its bonuses</td>
 	</tr>
 	<tr>
+	<td class="name" nowrap><a href="#creature:get_extra_stat_max">creature:get_extra_stat_max (stat, noBonus)</a></td>
+	<td class="summary">A generic function for getting the max for an extra stat, if applicable</td>
+	</tr>
+	<tr>
 	<td class="name" nowrap><a href="#creature:set_extra_stat">creature:set_extra_stat (stat, val)</a></td>
 	<td class="summary">Sets an extra stat to a value</td>
 	</tr>
@@ -512,11 +608,11 @@
 	<td class="summary">Add a spell to a creature's spell list</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#creature:forget_spell">creature:forget_spell (spellID, force)</a></td>
+	<td class="name" nowrap><a href="#creature:unmemorize_spell">creature:unmemorize_spell (spell, force)</a></td>
 	<td class="summary">Remove a spell from a creature's spell "inventory"</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#creature:memorize_spell">creature:memorize_spell (spellID, force)</a></td>
+	<td class="name" nowrap><a href="#creature:memorize_spell">creature:memorize_spell (spell, force)</a></td>
 	<td class="summary">Add a spell to a creature's spell "inventory"</td>
 	</tr>
 	<tr>
@@ -564,16 +660,16 @@
 	<td class="summary">Permanently evolve into another creature.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#creature:get_all_possible_recipes">creature:get_all_possible_recipes (hide_uncraftable)</a></td>
+	<td class="name" nowrap><a href="#creature:get_all_possible_recipes">creature:get_all_possible_recipes (hide_uncraftable, recipe_type)</a></td>
 	<td class="summary">Get all possible recipes the creature can craft</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#creature:can_craft_recipe">creature:can_craft_recipe (recipeID)</a></td>
+	<td class="name" nowrap><a href="#creature:can_craft_recipe">creature:can_craft_recipe (recipeID, stash)</a></td>
 	<td class="summary">Check if it's possible to craft a recipe
 TODO: Forbidden tags on recipes</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#creature:craft_recipe">creature:craft_recipe (recipeID)</a></td>
+	<td class="name" nowrap><a href="#creature:craft_recipe">creature:craft_recipe (recipeID, secondary_ingredients, stash)</a></td>
 	<td class="summary">Craft a recipe</td>
 	</tr>
 	<tr>
@@ -583,6 +679,14 @@ TODO: Forbidden tags on recipes</td>
 	<tr>
 	<td class="name" nowrap><a href="#creature:refresh">creature:refresh ()</a></td>
 	<td class="summary">Restores HP, MP, spells, removes cooldowns and conditions</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#creature:process_incident">creature:process_incident (incidentID, actor, target, args)</a></td>
+	<td class="summary">Registers an incident as having occured, to be processed by all other creatures who observe it</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#creature:get_dialog">creature:get_dialog (asker)</a></td>
+	<td class="summary">Returns the ID of the dialog most applicable to this creature at the moment</td>
 	</tr>
 </table>
 
@@ -644,7 +748,7 @@ TODO: Forbidden tags on recipes</td>
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">source</span>
-         Table. The source of potential item lists. Defaults to the creature itself, and will frequently be either a creature type or a faction, but can be any table containing a possible_inventory, possible_death_items, or any possible_[equipslot] table. (optional)
+         Table. The source of potential item lists. Defaults to the creature itself, and will frequently be either a creature type or a faction, but can be any table containing a possible_inventory or possible_death_items table. (optional)
         </li>
     </ul>
 
@@ -658,7 +762,7 @@ TODO: Forbidden tags on recipes</td>
     <strong>creature:apply_class (classID)</strong>
     </dt>
     <dd>
-    Applies a class definition to a creature, granting it that class's starting favor, spells, factions and items
+    Applies a class definition to a creature, granting it that class's starting reputation, spells, factions and items
 
 
     <h3>Parameters:</h3>
@@ -766,7 +870,7 @@ TODO: Forbidden tags on recipes</td>
 </dd>
     <dt>
     <a name = "creature:updateHP"></a>
-    <strong>creature:updateHP (amt)</strong>
+    <strong>creature:updateHP (amt, damage_type)</strong>
     </dt>
     <dd>
     Change the HP of a creature
@@ -777,6 +881,9 @@ TODO: Forbidden tags on recipes</td>
         <li><span class="parameter">amt</span>
          Number. Can be positive or negative.
         </li>
+        <li><span class="parameter">damage_type</span>
+         String. The ID of a damage type
+        </li>
     </ul>
 
 
@@ -786,7 +893,7 @@ TODO: Forbidden tags on recipes</td>
 </dd>
     <dt>
     <a name = "creature:damage"></a>
-    <strong>creature:damage (amt, attacker, damage_type, armor_piercing, noSound, item)</strong>
+    <strong>creature:damage (amt, attacker, damage_type, armor_piercing, noSound, item, ignoreWeakness)</strong>
     </dt>
     <dd>
     Damage a creature
@@ -812,6 +919,9 @@ TODO: Forbidden tags on recipes</td>
         <li><span class="parameter">item</span>
          Item. The weapon used to do the damage. (optional)
         </li>
+        <li><span class="parameter">ignoreWeakness</span>
+         Boolean. If true, don't apply weakness
+        </li>
     </ul>
 
     <h3>Returns:</h3>
@@ -825,8 +935,67 @@ TODO: Forbidden tags on recipes</td>
 
 </dd>
     <dt>
+    <a name = "creature:calculate_damage_received"></a>
+    <strong>creature:calculate_damage_received (amt, damage_type, armor_piercing, ignoreWeakness)</strong>
+    </dt>
+    <dd>
+    Calculates the damage amount a creature would receive based on damage types, weaknesses, armor, etc
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">amt</span>
+         Number. The damage to deal.
+        </li>
+        <li><span class="parameter">damage_type</span>
+         String. The damage type of the attack. (optional)
+        </li>
+        <li><span class="parameter">armor_piercing</span>
+         True/False, or Number. If set to true, it ignores all armor. If set to a number, ignores that much armor. (optional)
+        </li>
+        <li><span class="parameter">ignoreWeakness</span>
+         Boolean. If true, don't apply weakness (optional)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The final damage done.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "creature:qualifies_for_condition"></a>
+    <strong>creature:qualifies_for_condition (name)</strong>
+    </dt>
+    <dd>
+    Checks if a creature qualifies for a condition
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">name</span>
+         String. The ID of the condition.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether or not the creature qualifies
+    </ol>
+
+
+
+
+</dd>
+    <dt>
     <a name = "creature:give_condition"></a>
-    <strong>creature:give_condition (name, turns, applier, force)</strong>
+    <strong>creature:give_condition (name, turns, applier, args, force, stack, silent)</strong>
     </dt>
     <dd>
     Give a condition to a creature
@@ -843,8 +1012,17 @@ TODO: Forbidden tags on recipes</td>
         <li><span class="parameter">applier</span>
          Entity. Who applied the condition. (optional)
         </li>
+        <li><span class="parameter">args</span>
+         Anything. Arguments to pass to the condition's apply() code (optional)
+        </li>
         <li><span class="parameter">force</span>
          Boolean. Whether to force-apply the condition. (optional)
+        </li>
+        <li><span class="parameter">stack</span>
+         Boolean. If true, add the new turns to the current turns (if applicable). If false, sets the turns to turns passed
+        </li>
+        <li><span class="parameter">silent</span>
+         Boolean. If true, don't pop up to show the condition was given
         </li>
     </ul>
 
@@ -860,7 +1038,7 @@ TODO: Forbidden tags on recipes</td>
 </dd>
     <dt>
     <a name = "creature:cure_condition"></a>
-    <strong>creature:cure_condition (condition)</strong>
+    <strong>creature:cure_condition (condition, silent)</strong>
     </dt>
     <dd>
     Cure a condition.
@@ -870,6 +1048,9 @@ TODO: Forbidden tags on recipes</td>
     <ul>
         <li><span class="parameter">condition</span>
          String. The ID of the condition to cure
+        </li>
+        <li><span class="parameter">silent</span>
+         Boolean. If true, don't show a popup
         </li>
     </ul>
 
@@ -896,7 +1077,7 @@ TODO: Forbidden tags on recipes</td>
     <h3>Returns:</h3>
     <ol>
 
-        Boolean. Whether the creature has the condition.
+        Number or False. The number of turns left in the condition if it has it, or false if it doesn't
     </ol>
 
 
@@ -958,7 +1139,7 @@ TODO: Forbidden tags on recipes</td>
     <strong>creature:get_description (noInfo)</strong>
     </dt>
     <dd>
-    Get the extended description of a creature, including information like its health info, friendliness to the player, etc.
+    Get the name and description of a creature, including information like its health info, friendliness to the player, etc.
 
 
     <h3>Parameters:</h3>
@@ -973,6 +1154,26 @@ TODO: Forbidden tags on recipes</td>
 
         String. The description of the creature.
     </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "creature:get_info"></a>
+    <strong>creature:get_info (noHealth)</strong>
+    </dt>
+    <dd>
+    Gets the extended description of a creature
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">noHealth</span>
+         Boolean. If true, don't display health text
+        </li>
+    </ul>
+
 
 
 
@@ -1032,8 +1233,36 @@ TODO: Forbidden tags on recipes</td>
 
 </dd>
     <dt>
+    <a name = "creature:get_bonuses_from_skill"></a>
+    <strong>creature:get_bonuses_from_skill (skillID, skillVal)</strong>
+    </dt>
+    <dd>
+    Returns the total bonus from a skill
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">skillID</span>
+         String. The ID of the skill
+        </li>
+        <li><span class="parameter">skillVal</span>
+         Number. The level of the skill (optional, defaults to current level)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A table of values in the form bonus=amt
+    </ol>
+
+
+
+
+</dd>
+    <dt>
     <a name = "creature:get_resistance"></a>
-    <strong>creature:get_resistance (amt, damageType)</strong>
+    <strong>creature:get_resistance (damageType, noBonus, base_only)</strong>
     </dt>
     <dd>
     Check how much damage of a given damage type is reduced by a creature's resistances and bonuses
@@ -1041,11 +1270,14 @@ TODO: Forbidden tags on recipes</td>
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">amt</span>
-         Number. The original damage.
-        </li>
         <li><span class="parameter">damageType</span>
          String. The damage type.
+        </li>
+        <li><span class="parameter">noBonus</span>
+         Boolean. If true, don't add bonuses
+        </li>
+        <li><span class="parameter">base_only</span>
+         Boolean. If true, don't look at creature types applied by conditions
         </li>
     </ul>
 
@@ -1061,7 +1293,7 @@ TODO: Forbidden tags on recipes</td>
 </dd>
     <dt>
     <a name = "creature:get_weakness"></a>
-    <strong>creature:get_weakness (amt, damageType)</strong>
+    <strong>creature:get_weakness (damageType, noBonus, base_only)</strong>
     </dt>
     <dd>
     Check how much damage of a given damage type is increased by a creature's weaknesses and bonuses
@@ -1069,9 +1301,152 @@ TODO: Forbidden tags on recipes</td>
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">amt</span>
-         Number. The original damage.
+        <li><span class="parameter">damageType</span>
+         String. The damage type.
         </li>
+        <li><span class="parameter">noBonus</span>
+         Boolean. If true, don't add bonuses
+        </li>
+        <li><span class="parameter">base_only</span>
+         Boolean. If true, don't look at creature types applied by conditions
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The amount by which the damage is increased
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "creature:get_total_resistance"></a>
+    <strong>creature:get_total_resistance (damageType, noBonus, base_only)</strong>
+    </dt>
+    <dd>
+    Check the total damage modifier (resistance - weakness) for a damage type.  Capped to 75% reduction, or 100% increase
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">damageType</span>
+         String. The damage type.
+        </li>
+        <li><span class="parameter">noBonus</span>
+         Boolean. If true, don't add bonuses
+        </li>
+        <li><span class="parameter">base_only</span>
+         Boolean. If true, don't look at creature types applied by conditions
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The amount by which the damage is increased
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "creature:get_all_weaknesses"></a>
+    <strong>creature:get_all_weaknesses (noBonus, base_only)</strong>
+    </dt>
+    <dd>
+    Gets a list of all damage type weaknesses a creature has
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">noBonus</span>
+         Boolean. If true, don't add bonuses
+        </li>
+        <li><span class="parameter">base_only</span>
+         Boolean. If true, don't look at creature types applied by conditions
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A table of damage types and the weakness value
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "creature:get_all_resistances"></a>
+    <strong>creature:get_all_resistances (noBonus, base_only)</strong>
+    </dt>
+    <dd>
+    Gets a list of all damage type resistances a creature has
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">noBonus</span>
+         Boolean. If true, don't add bonuses
+        </li>
+        <li><span class="parameter">base_only</span>
+         Boolean. If true, don't look at creature types applied by conditions
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A table of damage types and the resistance value
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "creature:get_all_total_resistances"></a>
+    <strong>creature:get_all_total_resistances (noBonus, base_only)</strong>
+    </dt>
+    <dd>
+    Gets a list of all damage type weaknesses a creature has
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">noBonus</span>
+         Boolean. If true, don't add bonuses
+        </li>
+        <li><span class="parameter">base_only</span>
+         Boolean. If true, don't look at creature types applied by conditions
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A table of damage types and the weakness value
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "creature:is_immune_to_damage_type"></a>
+    <strong>creature:is_immune_to_damage_type (damageType)</strong>
+    </dt>
+    <dd>
+    Checks whether a creature has blanket immunity to a damage type
+
+
+    <h3>Parameters:</h3>
+    <ul>
         <li><span class="parameter">damageType</span>
          String. The damage type.
         </li>
@@ -1080,7 +1455,119 @@ TODO: Forbidden tags on recipes</td>
     <h3>Returns:</h3>
     <ol>
 
-        Number. The amount by which the damage is increased
+        Boolean. Whether or not they have immunity to that damage type
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "creature:is_healed_by_damage_type"></a>
+    <strong>creature:is_healed_by_damage_type (damageType)</strong>
+    </dt>
+    <dd>
+    Checks whether a creature is healed by a damage type
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">damageType</span>
+         String. The damage type.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether or not they are healed by that damage type
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "creature:get_armor"></a>
+    <strong>creature:get_armor (damage_type, noBonus, equipSlot, no_all)</strong>
+    </dt>
+    <dd>
+    Returns the armor value for a given damage type
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">damage_type</span>
+         String. The damage type. If blank, look only at "all" armor value
+        </li>
+        <li><span class="parameter">noBonus</span>
+         Boolean. If true, don't apply bonuses
+        </li>
+        <li><span class="parameter">equipSlot</span>
+         String. If set, only look at equipment from this equipment slot. If false, don't apply equipment armor at all
+        </li>
+        <li><span class="parameter">no_all</span>
+         Boolean. If set, don't add "all" armor value
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The armor value
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "creature:get_all_armor"></a>
+    <strong>creature:get_all_armor (noBonus, base_only)</strong>
+    </dt>
+    <dd>
+    Gets a list of all armor values a creature has
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">noBonus</span>
+         Boolean. If true, don't add bonuses
+        </li>
+        <li><span class="parameter">base_only</span>
+         Boolean. If true, don't look at creature types applied by conditions
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A table of damage types and the weakness value
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "creature:is_immune_to_condition_type"></a>
+    <strong>creature:is_immune_to_condition_type (conditionType)</strong>
+    </dt>
+    <dd>
+    Checks whether a creature has immunity to a condition type
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">conditionType</span>
+         String. The condition type.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether or not they have immunity to that condition type
     </ol>
 
 
@@ -1161,7 +1648,7 @@ TODO: Forbidden tags on recipes</td>
 </dd>
     <dt>
     <a name = "creature:can_move_to"></a>
-    <strong>creature:can_move_to (x, y, inMap)</strong>
+    <strong>creature:can_move_to (x, y, inMap, ignoreCache)</strong>
     </dt>
     <dd>
     Check whether a creature can move to a given tile
@@ -1177,6 +1664,9 @@ TODO: Forbidden tags on recipes</td>
         </li>
         <li><span class="parameter">inMap</span>
          Map. The map to check. Defaults to current map (optional)
+        </li>
+        <li><span class="parameter">ignoreCache</span>
+         Boolean. If true, ignore the can_move_cache (optional)
         </li>
     </ul>
 
@@ -1274,7 +1764,7 @@ TODO: Forbidden tags on recipes</td>
 </dd>
     <dt>
     <a name = "creature:die"></a>
-    <strong>creature:die (killer)</strong>
+    <strong>creature:die (killer, silent)</strong>
     </dt>
     <dd>
     Kill a creature.
@@ -1284,6 +1774,9 @@ TODO: Forbidden tags on recipes</td>
     <ul>
         <li><span class="parameter">killer</span>
          Entity. Whodunnit? By default, nothing actually passes in a killer, but it's here just in case
+        </li>
+        <li><span class="parameter">silent</span>
+         Boolean. If true, don't output anything
         </li>
     </ul>
 
@@ -1405,7 +1898,7 @@ TODO: Forbidden tags on recipes</td>
 </dd>
     <dt>
     <a name = "creature:pickup"></a>
-    <strong>creature:pickup (item, tileOnly)</strong>
+    <strong>creature:pickup (item, tileOnly, silent)</strong>
     </dt>
     <dd>
     Have a creature pick up an item from a tile.
@@ -1419,6 +1912,9 @@ TODO: Forbidden tags on recipes</td>
         <li><span class="parameter">tileOnly</span>
          Boolean. Whether to only allow pickups from the tile the creature is standing on. If not set to TRUE, creatures can also pick up from adjacent tiles.
         </li>
+        <li><span class="parameter">silent</span>
+         Boolean. If true, don't say anything
+        </li>
     </ul>
 
 
@@ -1428,7 +1924,7 @@ TODO: Forbidden tags on recipes</td>
 </dd>
     <dt>
     <a name = "creature:give_item"></a>
-    <strong>creature:give_item (item)</strong>
+    <strong>creature:give_item (item, silent)</strong>
     </dt>
     <dd>
     Transfer an item to a creature's inventory
@@ -1438,6 +1934,9 @@ TODO: Forbidden tags on recipes</td>
     <ul>
         <li><span class="parameter">item</span>
          Item. The item to give.
+        </li>
+        <li><span class="parameter">silent</span>
+         Boolean. If true, don't show a popup
         </li>
     </ul>
 
@@ -1491,7 +1990,7 @@ TODO: Forbidden tags on recipes</td>
 </dd>
     <dt>
     <a name = "creature:delete_item"></a>
-    <strong>creature:delete_item (item, amt)</strong>
+    <strong>creature:delete_item (item, amt, silent)</strong>
     </dt>
     <dd>
     Remove an item from a creature's inventory
@@ -1505,6 +2004,9 @@ TODO: Forbidden tags on recipes</td>
         <li><span class="parameter">amt</span>
          Number. The amount of the item to remove, if the item is stackable. Defaults to 1.
         </li>
+        <li><span class="parameter">silent</span>
+         Boolean. If true, don't show the popup
+        </li>
     </ul>
 
 
@@ -1514,7 +2016,7 @@ TODO: Forbidden tags on recipes</td>
 </dd>
     <dt>
     <a name = "creature:has_item"></a>
-    <strong>creature:has_item (item, sortBy, enchantments, level, ignore_full_stack)</strong>
+    <strong>creature:has_item (item, sortBy, enchantments, level)</strong>
     </dt>
     <dd>
     Check if a creature has an instance of an item ID
@@ -1533,9 +2035,6 @@ TODO: Forbidden tags on recipes</td>
         </li>
         <li><span class="parameter">level</span>
          Number. The level of the item (optional)
-        </li>
-        <li><span class="parameter">ignore_full_stack</span>
-         Boolean. If true, don't send an item if it's already fully stacked (optional)
         </li>
     </ul>
 
@@ -1621,6 +2120,25 @@ TODO: Forbidden tags on recipes</td>
          String. The equipment slot to check
         </li>
     </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A list of the equipment.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "creature:get_all_equipped"></a>
+    <strong>creature:get_all_equipped ()</strong>
+    </dt>
+    <dd>
+    Get a list of all equipment a creature has equipped
+
+
 
     <h3>Returns:</h3>
     <ol>
@@ -1857,8 +2375,33 @@ TODO: Forbidden tags on recipes</td>
 
 </dd>
     <dt>
+    <a name = "creature:get_types"></a>
+    <strong>creature:get_types (base_only)</strong>
+    </dt>
+    <dd>
+    Gets a list of all creature types a creature is
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">base_only</span>
+         Boolean. If true, don't look at types applied by conditions
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A table of creature types
+    </ol>
+
+
+
+
+</dd>
+    <dt>
     <a name = "creature:is_type"></a>
-    <strong>creature:is_type (ctype)</strong>
+    <strong>creature:is_type (ctype, base_only)</strong>
     </dt>
     <dd>
     Checks if a creature is of a certain type
@@ -1868,6 +2411,9 @@ TODO: Forbidden tags on recipes</td>
     <ul>
         <li><span class="parameter">ctype</span>
          String. The creature type to check for
+        </li>
+        <li><span class="parameter">base_only</span>
+         Boolean. If true, don't look at types applied by conditions
         </li>
     </ul>
 
@@ -1912,6 +2458,31 @@ TODO: Forbidden tags on recipes</td>
     </dt>
     <dd>
     Determine if a creature is a friendly type of yours (this function ignores factions, but does look at your creature types' friendly types list)
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">target</span>
+         Creature. The creature to check
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. If they're a friendly type
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "creature:is_ignore_type"></a>
+    <strong>creature:is_ignore_type (target)</strong>
+    </dt>
+    <dd>
+    Determine if a creature is an ignored type of yours (this function ignores factions, but does look at your creature types' ignore types list)
 
 
     <h3>Parameters:</h3>
@@ -2001,6 +2572,25 @@ TODO: Forbidden tags on recipes</td>
 
 </dd>
     <dt>
+    <a name = "creature:get_kill_reputation"></a>
+    <strong>creature:get_kill_reputation ()</strong>
+    </dt>
+    <dd>
+    Gets the reputation you get for killing this creature.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A table of factions, and the reputation scores
+    </ol>
+
+
+
+
+</dd>
+    <dt>
     <a name = "creature:notice"></a>
     <strong>creature:notice (creat, skip_callbacks, force)</strong>
     </dt>
@@ -2026,6 +2616,70 @@ TODO: Forbidden tags on recipes</td>
 
         Boolean. Whether the creature successfully noticed the target
     </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "creature:update_reputation"></a>
+    <strong>creature:update_reputation (factionID, amount, display, reason, noEnemies)</strong>
+    </dt>
+    <dd>
+    Modifies the reputation of a creatue with a faction TODO: custom rep change callbacks
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">factionID</span>
+         String. The faction ID
+        </li>
+        <li><span class="parameter">amount</span>
+         Number. The amount to change the reputation by
+        </li>
+        <li><span class="parameter">display</span>
+         Boolean. If true, display text noting the reputation change
+        </li>
+        <li><span class="parameter">reason</span>
+         String. Display this text after
+        </li>
+        <li><span class="parameter">noEnemies</span>
+         Boolean. if true, don't update enemy factions' reputation
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "creature:update_favor"></a>
+    <strong>creature:update_favor (factionID, amount, display, reason, track)</strong>
+    </dt>
+    <dd>
+    Modifies the favor of a creatue with a faction
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">factionID</span>
+         String. The faction ID
+        </li>
+        <li><span class="parameter">amount</span>
+         Number. The amount to change the favor by
+        </li>
+        <li><span class="parameter">display</span>
+         Boolean. If true, display text noting the favor change
+        </li>
+        <li><span class="parameter">reason</span>
+         String. Display this text after
+        </li>
+        <li><span class="parameter">track</span>
+         Boolean. If true, track this favor change for purposes of reputation increase
+        </li>
+    </ul>
+
 
 
 
@@ -2123,7 +2777,7 @@ TODO: Forbidden tags on recipes</td>
 </dd>
     <dt>
     <a name = "creature:become_hostile"></a>
-    <strong>creature:become_hostile (creat, skip_callbacks., noSound)</strong>
+    <strong>creature:become_hostile (creat, force., silent)</strong>
     </dt>
     <dd>
     Become hostile to another creature
@@ -2134,11 +2788,11 @@ TODO: Forbidden tags on recipes</td>
         <li><span class="parameter">creat</span>
          Creature. The creature to become hostile towards
         </li>
-        <li><span class="parameter">skip_callbacks.</span>
-         Boolean. Whether to skip hostility-related callbacks (optional)
+        <li><span class="parameter">force.</span>
+         Boolean. Whether to force hostility, even if the callbacks return false (optional)
         </li>
-        <li><span class="parameter">noSound</span>
-         Boolean. Whether to become hostile without playing a sound (optional)
+        <li><span class="parameter">silent</span>
+         Boolean. Whether to become hostile without playing a sound or displaying text(optional)
         </li>
     </ul>
 
@@ -2251,6 +2905,29 @@ TODO: Forbidden tags on recipes</td>
 
 </dd>
     <dt>
+    <a name = "creature:collide"></a>
+    <strong>creature:collide (target, dist)</strong>
+    </dt>
+    <dd>
+    Collide with another creature or object
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">target</span>
+         Entity or coordinates. The entity or coordinates collided with
+        </li>
+        <li><span class="parameter">dist</span>
+         Number. The distance still remaining in the knockback prior to collision
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
     <a name = "creature:refresh_image_name"></a>
     <strong>creature:refresh_image_name ()</strong>
     </dt>
@@ -2308,6 +2985,20 @@ TODO: Forbidden tags on recipes</td>
 
         Number. The stat value
     </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "creature:get_threat"></a>
+    <strong>creature:get_threat ()</strong>
+    </dt>
+    <dd>
+    Gets the threat level of a given creature
+
+
+
 
 
 
@@ -2449,6 +3140,20 @@ TODO: Forbidden tags on recipes</td>
          Boolean. Whether to ignore level_up callbacks
         </li>
     </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "creature:learn_random_spells"></a>
+    <strong>creature:learn_random_spells ()</strong>
+    </dt>
+    <dd>
+    Learns random spells based on spells this creature is capable of learning.  Used for NPCs
+
+
 
 
 
@@ -2795,6 +3500,20 @@ TODO: Forbidden tags on recipes</td>
 
 </dd>
     <dt>
+    <a name = "creature:get_pathType"></a>
+    <strong>creature:get_pathType ()</strong>
+    </dt>
+    <dd>
+    Gets the creature's pathType, set in the creature definition or in the
+
+
+
+
+
+
+
+</dd>
+    <dt>
     <a name = "creature:get_stat"></a>
     <strong>creature:get_stat (stat, noBonus)</strong>
     </dt>
@@ -3006,6 +3725,34 @@ TODO: Forbidden tags on recipes</td>
 
 </dd>
     <dt>
+    <a name = "creature:get_extra_stat_max"></a>
+    <strong>creature:get_extra_stat_max (stat, noBonus)</strong>
+    </dt>
+    <dd>
+    A generic function for getting the max for an extra stat, if applicable
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">stat</span>
+         Text. The stat to get
+        </li>
+        <li><span class="parameter">noBonus</span>
+         Boolean. If true, don't add the bonus to the stat
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The stat value
+    </ol>
+
+
+
+
+</dd>
+    <dt>
     <a name = "creature:set_extra_stat"></a>
     <strong>creature:set_extra_stat (stat, val)</strong>
     </dt>
@@ -3157,8 +3904,8 @@ TODO: Forbidden tags on recipes</td>
 
 </dd>
     <dt>
-    <a name = "creature:forget_spell"></a>
-    <strong>creature:forget_spell (spellID, force)</strong>
+    <a name = "creature:unmemorize_spell"></a>
+    <strong>creature:unmemorize_spell (spell, force)</strong>
     </dt>
     <dd>
     Remove a spell from a creature's spell "inventory"
@@ -3166,8 +3913,8 @@ TODO: Forbidden tags on recipes</td>
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">spellID</span>
-         String. The ID of the spell to forget
+        <li><span class="parameter">spell</span>
+         Spell. The spell to forget
         </li>
         <li><span class="parameter">force</span>
          Boolean. If true, remove the spell even if it's normally not supposed to be forgettable
@@ -3181,7 +3928,7 @@ TODO: Forbidden tags on recipes</td>
 </dd>
     <dt>
     <a name = "creature:memorize_spell"></a>
-    <strong>creature:memorize_spell (spellID, force)</strong>
+    <strong>creature:memorize_spell (spell, force)</strong>
     </dt>
     <dd>
     Add a spell to a creature's spell "inventory"
@@ -3189,8 +3936,8 @@ TODO: Forbidden tags on recipes</td>
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">spellID</span>
-         String. The ID of the spell to memorize
+        <li><span class="parameter">spell</span>
+         Spell. The spell to memorize
         </li>
         <li><span class="parameter">force</span>
          Boolean. If true, add the spell even if it overfills the slots
@@ -3418,6 +4165,8 @@ permanent=true (if true, don't save a reference to the old body as it will not b
 include_spells=true (if true, move old body's spells over)
 include_skills=true (if true, move old body's skills over)
 active_undo=true (if true, give the undo transformation spell to the new body)
+no_hp_transfer=true (if true, don't make HP ratio transfer when transforming)
+no_inventory_transfer=true (if true, don't transfer inventory to the new body)
         </li>
     </ul>
 
@@ -3431,7 +4180,7 @@ active_undo=true (if true, give the undo transformation spell to the new body)
     <strong>creature:evolve (creature, info, include_items)</strong>
     </dt>
     <dd>
-    Permanently evolve into another creature.  It uses the initial creature as a base, and changes it to keep the highest value of skills, stats, and favor. Factions membership, spells, and favor are combined, and AI-related stuff is overwritten. Generally will be a net positive. This is differentiated from Creature:transform(), which leaves the original creature intact but effectively creates a new body and moves some limited information over to it.
+    Permanently evolve into another creature.  It uses the initial creature as a base, and changes it to keep the highest value of skills, stats, reputation, and favor. Factions membership, spells, reputation, and favor are combined, and AI-related stuff is overwritten. Generally will be a net positive. This is differentiated from Creature:transform(), which leaves the original creature intact but effectively creates a new body and moves some limited information over to it.
 
 
     <h3>Parameters:</h3>
@@ -3454,7 +4203,7 @@ active_undo=true (if true, give the undo transformation spell to the new body)
 </dd>
     <dt>
     <a name = "creature:get_all_possible_recipes"></a>
-    <strong>creature:get_all_possible_recipes (hide_uncraftable)</strong>
+    <strong>creature:get_all_possible_recipes (hide_uncraftable, recipe_type)</strong>
     </dt>
     <dd>
     Get all possible recipes the creature can craft
@@ -3464,6 +4213,9 @@ active_undo=true (if true, give the undo transformation spell to the new body)
     <ul>
         <li><span class="parameter">hide_uncraftable</span>
          Boolean. If true, only show recipes that are currently craftable. If false or nil, show all known crafts even if they can't be crafted right now (optional)
+        </li>
+        <li><span class="parameter">recipe_type</span>
+         String. Filter by recipe type (optional)
         </li>
     </ul>
 
@@ -3479,7 +4231,7 @@ active_undo=true (if true, give the undo transformation spell to the new body)
 </dd>
     <dt>
     <a name = "creature:can_craft_recipe"></a>
-    <strong>creature:can_craft_recipe (recipeID)</strong>
+    <strong>creature:can_craft_recipe (recipeID, stash)</strong>
     </dt>
     <dd>
     Check if it's possible to craft a recipe
@@ -3490,6 +4242,9 @@ TODO: Forbidden tags on recipes
     <ul>
         <li><span class="parameter">recipeID</span>
          String. The ID of the recipe
+        </li>
+        <li><span class="parameter">stash</span>
+         Entity. An entity containing items to use in addition to the creature's own inventory
         </li>
     </ul>
 
@@ -3507,7 +4262,7 @@ TODO: Forbidden tags on recipes
 </dd>
     <dt>
     <a name = "creature:craft_recipe"></a>
-    <strong>creature:craft_recipe (recipeID)</strong>
+    <strong>creature:craft_recipe (recipeID, secondary_ingredients, stash)</strong>
     </dt>
     <dd>
     Craft a recipe
@@ -3517,6 +4272,12 @@ TODO: Forbidden tags on recipes
     <ul>
         <li><span class="parameter">recipeID</span>
          Text. The ID of the recipe to craft
+        </li>
+        <li><span class="parameter">secondary_ingredients</span>
+         Table. Secondary ingredients provided for the recipe based on the ingredient_properties
+        </li>
+        <li><span class="parameter">stash</span>
+         Entity. An entity containing items to use in addition to the creature's own inventory
         </li>
     </ul>
 
@@ -3566,6 +4327,55 @@ TODO: Forbidden tags on recipes
 
 
 </dd>
+    <dt>
+    <a name = "creature:process_incident"></a>
+    <strong>creature:process_incident (incidentID, actor, target, args)</strong>
+    </dt>
+    <dd>
+    Registers an incident as having occured, to be processed by all other creatures who observe it
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">incidentID</span>
+         String. The incident type
+        </li>
+        <li><span class="parameter">actor</span>
+         Entity. The creature (or other entity) that caused the incident. Optional
+        </li>
+        <li><span class="parameter">target</span>
+         Entity. The entity (or coordinates), that was the target of the incident. Optional
+        </li>
+        <li><span class="parameter">args</span>
+         Table. Other information to use when processing this incident
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "creature:get_dialog"></a>
+    <strong>creature:get_dialog (asker)</strong>
+    </dt>
+    <dd>
+    Returns the ID of the dialog most applicable to this creature at the moment
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">asker</span>
+         Creature. The creature speaking to this creature
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
 </dl>
 
 
@@ -3573,7 +4383,7 @@ TODO: Forbidden tags on recipes
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2023-09-29 12:16:36 </i>
+<i style="float:right;">Last updated 2025-04-07 10:52:23 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

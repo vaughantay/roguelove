@@ -30,6 +30,7 @@ function examine_item:draw()
   width,height = round(width/uiScale),round(height/uiScale)
   local fontSize = fonts.textFont:getHeight()
   local tileSize = output:get_tile_size()
+  local sizeDiff = math.ceil((tileSize-fontSize)/2)
   local padding = 16
   
   love.graphics.push()
@@ -50,7 +51,7 @@ function examine_item:draw()
   local _, dlines = fonts.textFont:getWrap(desc,textW)
   local descH = #dlines*fontSize
   local _, ilines = fonts.textFont:getWrap(info,textW)
-  local infoH = (info == "" and fontSize or (#ilines+2)*fontSize)
+  local infoH = (info == "" and fontSize or (#ilines+1)*fontSize)
   local printY = self.y+padding
   love.graphics.printf(name,self.x+padding,printY,self.width,"center")
   printY=printY+nameH
@@ -95,7 +96,7 @@ function examine_item:draw()
       buttonCursorX = buttonCursorX+1
     end
     if item.throwable==true then
-      local useText = "Throw (" .. input:get_button_name("throw") .. ")"
+      local useText = "Throw (" .. input:get_button_name("ranged") .. ")"
       local buttonWidth = fonts.buttonFont:getWidth(useText)+25
       if buttonX+buttonWidth >= buttonMaxX then
         buttonCursorX=1
@@ -125,7 +126,7 @@ function examine_item:draw()
       buttonX = buttonX+buttonWidth+25
       buttonCursorX = buttonCursorX+1
     end
-    if item.charges and (item.max_charges and item.max_charges > 0) then
+    if item.charges and item.max_charges and item.max_charges > 0 and item.usesAmmo then
       local useText = "Reload/Recharge" .. " (" .. input:get_button_name("recharge") .. ")"
       local buttonWidth = fonts.buttonFont:getWidth(useText)+25
       if buttonX+buttonWidth >= buttonMaxX then
@@ -301,10 +302,143 @@ function examine_item:draw()
   printY=printY+descH
   love.graphics.printf(info,self.x+padding,printY,self.width-scrollPadding,"center")
   printY=printY+infoH
+  local armor = item:get_all_armor()
+  if count(armor) > 0 then
+    love.graphics.printf("Provides armor when equipped:",self.x+padding,printY,self.width-scrollPadding,"center")
+    printY = printY+fontSize
+    for dtype,amt in pairs(armor) do
+      local thisPadX = 0
+      local dtinfo = damage_types[dtype] or {}
+      local dtName = ucfirst(dtinfo.name or dtype)
+      local nameW = fonts.textFont:getWidth(dtName)
+      local image = false
+      if dtinfo.color then
+        setColor(dtinfo.color.r,dtinfo.color.g,dtinfo.color.b,dtinfo.color.a)
+      end
+      if images['damage_type' .. (dtinfo.image_name or dtype)] then
+        local imageX = self.x+math.floor(self.width/2-nameW/2)-tileSize
+        love.graphics.draw(images['damage_type' .. (dtinfo.image_name or dtype)],imageX,printY)
+        thisPadX = tileSize
+        image = true
+      end
+      setColor(255,255,255,255)
+      love.graphics.printf(dtName .. ": " .. amt,self.x+padding,printY+sizeDiff,self.width-scrollPadding,"center")
+      printY = printY + tileSize
+    end
+    printY = printY + fontSize
+  end
+  if item.bonuses and count(item.bonuses) > 0 then
+    love.graphics.printf("Bonuses granted when equipped:",self.x+padding,printY,self.width-scrollPadding,"center")
+    printY=printY+fontSize
+    for bonus,amt in pairs(item.bonuses) do
+      local isPercent = (string.find(bonus,"percent") or string.find(bonus,"chance"))
+      local bonusName = ucfirstall(string.gsub(bonus, "_", " ")) .. ": " .. (amt > 0 and "+" or "") .. amt .. (isPercent and "%" or "")
+      love.graphics.printf(bonusName,self.x+padding,printY,self.width-scrollPadding,"center")
+      local _,blines = fonts.textFont:getWrap(bonusName,self.width-scrollPadding)
+      printY = printY + fontSize*#blines
+    end
+    printY=printY+fontSize
+  end
+  if count(item:get_spells_granted()) > 0 then
+    love.graphics.printf("Abilities granted when equipped:",self.x+padding,printY,self.width-scrollPadding,"center")
+    printY=printY+fontSize
+    for _,spell in ipairs(item:get_spells_granted()) do
+      local spellText = spell.name .. (spell.target_type == "passive" and " (Passive)" or "")
+      local spellW = fonts.textFont:getWidth(spellText)
+      local image = false
+      if images['spell' .. (spell.image_name or spell.id)] then
+        local spellPrintX = self.x+math.floor(self.width/2-spellW/2)-tileSize
+        if spell.color then
+          setColor(spell.color.r,spell.color.g,spell.color.b,spell.color.a)
+        end
+        love.graphics.draw(images['spell' .. (spell.image_name or spell.id)],spellPrintX,printY)
+        image = true
+      end
+      setColor(255,255,255,255)
+      love.graphics.printf(spellText,self.x+padding,printY+sizeDiff or 0,self.width-scrollPadding,"center")
+      printY = printY + (image and tileSize or fontSize)
+      if spell.description then
+        local _,dlines = fonts.textFont:getWrap(spell.description,self.width-scrollPadding)
+        love.graphics.printf(spell.description,self.x+padding,printY,self.width-scrollPadding,"center")
+        printY = printY + fontSize*#dlines
+      end
+    end
+    printY = printY + fontSize
+  end
   local val = item:get_value()
   if gamesettings.examine_item_value and item.value and val > 0 then
     love.graphics.printf("Value: " .. val,self.x+padding,printY,self.width-scrollPadding,"center")
     printY=printY+fontSize
+  end
+  local study_results = item:get_study_results()
+  if count(study_results) > 0 then
+    local itemText = "Can be studied at the desk in your tower" .. ((study_results.study_items or study_results.study_skills or study_results.study_recipes) and ", granting:" or "")
+    if item.study_amount then
+      itemText = "\n(Requires " .. item.study_amount .. ")"
+    end
+    if item.study_skill_requirements then
+      for skillID,val in pairs(item.study_skill_requirements) do
+        local playerVal = player:get_skill(skillID)
+        if playerVal < val then
+          itemText = itemText .. "\nRequired skill to study: " .. (possibleSkills[skillID].name or skillID) .. (val > 1 and " at level " .. val .. (playerVal > 0 and "(have " .. playerVal .. ")" or "") or "")
+          disabled = true
+        end
+      end
+    end
+    if study_results.study_items then
+      for iid,amt in pairs(study_results.study_items) do
+        local itemDef = possibleItems[iid]
+        itemText = itemText .. "\n\t" .. amt .. " " .. ucfirst(itemDef.pluralName or itemDef.name)
+      end
+    end
+    if study_results.study_skills then
+      for skillID,amt in pairs(study_results.study_skills) do
+        local skillDef = possibleSkills[skillID]
+        itemText = itemText .. "\n\t+" .. amt .. " Level of " .. skillDef.name
+      end
+    end
+    if study_results.study_recipes then
+      for _,recipeID in pairs(study_results.study_recipes) do
+        local recipeDef = possibleRecipes[recipeID]
+        local recipeName = recipeDef.name
+        if not recipeName then
+          recipeName = ""
+          local count = 0
+          for item,amount in pairs(recipeDef.results) do
+            if count > 1 then recipeName = recipeName .. ", " end
+            if amount > 1 then
+              recipeName = recipeName .. amount .. " " .. ucfirst(possibleItems.pluralName or "x " .. ucfirst(possibleItems[item].name))
+            else
+              recipeName = recipeName .. ucfirst(possibleItems[item].name)
+            end
+            count = count + 1
+          end
+        end
+        itemText = itemText .. "\n\tRecipe: " .. recipeName
+      end
+    end
+    itemText = itemText .. "\n"
+    love.graphics.printf(itemText,self.x+padding,printY,self.width-scrollPadding,"center")
+    local _, slines = fonts.textFont:getWrap(itemText,textW)
+    local studyH = (#slines)*fontSize
+    printY=printY+studyH
+  end
+  if item.crafting_ingredient_types then
+    local recipeText = "Can be used as an ingredient in"
+    for i,rtype in ipairs(item.crafting_ingredient_types) do
+      if i > 1 and #item.crafting_ingredient_types > 2 then
+        recipeText = recipeText .. ","
+      end
+      if i > 1 and i == #item.crafting_ingredient_types then
+        recipeText = recipeText .. " and"
+      end
+      recipeText = recipeText .. " " .. rtype
+    end
+    recipeText = recipeText .. " recipes."
+    local _, rlines = fonts.textFont:getWrap(recipeText,textW)
+    local recipeH = (#rlines)*fontSize
+    love.graphics.printf(recipeText,self.x+padding,printY,self.width-scrollPadding,"center")
+    printY=printY+recipeH
   end
   if gamesettings.examine_item_recipes then
     local recipes = item:is_ingredient_in()
@@ -323,13 +457,14 @@ function examine_item:draw()
           recipeText = recipeText .. recInfo.name
         end
       end
+      recipeText = recipeText .. "\n"
       local _, rlines = fonts.textFont:getWrap(recipeText,textW)
       local recipeH = (#rlines)*fontSize
       love.graphics.printf(recipeText,self.x+padding,printY,self.width-scrollPadding,"center")
       printY=printY+recipeH
     end
   end --end if examine_item_recipes
-  if gamesettings.examine_item_sellable then
+  if gamesettings.examine_item_sellable and not item.noSell then
     local buyers = item:get_buyer_list()
     local buyerCount = count(buyers)
     if buyerCount > 0 then
@@ -341,7 +476,7 @@ function examine_item:draw()
             buyText = buyText .. "and "
           end
         end
-        buyText = buyText .. buyInfo.text
+        buyText = buyText .. buyInfo.text .. " (" .. (buyInfo.moneyCost and buyInfo.moneyCost > 0 and get_money_name(buyInfo.moneyCost) or "") .. (buyInfo.favorCost and (buyInfo.moneyCost and ", " or "") .. buyInfo.favorCost .. " favor" or "") .. ")"
       end
       local _, blines = fonts.textFont:getWrap(buyText,textW)
       local buyH = (#blines)*fontSize
@@ -372,6 +507,7 @@ function examine_item:calculate_height()
   local uiScale = (prefs['uiScale'] or 1)
   width,height = round(width/uiScale),round(height/uiScale)
   local fontSize = fonts.textFont:getHeight()
+  local tileSize = output:get_tile_size()
   local padding = 16
   
   local item = self.item
@@ -385,12 +521,120 @@ function examine_item:calculate_height()
   local _, dlines = fonts.textFont:getWrap(desc,textW)
   local descH = #dlines*fontSize
   local _, ilines = fonts.textFont:getWrap(info,textW)
-  local infoH = (info == "" and fontSize or (#ilines+2)*fontSize)
+  local infoH = (info == "" and fontSize or (#ilines+1)*fontSize)
   local valueH, recipeH, buyH = 0,0,0
   local printY = padding
   printY=printY+nameH
+  local armor = item:get_all_armor()
+  if count(armor) > 0 then
+    printY = printY+fontSize
+    for dtype,amt in pairs(armor) do
+      local thisPadX = 0
+      local dtinfo = damage_types[dtype] or {}
+      if images['damage_type' .. (dtinfo.image_name or dtype)] then
+        thisPadX = tileSize
+      end
+      printY = printY + tileSize
+    end
+    printY = printY + fontSize
+  end
+  if item.bonuses and count(item.bonuses) > 0 then
+    printY=printY+fontSize
+    for bonus,amt in pairs(item.bonuses) do
+      local isPercent = (string.find(bonus,"percent") or string.find(bonus,"chance"))
+      local bonusName = ucfirstall(string.gsub(bonus, "_", " ")) .. ": " .. (amt > 0 and "+" or "") .. amt .. (isPercent and "%" or "")
+      local _,blines = fonts.textFont:getWrap(bonusName,textW)
+      printY = printY + fontSize*#blines
+    end
+    printY=printY+fontSize
+  end
+  if count(item:get_spells_granted()) > 0 then
+    printY=printY+fontSize
+    for _,spell in ipairs(item:get_spells_granted()) do
+      local spellText = spell.name .. (spell.target_type == "passive" and " (Passive)" or "")
+      local spellW = fonts.textFont:getWidth(spellText)
+      local image = false
+      if images['spell' .. (spell.image_name or spell.id)] then
+        image = true
+      end
+      printY = printY + (image and tileSize or fontSize)
+      if spell.description then
+        local _,dlines = fonts.textFont:getWrap(spell.description,textW)
+        printY = printY + fontSize*#dlines
+      end
+    end
+    printY = printY + fontSize
+  end
   if gamesettings.examine_item_value and item:get_value() > 0 then
     valueH = fontSize
+  end
+  local study_results = item:get_study_results()
+  if count(study_results) > 0 then
+    local itemText = "Can be studied at the desk in your tower" .. ((study_results.study_items or study_results.study_skills or study_results.study_recipes) and ", granting:" or "")
+    if item.study_amount then
+      itemText = "\n(Requires " .. item.study_amount .. ")"
+    end
+    if item.study_skill_requirements then
+      for skillID,val in pairs(item.study_skill_requirements) do
+        local playerVal = player:get_skill(skillID)
+        if playerVal < val then
+          itemText = itemText .. "\nRequired skill to study: " .. (possibleSkills[skillID].name or skillID) .. (val > 1 and " at level " .. val .. (playerVal > 0 and "(have " .. playerVal .. ")" or "") or "")
+          disabled = true
+        end
+      end
+    end
+    if study_results.study_items then
+      for iid,amt in pairs(study_results.study_items) do
+        local itemDef = possibleItems[iid]
+        itemText = itemText .. "\n\t" .. amt .. " " .. ucfirst(itemDef.pluralName or itemDef.name)
+      end
+    end
+    if study_results.study_skills then
+      for skillID,amt in pairs(study_results.study_skills) do
+        local skillDef = possibleSkills[skillID]
+        itemText = itemText .. "\n\t+" .. amt .. " Level of " .. skillDef.name
+      end
+    end
+    if study_results.study_recipes then
+      for _,recipeID in pairs(study_results.study_recipes) do
+        local recipeDef = possibleRecipes[recipeID]
+        local recipeName = recipeDef.name
+        if not recipeName then
+          recipeName = ""
+          local count = 0
+          for item,amount in pairs(recipeDef.results) do
+            if count > 1 then recipeName = recipeName .. ", " end
+            if amount > 1 then
+              recipeName = recipeName .. amount .. " " .. ucfirst(possibleItems.pluralName or "x " .. ucfirst(possibleItems[item].name))
+            else
+              recipeName = recipeName .. ucfirst(possibleItems[item].name)
+            end
+            count = count + 1
+          end
+        end
+        itemText = itemText .. "\n\tRecipe: " .. recipeName
+      end
+    end
+    itemText = itemText .. "\n"
+    local _, slines = fonts.textFont:getWrap(itemText,textW)
+    local studyH = (#slines)*fontSize
+    printY=printY+studyH
+  end
+  if item.crafting_ingredient_types then
+    local recipeText = "Can be used as an ingredient in"
+    for i,rtype in ipairs(item.crafting_ingredient_types) do
+      if i > 1 and #item.crafting_ingredient_types > 2 then
+        recipeText = recipeText .. ","
+      end
+      if i > 1 and i == #item.crafting_ingredient_types then
+        recipeText = recipeText .. " and"
+      end
+      recipeText = recipeText .. " " .. rtype
+    end
+    recipeText = recipeText .. " recipes."
+    local _, rlines = fonts.textFont:getWrap(recipeText,textW)
+    local recipeH = (#rlines)*fontSize
+    printY=printY+recipeH
   end
   if gamesettings.examine_item_recipes then
     local recipes = item:is_ingredient_in()
@@ -406,6 +650,7 @@ function examine_item:calculate_height()
           recipeText = recipeText .. recInfo.name
         end
       end
+      recipeText = recipeText .. "\n"
       local _, rlines = fonts.textFont:getWrap(recipeText,textW)
       recipeH = (#rlines)*fontSize
     end
@@ -419,7 +664,7 @@ function examine_item:calculate_height()
         if i ~= 1 then
           buyText = buyText .. ", "
         end
-        buyText = buyText .. buyInfo.text
+        buyText = buyText .. buyInfo.text .. " (" .. (buyInfo.moneyCost and buyInfo.moneyCost > 0 and get_money_name(buyInfo.moneyCost) or "") .. (buyInfo.favorCost and (buyInfo.moneyCost and ", " or "") .. buyInfo.favorCost .. " favor" or "") .. ")"
       end
       local _, blines = fonts.textFont:getWrap(buyText,textW)
       buyH = (#blines)*fontSize
@@ -438,6 +683,7 @@ function examine_item:calculate_height()
   local buttonY = printY+padding
   local buttonCursorX = 1
   local buttonCursorY = 1
+  printY = buttonY
   if self.has_item then
     if item.usable==true then
       local useText = (item.useVerb and ucfirst(item.useVerb) or "Use") .. " (" .. input:get_button_name("use") .. ")"
@@ -452,7 +698,7 @@ function examine_item:calculate_height()
       buttonCursorX = buttonCursorX+1
     end
     if item.throwable==true then
-      local useText = "Throw (" .. input:get_button_name("throw") .. ")"
+      local useText = "Throw (" .. input:get_button_name("ranged") .. ")"
       local buttonWidth = fonts.buttonFont:getWidth(useText)+25
       if buttonX+buttonWidth >= buttonMaxX then
         buttonCursorX=1
@@ -698,7 +944,7 @@ function examine_item:buttonpressed(key,scancode,isRepeat,controllerType)
   elseif key == "recharge" and self.has_item then
     self:switchBack()
     inventory:reloadItem(self.item)
-  elseif key == "throw" and self.has_item then
+  elseif key == "ranged" and self.has_item then
     self:switchBack()
     inventory:throwItem(self.item)
   end

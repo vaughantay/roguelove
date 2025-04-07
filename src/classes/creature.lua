@@ -11,7 +11,6 @@ Creature = Class{}
 --@return Creature. The creature itself.
 function Creature:init(creatureType,level,tags,info,noTweak,ignoreNewFunc) --TODO: apply creature.items to creature
   local data = possibleMonsters[creatureType]
-  noTweak = (noTweak == nil and data.noTweak or noTweak)
   if not data then
     output:out("Error: Tried to create non-existent creature " .. creatureType)
     print("Error: Tried to create non-existent creature " .. creatureType)
@@ -28,6 +27,7 @@ function Creature:init(creatureType,level,tags,info,noTweak,ignoreNewFunc) --TOD
 	end
   
   --Basic stuff:
+  noTweak = (noTweak == nil and data.noTweak or noTweak)
   if self.gender == "either" then
     local genders={"male","female","other"}
     self.gender = get_random_element(genders)
@@ -133,19 +133,6 @@ function Creature:init(creatureType,level,tags,info,noTweak,ignoreNewFunc) --TOD
     end
   end --end ranged attack if
   
-	--Display stuff:
-  self.color = (self.noTweakColor and self.color or {r=tweak(self.color.r),g=tweak(self.color.g),b=tweak(self.color.b),a=self.color.a})
-  self.color.a = self.color.a or 255
-  if self.animated and self.spritesheet then
-    self.image_frame=1
-  end
-  self.animation_time = (self.animation_time and tweak(self.animation_time) or 0.5)
-  if self.image_varieties and not self.image_name then
-    self.image_variety = random(1,self.image_varieties)
-    self.image_name = (self.image_base or self.id) .. self.image_variety
-  end
-  self.xMod,self.yMod = 0,0
-  
   --AI stats:
   self.fear = 0
   self.alert = 0 -- used by NPCs only, alertness countdown
@@ -195,6 +182,11 @@ function Creature:init(creatureType,level,tags,info,noTweak,ignoreNewFunc) --TOD
     end
   end
   
+  --Spells
+  if self.learns_random_spells then
+    self:learn_random_spells()
+  end
+  
   --Level up if necessary:
   if level and level > self.level then
     if self.max_level and level > self.max_level then
@@ -206,11 +198,42 @@ function Creature:init(creatureType,level,tags,info,noTweak,ignoreNewFunc) --TOD
 	end
   self.hp = self:get_max_hp()
   self.mp = self:get_max_mp()
+  
+  --Display stuff:
+  self.color = (self.noTweakColor and self.color or {r=tweak(self.color.r),g=tweak(self.color.g),b=tweak(self.color.b),a=self.color.a})
+  self.color.a = self.color.a or 255
+  if self.image_varieties and not self.image_name then
+    self.image_variety = random(1,self.image_varieties)
+    self.image_name = (self.image_base or self.id) .. self.image_variety
+  end
+  self.xMod,self.yMod = 0,0
+  
+  --Set animation if not already set:
+  if not self.animated or not self.spritesheet or not self.image_max then
+    local img = images[(self.imageType or 'creature')  .. (self.image_name or self.id)]
+    if img then
+      local tileSize = output:get_tile_size(true)
+      local frames = img:getWidth()/tileSize
+      if frames > 1 then
+        self.animated=true
+        self.spritesheet=true
+        self.image_max = math.ceil(frames)
+        self.image_frame=1
+      end
+    end
+  end
+  if self.animated then
+    self.animation_time = (self.animation_time and tweak(self.animation_time) or 0.5)
+    if not self.image_frame then
+      self.image_frame=1
+    end
+  end
+  
 	return self
 end
 
 ---Generate items for a creature's inventory. Usually called when the creature first spawns
---@param source Table. The source of potential item lists. Defaults to the creature itself, and will frequently be either a creature type or a faction, but can be any table containing a possible_inventory, possible_death_items, or any possible_[equipslot] table. (optional)
+--@param source Table. The source of potential item lists. Defaults to the creature itself, and will frequently be either a creature type or a faction, but can be any table containing a possible_inventory or possible_death_items table. (optional)
 function Creature:generate_inventory(source,tags)
   source = source or self
   --Add inventory items:
@@ -226,7 +249,10 @@ function Creature:generate_inventory(source,tags)
           if def.drop_chance then
             it.drop_chance = def.drop_chance
           end
-          self:give_item(it)
+          self:give_item(it,true)
+          if it.equippable then
+            self:equip(it)
+          end
         end
       end --end chance
     end --end loopthrough possible_inventory
@@ -247,26 +273,11 @@ function Creature:generate_inventory(source,tags)
       end --end chance
     end --end loopthrough possible_inventory
   end --end if possible inventory
-  --Equipment:
-  for slot,info in pairs(self.equipment) do
-    for i=1,(info.slots or 1) do
-      if self['possible_' .. slot] then
-        local itemID = source['possible_' .. slot][(random(#source['possible_' .. slot]))]
-        if itemID then
-          local item = self:give_item(Item(itemID,tags))
-          self:equip(item)
-        end --end if itemID
-      end --end if checking if we have a possible list set
-    end --end slots for
-  end --end equipment_slots for
   
   --Delete the vistigial item lists:
   if source == self then
     self.possible_inventory = nil
     self.possible_death_items = nil
-    for slot,_ in pairs(self.equipment) do
-      self['possible_' .. slot] = nil
-    end
   end
 end
 
@@ -316,7 +327,7 @@ function Creature:apply_class(classID)
         if item.enchantment then
           it:apply_enchantment(item.enchantment,item.enchantment_turns or -1)
         end
-        self:give_item(it)
+        self:give_item(it,true)
       end
     end
   end --end if items
@@ -330,7 +341,7 @@ function Creature:apply_class(classID)
       if item.enchantment then
         it:apply_enchantment(item.enchantment,item.enchantment_turns or -1)
       end
-      self:give_item(it)
+      self:give_item(it,true)
       self:equip(it)
     end
   end--end if equipment
@@ -489,6 +500,7 @@ end
 ---Get the max magic points of a creature
 --@return Number. The max MP
 function Creature:get_max_mp()
+  if not gamesettings.mp then return 0 end
   local mmp = self.max_mp or 0
   mmp = mmp + round(mmp*(self:get_bonus('max_mp_percent')/100)) + self:get_bonus('max_mp')
 	return mmp
@@ -496,7 +508,8 @@ end
 
 ---Change the HP of a creature
 --@param amt Number. Can be positive or negative.
-function Creature:updateHP(amt)
+--@param damage_type String. The ID of a damage type
+function Creature:updateHP(amt,damage_type)
   local alreadyDead = false
   if self.hp < 1 then alreadyDead = true end
 	self.hp = self.hp + amt
@@ -507,10 +520,38 @@ function Creature:updateHP(amt)
     local p = Effect('dmgpopup',self.x,self.y)
     if (amt > 0) then
       p.color = {r=0,g=255,b=0,a=255}
-      currMap:add_effect(Effect('animation',{image_name='floatingpluses',image_max=5,target=self,color={r=0,g=255,b=0,a=255},use_color_with_tials=true}),self.x,self.y)
+      currMap:add_effect(Effect('animation',{image_name='floatingpluses',image_max=5,target=self,color={r=0,g=255,b=0,a=255},use_color_with_tiles=true}),self.x,self.y)
+    else
+      if self.hp > 0 then
+        local oldColor = self.temporaryColor
+        local clearFunc = function() self.temporaryColor = nil end
+        self.temporaryColor={r=255,g=0,b=0}
+          local r,g,b = (oldColor and oldColor.r or self.color.r or 255), (oldColor and oldColor.g or self.color.g or 255), (oldColor and oldColor.b or self.color.b or 255)
+          tween(.25,self.temporaryColor,{r=r,g=b,b=b},'linear',(oldColor and nil or clearFunc))
+      end
     end --make it green if it's healing
-    p.symbol = (amt > 0 and "+" or "") .. amt
+    p.symbol = (amt > 0 and "+" or "") .. math.abs(amt)
     currMap:add_effect(p,self.x,self.y)
+    if damage_type then
+      local dtInfo = damage_types[damage_type] or {}
+      if images['damage_type' .. (dtInfo.image_name or damage_type)] then
+        local tileMod = round(fonts.mapFontWithImages:getWidth(p.symbol)/2)
+        p.xMod = -tileMod
+        local popup2 = Effect('dmgpopup')
+        popup2.image_name = dtInfo.image_name or damage_type
+        popup2.imageType = "damage_type"
+        popup2.xMod = tileMod
+        popup2.speed = p.speed
+        if dtInfo.color then
+          popup2.color = {r=dtInfo.color.r,g=dtInfo.color.g,b=dtInfo.color.b,a=150}
+        else
+          popup2.color = {r=255,g=255,b=255,a=150}
+        end
+        p.paired = popup2
+        popup2.paired = p
+        currMap:add_effect(popup2,self.x,self.y)
+      end
+    end
   end
 end
 
@@ -526,10 +567,33 @@ end
 function Creature:damage(amt,attacker,damage_type,armor_piercing,noSound,item,ignoreWeakness)
   amt = math.ceil(amt) --just in case! to prevent fractional damage
   damage_type = damage_type or gamesettings.default_damage_type
+  local dtInfo = damage_types[damage_type] or {}
   
   amt = self:calculate_damage_received(amt,damage_type,armor_piercing)
 
   if (amt < 0) then
+    local popup = Effect('dmgpopup')
+    popup.image_name = "damage_blocked"
+    popup.symbol="x"
+    if dtInfo.color then
+      popup.color = {r=dtInfo.color.r,g=dtInfo.color.g,b=dtInfo.color.b,a=150}
+    else
+      popup.color = {r=255,g=255,b=255,a=150}
+    end
+    currMap:add_effect(popup,self.x,self.y)
+    if images['damage_type' .. (dtInfo.image_name or damage_type)] then
+      local tileMod = round(output:get_tile_size()/2)
+      popup.xMod = -tileMod
+      local popup2 = Effect('dmgpopup')
+      popup2.image_name = dtInfo.image_name or damage_type
+      popup2.imageType = "damage_type"
+      popup2.xMod = tileMod
+      popup2.color = popup.color
+      popup2.speed = popup.speed
+      popup.paired = popup2
+      popup2.paired = popup
+      currMap:add_effect(popup2,self.x,self.y)
+    end
     return 0
   end
   local bool,ret = self:callbacks('damaged',attacker,amt,damage_type)
@@ -543,7 +607,7 @@ function Creature:damage(amt,attacker,damage_type,armor_piercing,noSound,item,ig
           dmg = dmg + val
         end
       end
-    if count > 0 then amt = math.ceil(dmg/count) end --final damage is average of all returned damage values
+      if count > 0 then amt = math.ceil(dmg/count) end --final damage is average of all returned damage values
     end
     if calc_distance(self.x,self.y,player.x,player.y) > player.perception*2 then
       amt = math.ceil(amt/10)
@@ -564,13 +628,20 @@ function Creature:damage(amt,attacker,damage_type,armor_piercing,noSound,item,ig
     if amt <= 0 then
       return 0
     end
-		self:updateHP(-amt)
+		self:updateHP(-amt,damage_type)
     self.fear = self.fear + math.ceil(100*(amt/self:get_max_hp())) --increase fear by % of MHP you just got damaged by
     self.alert = self.memory
     if attacker then
-      if attacker.baseType == "creature" and self:does_notice(attacker) == false then 
-        if attacker == player then achievements:disqualify('hostile_only') end
-        self:notice(attacker,false,true)
+      if attacker.baseType == "creature" then
+        attacker:callbacks('damages',self,amt,damage_type)
+        if attacker.master then
+          attacker.master:callbacks('ally_damages',self,attacker,amt,damage_type)
+        end
+        if self:does_notice(attacker) == false then 
+          if attacker == player then achievements:disqualify('hostile_only') end
+          self:notice(attacker,false,true)
+        end
+        currMap:register_incident('damages',attacker,self,{damage=amt})
       end
       if self ~= player then --ignore this stuff for player because this is AI enemy stuff
         --Add the guy who attacked you to your list of enemies, if they're not already in an enemy faction
@@ -578,8 +649,8 @@ function Creature:damage(amt,attacker,damage_type,armor_piercing,noSound,item,ig
         if (attacker.source and attacker.source.baseType == "creature") then attacker = attacker.source
         elseif (attacker.creator and attacker.creator.baseType == "creature") then attacker = attacker.creator end
         local hostile = false
-        if attacker.baseType == "creature" and not (self.shitlist[attacker] or (self.ignoring and self.ignoring[attacker]) or self == attacker) then 
-          hostile = self:become_hostile(attacker)
+        if attacker.baseType == "creature" and not (self.shitlist[attacker] or self == attacker or (self.master == attacker and (self.summoned or self:has_condition('summoned') or self:is_type('mindless') or self:has_condition('enthralled')))) then 
+          hostile = self:become_hostile(attacker,true)
         end
         if hostile and (self.target == nil or self.target.baseType ~= "creature") then self.target = attacker end
       end --end self == player if
@@ -596,8 +667,14 @@ function Creature:damage(amt,attacker,damage_type,armor_piercing,noSound,item,ig
     end
     for _,item in pairs(self.equipment_list) do
       item:decrease_all_enchantments('damaged')
+      if damage_type then
+        item:decrease_all_enchantments('damaged_' .. damage_type)
+      end
     end
     self:decrease_all_conditions('damaged')
+    if damage_type then
+      self:decrease_all_conditions('damaged_' .. damage_type)
+    end
     --Cancel active spells if applicable:
     for id,data in pairs(self.active_spells) do
       if data.spell.deactivate_on_damage_chance and random(1,100) <= data.spell.deactivate_on_damage_chance then
@@ -621,6 +698,7 @@ end
 --@return Number. The final damage done.
 function Creature:calculate_damage_received(amt,damage_type,armor_piercing,ignoreWeakness)
   local bonuses = 0
+  damage_type = damage_type or gamesettings.default_damage_type
   --Apply damage weaknesses, resistances, and armor
   if damage_type then
     if self:is_healed_by_damage_type(damage_type) then
@@ -690,20 +768,22 @@ end
 --@param args Anything. Arguments to pass to the condition's apply() code (optional)
 --@param force Boolean. Whether to force-apply the condition. (optional)
 --@param stack Boolean. If true, add the new turns to the current turns (if applicable). If false, sets the turns to turns passed
+--@param silent Boolean. If true, don't pop up to show the condition was given
 --@return Boolean. Whether the condition was applied
-function Creature:give_condition(name,turns,applier,args,force,stack)
+function Creature:give_condition(name,turns,applier,args,force,stack,silent)
 	if not conditions[name] then return false end
-  if self == player and conditions[name].player_turn_modifier then
+  local conditionInfo = conditions[name]
+  if self == player and conditionInfo.player_turn_modifier then
     turns = math.ceil(turns * conditions[name].player_turn_modifier)
   end
   
-  --TODO: Creature:qualifies_for_condition()
   --Check condition type immunities first:
-  local qualifies = self:qualifies_for_condition(name)
+  local qualifies = force or self:qualifies_for_condition(name)
   if qualifies == false then return false end
 
-  if force or conditions[name]:can_apply(self,applier,turns,args) ~= false then
-    local result = conditions[name]:apply(self,applier,turns,args)
+  if force or conditionInfo:can_apply(self,applier,turns,args) ~= false then
+    local has = self.conditions[name]
+    local result = conditionInfo:apply(self,applier,turns,args)
     if force or result ~= false then
       if type(result) == "number" then
         turns = result
@@ -712,7 +792,45 @@ function Creature:give_condition(name,turns,applier,args,force,stack)
       if turns ~= -1 and (stack or conditions[name].turns_stack == true) then
         addition = (self.conditions[name] and self.conditions[name].turns) or 0
       end
-      self.conditions[name] = {turns=turns+addition,applier=applier,bonuses=(args and type(args) == "table" and args.bonuses or nil)}
+      self.conditions[name] = {turns=turns+addition,applier=applier}
+      if args and type(args) == "table" then
+        for arg,val in pairs(args) do
+          self.conditions[name][arg] = val
+        end
+      end
+      if type(result) == "table" then
+        for arg,val in pairs(result) do
+          self.conditions[name][arg] = val
+        end
+      end
+      if silent then
+        self.conditions[name].silent=true
+      end
+      if applier and applier.baseType == "creature" then
+        self.lastAttacker = applier
+      end
+      --Add condition popup:
+      if (not has or stack) and not conditionInfo.hidden and not conditionInfo.silent and not silent and self.x and self.y then
+        local popup1 = Effect('dmgpopup')
+        popup1.symbol = "+"
+        popup1.color = {r=255,g=255,b=255,a=150}
+        local tileMod = round(fonts.mapFontWithImages:getWidth(popup1.symbol)/2)
+        popup1.xMod = -tileMod
+        local popup2 = Effect('dmgpopup')
+        popup2.image_name = conditionInfo.image_name or name
+        popup2.imageType = "condition"
+        popup2.xMod = tileMod
+        popup2.speed = popup1.speed
+        if (conditionInfo.use_color_with_tiles ~= false or gamesettings.always_use_color_with_tiles) and conditionInfo.color then
+          popup2.color = {r=conditionInfo.color.r,g=conditionInfo.color.g,b=conditionInfo.color.b,a=150}
+        else
+          popup2.color = {r=255,g=255,b=255,a=150}
+        end
+        popup1.paired = popup2
+        popup2.paired = popup1
+        currMap:add_effect(popup1,self.x,self.y)
+        currMap:add_effect(popup2,self.x,self.y)
+      end
       return true
     end
   end
@@ -721,10 +839,35 @@ end
 
 ---Cure a condition.
 --@param condition String. The ID of the condition to cure
-function Creature:cure_condition(condition)
+--@param silent Boolean. If true, don't show a popup
+function Creature:cure_condition(condition,silent)
   if self.conditions[condition] then
-    conditions[condition]:cure(self)
+    silent = silent or self.conditions[condition].silent
     self.conditions[condition] = nil
+    conditions[condition]:cure(self)
+    --Add condition popup:
+    if not conditions[condition].hidden and not conditions[condition].silent and not silent and self.x and self.y then
+      local conditionInfo = conditions[condition]
+      local popup1 = Effect('dmgpopup')
+      popup1.symbol = "-"
+      popup1.color = {r=255,g=255,b=255,a=150}
+      local tileMod = round(fonts.mapFontWithImages:getWidth(popup1.symbol)/2)
+      popup1.xMod = -tileMod
+      local popup2 = Effect('dmgpopup')
+      popup2.image_name = conditionInfo.image_name or condition
+      popup2.imageType = "condition"
+      popup2.xMod = tileMod
+      popup2.speed = popup1.speed
+      if (conditionInfo.use_color_with_tiles ~= false or gamesettings.always_use_color_with_tiles) and conditionInfo.color then
+        popup2.color = {r=conditionInfo.color.r,g=conditionInfo.color.g,b=conditionInfo.color.b,a=150}
+      else
+        popup2.color = {r=255,g=255,b=255,a=150}
+      end
+      popup1.paired = popup2
+      popup2.paired = popup1
+      currMap:add_effect(popup1,self.x,self.y)
+      currMap:add_effect(popup2,self.x,self.y)
+    end
   end
 end
 
@@ -766,8 +909,8 @@ function Creature:callbacks(callback_type,...)
   if type(possibleMonsters[self.id][callback_type]) == "function" then
     local status,r = pcall(possibleMonsters[self.id][callback_type],self,unpack({...}))
     if status == false then
-        output:out("Error in creature " .. self.id .. " callback \"" .. callback_type .. "\": " .. r)
-        print("Error in creature " .. self.id .. " callback \"" .. callback_type .. "\": " .. r)
+        output:out("Error in creature " .. self.name .. " callback \"" .. callback_type .. "\": " .. r)
+        print("Error in creature " .. self.name .. " callback \"" .. callback_type .. "\": " .. r)
       end
 		if (r == false) then return false end
     if r ~= nil and type(r) ~= "boolean" then table.insert(ret,r) end
@@ -824,26 +967,8 @@ function Creature:callbacks(callback_type,...)
     end
   end
   for _, equip in pairs(self.equipment_list) do
-    if type(possibleItems[equip.id][callback_type]) == "function" then
-      local status,r = pcall(possibleItems[equip.id][callback_type],equip,self,unpack({...}))
-      if status == false then
-        output:out("Error in item " .. possibleItems[equip.id].name .. " callback \"" .. callback_type .. "\": " .. r)
-        print("Error in item " .. possibleItems[equip.id].name .. " callback \"" .. callback_type .. "\": " .. r)
-      end
-      if (r == false) then return false end
-      if r ~= nil and type(r) ~= "boolean" then table.insert(ret,r) end
-    end --end function exists if
-    for ench,_ in pairs(equip:get_enchantments()) do --TODO: This might be a potential slowdown spot
-      if type(enchantments[ench][callback_type]) == "function" then
-        local status,r = pcall(enchantments[ench][callback_type],equip,self,unpack({...}))
-        if status == false then
-          output:out("Error in enchantment " .. enchantments[ench].name .. " callback \"" .. callback_type .. "\": " .. r)
-          print("Error in enchantment " .. enchantments[ench].name .. " callback \"" .. callback_type .. "\": " .. r)
-        end
-        if (r == false) then return false end
-        if r ~= nil and type(r) ~= "boolean" then table.insert(ret,r) end
-      end --end function exists if
-    end --end enchantment for
+    local r = equip:callbacks(callback_type,self,...)
+    if r == false then return false end
 	end
   for missionID, missionStatus in pairs(currGame.missionStatus) do
     local mission = possibleMissions[missionID]
@@ -860,60 +985,80 @@ function Creature:callbacks(callback_type,...)
 	return true,ret
 end
 
----Get the extended description of a creature, including information like its health info, friendliness to the player, etc.
+---Get the name and description of a creature, including information like its health info, friendliness to the player, etc.
 --@return String. The description of the creature.
 --@param noInfo Boolean. If true, only show the description, not extra info.
 function Creature:get_description(noInfo)
 	local desc = self:get_name(true) .. "\n" .. self.description
   if not noInfo then
-    desc = desc .. "\n" .. self:get_health_text(true)
-    if self.master and self.master ~= player then desc = desc .. "\n" .. ucfirst(self:get_pronoun('n')) .. " is under the command of " .. self.master:get_name(false,true) .. "." end
-    if (self.isPlayer ~= true) then
-      if (self.playerAlly == true) then desc = desc .. "\n" .. ucfirst(self:get_pronoun('n')) .. " is under your command."
-      elseif self.notices[player] and self.ignoring[player] then desc = desc .. "\n" .. ucfirst(self:get_pronoun('n')) .. " is ignoring you."
-      elseif self.notices[player] and not self.shitlist[player] then desc = desc .. "\n" .. ucfirst(self:get_pronoun('n')) .. (self:is_friend(player) and " is friendly towards you." or " is aware of you but not hostile.")
-      elseif (self.notices[player] and self.shitlist[player]) then desc = desc .. "\n" .. ucfirst(self:get_pronoun('n')) .. " is hostile towards you."
-      else desc = desc .. "\n" .. ucfirst(self:get_pronoun('n')) .. " has not noticed you." end
-      if self:get_fear() > self:get_bravery() then desc = desc .. "\n" .. ucfirst(self:get_pronoun('n')) .. " is afraid, and will try to run from enemies if possible." end
-    if action == "targeting" and actionResult then
-      local dist = calc_distance(player.x,player.y,self.x,self.y)
-      if actionResult.range and dist > actionResult.range then
-        desc = desc .. "\nIt is too far away to be targeted."
-      elseif actionResult.minRange and dist < actionResult.minRange then
-        desc = desc .. "\nIt is too close to be targeted."
-      elseif actionResult.projectile and not player:can_shoot_tile(self.x,self.y) then
-        desc = desc .. "\nYou can't hit it from here."
-      elseif actionResult.calc_hit_chance then
-        desc = desc .. "\n" .. actionResult.name .. " hit chance: " .. actionResult:calc_hit_chance(player,self,actionItem) .. "%"
-      end
-    end
-      --Debug stuff:
-      if debugMode then
-        desc = desc .. "\nFear: " .. self:get_fear() .. "/" .. self:get_bravery()
-        if self.target then
-          if self.target.baseType == "creature" then desc = desc .. "\nTarget: " .. self.target:get_name()
-          else desc = desc .. "\nTarget: " .. self.target.x .. ", " .. self.target.y end
-        end --end if self.target
-        if self.equipment then
-          local attacks = self:get_melee_attacks()
-          if #attacks > 0 then
-            desc = desc .. "\nWeapons: "
-            for _,item in ipairs(attacks) do
-              desc = desc .. item:get_name(true) .. ", "
-            end
-          end
-        end --end self.equipment if
-        if self.inventory then
-          desc = desc .. "\nInventory : "
-          for _,item in ipairs(self.inventory) do
-            desc = desc .. item:get_name(true) .. ", "
-          end
-        end
-      end --end debugmode if
-    end --end isPlayer
+    desc = desc .. "\n" .. self:get_info()
   end
 	
 	return desc
+end
+
+---Gets the extended description of a creature
+--@param noHealth Boolean. If true, don't display health text
+function Creature:get_info(noHealth)
+  local desc
+  if not noHealth then
+    desc = (desc and desc .. "\n" or "") .. self:get_health_text(true)
+  end
+  if self.master and self.master ~= player then
+    desc = (desc and desc .. "\n" or "") .. ucfirst(self:get_pronoun('n')) .. " is under the command of " .. self.master:get_name(false,true) .. "."
+  end
+  if (self.isPlayer ~= true) then
+    if (self.master == player) then
+      desc = (desc and desc .. "\n" or "") .. ucfirst(self:get_pronoun('n')) .. " is under your command."
+    elseif self.notices[player] and self.ignoring[player] then
+      desc = (desc and desc .. "\n" or "") .. ucfirst(self:get_pronoun('n')) .. " is ignoring you."
+    elseif self.notices[player] and not self.shitlist[player] then
+      desc = (desc and desc .. "\n" or "") .. ucfirst(self:get_pronoun('n')) .. (self:is_friend(player) and " is friendly towards you." or " is aware of you but not hostile.")
+    elseif (self.notices[player] and self.shitlist[player]) then
+      desc = (desc and desc .. "\n" or "") .. ucfirst(self:get_pronoun('n')) .. " is hostile towards you."
+    else
+      desc = (desc and desc .. "\n" or "") .. ucfirst(self:get_pronoun('n')) .. " has not noticed you" .. ((self.shitlist[player] or self:is_enemy(player)) and ", but might be hostile towards you" or "") .. (self:is_friend(player) and ", but will be friendly towards you" or "") .. "."
+    end
+    if self:get_fear() > self:get_bravery() then
+      desc = (desc and desc .. "\n" or "") .. ucfirst(self:get_pronoun('n')) .. " is afraid, and will try to run away."
+    end
+    if action == "targeting" and actionResult then
+      local dist = calc_distance(player.x,player.y,self.x,self.y)
+      if actionResult.range and dist > actionResult.range then
+        desc = (desc and desc .. "\n" or "") .. "It is too far away to be targeted."
+      elseif actionResult.minRange and dist < actionResult.minRange then
+        desc = (desc and desc .. "\n" or "") .. "It is too close to be targeted."
+      elseif actionResult.projectile and not player:can_shoot_tile(self.x,self.y) then
+        desc = (desc and desc .. "\n" or "") .. "You can't hit it from here."
+      elseif actionResult.calc_hit_chance then
+        desc = (desc and desc .. "\n" or "") .. actionResult.name .. " hit chance: " .. actionResult:calc_hit_chance(player,self,actionItem) .. "%"
+      end
+    end
+    if self.equipment then
+      local equipment = self:get_all_equipped()
+      if #equipment > 0 then
+        desc = (desc and desc .. "\n" or "") .. "Equipment: "
+        for i,item in ipairs(equipment) do
+          desc = desc .. item:get_name(true) .. (i ~= #equipment and ", " or "")
+        end
+      end
+    end --end self.equipment if
+    --Debug stuff:
+    if debugMode then
+      desc = (desc and desc .. "\n" or "") .. "Fear: " .. self:get_fear() .. "/" .. self:get_bravery()
+      if self.target then
+        if self.target.baseType == "creature" then desc = (desc and desc .. "\n" or "") .. "Target: " .. self.target:get_name()
+        else desc = (desc and desc .. "\n" or "") .. "Target: " .. self.target.x .. ", " .. self.target.y end
+      end --end if self.target
+      if self.inventory then
+        desc = (desc and desc .. "\n" or "") .. "Inventory : "
+        for _,item in ipairs(self.inventory) do
+          desc = desc .. item:get_name(true) .. ", "
+        end
+      end
+    end --end debugmode if
+  end --end isPlayer
+  return desc
 end
 
 ---Get a description of a creature's health
@@ -984,14 +1129,6 @@ function Creature:get_bonus(bonusType)
         bcount = bcount + 1
       end
     end --end bonuses if
-    --Get bonuses from equipment enchantment:
-    if not equip.melee_attack then --Don't apply any enchantment bonuses from weapons. We have to assume those bonuses are intended only for attacks done with the weapon
-      local b = equip:get_enchantment_bonus(bonusType)
-      if b ~= 0 then
-        bonus = bonus + b
-        bcount = bcount + 1
-      end
-    end
   end --end equipment for
   if not possibleSkills[bonusType] and not possibleSkills[string.sub(bonusType,1,-9)] then --in order to avoid infinite loops, skills cannot grant bonuses to other skills
     for skillID,skillVal in pairs(self.skills) do
@@ -1034,49 +1171,110 @@ function Creature:get_bonus(bonusType)
 	return bonus
 end
 
----Check how much damage of a given damage type is reduced by a creature's resistances and bonuses
---@param amt Number. The original damage.
---@param damageType String. The damage type.
---@return Number. The amount by which the damage is reduced
-function Creature:get_resistance(amt,damageType)
-  local resist = (self.resistances and self.resistances[damageType] or 0)
+---Returns the total bonus from a skill
+--@param skillID String. The ID of the skill
+--@param skillVal Number. The level of the skill (optional, defaults to current level)
+--@return Table. A table of values in the form bonus=amt
+function Creature:get_bonuses_from_skill(skillID,skillVal)
+  local skill = possibleSkills[skillID]
+  skillVal = skillVal or (self.skills[skillID] and self:get_skill(skillID) or 1)
   
-  for _,ctype in ipairs(self:get_types()) do
+  local bonuses = {}
+  
+  if skill.bonuses then
+    for bonus,val in pairs(skill.bonuses) do
+      bonuses[bonus] = val
+    end
+  end
+  
+  if skill.bonuses_per_level then
+    for bonus,val in pairs(skill.bonuses_per_level) do
+      bonuses[bonus] = (bonuses[bonus] or 0) + val*skillVal
+    end
+  end
+  
+  if skill.bonuses_at_level then
+    for i = skillVal,1,-1 do
+      if skill.bonuses_at_level[i] then
+        for bonus,val in pairs(skill.bonuses_at_level[i]) do
+          bonuses[bonus] = (bonuses[bonus] or 0) + val
+        end
+      end
+    end
+  end
+  
+  if skill.bonuses_per_x_levels then
+    for lvl,lvlbonuses in pairs(skill.bonuses_per_x_levels) do
+      if skillVal >= lvl then
+        for bonus,val in pairs(lvlbonuses) do
+          bonuses[bonus] = (bonuses[bonus] or 0) + val*math.floor(skillVal/lvl)
+        end
+      end
+    end
+  end
+  return bonuses
+end
+
+---Check how much damage of a given damage type is reduced by a creature's resistances and bonuses
+--@param damageType String. The damage type.
+--@param noBonus Boolean. If true, don't add bonuses
+--@param base_only Boolean. If true, don't look at creature types applied by conditions
+--@return Number. The amount by which the damage is reduced
+function Creature:get_resistance(damageType,noBonus,base_only)
+  local resistance = (self.resistance and self.resistances[damageType] or 0)
+  
+  for _,ctype in ipairs(self:get_types(base_only)) do
     local typ = creatureTypes[ctype]
     if typ then
       if typ.resistances and typ.resistances[damageType] then
-        resist = math.max(resist,amt)
+        resistance = math.max(resistance,typ.resistances[damageType])
       end --end if weaknesses
     end --end if type is defined
   end --end ctype for
   
-  local bonus = self:get_bonus(damageType .. "_resistance")
-  if bonus == 0 and resist == 0 then return 0 end
-  local reduction = math.floor(amt*((resist+bonus)/100))
-  return reduction
+  local bonus = (noBonus and 0 or self:get_bonus(damageType .. "_resistance"))
+  return resistance+bonus
 end --end get_resistance function
 
 ---Check how much damage of a given damage type is increased by a creature's weaknesses and bonuses
---@param amt Number. The original damage.
 --@param damageType String. The damage type.
+--@param noBonus Boolean. If true, don't add bonuses
+--@param base_only Boolean. If true, don't look at creature types applied by conditions
 --@return Number. The amount by which the damage is increased
-function Creature:get_weakness(amt,damageType)
+function Creature:get_weakness(damageType,noBonus,base_only)
   local weakness = (self.weaknesses and self.weaknesses[damageType] or 0)
   
-  for _,ctype in ipairs(self:get_types()) do
+  for _,ctype in ipairs(self:get_types(base_only)) do
     local typ = creatureTypes[ctype]
     if typ then
       if typ.weaknesses and typ.weaknesses[damageType] then
-        weakness = math.max(weakness,amt)
+        weakness = math.max(weakness,typ.weaknesses[damageType])
       end --end if weaknesses
     end --end if type is defined
   end --end ctype for
   
-  local bonus = self:get_bonus(damageType .. "_weakness")
-  if bonus == 0 and weakness == 0 then return 0 end
-  local increase = math.floor(amt*((weakness+bonus)/100))
-  return increase
+  local bonus = (noBonus and 0 or self:get_bonus(damageType .. "_weakness"))
+  return weakness+bonus
 end --end get_resistance function
+
+---Check the total damage modifier (resistance - weakness) for a damage type. Capped to 75% reduction, or 100% increase
+--@param damageType String. The damage type.
+--@param noBonus Boolean. If true, don't add bonuses
+--@param base_only Boolean. If true, don't look at creature types applied by conditions
+--@return Number. The amount by which the damage is increased
+function Creature:get_total_resistance(damageType,noBonus,base_only)
+  if self:is_healed_by_damage_type(damageType) then
+    return 10000
+  end
+  if self:is_immune_to_damage_type(damageType) then
+    return 1000
+  end
+  local weakness = math.max(0,self:get_weakness(damageType,noBonus,base_only))
+  local resistance = math.max(0,self:get_resistance(damageType,noBonus,base_only))
+  
+  local final = math.min(75,math.max(-100,resistance-weakness))
+  return final
+end --end get_total_resistance function
 
 ---Gets a list of all damage type weaknesses a creature has
 --@param noBonus Boolean. If true, don't add bonuses
@@ -1132,6 +1330,19 @@ function Creature:get_all_resistances(noBonus,base_only)
   return resistances
 end
 
+---Gets a list of all damage type weaknesses a creature has
+--@param noBonus Boolean. If true, don't add bonuses
+--@param base_only Boolean. If true, don't look at creature types applied by conditions
+--@return Table. A table of damage types and the weakness value
+function Creature:get_all_total_resistances(noBonus,base_only)
+  local mods = {}
+  
+  for dtype,_ in pairs(damage_types) do
+    mods[dtype] = self:get_total_resistance(dtype,noBonus,base_only)
+  end
+  return mods
+end
+
 ---Checks whether a creature has blanket immunity to a damage type
 --@param damageType String. The damage type.
 --@return Boolean. Whether or not they have immunity to that damage type
@@ -1168,19 +1379,24 @@ end
 --@param damage_type String. The damage type. If blank, look only at "all" armor value
 --@param noBonus Boolean. If true, don't apply bonuses
 --@param equipSlot String. If set, only look at equipment from this equipment slot. If false, don't apply equipment armor at all
+--@param no_all Boolean. If set, don't add "all" armor value
 --@return Number. The armor value
-function Creature:get_armor(damage_type,noBonus,equipSlot)
+function Creature:get_armor(damage_type,noBonus,equipSlot,no_all)
   local totalArmor = 0
   --First, apply built in armor values:
+  if damage_type then
+    if damage_types[damage_type] and damage_types[damage_type].no_all then
+      no_all = true
+    end
+  end
   if self.armor then
-    if type(self.armor) == "number" then
+    if not no_all and type(self.armor) == "number" then
       totalArmor = totalArmor + self.armor
     else
-      if self.armor.all then
-        totalArmor = totalArmor + self.armor.all
-      end
       if damage_type and self.armor[damage_type] then
         totalArmor = totalArmor + self.armor[damage_type]
+      elseif not no_all and self.armor.all then
+        totalArmor = totalArmor + self.armor.all
       end
     end
   end
@@ -1190,14 +1406,13 @@ function Creature:get_armor(damage_type,noBonus,equipSlot)
     for _,ctype in ipairs(self.types) do
       local ctypeInfo = creatureTypes[ctype]
       if ctypeInfo and ctypeInfo.armor then
-        if type(ctypeInfo.armor) == "number" then
+        if not no_all and type(ctypeInfo.armor) == "number" then
           totalArmor = totalArmor + ctypeInfo.armor
         else
-          if ctypeInfo.armor.all then
-            totalArmor = totalArmor + ctypeInfo.armor.all
-          end
           if damage_type and ctypeInfo.armor[damage_type] then
             totalArmor = totalArmor + ctypeInfo.armor[damage_type]
+          elseif not no_all and ctypeInfo.armor.all then
+            totalArmor = totalArmor + ctypeInfo.armor.all
           end
         end
       end
@@ -1209,15 +1424,10 @@ function Creature:get_armor(damage_type,noBonus,equipSlot)
     local equipment = (equipSlot and self:get_equipped_in_slot(equipSlot) or self:get_all_equipped())
     for _,eq in ipairs(equipment) do
       if eq.armor then
-        if type(eq.armor) == "number" then
+        if not no_all and type(eq.armor) == "number" then
           totalArmor = totalArmor + eq.armor
         else
-          if eq.armor.all then
-            totalArmor = totalArmor + eq.armor.all
-          end
-          if damage_type and eq.armor[damage_type] then
-            totalArmor = totalArmor + eq.armor[damage_type]
-          end
+          totalArmor = totalArmor + eq:get_armor(damage_type,noBonus,no_all)
         end
       end
       
@@ -1226,11 +1436,36 @@ function Creature:get_armor(damage_type,noBonus,equipSlot)
   
   --Finally, apply bonuses:
   if not noBonus then
-    totalArmor = totalArmor + round(totalArmor*(self:get_bonus('all_armor_percent')/100)) + self:get_bonus('all_armor')
-    if damage_type then totalArmor = totalArmor + round(totalArmor*(self:get_bonus(damage_type .. '_armor_percent')/100)) + self:get_bonus(damage_type .. '_armor') end
+    local pre_boost = totalArmor
+    if damage_type then
+      totalArmor = totalArmor + round(pre_boost*(self:get_bonus(damage_type .. '_armor_percent')/100)) + self:get_bonus(damage_type .. '_armor')
+    end
+    if not no_all then
+      totalArmor = totalArmor + round(pre_boost*(self:get_bonus('armor_percent')/100)) + self:get_bonus('armor')
+      totalArmor = totalArmor + round(pre_boost*(self:get_bonus('all_armor_percent')/100)) + self:get_bonus('all_armor')
+    end
+    if totalArmor > 0 then --only apply armor boost enchantments if the armor type > 0
+      totalArmor = totalArmor + round(pre_boost*(self:get_bonus('armor_modifier_percent')/100)) + self:get_bonus('armor_modifier')
+    end
   end
   if totalArmor < 0 then totalArmor = 0 end
   return totalArmor
+end
+
+---Gets a list of all armor values a creature has
+--@param noBonus Boolean. If true, don't add bonuses
+--@param base_only Boolean. If true, don't look at creature types applied by conditions
+--@return Table. A table of damage types and the weakness value
+function Creature:get_all_armor(noBonus,equipSlot)
+  local armor = {}
+  
+  for dtype,_ in pairs(damage_types) do
+    local val = self:get_armor(dtype,noBonus,equipSlot)
+    if val ~= 0 then
+      armor[dtype] = val
+    end
+  end
+  return armor
 end
 
 ---Checks whether a creature has immunity to a condition type
@@ -1262,6 +1497,7 @@ end
 --@return String. Either "miss," "hit," or "critical"
 --@return Number. How much damage (if any) was done
 function Creature:attack(target,forceHit,ignore_callbacks)
+  if self.noMelee then return false end
   if target and target.x and target.x<self.x then
     self.faceLeft = true
   elseif target and target.x and target.x>self.x then
@@ -1283,6 +1519,7 @@ function Creature:attack(target,forceHit,ignore_callbacks)
     for _,weapon in pairs(weapons) do
       totaldmg = totaldmg + (weapon:attack(target,self) or 0)
     end
+    currMap:register_incident('attacks',self,target,{damage=totaldmg})
     return totaldmg
   end
   
@@ -1296,6 +1533,7 @@ function Creature:attack(target,forceHit,ignore_callbacks)
     if player:can_see_tile(self.x,self.y) or player:can_see_tile(target.x,target.y) and player:does_notice(self) then
       output:out(self:get_name() .. ' attacks ' .. target:get_name() .. ", dealing " .. dmg .. " damage.")
     end
+    currMap:register_incident('attacks',self,target,{damage=dmg})
     return dmg
 	elseif self:touching(target) and (ignore_callbacks or self:callbacks('attacks',target) and target:callbacks('attacked',self)) then
 		local result,dmg = calc_attack(self,target)
@@ -1308,6 +1546,11 @@ function Creature:attack(target,forceHit,ignore_callbacks)
       dmg = 0
       if player:can_see_tile(self.x,self.y) or player:can_see_tile(target.x,target.y) and player:does_notice(self) and player:does_notice(target) then
         output:out(txt)
+        local popup = Effect('dmgpopup')
+        popup.image_name = "miss"
+        popup.symbol=""
+        popup.color = {r=0,g=0,b=150,a=150}
+        currMap:add_effect(popup,target.x,target.y)
       end
 		else
 			if (result == "critical") then txt = txt .. "CRITICAL HIT! " end
@@ -1337,7 +1580,7 @@ function Creature:attack(target,forceHit,ignore_callbacks)
       if player:can_see_tile(self.x,self.y) or player:can_see_tile(target.x,target.y) and player:does_notice(self) and player:does_notice(target) then
         output:out(txt)
       end
-			self:callbacks('damages',target,dmg)
+			self:callbacks('melee_attack_hits',target,dmg)
       --Handle conditions:
 			for _, condition in pairs (hitConditions) do
         local targetNum = (result == "critical" and condition.crit_chance or (condition.hit_chance or 0)) --If a critical, use critical chance, defaulting to regular chance. If it's a critical-only condition, regular chance defaults to 0
@@ -1364,6 +1607,7 @@ function Creature:attack(target,forceHit,ignore_callbacks)
       end
     end
     self:decrease_all_conditions('attack')
+    currMap:register_incident('attacks',self,target,{damage=dmg})
 		return dmg
 	else -- if not touching target
 		return false
@@ -1458,12 +1702,13 @@ end
 --@param x Number. The x coordinate
 --@param y Number. The y coordinate
 --@param inMap Map. The map to check. Defaults to current map (optional)
+--@param ignoreCache Boolean. If true, ignore the can_move_cache (optional)
 --@return Boolean. Whether or not the creature can move to that tile
-function Creature:can_move_to(x,y,inMap)
+function Creature:can_move_to(x,y,inMap,ignoreCache)
   --First, check to see if the target is A) even in the map, B) has a wall or creature
   inMap = inMap or currMap
   if not inMap:in_map(x,y) then return false end
-  if self.can_move_cache[x .. ',' .. y] ~= nil then return self.can_move_cache[x .. ',' .. y] end
+  if not ignoreCache and self.can_move_cache[x .. ',' .. y] ~= nil then return self.can_move_cache[x .. ',' .. y] end
   if inMap[x][y] == "#" or inMap:get_tile_creature(x,y) then
     self.can_move_cache[x .. ',' .. y] = false
     return false
@@ -1520,8 +1765,12 @@ function Creature:moveTo(x,y, skip_callbacks,noTween)
     canMove, val = self:callbacks('moves',x,y)
   end
 	if (skip_callbacks or canMove) and not self.immobile then
-    if val and val[1] and val[1].x and val[1].y then --if a callback returned a tile, set that as the new destination instead
-      x,y = val[1].x,val[1].y
+    if (val and val[1] and val[1].x and val[1].y) or (val and val.x and val.y) then --if a callback returned a tile, set that as the new destination instead
+      if val[1] then
+        x,y = val[1].x,val[1].y
+      else
+        x,y = val.x,val.y
+      end
     end
 		if (self:can_move_to(x,y)) then
       local canEnter = skip_callbacks or currMap:can_enter(x,y,self,self.x,self.y)
@@ -1549,7 +1798,7 @@ function Creature:moveTo(x,y, skip_callbacks,noTween)
             local tileSize = output:get_tile_size()
             
             self.xMod,self.yMod=self.xMod-moveX*tileSize,self.yMod-moveY*tileSize
-            if self:is_type('flyer') == false then
+            if self:is_type('airborne') == false then
               self.yMod = self.yMod-2
             end
             if timers[tostring(self) .. 'moveTween'] then
@@ -1609,11 +1858,8 @@ end
 ---Forcibly move a creature to a tile, no matter what. Do not use this function unless you absolutely have to, it is terrible and goes against everything we stand for, and can lead to creatures being stuck in places they shouldn't be, multiple creatures in a tile, or other things that you generally don't want.
 --@param x Number. The x coordinate
 --@param y Number. The y coordinate
-function Creature:forceMove(x,y) -- Do not use this function unless you absolutely have to
-  --It is terrible and goes against everything we stand for
-  --But sometimes you have to do something bad to do something good (or something)
-  --Whatever, knock yourself out but don't cry if something shitty happens
-  if (self.x and self.y) then
+function Creature:forceMove(x,y)
+  if self.x and self.y then
     currMap.contents[self.x][self.y][self] = nil --empty old tile
     if x<self.x then self.faceLeft = true elseif x>self.x then self.faceLeft = false end
     if self.topDown then
@@ -1635,7 +1881,7 @@ end
 --@param target Entity. The entity to check (can be any table with an X and Y coordinate)
 --@return Boolean. Whether they're touching
 function Creature:touching(target)
-  if not target.x or not self.x or not target.y or not self.y then --You're definitely not touching something that doesn't exist in corporeal space
+  if not target or not target.x or not self.x or not target.y or not self.y then --You're definitely not touching something that doesn't exist in corporeal space
     return false
   end
 	if (math.abs(target.x-self.x) <= 1 and math.abs(target.y-self.y) <= 1) then
@@ -1648,13 +1894,18 @@ end
 --@param killer Entity. Whodunnit? By default, nothing actually passes in a killer, but it's here just in case
 --@param silent Boolean. If true, don't output anything
 function Creature:die(killer,silent)
-  if self.isDead then return self:remove() end
+  if self.isDead then
+    if self == player then
+      return
+    else
+      return self:remove()
+    end
+  end
   if killer then self.killer = killer end
   if killer == nil and self.lastAttacker then
     self.killer = self.lastAttacker
   end
   if self:callbacks('dies',self.killer) then
-    self.isDead = true
     local seen = (not silent and player:can_see_tile(self.x,self.y))
     if seen then
       if self.deathSound then output:sound(self.deathSound)
@@ -1662,6 +1913,10 @@ function Creature:die(killer,silent)
       elseif not output:sound(self.id .. "_death") then --output:sound return false if a sound doesn't exist
         output:sound('genericdeath') --default death
       end --end sound type if
+      if self.death_animation then
+        local color = self.death_animation_color or (self.death_animation_use_creature_color and copy_table(self.color) or nil)
+        currMap:add_effect(Effect('animation',{image_name=self.death_animation,time_per_tile=self.death_animation_time_per_tile,target={x=self.x,y=self.y},color=color,use_color_with_tiles=(self.color and true or false)}),self.x,self.y)
+      end
     end --end seen if
     if self.playerAlly == true and self ~= player then
       update_stat('ally_deaths')
@@ -1716,39 +1971,18 @@ function Creature:die(killer,silent)
       end
     
       --Give/Remove Favor and Reputation:
-      local favor = self:get_kill_favor()
-      for fac,favor in pairs(favor) do
-        local member = self.killer:is_faction_member(fac)
-        if not currWorld.factions[fac].members_only_favor or member then
-          self.killer.favor[fac] = (self.killer.favor[fac] or 0) + favor
-          if self.killer.playerAlly == true and favor ~= 0 then
-            output:out("You " .. (favor > 0 and "gain " or "lose ") .. math.abs(favor) .. " favor with " .. currWorld.factions[fac].name .. ".")
-          end
-        end --end if member/members only favor
-      end --end faction for
       local reputation = self:get_kill_reputation()
       for fac,reputation in pairs(reputation) do
-        local member = self.killer:is_faction_member(fac)
-        if not currWorld.factions[fac].members_only_reputation or member then
-          self.killer.reputation[fac] = (self.killer.reputation[fac] or 0) + reputation
-          if self.killer.playerAlly == true and reputation ~= 0 then
-            output:out("You " .. (reputation > 0 and "gain " or "lose ") .. math.abs(reputation) .. " reputation with " .. currWorld.factions[fac].name .. ".")
-          end
-          if currWorld.factions[fac].banish_threshold and member and self.killer.reputation[fac] < currWorld.factions[fac].banish_threshold then
-            currWorld.factions[fac]:leave(self.killer)
-            if self.killer.playerAlly == true  then
-              output:out("You are kicked out of " .. currWorld.factions[fac].name .. "!")
-            end
-          end --end banish reputation if
-        end --end if member/members only reputation
+        self.killer:update_reputation(fac,reputation,true,"killing " .. self:get_name(),true)
+      end --end faction for
+      local favor = self:get_kill_favor()
+      for fac,favor in pairs(favor) do
+        self.killer:update_favor(fac,favor,true,"killing " .. self:get_name())
       end --end faction for
       self.killer:decrease_all_conditions('kill')
     elseif seen then --killed by something other than a creature
       output:out(self:get_name() .. " dies!")
     end --end playerally killer if
-    
-    --Free Thralls:
-    self:free_thralls()
     
     --Carve a notch into the killer's weapon:
     local weap = self.lastAttackerWeapon 
@@ -1764,6 +1998,22 @@ function Creature:die(killer,silent)
       local cd = data.ignoreCooldowns
       data.spell:finish(t, self, cd, mp)
     end
+    
+    --Register the death incident on the map, for other creatures to respond to:
+    currMap:register_incident('dies',self)
+    if self.killer and self.killer.baseType == "creature" then
+      currMap:register_incident('kills',self.killer,self)
+    end
+    
+    if self == player then
+      return player_dies() --handle special player death stuff elsewhere
+    end
+    self.isDead = true
+    self.hp = 0
+    
+    --Free Thralls:
+    if self.master then self.master.thralls[self] = nil end
+    self:free_thralls()
     
     --Corpse time:
     if self.explosiveDeath then
@@ -1781,20 +2031,14 @@ function Creature:die(killer,silent)
       if self.corpse == nil then
         local corpse = Feature('corpse',self)
         currMap:add_feature(corpse,self.x,self.y)
-        corpse:refresh_image_name()
       elseif self.corpse then
         local corpse = Feature(self.corpse,self)
         currMap:add_feature(corpse,self.x,self.y)
       end --end special corpse vs regular corpse if
-      
       self:drop_all_items(true)
     end --end absorbs if
   
-    if self == player then
-      if action ~= "dying" then player_dies() end
-    else
-      self:remove()
-    end
+    self:remove()
   end --end dies callback if
 end
 
@@ -1821,27 +2065,16 @@ function Creature:explode()
       end --end special explosion code check
     end --end callback check
 	end -- end initial if
-  --Add fear to creatures that saw the explosion:
-  for x=self.x-10,self.x+10,1 do
-    for y=self.y-10,self.y+10,1 do
-      if currMap:in_map(x,y) then
-        local creat = currMap:get_tile_creature(x,y)
-        if creat and creat:can_see_tile(self.x,self.y) then --if they can't see it, they can't be scared of it
-          if creat.master and creat.master == self then
-            creat.fear = creat.fear + 25 --seeing your master explode? really scary
-          elseif self:is_friend(creat) then
-            creat.fear = creat.fear + 10 -- seeing a friend explode? scary
-          elseif not creat:is_enemy(self) then --seeing an enemy explode is not scary
-            creat.fear = creat.fear + 5  --seeing a rando explode is a little scary
-          end
-        end
-      end --end in_map if
-    end --end fory
-  end --end forx
+  --Add fear to creatures that saw the explosion
+  currMap:register_incident('explodes',self)
   
-  self:drop_all_items(true)
-  if self == player then player_dies()
-  else self:remove() end
+  
+  if self == player then
+    player:die()
+  else
+    self:drop_all_items(true)
+    self:remove()
+  end
 end -- end function
 
 ---Remove a creature from the map without killing it. Called to clean up after the creature dies, but can also be called whenever to remove them for some other reason.
@@ -1853,11 +2086,11 @@ function Creature:remove(map)
   if self.castsLight then map.lights[self] = nil end
   map.creatures[self] = nil
   
-  --Handle thrall stuff:
+  --[[Handle thrall stuff:
   if self.master then self.master.thralls[self] = nil end
-  self:free_thralls()
+  self:free_thralls()--]]
   
-	self.hp = 0
+	--self.hp = 0
 	if (target == self) then
 		target = nil
 	end
@@ -1910,7 +2143,8 @@ end
 ---Have a creature pick up an item from a tile.
 --@param item Item. The item to pick up
 --@param tileOnly Boolean. Whether to only allow pickups from the tile the creature is standing on. If not set to TRUE, creatures can also pick up from adjacent tiles.
-function Creature:pickup(item,tileOnly)
+--@param silent Boolean. If true, don't say anything
+function Creature:pickup(item,tileOnly,silent)
   --First check if it fits in your free inventory space
   local slots = self:get_free_inventory_space()
   local size = (item.size or 1)
@@ -1922,17 +2156,19 @@ function Creature:pickup(item,tileOnly)
   end
   local didIt,pickupText = item:callbacks('pickup',self)
   if didIt == false then
-    output:out(pickupText)
+    if pickupText then output:out(pickupText) end
     return false,pickupText
   end
   local x,y = self.x,self.y
   if ((tileOnly ~= true and not self:touching(item)) or (tileOnly == true and (item.x ~= x or item.y ~= y))) and (not item.possessor or not item.possessor.inventory_accessible_anywhere) then return false end
-  if item.possessor then
-    if player:can_sense_creature(self) then
+  local original_possessor = item.possessor
+  local original_x,original_y = item.x, item.y
+  if item.possessor and (not item.possessor.take_item or item.possessor:take_item(self,item)) ~= false then
+    if not silent and player:can_sense_creature(self) then
       output:out(pickupText or self:get_name() .. " takes " .. item:get_name() .. " from " .. item.possessor:get_name() .. ".")
     end
     item.possessor:drop_item(item)
-  elseif player:can_sense_creature(self) then
+  elseif not silent and player:can_sense_creature(self) then
     output:out(pickupText or self:get_name() .. " picks up " .. item:get_name() .. ".")
   end
   currMap.contents[item.x][item.y][item] = nil
@@ -1940,11 +2176,15 @@ function Creature:pickup(item,tileOnly)
     currMap.lights[item] = nil
   end
   self:give_item(item)
+  currMap:register_incident('take_item',self,item,{original_possessor=original_possessor,original_x=original_x,original_y=original_y})
 end
 
 ---Transfer an item to a creature's inventory
 --@param item Item. The item to give.
-function Creature:give_item(item)
+--@param silent Boolean. If true, don't show a popup
+function Creature:give_item(item,silent)
+  if item.possessor == self or self:has_specific_item(item) then return false end
+  local initial_amt = item.amount
   if not item or type(item) ~= "table" or item.baseType ~= "item" then
     output:out("Error: Tried to give non-existent item to creature " .. self:get_name())
     print("Tried to give non-existent item to creature " .. self:get_name())
@@ -1965,7 +2205,7 @@ function Creature:give_item(item)
         has_item.amount = max_stack
         local new_stack_amt = item.amount - space_in_stack
         item.amount = new_stack_amt
-        return self:give_item(item) --run this again, so it'll look at the next stack
+        return self:give_item(item,silent) --run this again, so it'll look at the next stack
       end
     else
       table.insert(self.inventory,item)
@@ -1980,6 +2220,32 @@ function Creature:give_item(item)
   end
   item.x,item.y=self.x,self.y
   item.possessor = self
+  --Add item popup:
+  if self == player and not silent then
+    local popup1 = Effect('dmgpopup')
+    popup1.symbol = "+" .. (initial_amt > 1 and initial_amt or "")
+    popup1.color = {r=0,g=255,b=0,a=150}
+    local tileMod = round(fonts.mapFontWithImages:getWidth(popup1.symbol)/2)
+    popup1.xMod = -tileMod
+    local popup2 = Effect('dmgpopup')
+    popup2.image_name = item.image_name or item.id
+    popup2.imageType = "item"
+    popup2.xMod = tileMod
+    popup2.speed = popup1.speed
+    if (item.use_color_with_tiles ~= false or gamesettings.always_use_color_with_tiles) and item.color then
+      popup2.color = {r=item.color.r,g=item.color.g,b=item.color.b,a=150}
+    else
+      popup2.color = {r=255,g=255,b=255,a=150}
+    end
+    popup1.paired = popup2
+    popup2.paired = popup1
+    popup2.itemID = item.id
+    popup2.sortBy = (item.sortBy and item[item.sortBy] or nil)
+    popup2.itemAmt = initial_amt
+    print(debug.traceback())
+    currMap:add_effect(popup1,self.x,self.y)
+    currMap:add_effect(popup2,self.x,self.y)
+  end
   return item
 end
 
@@ -1987,7 +2253,8 @@ end
 --@param item Item. The item to drop
 --@param silent Boolean. If true, don't display drop text
 function Creature:drop_item(item,silent)
-	local id = in_table(item,self.inventory)
+  if item.undroppable then return false end
+	local _,id = self:has_specific_item(item)
 	if (id) then
     if not silent and player:can_sense_creature(self) then output:out(self:get_name() .. " dropped " .. item:get_name() .. ".") end
     currMap:add_item(item,self.x,self.y,true)
@@ -1998,6 +2265,19 @@ function Creature:drop_item(item,silent)
     item.x,item.y=self.x,self.y
     item.possessor=nil
     item.equipped=false
+    if self.hotkeys then
+      for hkid,hkinfo in pairs(self.hotkeys) do
+        if hkinfo.type == "item" and hkinfo.hotkeyItem == item then
+          local item = self:has_item(item.id,(item.sortBy and item[item.sortBy] or nil))
+          if item then
+            self.hotkeys[hkid] = {type='item',hotkeyItem=item}
+            item.hotkey = hkid
+          else
+            self.hotkeys[hkid] = nil
+          end
+        end
+      end
+    end
 	end
 end
 
@@ -2017,7 +2297,7 @@ function Creature:drop_all_items(deathItems)
       self:delete_item(item)
     end
 	end --end inventory for loop
-  if deathItems and self.death_items then
+  if deathItems and self.death_items and not self.summoned and not self:has_condition('summoned') then
     for _,item in ipairs(self.death_items) do
       if not item.drop_chance or random(1,100) <= item.drop_chance then
         currMap:add_item(item,self.x,self.y,true)
@@ -2041,25 +2321,60 @@ end
 
 ---Remove an item from a creature's inventory
 --@param item Item. The item to remove
---@param amt Number. The amount of the item to remove, if the item is stackable. Defaults to 1. 
-function Creature:delete_item(item,amt)
+--@param amt Number. The amount of the item to remove, if the item is stackable. Defaults to 1.
+--@param silent Boolean. If true, don't show the popup
+function Creature:delete_item(item,amt,silent)
   amt = amt or 1
-	local id = in_table(item,self.inventory)
+	local _,id = self:has_specific_item(item)
 	if (id) then
     if amt == -1 or amt >= (item.amount or 0) then
       table.remove(self.inventory,id)
       if self.hotkeys then
         for hkid,hkinfo in pairs(self.hotkeys) do
-          if hkinfo.type == "item" and hkinfo.hotKeyItem == item then
-            self.hotkeys[hkid] = nil
+          if hkinfo.type == "item" and hkinfo.hotkeyItem == item then
+            local item = self:has_item(item.id,(item.sortBy and item[item.sortBy] or nil))
+            print(item)
+            if item then
+              self.hotkeys[hkid] = {type='item',hotkeyItem=item}
+              item.hotkey = hkid
+            else
+              self.hotkeys[hkid] = nil
+            end
           end
         end
       end
+      item.possessor=nil
+      item.equipped=false
     else
       item.amount = item.amount - amt
     end
     if self:is_equipped(item) then
       self:unequip(item)
+    end
+    --Add item popup:
+    if self == player and not silent then
+      local popup1 = Effect('dmgpopup')
+      popup1.symbol = "-" .. (amt > 1 and amt or "")
+      popup1.color = {r=255,g=0,b=0,a=150}
+      local tileMod = round(fonts.mapFontWithImages:getWidth(popup1.symbol)/2)
+      popup1.xMod = -tileMod
+      local popup2 = Effect('dmgpopup')
+      popup2.image_name = item.image_name or item.id
+      popup2.imageType = "item"
+      popup2.xMod = tileMod
+      popup2.speed = popup1.speed
+      if (item.use_color_with_tiles ~= false or gamesettings.always_use_color_with_tiles) and item.color then
+        popup2.color = {r=item.color.r,g=item.color.g,b=item.color.b,a=150}
+      else
+        popup2.color = {r=255,g=255,b=255,a=150}
+      end
+      popup1.paired = popup2
+      popup2.paired = popup1
+      popup2.itemID = item.id
+      popup2.sortBy = (item.sortBy and item[item.sortBy] or nil)
+      popup2.itemAmt = amt
+      currMap:add_effect(popup1,self.x,self.y)
+      currMap:add_effect(popup2,self.x,self.y)
     end
 	end
 end
@@ -2198,9 +2513,9 @@ function Creature:equip(item)
       for i=1,slots,1 do
         if equipDef[i] then
           initialslots = initialslots + (equipDef[i].equipSize or 1)
+          unequips[#unequips+1] = equipDef[i]
         end
-        unequips[#unequips+1] = equipDef[i]
-        if initialslots >= size then
+        if (slotsUsed+initialslots) >= size then
           for i=1,#unequips,1 do
             self:unequip(unequips[i])
           end
@@ -2217,7 +2532,8 @@ function Creature:equip(item)
   if equipSlot then
     for i=1,equipSlot.slots,1 do
       if not equipSlot[i] then --if there's an empty slot, just use that
-        local didIt,equipText = item:callbacks('equip',self)
+        local didIt = true
+        didIt,equipText = item:callbacks('equip',self)
         if didIt ~= false then
           equipSlot[i] = item
           equipText = (equipText or "") .. (item.equipText or "You equip " .. item:get_name() .. ".")
@@ -2257,7 +2573,8 @@ function Creature:unequip(item)
   
   for i=1,self.equipment[equipSlot].slots,1 do
     if self.equipment[equipSlot][i] == item then
-      local didIt,unequipText = item:callbacks('unequip',self)
+      local didIt = true
+      didIt,unequipText = item:callbacks('unequip',self)
       if didIt ~= false then
         self.equipment[equipSlot][i] = nil
         unequipText = (unequipText or "") .. (item.unequipText or "You unequip " .. item:get_name() .. ".")
@@ -2369,6 +2686,7 @@ end
 --@param skipSight Boolean. Whether to skip running can_see_tile and just look at extra senses (optional)
 --@return Boolean. If the target can be seen.
 function Creature:can_sense_creature(creat,skipSight)
+  if not creat then return false end
   if self.sensed_creatures[creat] ~= nil then
     return self.sensed_creatures[creat]
   end
@@ -2384,11 +2702,7 @@ function Creature:can_sense_creature(creat,skipSight)
     self.sensed_creatures[creat] = true
     return true
   end
-  if action == "dying" and self == player and currMap.seenMap[creat.x] and currMap.seenMap[creat.x][creat.y] then
-    self.sensed_creatures[creat] = true
-    return true
-  end
-  if skipSight ~= true and not creat:has_condition('invisible') and self:can_see_tile(creat.x,creat.y) then
+  if skipSight ~= true and (creat.baseType ~= "creature" or not creat:has_condition('invisible')) and self:can_see_tile(creat.x,creat.y) then
     self.sensed_creatures[creat] = true
     return true
   end
@@ -2410,7 +2724,7 @@ function Creature:can_shoot_tile(x,y)
   --if (self == player) then return true end
 	local dist = calc_distance(self.x,self.y,x,y)
 	if self:can_see_tile(x,y) then
-		return currMap:is_line(self.x,self.y,x,y,false,'flyer',false,true,true)
+		return currMap:is_line(self.x,self.y,x,y,false,'airborne',false,true,true)
 	end
 	return false
 end
@@ -2429,11 +2743,11 @@ function Creature:is_enemy(target,dontSend)
   
   if (self.playerAlly == true) then
     if target.playerAlly == true then return false end --if you're both player allies, you're not enemies
-    if target.playerAlly ~= true and (target:is_enemy(player,dontSend) or self:is_faction_enemy(target) or self:is_enemy_type(target)) then return true end --if the target is not a player ally, and is an enemy of the player, an enemy of your faction, or an enemy creature type, they're your enemy too
+    if target.playerAlly ~= true and (target.shitlist[player] or self:is_faction_enemy(target) or self:is_enemy_type(target)) then return true end --if the target is not a player ally, and is an enemy of the player, an enemy of your faction, or an enemy creature type, they're your enemy too
   else --if we're not a player ally
     if self:is_faction_enemy(target) or self:is_enemy_type(target) then
       return true --if the target is an enemy of your faction, or a creature type you consider an enemy then they're you're enemy too
-    elseif (not self.factions or count(self.factions) == 0) and (target.playerAlly == true or target == player) and not self:is_friendly_type(target) then
+    elseif not self.attack_enemy_player_only and (not self.factions or count(self.factions) == 0) and (target.playerAlly == true or target == player) and not self:is_friendly_type(target) then
       return true --default behavior for non-faction enemies is to treat player and their allies as enemies unless they're a creature type they like
     end
   end --end playerally or not check
@@ -2476,7 +2790,22 @@ function Creature:get_types(base_only)
         end
       end
     end
-  end
+  end --end condition for
+  for _,spell in ipairs(self.spells) do
+    if spell.removes_creature_types then
+      for _,blocked in ipairs(spell.removes_creature_types) do
+        blockedtypes[blocked] = blocked
+        temptypes[blocked] = nil
+      end
+    end
+    if spell.applies_creature_types then
+      for _,ctype in ipairs(spell.applies_creature_types) do
+        if not blockedtypes[ctype] then
+          temptypes[ctype] = ctype
+        end
+      end
+    end
+  end --end spell for
   for _,ctype in ipairs(self.types) do
     if not blockedtypes[ctype] then
       temptypes[ctype] = ctype
@@ -2701,7 +3030,6 @@ function Creature:get_kill_reputation()
   return reputation
 end
 
-
 ---Cause the creature to notice another creature
 --@param creat Creature. The target to notice.
 --@param skip_callbacks Whether to force notice and skip the notices() callbacks (optional)
@@ -2717,6 +3045,147 @@ function Creature:notice(creat, skip_callbacks,force)
     return false
   end --end callbacks if
 end --end notice function
+
+---Modifies the reputation of a creatue with a faction TODO: custom rep change callbacks
+--@param factionID String. The faction ID
+--@param amount Number. The amount to change the reputation by
+--@param display Boolean. If true, display text noting the reputation change
+--@param reason String. Display this text after
+--@param noEnemies Boolean. if true, don't update enemy factions' reputation
+function Creature:update_reputation(factionID,amount,display,reason,noEnemies)
+  --If you're under player control, update player rep instead
+  if self.master and self.master == player then
+    return player:update_reputation(factionID,amount,display,reason,noEnemies)
+  end
+  
+  local faction = currWorld.factions[factionID]
+  local member = self:is_faction_member(factionID)
+  
+  --If rep only applies to members of this faction, don't do anything
+  if faction.members_only_reputation and not member then
+    return false
+  end
+  
+  if faction.contacted_when_reputation_changes then
+    faction.contacted = true
+  end
+  
+  self.reputation[factionID] = (self.reputation[factionID] or 0) + amount
+  if currGame.heist then
+    currGame.heist.reputation_change[factionID] = (currGame.heist.reputation_change[factionID] or 0) + amount
+  end
+  if display and self == player and amount ~= 0 and faction.contacted and not faction.hidden then
+    output:out("You " .. (amount > 0 and "gain " or "lose ") .. math.abs(amount) .. " reputation with the " .. faction.name .. (reason and " for " .. reason or "") .. ".")
+  end
+  if faction.banish_threshold and member and self.reputation[factionID] < faction.banish_threshold then
+    faction:leave(self)
+    if self == player then
+      output:out("You are kicked out of " .. faction.name .. "!")
+    end
+  end --end banish reputation if
+  if amount < 0 and faction.hostile_threshold and self.reputation[factionID] <= faction.hostile_threshold then
+    if self.thralls and count(self.thralls) > 0 then
+      for _,thrall in pairs(self.thralls) do
+        if thrall:is_faction_member(factionID) and not (thrall.summoned or thrall:has_condition('summoned') or thrall:is_type('mindless') or thrall:has_condition('enthralled')) then
+          thrall:become_free()
+          thrall:become_hostile(self,true)
+        end
+      end
+    end
+  end
+  if amount > 0 and not noEnemies then
+    for _,enemyFac in pairs(currWorld.factions) do
+      if enemyFac.enemy_factions and in_table(factionID,enemyFac.enemy_factions) then
+        self:update_reputation(enemyFac.id,-amount,display,"fraternizing with the " .. faction.name .. "")
+      end
+    end
+  end
+end
+
+---Modifies the favor of a creatue with a faction
+--@param factionID String. The faction ID
+--@param amount Number. The amount to change the favor by
+--@param display Boolean. If true, display text noting the favor change
+--@param reason String. Display this text after
+--@param track Boolean. If true, track this favor change for purposes of reputation increase
+function Creature:update_favor(factionID,amount,display,reason,track)
+  --If you're under player control, update player rep instead
+  if self.master and self.master == player then
+    return player:update_favor(factionID,amount,display,reason,track)
+  end
+
+  local faction = currWorld.factions[factionID]
+  local member = self:is_faction_member(factionID)
+  
+  --If rep only applies to members of this faction, don't do anything
+  if faction.members_only_favor and not member then
+    return false
+  end
+  
+  self.favor[factionID] = (self.favor[factionID] or 0) + amount
+  if display and self == player and amount ~= 0 and faction.contacted and not faction.hidden then
+    output:out("You " .. (amount > 0 and "gain " or "lose ") .. math.abs(amount) .. " favor with the " .. faction.name .. (reason and " for " .. reason or "") .. ".")
+  end
+  if track and faction.reputation_per_favor_spent and faction.reputation_per_favor_spent > 0 then
+    faction.favor_spent = (faction.favor_spent or 0) + math.abs(amount)
+    while faction.favor_spent >= faction.reputation_per_favor_spent do
+      self:update_reputation(factionID,1,display)
+      faction.favor_spent = faction.favor_spent - faction.reputation_per_favor_spent
+    end
+  end
+end
+
+function Creature:update_money(amt,silent)
+  local initial_amt = amt
+  if amt > 0 then
+    if currGame.heist then
+      local money = Item('money')
+      money.amount = amt
+      self:give_item(money,true)
+    else
+      self.money = self.money+amt
+    end
+  elseif amt < 0 then
+    --subtract from money item first
+    local money = self:has_item('money')
+    while money and amt < 0 do
+      local deleted_amt = math.min(math.abs(amt),money.amount)
+      amt = amt + deleted_amt
+      self:delete_item(money,deleted_amt,true)
+      money = self:has_item('money')
+    end
+    if amt < 0 then
+      self.money = self.money + amt
+    end
+  end
+  --Add item popup:
+  if amt ~= 0 and self == player and not silent then
+    local money_item = possibleItems['money']
+    local popup1 = Effect('dmgpopup')
+    popup1.symbol = (initial_amt > 1 and "+" or "") .. initial_amt
+    popup1.color = (initial_amt > 1 and {r=0,g=255,b=0,a=150} or {r=255,g=0,b=0,a=150})
+    local tileMod = round(fonts.mapFontWithImages:getWidth(popup1.symbol)/2)
+    popup1.xMod = -tileMod
+    local popup2 = Effect('dmgpopup')
+    popup2.image_name = (money_item and money_item.image_name or "money")
+    popup2.imageType = "item"
+    popup2.symbol = "$"
+    popup2.xMod = tileMod
+    popup2.speed = popup1.speed
+    if money_item and (money_item.use_color_with_tiles ~= false or gamesettings.always_use_color_with_tiles) and money_item.color then
+      popup2.color = {r=money_item.color.r,g=money_item.color.g,b=money_item.color.b,a=150}
+    else
+      popup2.color = {r=255,g=255,b=255,a=150}
+    end
+    popup1.paired = popup2
+    popup2.paired = popup1
+    popup2.itemId = "money"
+    popup2.itemAmt = initial_amt
+    currMap:add_effect(popup1,self.x,self.y)
+    currMap:add_effect(popup2,self.x,self.y)
+  end
+  return true
+end
 
 ---Checks if the creature has already noticed a creature. If not, see if they notice them now.
 --@return Boolean. Whether the creature has noticed the target.
@@ -2734,6 +3203,8 @@ end
 --@param creat Creature. The creature to try and notice
 --@return Boolean. Whether the creature is able to notice the target
 function Creature:can_notice(creat)
+  if not self.x or not self.y or not creat.x or not creat.y then return false end --If something isn't on the map, you can't notice it
+  if creat.baseType ~= "creature" then return true end
   local nTime = os.clock()
   --Creatures are more likely to notice others the closer they get
   local noticeChance = self:get_notice_chance()
@@ -2768,18 +3239,24 @@ end
 
 ---Become hostile to another creature
 --@param creat Creature. The creature to become hostile towards
---@param skip_callbacks. Boolean. Whether to skip hostility-related callbacks (optional)
---@param noSound Boolean. Whether to become hostile without playing a sound (optional)
+--@param force. Boolean. Whether to force hostility, even if the callbacks return false (optional)
+--@param silent Boolean. Whether to become hostile without playing a sound or displaying text(optional)
 --@return Boolean. Whether the creature became hostile to the target.
-function Creature:become_hostile(creat, skip_callbacks,noSound,noText)
+function Creature:become_hostile(creat,force,silent)
   if self == player or not creat or creat.baseType ~= "creature" then return false end
-  if skip_callbacks == true or (creat:callbacks('became_enemy',self) and self:callbacks('become_hostile',creat)) then
+  if self.shitlist[creat] then --if already hostile then just refresh alert status
+    self.alert = self.memory
+    return false
+  end
+  if force or (creat:callbacks('can_become_enemy',self) and self:callbacks('can_become_hostile',creat)) then
+    creat:callbacks('become_enemy',self)
+    self:callbacks('become_hostile',creat)
     if creat == player and player:can_see_tile(self.x,self.y) and self.shitlist[player] == nil and player:does_notice(creat) and player:can_sense_creature(creat) then
-      if not noText then output:out(self:get_name() .. " becomes hostile!") end
       local popup = Effect('dmgpopup')
       popup.image_name = "exclamation"
       currMap:add_effect(popup,self.x,self.y)
-      if not noSound then
+      if not silent then
+        output:out(self:get_name() .. " becomes hostile!")
         if self.aggroSound then output:sound(self.aggroSound)
         elseif self.soundgroup then output:sound(self.soundgroup .. "_aggro")
         elseif not output:sound(self.id .. "_aggro") then --output:sound return false if a sound doesn't exist
@@ -2835,12 +3312,11 @@ function Creature:make_fear_map()
     for y=sY-perc,sY+perc,1 do
       local xy = x .. "," .. y
       if (x>1 and y>1 and x<cW and y<cH) then
-        if self:can_move_to(x,y) == false then
-          lMap[xy] = false
-        else
-          local creat = currMap:get_tile_creature(x,y)
-          if creat and self:is_enemy(creat) then
+        local creat = currMap:get_tile_creature(x,y)
+          if creat and self:is_enemy(creat) and self:can_sense_creature(creat) then
             lMap[xy] = 0
+          else if self:can_move_to(x,y) == false then
+            lMap[xy] = false
           else
             lMap[xy] = 10
           end
@@ -2880,20 +3356,21 @@ function Creature:update(dt) --for charging, and other special effects
   --profiler.start()
   if self == player and self.sees == nil then self.sees = self:get_seen_creatures() end --update player sees if for some reason they don't see anything
   --Delete tween if done moving:
-  if self.doneMoving and self.xMod == 0 and self.yMod == 0 then
+  if self.doneMoving and self.xMod < 0.00001 and self.yMod < 0.00001 then
     self.doneMoving = nil
     if timers[tostring(self) .. 'moveTween'] then
       Timer.cancel(timers[tostring(self) .. 'moveTween'])
       timers[tostring(self) .. 'moveTween'] = nil
     end
     self.fromX,self.fromY=self.x,self.y
+    self.xMod,self.yMod = 0,0
   end
   
   --Hearts for allies:
-  if self.playerAlly == true and self ~= player then
+  if self.master == player and self ~= player then
     self.heartClock = (self.heartClock or 2) - dt
     if (self.heartClock <= 0 and random(1,5) == 1) then
-      local heart = Effect('heart',self.x,self.y)
+      local heart = Effect('floater',{image_name="heart",symbol="<3",color={r=255,g=0,b=0}})
       currMap:add_effect(heart,self.x,self.y)
       self.heartClock = 2
     end
@@ -2901,69 +3378,35 @@ function Creature:update(dt) --for charging, and other special effects
   
   if (self.zoomTo ~= nil) then --handle charging, knockbacks and the like
     local oldX,oldY=self.x,self.y
+    local originalZoomX,originalZoomY=self.zoomTo.x,self.zoomTo.y
     if (self.zoomLine == nil or #self.zoomLine == 0 or self.zoomLine[#self.zoomLine][1] ~= self.zoomTo.x or self.zoomLine[#self.zoomLine][2] ~= self.zoomTo.y) then
       --if we haven't made a zoomline yet, or the zoomline's target doesn't match the actual target's location anymore (ie a creature moved), make the zoomline
-      self.zoomLine = currMap:get_line(self.x,self.y,self.zoomTo.x,self.zoomTo.y,false,self.pathType)
+      self.zoomLine = currMap:get_line(self.x,self.y,self.zoomTo.x,self.zoomTo.y,false,self:get_pathType())
     end --end if line == nil
-    
-    if (self.zoomLine and #self.zoomLine > 0 and self:can_move_to(self.zoomLine[1][1],self.zoomLine[1][2]) == true) then --if first spot in line an empty, go there
+    if (self.zoomLine and #self.zoomLine > 0 and self:can_move_to(self.zoomLine[1][1],self.zoomLine[1][2],currMap,true) == true) and not currMap:get_blocking_feature(self.zoomLine[1][1],self.zoomLine[1][2]) then --if first spot in line an empty, go there
       self:moveTo(self.zoomLine[1][1],self.zoomLine[1][2],true)
 			table.remove(self.zoomLine,1)
     elseif self.zoomLine and #self.zoomLine > 0 then --if you can't go to the next point in the line, handle collision:
       local c = currMap:get_tile_creature(self.zoomLine[1][1],self.zoomLine[1][2])
-      if c and c ~= self then self.zoomTo = c --set the creature as your new target
-      else self.zoomTo = {x=self.zoomLine[1][1],y=self.zoomLine[1][2]} end --set the square as your new target
+      if c and c ~= self then
+        self.zoomTo = c --set the creature as your new target
+      else
+        self.zoomTo = {x=self.zoomLine[1][1],y=self.zoomLine[1][2]}
+      end --set the square as your new target
       self.zoomLine = {{self.zoomTo.x,self.zoomTo.y}}
     end
     
-    if (self.x == self.zoomTo.x and self.y == self.zoomTo.y) or (self:can_move_to(self.zoomTo.x,self.zoomTo.y) == false and (self:touching(self.zoomTo) or #self.zoomLine < 1 or not self.zoomLine)) then
-      local dist = math.floor(calc_distance(self.zoomFrom.x,self.zoomFrom.y,self.zoomTo.x,self.zoomTo.y))
-      if (self.zoomResult and self.zoomResult.use) then
-        self.zoomResult:use(self.zoomTo,self) --if you're charging, do whatever is at the end of the charge
+    if (self.x == self.zoomTo.x and self.y == self.zoomTo.y and (self.xMod < .00001 or not self.xMod) and (self.yMod < .00001 or not self.yMod)) or ((self:can_move_to(self.zoomTo.x,self.zoomTo.y,currMap,true) == false or currMap:get_blocking_feature(self.zoomTo.x,self.zoomTo.y)) and (self:touching(self.zoomTo) or #self.zoomLine < 1 or not self.zoomLine)) then
+      local dist_remaining = math.floor(calc_distance(self.x,self.y,originalZoomX,originalZoomY))
+      if self.zoomResult then
+        if type(self.zoomResult) == "string" then
+          local result = Spell(self.zoomResult)
+          result:use(self.zoomTo,self)
+        elseif self.zoomResult.use then
+          self.zoomResult:use(self.zoomTo,self) --if you're charging, do whatever is at the end of the charge
+        end
       else --if you're not charging, get hurt and hurt whoever you ran into
-        if self.zoomTo and currMap[self.zoomTo.x][self.zoomTo.y] == "#" and dist > 1 then
-          local dmg = self:damage(tweak((self.max_hp/random(10,20)*dist)),self.lastAttacker) --get damaged
-          if player:can_see_tile(self.x,self.y) then
-            output:out(self:get_name() .. " slams into a wall, taking " .. dmg .. " damage!")
-            output:sound('collision_wall')
-          end
-          if self.hp <= 0 then
-            self.explosiveDeath = true
-            if self.lastAttacker == player then
-              achievements:give_achievement('knockback_kill')
-            end
-          end
-        else
-          for _,f in pairs(currMap:get_contents(self.zoomTo.x,self.zoomTo.y)) do
-            if (f.blocksMovement == true or f.baseType == "creature" and f ~= self) and (f.baseType == "creature" or f.attackable or not self:touching(self.zoomFrom)) then
-              local dmg = self:damage(tweak((self.max_hp/random(10,20)*dist)),self.lastAttacker) --get damaged
-              if f.baseType == "creature" or f.attackable then
-                local tdmg = f:damage(tweak((self.max_hp/random(10,20)*dist)),self.lastAttacker or self) --damage creature you hit
-                if player:can_see_tile(self.x,self.y) then
-                  output:out(self:get_name() .. " slams into " .. f:get_name() .. ", taking " .. dmg .. " damage. " .. (tdmg and ucfirst(f:get_name()) .. " takes " .. tdmg .. " damage." or ""))
-                  if f.baseType == "creature" then
-                    output:sound('collision_creature')
-                  else
-                    output:sound('collision_wall')
-                  end
-                end
-                if f.hp and f.hp <= 0 then
-                  f.explosiveDeath = true
-                elseif random(1,10) < dist*2 then --chance of knockback increases if the hitter was farther away
-                  local knockback = random(0,math.floor(dist))
-                  if knockback > 0 and f.baseType == "creature" then f:give_condition('knockback',knockback,self) end
-                end --end hp if
-               else
-                if player:can_see_tile(self.x,self.y) then
-                  output:out(self:get_name() .. " slams into the " .. f.name .. ", taking " .. dmg .. " damage!")
-                  output:sound('collision_wall')
-                end
-               end --end feature vs. creature if
-              if self.hp <= 0 then self.explosiveDeath = true end
-              break
-            end --end blocks movement if
-          end --end feature for
-        end --end wall if
+        self:collide(self.zoomTo,dist_remaining)
       end -- end charging or not if
       self.zoomFrom = nil
       self.zoomTo = nil
@@ -2976,26 +3419,14 @@ function Creature:update(dt) --for charging, and other special effects
   end --end if self zoomto
 
   for condition, info in pairs(self.conditions) do --for special effects like glowing, shaking, whatever
-		if (conditions[condition].update ~= nil) then
-      local status,r = pcall(conditions[condition].update,conditions[condition],self,dt)
-      if status == false then
-        output:out("Error in condition " .. condition .. " update code: " .. r)
-        print("Error in condition " .. condition .. " update code: " .. r)
-      end
-    end
+		if (conditions[condition].update ~= nil) then conditions[condition]:update(self,dt) end
   end -- end for
   
   if self.animated and prefs['creatureAnimations'] and not prefs['noImages'] and (self.animateSleep or not self:has_condition('asleep')) and player:does_notice(self) and player:can_sense_creature(self) then
     self.animCountdown = (self.animCountdown or 0) - dt
     if self.animCountdown < 0 then
       local imageNum = nil
-      --Get the current image frame #
-      local currNum = 1
-      if self.spritesheet then
-        currNum = self.image_frame
-      else
-        currNum = self.image_name and tonumber(string.sub((self.image_name),-1)) or 1
-      end
+      local currNum = self.image_frame
       --Now actually go about selecting the image
       if self.randomAnimation ~= true then --Images in sequence?
         --If you've reached the end of the line:
@@ -3016,16 +3447,15 @@ function Creature:update(dt) --for charging, and other special effects
           loopCount = loopCount + 1
         end --end while image == currNum
       end --end random-or-not if
-      if self.spritesheet then
-        self.image_frame = imageNum
-      else
+      self.image_frame = imageNum
+      if not self.spritesheet then
         local image_base = (self.image_base or (possibleMonsters[self.id].image_name or self.id))
-        self.image_name = image_base .. imageNum
+        self.image_name = image_base .. self.image_frame
       end
       --Change the light color, if necessary
       if self.lightColors then
         self.lightColor = self.lightColors[imageNum]
-        currMap:refresh_light(self,true)
+        currMap:refresh_light(self)
       end --end lightcolor if
       if self.colors then
         self.color = self.colors[imageNum] or self.color
@@ -3040,6 +3470,56 @@ function Creature:update(dt) --for charging, and other special effects
   --profiler.stop()
   --print(profiler.report(10))
 end --end function
+
+---Collide with another creature or object
+--@param target Entity or coordinates. The entity or coordinates collided with
+--@param dist Number. The distance still remaining in the knockback prior to collision
+function Creature:collide(target,dist)
+  local dmg = dist*2
+  if target and target.x and target.y and currMap:isWall(target.x,target.y) then
+    local dmg = self:damage(tweak(dmg),self.lastAttacker) --get damaged
+    if player:can_see_tile(self.x,self.y) then
+      output:out(self:get_name() .. " slams into a wall, taking " .. dmg .. " damage!")
+      output:sound('collision_wall')
+    end
+    if self.hp <= 0 then
+      self.explosiveDeath = true
+      if self.lastAttacker == player then
+        achievements:give_achievement('knockback_kill')
+      end
+    end
+  else
+    for _,f in pairs(currMap:get_contents(self.zoomTo.x,self.zoomTo.y)) do
+      if (f.blocksMovement == true or f.baseType == "creature" and f ~= self) and (f.baseType == "creature" or f.attackable or not self:touching(self.zoomFrom)) then
+        local dmg = self:damage(tweak(dmg),self.lastAttacker) --get damaged
+        if f.baseType == "creature" or f.attackable then
+          local tdmg = f:damage(tweak(dmg),self.lastAttacker or self) --damage creature you hit
+          if player:can_see_tile(self.x,self.y) then
+            output:out(self:get_name() .. " slams into " .. f:get_name() .. ", taking " .. dmg .. " damage. " .. (tdmg and ucfirst(f:get_name()) .. " takes " .. tdmg .. " damage." or ""))
+            if f.baseType == "creature" then
+              output:sound('collision_creature')
+            else
+              output:sound('collision_wall')
+            end
+          end
+          if f.hp and f.hp <= 0 and dist > 2 then
+            f.explosiveDeath = true
+          elseif random(1,10) < dist*2 then --chance of knockback increases if the hitter was farther away
+            local knockback = random(1,math.floor(dist))
+            if knockback > 0 and f.baseType == "creature" then f:give_condition('knockback',knockback,self) end
+          end --end hp if
+        else
+          if player:can_see_tile(self.x,self.y) then
+            output:out(self:get_name() .. " slams into the " .. f.name .. ", taking " .. dmg .. " damage!")
+            output:sound('collision_wall')
+          end
+         end --end feature vs. creature if
+        if self.hp <= 0 and dist > 2 then self.explosiveDeath = true end
+        break
+      end --end blocks movement if
+    end --end feature for
+  end --end wall if
+end
 
 ---Placeholder. Doesn't do anything.
 --@return False.
@@ -3057,7 +3537,38 @@ end
 --@param self Creature. The creature itself
 --@return Number. The stat value
 function Creature:get_perception()
-  return self.perception+self:get_bonus('perception')
+  local perc = self.perception or 1
+  perc = perc + round(perc*(self:get_bonus('perception_percent')/100)) + self:get_bonus('perception')
+  return perc
+end
+
+---Gets the threat level of a given creature
+function Creature:get_threat()
+  local base = self.threat
+  if base and gamesettings.creature_threat_definitions and gamesettings.creature_threat_definitions[base] then
+    base = gamesettings.creature_threat_definitions[base]
+  end
+  if not base or type(base) ~= "number" then
+    base = gamesettings.default_creature_threat or 1
+  end
+  local level_threat = (self.level or 1)*(self.threat_per_level or gamesettings.creature_threat_per_level or 0)
+  local per_level = (self.threat_per_level_difference or gamesettings.creature_threat_per_level_difference or self.threat_per_level or gamesettings.creature_threat_per_level)
+  if player and player.level and per_level then
+    level_threat = level_threat + (self.level - player.level)*per_level
+  end
+  local threat = base + level_threat
+  if self.inventory then
+    for _,item in ipairs(self:get_inventory()) do
+      threat = threat + item:get_threat()
+    end
+  end
+  if self.get_bonus then --This is to ensure that this is a substantiated creature, rather than get_threat() being called on a creature definition
+    threat = threat + round(threat * (self:get_bonus('threat_percent')/100)) + self:get_bonus('threat')
+  end
+  if base > 0 and threat < 0 then --Only become a negative threat if you begin as a negative threat
+    threat = 1
+  end
+  return threat
 end
 
 ---Makes a creature fly through the air to a target
@@ -3082,8 +3593,8 @@ function Creature:become_thrall(master,skip_callbacks,skip_stats)
     if master.isPlayer == true then
       self.playerAlly = true
       local pop = Effect('dmgpopup')
-      pop.color={r=0,g=0,b=255,a=255}
-      pop.image_name = "exclamation"
+      pop.color={r=255,g=0,b=0,a=255}
+      pop.image_name = "heart"
       currMap:add_effect(pop,self.x,self.y)
       if not skip_stats then
         update_stat('thralls',self.id)
@@ -3258,10 +3769,59 @@ function Creature:level_up(force,ignore_callback)
       end
     end
   end
+  if self.learns_random_spells then
+    self:learn_random_spells()
+  end
   --Heal, if heal on level up is set
   if gamesettings.heal_on_level_up then
     self.hp = self:get_max_hp()
     self.mp = self:get_max_mp()
+  end
+end
+
+---Learns random spells based on spells this creature is capable of learning. Used for NPCs
+function Creature:learn_random_spells()
+  --Add spells:
+  local slots = self:get_free_spell_slots()
+  if not slots or slots == 0 then return false end
+  
+  --Make a list of learnable spells:
+  local learnable_base = self:get_purchasable_spells()
+  local learnable_spells = {}
+  local recommended_spells = {}
+  for _,spellInfo in pairs(learnable_base) do
+    local spellID = spellInfo.spell
+    learnable_spells[spellID] = spellID
+    if possibleSpells[spellID].recommended then
+      recommended_spells[#recommended_spells+1] = spellID
+    end
+  end
+  
+  --First, add a recommended spell from the list if you don't know any spells:
+  if count(self.known_spells) == 0 and count(recommended_spells) > 0 then
+    shuffle(recommended_spells)
+    for _,spellID in ipairs(recommended_spells) do
+      if not self:has_spell(spellID,true,true) then
+        self:learn_spell(spellID)
+        learnable_spells[spellID] = nil
+        slots = self:get_free_spell_slots()
+        break
+      end
+    end
+  end
+  
+  --Next, add random spells:
+  local whilecount = 0
+  while slots > 0 and whilecount < 100 and count(learnable_spells) > 0 do
+    local spellID = get_random_element(learnable_spells)
+    if self:has_spell(spellID,true,true) then
+      learnable_spells[spellID] = nil
+    else
+      self:learn_spell(spellID)
+      slots = self:get_free_spell_slots()
+      learnable_spells[spellID] = nil
+    end
+    whilecount = whilecount+1
   end
 end
 
@@ -3476,7 +4036,7 @@ function Creature:get_dodging(dodge_stats)
       dodge = dodge + mod*(self:get_stat(stat))
     end --end stat for
   end --end if stats
-  return dodge + self:get_bonus('dodge_chance')
+  return dodge
 end
 
 ---Gets the creature's armor piercing value, including bonuses
@@ -3491,6 +4051,22 @@ function Creature:get_critical_chance()
   return (self.critical_chance or 1)+self:get_bonus('critical_chance')
 end
 
+---Gets the creature's pathType, set in the creature definition or in the 
+function Creature:get_pathType()
+  local pathType = self.pathType
+  for conID,_ in pairs(self.conditions) do
+    if conditions[conID].applies_pathType then
+      pathType = conditions[conID].applies_pathType
+    end
+  end
+  for _,spell in pairs(self.spells) do
+    if spell.applies_pathType then
+      pathType = spell.applies_pathType
+    end
+  end
+  return pathType
+end
+
 ---A generic function for getting a stat and its bonus. Looks at base stats first, then extra_stats, then skills
 --@param stat Text. The stat to get
 --@param noBonus Boolean. If true, don't add the bonus to the stat
@@ -3500,7 +4076,7 @@ function Creature:get_stat(stat,noBonus)
   if not base and self.skills[stat] then return self:get_skill(stat,noBonus) end
   base = base or 0
   
-  if not noBonus then
+  if not noBonus and type(base) == "number" then
     local percBonus = round(base*(self:get_bonus(stat .. '_percent')/100))
     base = base + percBonus + self:get_bonus(stat)
   end
@@ -3582,6 +4158,15 @@ function Creature:can_upgrade_skill(skillID,ignore_cost)
     if ret == false then return false,text end
   end
   
+  --Check required skills:
+  if skill.requires_skills then
+    for skill,val in pairs(skill.requires_skills) do
+      if not self.skills[skill] or self.skills[skill] < val then
+        return false
+      end
+    end
+  end
+  
   --Check costs:
   if not ignore_cost then
     local cost = self:get_skill_upgrade_cost(skillID)
@@ -3596,7 +4181,7 @@ function Creature:can_upgrade_skill(skillID,ignore_cost)
     end
       
     if cost.item_cost then
-      for _,item_details in ipairs(cost.item_cost) do
+      for _,item_details in pairs(cost.item_cost) do
         local amount = (item_details.amount or 1)
         local sortByVal = item_details.sortBy
         local has,_,has_amt = self:has_item(item_details.item,sortByVal)
@@ -3657,6 +4242,8 @@ function Creature:upgrade_skill(skillID,val,ignore_cost)
     end
   end --end if val > 0
   
+  self.bonus_cache = {} --in case the skill increases boosts
+  
   val = val*(skillDef.increase_per_point or 1)
   local newValue = currVal + val
   if newValue < 0 then newValue = 0 end
@@ -3664,8 +4251,8 @@ function Creature:upgrade_skill(skillID,val,ignore_cost)
   local mod = (val > 0 and 1 or -1)
   if skillDef and (not skillDef.max or currVal < skillDef.max) and val ~= 0 then
     --Custom level up code:
-    if skillDef.update then
-      local result = skillDef:update(self,val)
+    if skillDef.upgrade then
+      local result = skillDef:upgrade(self,val,newValue)
       if result == false then return false end
     end
     --Do the skill increase:
@@ -3729,9 +4316,17 @@ function Creature:get_skill_upgrade_cost(skillID)
   
   local point_cost = skill.point_cost or (typeDef and typeDef.point_cost or nil)
   local learn_point_cost = skill.learn_point_cost or (typeDef and typeDef.learn_point_cost or nil)
+  local learn_point_cost_increase_per_skill = skill.learn_point_cost_increase_per_skill or (typeDef and typeDef.learn_point_cost_increase_per_skill or nil)
   local point_cost_increase_per_level = skill.point_cost_increase_per_level or (typeDef and typeDef.point_cost_increase_per_level or nil)
   local point_cost_increase_at_level = skill.point_cost_increase_at_level or (typeDef and typeDef.point_cost_increase_at_level or nil)
   local point_cost_increase_per_x_levels = skill.point_cost_increase_per_x_levels or (typeDef and typeDef.point_cost_increase_per_x_levels or nil)
+  
+  local skills_known = 0
+  for skID,_ in pairs(self.skills) do
+    if possibleSkills[skID] and possibleSkills[skID].skill_type == sType then
+      skills_known = skills_known+1
+    end
+  end
   
   local points = 0
   local level_cost = 0
@@ -3761,6 +4356,9 @@ function Creature:get_skill_upgrade_cost(skillID)
     end
     points = points + level_cost
   end --end learn cost if
+  if currVal == 0 and learn_point_cost_increase_per_skill and sType then
+    points = points + learn_point_cost_increase_per_skill*skills_known
+  end
   if points > 0 then
     cost.point_cost = points
     cost.upgrade_stat = pointID
@@ -3781,13 +4379,16 @@ function Creature:get_skill_upgrade_cost(skillID)
 
   --Check items:
   local item_cost = skill.item_cost or (typeDef and typeDef.item_cost or nil)
-  local learn_item_cost = skill.learn_item_cost or (typeDef and typeDef.learn_item_cost or nil) or item_cost
+  local learn_item_cost = skill.learn_item_cost or (typeDef and typeDef.learn_item_cost or nil)
   if currVal == 0 and learn_item_cost then
     if not cost.item_cost then cost.item_cost = {} end
     for _,item_details in ipairs(learn_item_cost) do
       local amount = (item_details.amount or 1)
       local index = item_details.item .. (item_details.sortBy or "")
       cost.item_cost[index] = {item=item_details.item,sortBy=item_details.sortBy,amount=amount,displayName=item_details.displayName}
+      if item_details.learn_cost_increase_per_skill then
+        cost.item_cost[index].amount = cost.item_cost[index].amount + (item_details.learn_cost_increase_per_skill*skills_known)
+      end
     end --end item cost for
   elseif item_cost then
     if not cost.item_cost then cost.item_cost = {} end
@@ -3815,6 +4416,9 @@ function Creature:get_skill_upgrade_cost(skillID)
       
       if amount == 0 and not item_details.amount then
         amount = 1
+      end
+      if currVal == 0 and item_details.learn_cost_increase_per_skill then
+        amount = amount + (item_details.learn_cost_increase_per_skill*skills_known)
       end
       local index = item_details.item .. (item_details.sortBy or "")
       cost.item_cost[index] = {item=item_details.item,sortBy=item_details.sortBy,amount=amount,displayName=item_details.displayName}
@@ -3952,8 +4556,8 @@ function Creature:learn_spell(spellID,force)
       end
       return newSpell
     else
-      output:out("Error: Creature " .. self:get_name() .. " " .. self.id .. " tried to learn non-existent spell " .. spellID)
-      print("Error: Creature " .. self:get_name() .. " " .. self.id .. " tried to learn non-existent spell " .. spellID)
+      output:out("Error: Creature " .. self.name .. " tried to learn non-existent spell " .. spellID)
+      print("Error: Creature " .. self.name .. " tried to learn non-existent spell " .. spellID)
     end
   end
 end
@@ -4003,6 +4607,13 @@ end
 function Creature:can_learn_spell(spellID)
   local spell = possibleSpells[spellID]
   if not spell then return false end
+  --Check if you already have it:
+  if self:has_spell(spellID,true,true) then
+    return false,"You already know this spell."
+  end
+  if self ~= player and spell.player_only then
+    return false
+  end
   --Check level:
   if spell.level_requirement and self.level < spell.level_requirement then
     return false,"You're not a high enough level to learn this ability."
@@ -4044,14 +4655,15 @@ end
 ---Gets the number of free spell slots a creature has
 --@return Number. The number of slots the creature has free in its spell list, or false if the creature has no inventory space set (which translates to infinite space)
 function Creature:get_free_spell_slots()
-  if not self.spell_slots then return false end
+  local allSlots = self:get_spell_slots()
+  if not allSlots then return false end
   
   local used_slots = 0
   for _,spell in pairs(self:get_spells(true)) do
     if not spell.freeSlot then used_slots = used_slots+1 end
   end
   
-  return self:get_spell_slots()-used_slots
+  return allSlots-used_slots
 end
 
 ---Gets the number of total spell slots the creature has *MAY WANT TO CHANGE FOR YOUR OWN GAME*
@@ -4094,8 +4706,16 @@ function Creature:get_purchasable_spells()
       end --end spell_purchases for
     end --end skilldef if
   end
-  for spellID,spinfo in pairs(possibleSpells) do
-    if not IDs[spellID] and spinfo.always_learnable and self:can_learn_spell(spellID) then
+  local spellList = possibleSpells
+  if self.spellTags then
+    local spellIDs = mapgen:get_content_list_from_tags('spell',self.spellTags)
+    spellList = {}
+    for _,spID in ipairs(spellIDs) do
+      spellList[spID] = possibleSpells[spID]
+    end
+  end
+  for spellID,spinfo in pairs(spellList) do
+    if not IDs[spellID] and (spinfo.always_learnable or (gamesettings.spells_learnable_by_default and spinfo.always_learnable ~= false)) and self:can_learn_spell(spellID) then
       spell_purchases[#spell_purchases+1] = {spell=spellID,point_cost=spinfo.learn_point_cost or 1,upgrade_stat=spinfo.upgrade_stat,upgrade_stat_name=spinfo.upgrade_stat_name,upgrade_stat_plural_name=spinfo.upgrade_stat_plural_name}
       IDs[spellID] = true
     end
@@ -4112,7 +4732,7 @@ function Creature:get_purchasable_skills(skillType)
   if self.class and playerClasses[self.class].skill_purchases then
     for _,info in ipairs(playerClasses[self.class].skill_purchases) do
       local skillDef = possibleSkills[info.skill]
-      if not possibilities[info.skill] and skillDef and self.skills[info.skill] == nil  and (not skillType or skillDef.skill_type == skillType) and (not info.level or info.level <= self.level) and self:can_upgrade_skill(info.skill,1) then
+      if not possibilities[info.skill] and skillDef and self.skills[info.skill] == nil  and (not skillType or skillDef.skill_type == skillType) and (not info.level or info.level <= self.level) and self:can_upgrade_skill(info.skill) then
         info.name = skillDef.name
         skill_purchases[#skill_purchases+1] = info
         possibilities[info.skill] = true
@@ -4122,7 +4742,7 @@ function Creature:get_purchasable_skills(skillType)
   if possibleMonsters[self.id].skill_purchases then
     for _,info in ipairs(possibleMonsters[self.id].skill_purchases) do
       local skillDef = possibleSkills[info.skill]
-      if not possibilities[info.skill] and skillDef and self.skills[info.skill] == nil and (not skillType or skillDef.skill_type == skillType) and (not info.level or info.level <= self.level) and self:can_upgrade_skill(info.skill,1) then
+      if not possibilities[info.skill] and skillDef and self.skills[info.skill] == nil and (not skillType or skillDef.skill_type == skillType) and (not info.level or info.level <= self.level) and self:can_upgrade_skill(info.skill) then
         info.name = skillDef.name
         skill_purchases[#skill_purchases+1] = info
         possibilities[info.skill] = true
@@ -4130,7 +4750,7 @@ function Creature:get_purchasable_skills(skillType)
     end --end skill purchase list for
   end --end if player definition has skill purchases
   for skillID,info in pairs(possibleSkills) do
-    if not possibilities[skillID] and self.skills[skillID] == nil  and (not skillType or info.skill_type == skillType) and (info.always_learnable or (info.always_learnable ~= false and info.skill_type and possibleSkillTypes[info.skill_type] and possibleSkillTypes[info.skill_type].always_learnable)) and self:can_upgrade_skill(skillID,1) then
+    if not possibilities[skillID] and self.skills[skillID] == nil and (not skillType or info.skill_type == skillType) and (info.always_learnable or (info.always_learnable ~= false and info.skill_type and possibleSkillTypes[info.skill_type] and possibleSkillTypes[info.skill_type].always_learnable)) and self:can_upgrade_skill(skillID) then
       skill_purchases[#skill_purchases+1] = {skill=skillID,point_cost=(info.learn_point_cost or info.point_cost),item_cost=(info.learn_item_cost or info.item_cost),name=info.name}
       possibilities[skillID] = true
     end --end skilldef if
@@ -4205,7 +4825,10 @@ end
 --include_spells=true (if true, move old body's spells over)
 --include_skills=true (if true, move old body's skills over)
 --active_undo=true (if true, give the undo transformation spell to the new body)
+--no_hp_transfer=true (if true, don't make HP ratio transfer when transforming)
+--no_inventory_transfer=true (if true, don't transfer inventory to the new body)
 function Creature:transform(newBody,info,modifiers)
+  modifiers = modifiers or {}
   if self.oldBody then --let's not get into multiple transformations quite yet
     return false
   end
@@ -4214,13 +4837,6 @@ function Creature:transform(newBody,info,modifiers)
   end
   if not modifiers.permanent then
     newBody.oldBody = self
-  end
-  
-  local hpRatio = self.hp/self.max_hp
-  newBody.hp = math.ceil(newBody.max_hp*hpRatio)
-  if self.mp then
-    local mpRatio = self.mp/self.max_mp
-    newBody.mp = math.ceil(newBody.max_mp*mpRatio)
   end
   
   --Conditions and cooldowns:
@@ -4247,7 +4863,10 @@ function Creature:transform(newBody,info,modifiers)
       if creat.shitlist[self] then creat.shitlist[newBody] = true end
       if creat.ignoring[self] then creat.ignoring[newBody] = newBody end
     end
-    if creat.master == self then creat.master = newBody end
+    if creat.master == self then
+      creat.master = newBody
+      newBody.thralls[creat] = creat
+    end
   end
   
   --Transfer spells and skills
@@ -4280,24 +4899,38 @@ function Creature:transform(newBody,info,modifiers)
   end
   
   --Inventory and equipment
-  newBody.inventory = self.inventory
-  for slot,details in pairs(self.equipment) do
-    if newBody.equipment[slot] then
-      for _,item in ipairs(details) do
-        newBody:equip(item)
+  newBody.no_inventory_transfer = modifiers.no_inventory_transfer
+  if not newBody.no_inventory_transfer then
+    newBody.inventory = self.inventory
+    for slot,details in pairs(self.equipment) do
+      if newBody.equipment[slot] then
+        for _,item in ipairs(details) do
+          newBody:equip(item)
+        end
       end
     end
   end
   
-  --Transfer the bodies:
-  if self == player then
-    player = newBody
-    newBody.isPlayer = true
+  newBody.no_hp_transfer = modifiers.no_hp_transfer
+  if newBody.no_hp_transfer then
+    local hpRatio = self.hp/self.max_hp
+    newBody.hp = math.ceil(newBody.max_hp*hpRatio)
+    if self.mp then
+      local mpRatio = self.mp/self.max_mp
+      newBody.mp = math.ceil(newBody.max_mp*mpRatio)
+    end
   end
+  
+  --Transfer the bodies:
   local x,y = self.x,self.y
   self:remove()
   currMap:add_creature(newBody,x,y)
   newBody.faceLeft = self.faceLeft
+  if self == player then
+    player = newBody
+    newBody.isPlayer = true
+    refresh_player_sight()
+  end
   return newBody
 end
 
@@ -4308,11 +4941,13 @@ function Creature:undo_transformation()
   end
   local oldBody = self.oldBody
   
-  local hpRatio = self.hp/self.max_hp
-  oldBody.hp = math.ceil(oldBody.max_hp*hpRatio)
-  if self.mp then
-    local mpRatio = self.mp/self.max_mp
-    oldBody.mp = math.ceil(oldBody.max_mp*mpRatio)
+  if not self.no_hp_transfer then
+    local hpRatio = self.hp/self.max_hp
+    oldBody.hp = math.ceil(oldBody.max_hp*hpRatio)
+    if self.mp then
+      local mpRatio = self.mp/self.max_mp
+      oldBody.mp = math.ceil(oldBody.max_mp*mpRatio)
+    end
   end
   
   --Identity stuff:
@@ -4332,26 +4967,38 @@ function Creature:undo_transformation()
       if creat.shitlist[self] then creat.shitlist[oldBody] = true end
       if creat.ignoring[self] then creat.ignoring[oldBody] = oldBody end
     end
-    if creat.master == self then creat.master = oldBody end
+    if creat.master == self then
+      creat.master = oldBody
+      oldBody.thralls[creat] = creat
+    end
   end
   
   --Inventory and equipment
-  for slot,details in pairs(self.equipment) do
-    if oldBody.equipment[slot] then
-      for _,item in ipairs(details) do
-        oldBody:equip(item)
+  if not self.no_inventory_transfer then
+    for slot,details in pairs(self.equipment) do
+      if oldBody.equipment[slot] then
+        for _,item in ipairs(details) do
+          oldBody:equip(item)
+        end
+      end
+    end
+  elseif self.inventory then
+    for _,item in ipairs(self:get_inventory()) do
+      if not oldBody:give_item(item) then
+        self:drop_item(item)
       end
     end
   end
   
-  if self == player then
-    player = oldBody
-    oldBody.isPlayer = true
-  end
   local x,y = self.x,self.y
   self:remove()
   oldBody.faceLeft = self.faceLeft
   currMap:add_creature(oldBody,x,y)
+  if self == player then
+    player = oldBody
+    oldBody.isPlayer = true
+    refresh_player_sight()
+  end
 end
 
 ---Permanently evolve into another creature. It uses the initial creature as a base, and changes it to keep the highest value of skills, stats, reputation, and favor. Factions membership, spells, reputation, and favor are combined, and AI-related stuff is overwritten. Generally will be a net positive. This is differentiated from Creature:transform(), which leaves the original creature intact but effectively creates a new body and moves some limited information over to it.
@@ -4382,7 +5029,8 @@ function Creature:evolve(newCreature,info,include_items)
   self.perception = math.max(self.perception,newCreature.perception)
   local speedMod = self.speed-(possibleMonsters[self.id].speed or 100)
   self.speed = newCreature.speed+speedMod
-  self.armor = newCreature.armor
+  local armorMod = (self.armor or 0)-(possibleMonsters[self.id].armor or 0)
+  self.armor =(newCreature.armor or 0)+armorMod
   local stealthMod = (self.stealth or 0)-(possibleMonsters[self.id].stealth or 0)
   self.stealth = (newCreature.stealth or 0)+stealthMod
   self.ranged_attack = newCreature.ranged_attack
@@ -4548,7 +5196,7 @@ function Creature:get_all_possible_recipes(hide_uncraftable,recipe_type)
   local canCraft = {}
   for id,recipe in pairs(possibleRecipes) do
     if not recipe_type or (recipe.types and in_table(recipe_type,recipe.types)) then
-      local known = self.known_recipes and self.known_recipes[id]
+      local known = recipe.always_known or (self.known_recipes and self.known_recipes[id])
       if self:can_craft_recipe(id) or (known and not hide_uncraftable) then
         canCraft[#canCraft+1] = id
         self:learn_recipe(id)
@@ -4561,13 +5209,14 @@ end
 ---Check if it's possible to craft a recipe
 --TODO: Forbidden tags on recipes
 --@param recipeID String. The ID of the recipe
+--@param stash Entity. An entity containing items to use in addition to the creature's own inventory
 --@return Boolean. Whether or not the recipe can be crafted
 --@return Text. A description of why you can't craft the recipe.
-function Creature:can_craft_recipe(recipeID)
+function Creature:can_craft_recipe(recipeID,stash)
   if debugMode then return true end
   local recipe = possibleRecipes[recipeID]
   local auto_learn = (recipe.auto_learn == nil and gamesettings.auto_learn_possible_crafts or recipe.auto_learn)
-  local known = self.known_recipes and self.known_recipes[id]
+  local known = self.known_recipes and self.known_recipes[id] or recipe.always_known
   if not auto_learn and not known then
     return false
   end
@@ -4587,12 +5236,12 @@ function Creature:can_craft_recipe(recipeID)
   end
   if recipe.requires_tools then
     for _,tool in ipairs(recipe.requires_tools) do
-      if not self:has_item(tool) then return false end
+      if not self:has_item(tool) and (not stash or not stash:has_item(tool)) then return false end
     end
   end
   if recipe.ingredients then
     for item,amt in pairs(recipe.ingredients) do
-      local i = self:has_item(item)
+      local i = self:has_item(item) or (stash and stash:has_item(item))
       if not i or (i.amount or 1) < amt then return false end
     end
   end
@@ -4615,8 +5264,31 @@ function Creature:can_craft_recipe(recipeID)
             typeMatch = true
           end
           if typeMatch then
-            found = found + item.crafting_ingredient_properties[property]
+            found = found + item.crafting_ingredient_properties[property]*item.amount
             if found >= amt then break end
+          end
+        end
+      end
+      if found < amt and stash then 
+        for _,item in pairs(stash:get_inventory()) do
+          if item.crafting_ingredient_properties and item.crafting_ingredient_properties[property] and not recipe.results[item.id] then
+            local typeMatch = false
+            if recipe.ingredient_types then
+              if item.crafting_ingredient_types then
+                for _,itype in pairs(recipe.ingredient_types) do
+                  if in_table(itype,item.crafting_ingredient_types) then
+                    typeMatch = true
+                    break
+                  end
+                end
+              end
+            else --if ingredient types aren't set, don't worry about matching
+              typeMatch = true
+            end
+            if typeMatch then
+              found = found + item.crafting_ingredient_properties[property]*item.amount
+              if found >= amt then break end
+            end
           end
         end
       end
@@ -4632,6 +5304,14 @@ function Creature:can_craft_recipe(recipeID)
           break
         end --end if has_tag
       end -- end inventory for
+      if not has and stash then
+        for _,item in pairs(stash:get_inventory()) do
+          if item.crafting_tool_properties and in_table(prop,item.crafting_tool_properties) then
+            has = true
+            break
+          end --end if has_tag
+        end -- end inventory for
+      end
       if not has then return false end
     end --end tag for
   end
@@ -4656,9 +5336,10 @@ end
 ---Craft a recipe
 --@param recipeID Text. The ID of the recipe to craft
 --@param secondary_ingredients Table. Secondary ingredients provided for the recipe based on the ingredient_properties
+--@param stash Entity. An entity containing items to use in addition to the creature's own inventory
 --@return Boolean. If the recipe was successfully created
 --@return Text. The result text of the recipe
-function Creature:craft_recipe(recipeID,secondary_ingredients)
+function Creature:craft_recipe(recipeID,secondary_ingredients,stash)
   local recipe = possibleRecipes[recipeID]
   local results = recipe.results
   local text = recipe.result_text
@@ -4682,7 +5363,12 @@ function Creature:craft_recipe(recipeID,secondary_ingredients)
   if recipe.ingredients then
     for item,amt in pairs(recipe.ingredients) do
       local i = self:has_item(item)
-      self:delete_item(i,amt)
+      if not i and stash then
+        i = stash:has_item(item)
+        stash:delete_item(i,amt)
+      else
+        self:delete_item(i,amt)
+      end
       if i.crafting_passed_tags then
         for _,tag in pairs(i.crafting_passed_tags) do
           passedTags[#passedTags+1] = tag
@@ -4702,7 +5388,11 @@ function Creature:craft_recipe(recipeID,secondary_ingredients)
   end
   if secondary_ingredients then
     for item,amt in pairs(secondary_ingredients) do
-      self:delete_item(item,amt)
+      if item.possessor == stash then
+        stash:delete_item(item,amt)
+      else
+        self:delete_item(item,amt)
+      end
       if item.crafting_passed_tags then
       for _,tag in pairs(item.crafting_passed_tags) do
         passedTags[#passedTags+1] = tag
@@ -4803,6 +5493,9 @@ end
 --@param target Entity. The entity (or coordinates), that was the target of the incident. Optional
 --@param args Table. Other information to use when processing this incident
 function Creature:process_incident(incidentID,actor,target,args)
+  if actor == self or target == self then
+    return false
+  end
   local bool,ret = self:callbacks('process_incident',incidentID,actor,target,args)
   if (bool == false) then return end
   if possibleIncidents and possibleIncidents[incidentID] and possibleIncidents[incidentID].process then
@@ -4823,13 +5516,20 @@ function Creature:get_dialog(asker)
   if possibleMonsters[self.id].get_dialog then
     local status,r = pcall(possibleMonsters[self.id].get_dialog,self,asker)
     if status == false then
-      output:out("Error in creature " .. self.id .. " get_dialog code: " .. r)
-      print("Error in creature " .. self.id .. " get_dialog code: " .. r)
+      output:out("Error in creature " .. self.name .. " get_dialog code: " .. r)
+      print("Error in creature " .. self.name .. " get_dialog code: " .. r)
     end
     if r == false then
       return false
     elseif r ~= true and r ~= nil and possibleDialogs[r] then
       return r
+    end
+  end
+  
+  for conID,conInfo in pairs(self.conditions) do
+    local dialogID = conInfo.replaces_dialog or (conditions[conID] and conditions[conID].replaces_dialog)
+    if dialogID then
+      return dialogID
     end
   end
   
@@ -4839,7 +5539,7 @@ function Creature:get_dialog(asker)
   if self:get_fear() >= self:get_bravery()  then
     possible_moods[#possible_moods+1] = "afraid"
   end
-  if self.shitlist[asker] or self:is_enemy(asker) then
+  if self.shitlist[asker] then
     possible_moods[#possible_moods+1] = "hostile"
   end
   if self.master == asker then
@@ -4848,12 +5548,13 @@ function Creature:get_dialog(asker)
   if self:is_friend(asker) then
     possible_moods[#possible_moods+1] = "friendly"
   end
-  if #possible_moods > 0 then
-    --First check to see if the creature instance has any dialogs specifically set
-    for _,mood in pairs(possible_moods) do
-      if self['dialog_' .. mood] then
-        return self['dialog_mood']
-      end
+  if #possible_moods == 0 then
+    possible_moods[#possible_moods+1] = "neutral"
+  end
+  --First check to see if the creature instance has any dialogs specifically set for given moods
+  for _,mood in pairs(possible_moods) do
+    if self['dialog_' .. mood] ~= nil then
+      return self['dialog_' .. mood]
     end
   end
   --If no specific mood dialogs set, but there's a generic dialog ID set, use that
@@ -4874,4 +5575,34 @@ function Creature:get_dialog(asker)
     return dialog_base
   end
   return false
+end
+
+function Creature:get_all_impressions()
+  local impressions = {}
+  for _,item in pairs(self.equipment_list) do
+    for _,imp in pairs(item:get_impressions()) do
+      impressions[imp] = imp
+    end
+  end
+  for conID,conInfo in pairs(self.conditions) do
+    local impressions = conInfo.impressions or (conditions[conID] and conditions[conID].impressions)
+    if impressions then
+      for _,imp in pairs(impressions) do
+        impressions[imp] = imp
+      end
+    end
+  end
+  for _,spell in pairs(self:get_spells()) do
+    if spell.impressions then
+      for _,imp in pairs(spell.impressions) do
+        impressions[imp] = imp
+      end
+    end
+  end
+  return impressions
+end
+
+function Creature:has_impression(impression_type)
+  local impressions = self:get_all_impressions()
+  return impressions[impression_type]
 end

@@ -4,7 +4,7 @@ gamesettings = {
   id="rogueloveexample", --Used internally
   author = "Weirdfellows",
   version_text = "In Development Version", --Will be displayed at the bottom of the screen
-  copyright_text="Copyright 2023 Weirdfellows", --Will be displayed at the bottom of the screen
+  copyright_text="Copyright 2025 Weirdfellows", --Will be displayed at the bottom of the screen
   url="http://weirdfellows.com", --Will be displayed at the bottom of the screen. Clicking it opens the URL
   
   --Display:

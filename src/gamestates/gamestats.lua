@@ -134,12 +134,12 @@ function gamestats:draw()
   
   output:draw_window(0,0,width-padding,64)
   self.closebutton = output:closebutton(math.floor(padding/2),math.floor(padding/2))
-  love.graphics.setFont(fonts.graveFontBig)
-  local buttonWidth = fonts.graveFontBig:getWidth("Stats")
+  love.graphics.setFont(fonts.menuFont)
+  local buttonWidth = fonts.menuFont:getWidth("Stats")
   self.statsbutton = output:button(padding,padding,buttonWidth,false,(self.cursorY == 1 and self.cursorX == 1 and "hover" or nil),"Stats",true)
-  buttonWidth = fonts.graveFontBig:getWidth("Wins" .. (totalstats.wins and "(" .. totalstats.wins .. ")" or ""))
+  buttonWidth = fonts.menuFont:getWidth("Wins" .. (totalstats.wins and "(" .. totalstats.wins .. ")" or ""))
   self.winsbutton = output:button(math.floor((width-padding-buttonWidth)/2),padding,buttonWidth,false,(self.cursorY == 1 and self.cursorX == 2 and "hover" or nil),"Wins" .. (totalstats.wins and "(" .. totalstats.wins .. ")" or ""),true)
-  buttonWidth = fonts.graveFontBig:getWidth("Losses" .. (totalstats.losses and "(" .. totalstats.losses .. ")" or ""))
+  buttonWidth = fonts.menuFont:getWidth("Losses" .. (totalstats.losses and "(" .. totalstats.losses .. ")" or ""))
   self.lossesbutton = output:button(width-padding-buttonWidth,padding,buttonWidth,false,(self.cursorY == 1 and self.cursorX == 3 and "hover" or nil),"Losses" .. (totalstats.losses and "(" .. totalstats.losses .. ")" or ""),true)
   if self.screen == "stats" then
     local w1end,w2start,w2end = math.floor(width/2),math.ceil(width/2)+padding,math.ceil(width/2)+math.floor(width/2)-padding
@@ -148,7 +148,7 @@ function gamestats:draw()
     local stopSelect = sidebarX-padding*2-(self.maxTransY < 0 and 32 or 0)
     output:draw_window(0,64+padding,sidebarX-padding,height-padding)
     output:draw_window(sidebarX,64+padding,width-padding,height-padding)
-    love.graphics.setFont(fonts.graveFontBig)
+    love.graphics.setFont(fonts.menuFont)
     love.graphics.printf("Statistics",1,80+padding,sidebarX,"center")
     love.graphics.setFont(fonts.textFont)
     if self.maxTransY < 0 then
@@ -192,7 +192,7 @@ function gamestats:draw()
     --Display the selected stat:
     local stat = self.stats[self.cursorY-1]
     if stat and stat.expand then
-      love.graphics.setFont(fonts.graveFontBig)
+      love.graphics.setFont(fonts.menuFont)
       love.graphics.printf(stat.header or "Stat?",sidebarX,80+padding,width-sidebarX,"center")
       love.graphics.setFont(fonts.textFont)
       local function stencilFunc()
@@ -491,7 +491,7 @@ function gamestats:draw()
     local windowY = 64+padding
     output:draw_window(0,windowY,w1end,height-padding)
     output:draw_window(w2start,windowY,w2end,height-padding)
-    love.graphics.setFont(fonts.graveFontBig)
+    love.graphics.setFont(fonts.menuFont)
     love.graphics.printf("Wins",1,windowY+math.floor(padding/2),math.floor(width/2),"center")
     love.graphics.line(padding,windowY+padding*2,w1end-padding,windowY+padding*2)
     love.graphics.setFont(fonts.textFont)
@@ -534,11 +534,11 @@ function gamestats:draw()
     if self.wins[self.cursorY-1] then
       local win = self.wins[self.cursorY-1]
       local printY = windowY+math.floor(padding/2)
-      love.graphics.setFont(fonts.graveFontBig)
+      love.graphics.setFont(fonts.menuFont)
       love.graphics.printf(win.properName .. "\n" .. ucfirst(win.name),w2start,printY,w2end-w2start,"center")
-      local _,lines = fonts.graveFontBig:getWrap(win.properName .. "\n" .. ucfirst(win.name),w2end-w2start+padding)
+      local _,lines = fonts.menuFont:getWrap(win.properName .. "\n" .. ucfirst(win.name),w2end-w2start+padding)
       printY = printY+padding*#lines
-      love.graphics.setFont(fonts.graveFontSmall)
+      love.graphics.setFont(fonts.headerFont)
       love.graphics.printf(os.date("%H:%M, %b %d, %Y",win.date),w2start,printY,w2end-w2start,"center")
       printY = printY+padding
       if win.stats then
@@ -554,7 +554,7 @@ function gamestats:draw()
     local windowY = 64+padding
     output:draw_window(0,windowY,w1end,height-padding)
     output:draw_window(w2start,windowY,w2end,height-padding)
-    love.graphics.setFont(fonts.graveFontBig)
+    love.graphics.setFont(fonts.menuFont)
     love.graphics.printf("Losses",1,windowY+math.floor(padding/2),math.floor(width/2),"center")
     love.graphics.line(padding,windowY+padding*2,w1end-padding,windowY+padding*2)
     love.graphics.setFont(fonts.textFont)
@@ -596,18 +596,18 @@ function gamestats:draw()
     if self.graveyard[self.cursorY-1] then
       local grave = self.graveyard[self.cursorY-1]
       local printY = windowY+math.floor(padding/2)
-      love.graphics.setFont(fonts.graveFontBig)
+      love.graphics.setFont(fonts.menuFont)
       love.graphics.printf(grave.saying,w2start,printY,w2end-w2start,"center")
       printY = printY+padding
       love.graphics.printf(grave.properName .. "\n" .. ucfirst(grave.name),w2start,printY,w2end-w2start,"center")
-      local _,lines = fonts.graveFontBig:getWrap(grave.properName .. "\n" .. ucfirst(grave.name),w2end-w2start+padding)
+      local _,lines = fonts.menuFont:getWrap(grave.properName .. "\n" .. ucfirst(grave.name),w2end-w2start+padding)
       printY = printY+padding*#lines
-      love.graphics.setFont(fonts.graveFontSmall)
+      love.graphics.setFont(fonts.headerFont)
       love.graphics.printf("Killed by " .. grave.killer,w2start,printY,w2end-w2start,"center")
-      _,lines = fonts.graveFontBig:getWrap("Killed by " .. grave.killer,w2end-w2start+padding)
+      _,lines = fonts.menuFont:getWrap("Killed by " .. grave.killer,w2end-w2start+padding)
       printY = printY+math.floor(padding/3)*2*#lines
       love.graphics.printf("at " .. os.date("%H:%M, %b %d, %Y",grave.date),w2start,printY,w2end-w2start,"center")
-      _,lines = fonts.graveFontBig:getWrap("at " .. os.date("%H:%M, %b %d, %Y",grave.date),w2end-w2start+padding)
+      _,lines = fonts.menuFont:getWrap("at " .. os.date("%H:%M, %b %d, %Y",grave.date),w2end-w2start+padding)
       printY = printY+math.floor(padding/3)*2*#lines
       love.graphics.printf((grave.mapname and grave.mapname or ""),w2start,printY,w2end-w2start,"center")
       printY = printY+padding

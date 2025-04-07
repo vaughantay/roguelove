@@ -63,21 +63,30 @@ function mapgen:generate_map(branchID, depth,force)
   build.noItems = whichMap.noItems or branch.noItems
   build.noStores = whichMap.noStores or branch.noStores
   build.noFactions = whichMap.noFactions or branch.noFactions
-  build.noExits = whichMap.noExits
+  build.noRooms = whichMap.noRooms or branch.noRooms
+  build.noExits = whichMap.noExits or branch.noExits
   build.noBoss = whichMap.noBoss or branch.noBosses
   build.noDesc = whichMap.noDesc or branch.noDesc
   build.generate_boss_on_entry = whichMap.generate_boss_on_entry or branch.generate_boss_on_entry
   build.event_chance = whichMap.event_chance or branch.event_chance
   build.event_cooldown = whichMap.event_cooldown or branch.event_cooldown
+  build.enchantment_chance = whichMap.enchantment_chance or branch.enchantment_chance
+  build.artifact_chance = whichMap.artifact_chance or branch.artifact_chance
   build.tags = whichMap.tags or {}
-  build.contentTags = whichMap.contentTags or {}
-  build.creatureTags = whichMap.creatureTags or {}
-  build.itemTags = whichMap.itemTags or {}
-  build.factionTags = whichMap.factionTags or {}
-  build.storeTags = whichMap.storeTags or {}
-  build.passedTags = whichMap.passedTags or {}
-  build.forbiddenTags = whichMap.forbiddenTags or {}
+  build.contentTags = copy_table(whichMap.contentTags or {})
+  build.creatureTags = copy_table(whichMap.creatureTags or {})
+  build.itemTags = copy_table(whichMap.itemTags or {})
+  build.factionTags = copy_table(whichMap.factionTags or {})
+  build.roomTags = copy_table(whichMap.roomTags or {})
+  build.storeTags = copy_table(whichMap.storeTags or {})
+  build.passedTags = copy_table(whichMap.passedTags or {})
+  build.requiredTags = copy_table(whichMap.requiredTags or {})
+  build.forbiddenTags = copy_table(whichMap.forbiddenTags or {})
+  build.timeTags = copy_table(whichMap.timeTags or {})
   build.forbid_faction_events = whichMap.forbid_faction_events or branch.forbid_faction_events
+  build.above_ground = whichMap.above_ground or branch.above_ground
+  build.aware_factions = whichMap.aware_factions or branch.aware_factions
+  build.resident_factions = whichMap.resident_factions or branch.resident_factions
   --Generate the map itself:
   local success = true
   if whichMap.create then
@@ -85,7 +94,7 @@ function mapgen:generate_map(branchID, depth,force)
   elseif whichMap.layouts then
     local whichLayout = get_random_element(whichMap.layouts)
     local whichModifier = whichMap.modifiers and get_random_element(whichMap.modifiers) or false
-    success = layouts[whichLayout](build,width,height)
+    success = layouts[whichLayout](build)
     if success ~= false and whichModifier then
       local args = whichMap.modifier_arguments and whichMap.modifier_arguments[whichModifier] or {}
       success = mapModifiers[whichModifier](build,unpack(args))
@@ -117,8 +126,9 @@ function mapgen:generate_map(branchID, depth,force)
   --Add exits:
   if not build.noExits then
     --Do generic up and down stairs first, although they may be replaced by other exits later:
-    if build.depth > 1 and not branch.noBacktrack then
-      local upStairs = Feature('exit',{branch=build.branch,depth=build.depth-1})
+    if (branch.infinite_negative_depth or build.depth > (branch.min_depth or 1)) and not branch.noBacktrack then
+      local newDepth = (build.depth == 1 and -1 or build.depth-1)
+      local upStairs = Feature('exit',{branch=build.branch,depth=newDepth})
       build:change_tile(upStairs,build.stairsUp.x,build.stairsUp.y)
     end
     if branch.infinite_depth or build.depth < branch.max_depth then
@@ -159,6 +169,16 @@ function mapgen:generate_map(branchID, depth,force)
   if branch.allMapsUnique then
     table.remove(branch.mapTypes,mapTypeIndex)
   end
+  
+  if whichMap.wall_feature then
+    for x=1,build.width,1 do
+      for y=1,build.height,1 do
+        if build[x][y] == "#" then
+          build:change_tile(Feature(whichMap.wall_feature),x,y)
+        end
+      end
+    end
+  end
 
   currGame.seedState = mapRandom:getState()
   random = love.math.random
@@ -179,8 +199,12 @@ function mapgen:generate_creature(min_level,max_level,list,tags,allowAll)
   local noCreatures = true
   for _,cid in pairs(list) do
     local creat = (type(cid) == "table" and cid or possibleMonsters[cid] or nil)
-    if creat and not creat.isBoss and not creat.neverSpawn and (((not min_level or creat.level >= min_level) and (not max_level or creat.level <= max_level)) or (creat.max_level and ((not min_level or creat.max_level >= min_level) or (not max_level or creat.max_level <= max_level)))) then 
-      noCreatures = false break
+    local meets_min = not min_level or not creat.level or creat.level >= min_level or not creat.max_level or (creat.max_level and creat.max_level >= min_level)
+    local meets_max = not max_level or not creat.level or creat.level <= max_level
+    
+    if creat and not creat.isBoss and not creat.neverSpawn and meets_min and meets_max then 
+      noCreatures = false
+      break
     end
   end
   if noCreatures == true then return false end
@@ -189,9 +213,12 @@ function mapgen:generate_creature(min_level,max_level,list,tags,allowAll)
   while (1 == 1) do -- endless loop, broken by the "return"
     local n = get_random_element(list)
     local creat = (type(n) == "table" and n or possibleMonsters[n])
-    if creat and not creat.isBoss and not creat.neverSpawn and random(1,100) >= (creat.rarity or 0) and (((not min_level or creat.level >= min_level) and (not max_level or creat.level <= max_level)) or (creat.max_level and ((not min_level or creat.max_level >= min_level) or (not max_level or creat.max_level <= max_level)))) then
-      local min = math.max(creat.level,(min_level or creat.level))
-      local max = math.min((creat.max_level or creat.level),(max_level or creat.max_level or creat.level))
+    local meets_min = not min_level or not creat.level or creat.level >= min_level or not creat.max_level or (creat.max_level and creat.max_level >= min_level)
+    local meets_max = not max_level or not creat.level or creat.level <= max_level
+    
+    if creat and not creat.isBoss and not creat.neverSpawn and random(1,100) >= (creat.rarity or 0) and meets_min and meets_max then
+      local min = math.max((creat.level or min_level or 1),(min_level or creat.level or 1))
+      local max = math.min((creat.max_level or creat.level or max_level or min_level or 1),(max_level or creat.max_level or creat.level or min_level or 1))
       local level = random(min,max)
       return Creature(n,level,tags)
     end
@@ -204,8 +231,10 @@ end
 --@param list Table. A list of possible items to pull from
 --@param tags Table. A list of tags, potentially to pass to the item, or to use as preference for enchantments
 --@param allowAll Boolean. If True, items with the specialOnly flag can still be chosen (but items with the neverSpawn flag set still cannot). Optional
+--@param enchantment_chance Number. The chance of the item spawning with an enchantment
+--@param artifact_chance Number. The chance of the item spawning as an artifact
 --@return Item. The new item
-function mapgen:generate_item(min_level,max_level,list,tags,allowAll)
+function mapgen:generate_item(min_level,max_level,list,tags,allowAll,enchantment_chance,artifact_chance)
   local newItem = nil
   if not list then return false end
 
@@ -232,10 +261,12 @@ function mapgen:generate_item(min_level,max_level,list,tags,allowAll)
   -- Create the actual item:
   local item = Item(newItem,tags)
   --Add enchantments:
-  if random(1,100) <= gamesettings.artifact_chance then
+  artifact_chance = artifact_chance or gamesettings.artifact_chance or 0
+  enchantment_chance = enchantment_chance or gamesettings.enchantment_chance or 0
+  if random(1,100) <= artifact_chance then
     self:make_artifact(item,tags)
-  elseif random(1,100) <= gamesettings.enchantment_chance then
-    local possibles = item:get_possible_enchantments(true)
+  elseif random(1,100) <= enchantment_chance then
+    local possibles = item:get_possible_enchantments(true,true)
     if count(possibles) > 0 then
       local eid = get_random_element(possibles)
       item:apply_enchantment(eid,-1)
@@ -340,6 +371,7 @@ function mapgen:generate_branch(branchID,args)
   elseif data.nameType then
     newBranch.name = namegen:generate_name(data.nameType)
   end
+  newBranch.maps = {}
 
   --Add map types based on tags:
   local mTags = newBranch.mapTags or newBranch.contentTags
@@ -370,17 +402,19 @@ function mapgen:generate_branch(branchID,args)
     newBranch.possibleExits = nil
   end --end if possibleExits exist
   newBranch.id = branchID
+  newBranch.baseType = "branch"
   return newBranch
 end
 
 ---Perform a floodfill operation, getting all walls or floor that touch. Only works for walls and floor, not features.
 --@param map Map. The map to look at
---@param lookFor String. Either "." or "#" although if your maps use other strings it could look for those too. Defaults to "."
+--@param lookFor String. "." or "#" for floors or walls, or the ID of a feature. Defaults to "."
 --@param startX Number. The X-coordinate to start at. Optional, will pick a randon tile if blank
 --@param startY Number. The Y-coordinate to start at. Optional, will pick a random tile if blank
+--@param noRandom Boolean. If true, don't hop to a random tile if the initial tile doesn't match
 --@return Table. A table covering the whole map, in the format Table[x][y] = true or false, for whether the given tile matches lookFor
 --@return Number. The number of tiles found
-function mapgen:floodFill(map,lookFor,startX,startY)
+function mapgen:floodFill(map,lookFor,startX,startY,noRedirect)
   local floodFill = {}
   local numTiles = 0
 
@@ -395,8 +429,10 @@ function mapgen:floodFill(map,lookFor,startX,startY)
   end
   -- Select random empty tile, and start flooding!
   startX,startY = startX or random(2,map.width-1), startY or random(2,map.height-1)
-  while (map[startX][startY] ~= lookFor) do --if it's a wall, try again
+  local tries = 0
+  while (map[startX][startY] ~= lookFor) and not map:tile_has_feature(startX,startY,lookFor) and not map:tile_has_effect(startX,startY,lookFor) and not noRedirect and tries < 100 do --if it's a wall, try again
     startX,startY = random(2,map.width-1),random(2,map.height-1)
+    tries = tries + 1
   end
   local check = {{startX,startY}}
   while #check > 0 do
@@ -412,7 +448,7 @@ end
 --@param x Number. The X-coordinate to look at
 --@param y Number. The Y-coordinate to look at
 --@param floodFill Table. The table of floodFill values.
---@param lookFor String. Either "." or "#" although if your maps use other strings it could look for those too. Defaults to "."
+--@param lookFor String. "." or "#" for floors or walls, or the ID of a feature. Defaults to "."
 --@param numTiles Number. The number of tiles currently matching the floodfill criteria
 --@param check Table. A table full of values to be checked.
 --@return Table. A table covering the whole map, in the format Table[x][y] = true or false, for whether the given tile matches lookFor
@@ -423,7 +459,7 @@ function mapgen:floodTile(map, x,y,floodFill,lookFor,numTiles,check)
   for ix=x-1,x+1,1 do
     for iy=y-1,y+1,1 do
       if (ix >= 1 and iy >= 1 and ix <= map.width and iy <= map.height and floodFill[ix][iy] == nil) then --important: check to make sure floodFill hasn't looked at this tile before, to prevent infinite loop
-        if map[ix][iy] == lookFor then
+        if map[ix][iy] == lookFor or map:tile_has_feature(ix,iy,lookFor) or map:tile_has_effect(ix,iy,lookFor) then
           numTiles = numTiles+1
           floodFill[ix][iy] = true
           check[#check+1] = {ix,iy} --add it to the list of tiles to be checked
@@ -548,7 +584,7 @@ function mapgen:buildBridge(map,fromX,fromY,toX,toY,data)
         if type(map[bridge.x][bridge.y]) == "table" then
           map[bridge.x][bridge.y].impassable = false
           map[bridge.x][bridge.y].hazard = false
-          map[bridge.x][bridge.y].walkedOnImage = nil
+          map[bridge.x][bridge.y].walkedOnImage = false
         end -- end table if
       end --end fory
     end --end if yMod ~= 0
@@ -565,7 +601,7 @@ function mapgen:buildBridge(map,fromX,fromY,toX,toY,data)
         if type(map[bridge.x][bridge.y]) == "table" then
           map[bridge.x][bridge.y].impassable = false
           map[bridge.x][bridge.y].hazard = false
-          map[bridge.x][bridge.y].walkedOnImage = nil
+          map[bridge.x][bridge.y].walkedOnImage = false
         end -- end table if
       end --end forx
     end --end if xMod ~= 0
@@ -769,7 +805,7 @@ function mapgen:make_blob(map,startX,startY,feature,decay,includeWalls)
     end --end feature if
     for x=point.x-1,point.x+1,1 do
       for y=point.y-1,point.y+1,1 do
-        if x > 1 and x < map.width and y > 1 and y < map.height and (x == point.x or y == point.y) and not (x==point.x and y==point.y) and (includeWalls or not map:isWall(x,y)) and doneHolder[x .. "," .. y] ~= true and random(1,100) <= point.spreadChance then
+        if x >= 1 and x <= map.width and y >= 1 and y <= map.height and (x == point.x or y == point.y) and not (x==point.x and y==point.y) and (includeWalls or map[x][y] ~= "#") and doneHolder[x .. "," .. y] ~= true and random(1,100) <= point.spreadChance then
           points[#points+1] = {x=x,y=y,spreadChance=point.spreadChance-decay}
         end --end bounds check
       end --end fory
@@ -1351,9 +1387,22 @@ function mapgen:get_content_list_from_tags(content_type,tags,forbiddenTags,requi
     content_list = roomShapes
   elseif content_type == "recipe" then
     content_list = possibleRecipes
+  elseif content_type == "enchantment" then
+    content_list = enchantments
   end
-  if not content_list or not tags or #tags < 1 then
+  if not content_list or count(content_list) < 1 or not tags or #tags < 1 then
     return contents
+  end
+  
+  if searchSet then
+    local newList = {}
+    for _, id in ipairs(searchSet) do
+      newList[id] = content_list[id]
+    end
+    if count(newList) < 1 then
+      return contents
+    end
+    content_list = newList
   end
   
   for id,content in pairs(content_list) do
@@ -1380,7 +1429,25 @@ function mapgen:get_content_list_from_tags(content_type,tags,forbiddenTags,requi
       end
       if not done and content.requiredMapTags then
         for _,tag in ipairs(content.requiredMapTags) do
-          if not in_table(tag,tags) then
+          if not in_table(tag,tags) and (not mapTags or not in_table(tag,mapTags)) then
+            done = true
+            allowed = false
+            break
+          end
+        end
+      end
+      if not done and content.forbiddenTags then
+        for _,tag in ipairs(content.forbiddenTags) do
+          if in_table(tag,tags) then
+            done = true
+            allowed = false
+            break
+          end
+        end
+      end
+      if not done and content.forbiddenMapTags then
+        for _,tag in ipairs(content.forbiddenMapTags) do
+          if in_table(tag,tags) or (mapTags and in_table(tag,mapTags)) then
             done = true
             allowed = false
             break
@@ -1389,7 +1456,7 @@ function mapgen:get_content_list_from_tags(content_type,tags,forbiddenTags,requi
       end
       if not done and content.tags then
         for _,tag in ipairs(tags) do
-          if content.tags and in_table(tag,content.tags) then
+          if in_table(tag,content.tags) then
             done = true
             allowed = true
             break

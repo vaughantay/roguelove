@@ -52,7 +52,7 @@ function newgame:draw()
   --Print the screen:
   if screen == "species" or screen == "classes" then
     setColor(255,255,255,255)
-    love.graphics.setFont(fonts.graveFontSmall)
+    love.graphics.setFont(fonts.headerFont)
     local fontSize = 24
     local windowPadding=8
     local classBoxW = 200
@@ -166,7 +166,7 @@ function newgame:draw()
           self.maxDescScroll=0
           self.descScrollY=0
         end
-        love.graphics.setFont(fonts.graveFontSmall)
+        love.graphics.setFont(fonts.headerFont)
       end
     end
     
@@ -265,7 +265,7 @@ function newgame:draw()
           self.maxDescScroll=0
           self.descScrollY=0
         end
-        love.graphics.setFont(fonts.graveFontSmall)
+        love.graphics.setFont(fonts.headerFont)
       end
     end
   end
@@ -288,7 +288,7 @@ function newgame:draw()
     self.maxClassScroll = 0
     self.classScrollY=0
     setColor(255,255,255,255)
-    love.graphics.setFont(fonts.graveFontSmall)
+    love.graphics.setFont(fonts.headerFont)
     love.graphics.printf("Name:",nameBoxX,printY,nameBoxWidth,"center")
     printY=printY+24
     self.nameBox = {minX=nameBoxX,maxX=nameBoxX+nameBoxWidth,minY=printY,maxY=printY+24}
@@ -298,7 +298,7 @@ function newgame:draw()
       setColor(255,255,255,255)
       love.graphics.printf(self.player.name,nameBoxX,printY,nameBoxWidth,"center")
       if self.lineOn then
-        local w = fonts.graveFontSmall:getWidth(self.player.name)
+        local w = fonts.headerFont:getWidth(self.player.name)
         local lineX = nameBoxX+math.ceil(nameBoxWidth/2+w/2)
         love.graphics.line(lineX,printY+4,lineX,printY+21)
       end
@@ -319,8 +319,8 @@ function newgame:draw()
     printY=printY+32
     
     --Draw Pronouns:
-    love.graphics.setFont(fonts.graveFontSmall)
-    local w = fonts.graveFontSmall:getWidth("Pronouns: ")
+    love.graphics.setFont(fonts.headerFont)
+    local w = fonts.headerFont:getWidth("Pronouns: ")
     love.graphics.print("Pronouns: ",nameBoxX,printY)
     self.pronouns = {}
     local custom = self.player.pronouns and {n=self.player.pronouns.n,o=self.player.pronouns.o,p=self.player.pronouns.p} or {n="he",o="them",p="her"}
@@ -329,7 +329,7 @@ function newgame:draw()
     if self.cursorY == 2 or (mouseY > printY and mouseY < printY+24) then
       local printX = nameBoxX+w
       local pnouns = ucfirst(pnounlist[self.player.gender].n) .. "/" .. ucfirst(pnounlist[self.player.gender].o) .. "/" .. ucfirst(pnounlist[self.player.gender].p)
-      w = fonts.graveFontSmall:getWidth(pnouns)
+      w = fonts.headerFont:getWidth(pnouns)
       if (self.cursorX == genderX and (mouseY < printY or mouseY > printY+24)) or (mouseY > printY and mouseY < printY+24 and mouseX > printX and mouseX < printX+w) then
         setColor(50,50,50,255)
         love.graphics.rectangle("fill",printX,printY,w,24)
@@ -341,7 +341,7 @@ function newgame:draw()
       if self.player.gender ~= "male" then
         genderX = genderX+1
         pnouns = "He"
-        w = fonts.graveFontSmall:getWidth(pnouns)
+        w = fonts.headerFont:getWidth(pnouns)
         if (self.cursorX == genderX and (mouseY < printY or mouseY > printY+24)) or (mouseY > printY and mouseY < printY+24 and mouseX > printX and mouseX < printX+w+12) then
           setColor(50,50,50,255)
           love.graphics.rectangle("fill",printX,printY,w,24)
@@ -354,7 +354,7 @@ function newgame:draw()
       if self.player.gender ~= "female" then
         genderX = genderX+1
         pnouns = "She"
-        w = fonts.graveFontSmall:getWidth(pnouns)
+        w = fonts.headerFont:getWidth(pnouns)
         if (self.cursorX == genderX and (mouseY < printY or mouseY > printY+24)) or (mouseY > printY and mouseY < printY+24 and mouseX > printX and mouseX < printX+w+12) then
           setColor(50,50,50,255)
           love.graphics.rectangle("fill",printX,printY,w,24)
@@ -367,7 +367,7 @@ function newgame:draw()
       if self.player.gender ~= "neuter" then
         genderX = genderX+1
         pnouns = "It"
-        w = fonts.graveFontSmall:getWidth(pnouns)
+        w = fonts.headerFont:getWidth(pnouns)
         if (self.cursorX == genderX and (mouseY < printY or mouseY > printY+24)) or (mouseY > printY and mouseY < printY+24 and mouseX > printX and mouseX < printX+w+12) then
           setColor(50,50,50,255)
           love.graphics.rectangle("fill",printX,printY,w,24)
@@ -380,7 +380,7 @@ function newgame:draw()
       if self.player.gender ~= "other" then 
         genderX = genderX+1
         pnouns = "They"
-        w = fonts.graveFontSmall:getWidth(pnouns)
+        w = fonts.headerFont:getWidth(pnouns)
         if (self.cursorX == genderX and (mouseY < printY or mouseY > printY+24)) or (mouseY > printY and mouseY < printY+24 and mouseX > printX and mouseX < printX+w+12) then
           setColor(50,50,50,255)
           love.graphics.rectangle("fill",printX,printY,w,24)
@@ -392,7 +392,7 @@ function newgame:draw()
       end
       genderX = genderX+1
       pnouns = "Custom"
-      w = fonts.graveFontSmall:getWidth(pnouns)
+      w = fonts.headerFont:getWidth(pnouns)
       if (self.cursorX == genderX and (mouseY < printY or mouseY > printY+24)) or (mouseY > printY and mouseY < printY+24 and mouseX > printX and mouseX < printX+w+12) then
         setColor(50,50,50,255)
         love.graphics.rectangle("fill",printX,printY,w,24)
@@ -403,15 +403,15 @@ function newgame:draw()
       printX = printX+w+12
     else
       local pnouns = ucfirst(pnounlist[self.player.gender].n) .. "/" .. ucfirst(pnounlist[self.player.gender].o) .. "/" .. ucfirst(pnounlist[self.player.gender].p)
-      w = fonts.graveFontSmall:getWidth(pnouns)
+      w = fonts.headerFont:getWidth(pnouns)
       self.pronouns[1] = {gender=self.player.gender,minX = nameBoxX,maxX = nameBoxX+w,minY=printY,maxY=printY+24}
       love.graphics.print(pnouns,nameBoxX+w,printY)
     end
     --Tutorial Checkbox:
     printY = printY+50
     local padding = (prefs['noImages'] and 16 or 32)
-    love.graphics.setFont(fonts.graveFontSmall)
-    local textWidth = fonts.graveFontSmall:getWidth("Tutorial Messages? (Y)")
+    love.graphics.setFont(fonts.headerFont)
+    local textWidth = fonts.headerFont:getWidth("Tutorial Messages? (Y)")
     local tutX = round(sideW/2-textWidth/2)
     if self.cursorY == 3 and self.cursorX == 1 then
       setColor(100,100,100,255)
@@ -524,7 +524,7 @@ function newgame:draw()
       self.maxDescScroll=0
       self.descScrollY=0
     end
-    love.graphics.setFont(fonts.graveFontSmall)
+    love.graphics.setFont(fonts.headerFont)
   end
   
   --close button:

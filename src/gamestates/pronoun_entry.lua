@@ -15,6 +15,7 @@ end
 
 function pronoun_entry:draw()
   newgame:draw()
+  love.graphics.setFont(fonts.textFont)
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
   local uiScale = (prefs['uiScale'] or 1)
   local midY = math.floor(height/2/uiScale)
@@ -40,7 +41,7 @@ function pronoun_entry:draw()
   local _,tlines = fonts.textFont:getWrap("Subject (eg he/she/they):",wrapL)
   printY = printY + round(fontSize*#tlines*1.25)
   if self.cursorY == 1 then
-    setColor(50,50,50,255)
+    setColor(100,100,100,255)
     love.graphics.rectangle("fill",printX,printY,wrapL,fontSize+1)
     setColor(255,255,255,255)
     if self.lineOn then
@@ -49,7 +50,7 @@ function pronoun_entry:draw()
       love.graphics.line(lineX,printY+3,lineX,printY+fontSize-2)
     end
   elseif x > self.boxes.n.startX and x < self.boxes.n.endX and y > self.boxes.n.startY and y < self.boxes.n.endY then
-    setColor(33,33,33,255)
+    setColor(100,100,100,125)
     love.graphics.rectangle("fill",printX,printY,wrapL,fontSize+1)
     setColor(255,255,255,255)
   end
@@ -61,7 +62,7 @@ function pronoun_entry:draw()
   _,tlines = fonts.textFont:getWrap("Object (eg him/her/them):",wrapL)
   printY = printY + round(fontSize*#tlines*1.25)
   if self.cursorY == 2 then
-    setColor(50,50,50,255)
+    setColor(100,100,100,255)
     love.graphics.rectangle("fill",printX,printY,wrapL,fontSize+1)
     setColor(255,255,255,255)
     if self.lineOn then
@@ -70,7 +71,7 @@ function pronoun_entry:draw()
       love.graphics.line(lineX,printY+3,lineX,printY+fontSize-2)
     end
   elseif x > self.boxes.o.startX and x < self.boxes.o.endX and y > self.boxes.o.startY and y < self.boxes.o.endY then
-    setColor(33,33,33,255)
+    setColor(100,100,100,125)
     love.graphics.rectangle("fill",printX,printY,wrapL,fontSize+1)
     setColor(255,255,255,255)
   end
@@ -82,7 +83,7 @@ function pronoun_entry:draw()
   _,tlines = fonts.textFont:getWrap("Possessive (eg his/her/their):",wrapL)
   printY = printY + round(fontSize*#tlines*1.25)
   if self.cursorY == 3 then
-    setColor(50,50,50,255)
+    setColor(100,100,100,255)
     love.graphics.rectangle("fill",printX,printY,wrapL,fontSize+1)
     setColor(255,255,255,255)
     if self.lineOn then
@@ -91,7 +92,7 @@ function pronoun_entry:draw()
       love.graphics.line(lineX,printY+3,lineX,printY+fontSize-2)
     end
   elseif x > self.boxes.p.startX and x < self.boxes.p.endX and y > self.boxes.p.startY and y < self.boxes.p.endY then
-    setColor(33,33,33,255)
+    setColor(100,100,100,125)
     love.graphics.rectangle("fill",printX,printY,wrapL,fontSize+1)
     setColor(255,255,255,255)
   end

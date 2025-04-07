@@ -18,6 +18,7 @@ function storescreen:enter(previous,whichStore,stash)
     self.currency_item = self.store.currency_item and possibleItems[self.store.currency_item]
     self.costMod = 0
     self.stash = stash
+    self.previous = previous
     if self.store.faction then
       self.faction = currWorld.factions[self.store.faction]
       self.playerMember = player:is_faction_member(self.store.faction)
@@ -26,6 +27,11 @@ function storescreen:enter(previous,whichStore,stash)
     end
     self.store.contacted = true
     self:refresh_lists()
+    self.buyButton = nil
+    self.sellButton = nil
+    self.serviceButton = nil
+    self.spellsButton = nil
+    self.missionButton = nil
   end
 end
 
@@ -152,13 +158,13 @@ function storescreen:draw()
       if self.screen == "Spells" then setColor(255,255,255,255) end
     end
     if self.store.offers_missions and count(self.store.offers_missions) > 0 then
-     if self.screen == "Missions" then setColor(150,150,150,255) end
-    self.missionButton = output:button(buttonX,printY,missionbuttonW,false,((self.cursorX == #self.navButtons+1 and self.cursorY == 1) and "hover" or nil),"Missions",true)
-    self.navButtons[#self.navButtons+1] = self.missionButton
-    self.missionButton.cursorX = #self.navButtons
-    buttonX=buttonX+missionbuttonW+padX
-    if self.screen == "Missions" then setColor(255,255,255,255) end
-  end
+      if self.screen == "Missions" then setColor(150,150,150,255) end
+      self.missionButton = output:button(buttonX,printY,missionbuttonW,false,((self.cursorX == #self.navButtons+1 and self.cursorY == 1) and "hover" or nil),"Missions",true)
+      self.navButtons[#self.navButtons+1] = self.missionButton
+      self.missionButton.cursorX = #self.navButtons
+      buttonX=buttonX+missionbuttonW+padX
+      if self.screen == "Missions" then setColor(255,255,255,255) end
+    end
     printY = printY+padding
   end
   printY=printY+8
@@ -182,7 +188,7 @@ function storescreen:draw()
     local buyBoxX = windowX+windowWidth-buyBoxW-padding*(self.scrollMax == 0 and 1 or 2)
     local buyButtonX = round((buyBoxX+buyBoxW/2)-buybuttonW/2)
     local priceW = fonts.textFont:getWidth(self:get_cost_text(1000))
-    local priceX = buyBoxX-32-16-priceW
+    local priceX = buyBoxX-32-16-priceW-8
     local nameMaxLen = priceX-nameX
     local canBuy = false
     local costlineW = 0
@@ -251,7 +257,7 @@ function storescreen:draw()
       --Name:
       love.graphics.printf(name,nameX,buyTextY,nameMaxLen)
       --Cost:
-      love.graphics.print(self:get_cost_text(info.cost),priceX,buyTextY)
+      love.graphics.printf(self:get_cost_text(info.cost),priceX,buyTextY,priceW,"right")
       --Minus button:
       local minusMouse = false
       if info.minusButton and mouseX > info.minusButton.minX and mouseX < info.minusButton.maxX and mouseY > info.minusButton.minY-self.scrollY and mouseY < info.minusButton.maxY-self.scrollY then
@@ -314,8 +320,8 @@ function storescreen:draw()
     local sellBoxW = fonts.textFont:getWidth("1000")+8
     local sellBoxX = windowX+windowWidth-sellBoxW-padding*(self.scrollMax == 0 and 1 or 2)
     local sellButtonX = round((sellBoxX+sellBoxW/2)-sellbuttonW/2)
-    local priceW = fonts.textFont:getWidth(self:get_cost_text(1000))
-    local priceX = sellBoxX-32-16-priceW
+    local priceW = fonts.textFont:getWidth(self:get_cost_text(1000) .. " (Highest known)")
+    local priceX = sellBoxX-32-16-priceW-8
     local nameMaxLen = priceX-nameX
     local costlineW = 0
     local lastY = 0
@@ -366,9 +372,9 @@ function storescreen:draw()
       --Icon:
       output.display_entity(info.item,imageX,sellTextY-8,true,true)
       --Name:
-      love.graphics.printf(name .. (info.stash and " (From " .. info.stash.name .. ")" or ""),nameX,sellTextY,nameMaxLen)
+      love.graphics.printf(name .. (info.stash and " (From " .. info.stash.name .. ")" or "") .. (info.item.equipped and " (Equipped)" or ""),nameX,sellTextY,nameMaxLen)
       --Cost:
-      love.graphics.print(self:get_cost_text(info.cost),priceX,sellTextY)
+      love.graphics.printf(self:get_cost_text(info.cost) .. (info.cost >= info.item:get_highest_sell_cost() and " (Highest known)" or ""),priceX,sellTextY,priceW,"right")
       --Minus button:
       local minusMouse = false
       if info.minusButton and mouseX > info.minusButton.minX and mouseX < info.minusButton.maxX and mouseY > info.minusButton.minY-self.scrollY and mouseY < info.minusButton.maxY-self.scrollY then
@@ -653,6 +659,7 @@ function storescreen:draw()
             buttonHi = true
           end
           local button = output:button(buttonX,printY,serviceW,false,((buttonHi or self.cursorY == 1+i) and "hover" or false),"Finish",true)
+          button.missionID = missionID
           self.missionButtons[#self.missionButtons+1] = button
           setColor(255,255,255,255)
           printY=printY+32
@@ -683,6 +690,7 @@ function storescreen:draw()
             buttonHi = true
           end
           local button = output:button(buttonX,printY,serviceW,false,((buttonHi or self.cursorY == 1+i) and "hover" or false),"Accept",true)
+          button.missionID = missionID
           self.missionButtons[#self.missionButtons+1] = button
           setColor(255,255,255,255)
           printY=printY+32
@@ -751,13 +759,13 @@ function storescreen:buttonpressed(key,scancode,isRepeat,controllerType)
         local service = possibleServices[serviceData.service]
         local didIt, useText = service:activate(player)
         if useText then self.outText = useText end
-        if serviceData.cost then
+        if didIt and serviceData.cost then
           if self.currency_item then
             local creatureItem = player:has_item(self.store.currency_item)
             player:delete_item(creatureItem,serviceData.cost)
           else
-            player.money = player.money - serviceData.cost+round(serviceData.cost*(self.costMod/100))
-            self.outText = (self.outText .. "\n" or "") .. "You lose " .. get_money_name(serviceData.cost+round(serviceData.cost*(self.costMod/100))) .. "."
+            player:update_money(-(serviceData.cost+round(serviceData.cost*(self.costMod/100))))
+            self.outText = (self.outText and self.outText .. "\n" or "") .. "You lose " .. get_money_name(serviceData.cost+round(serviceData.cost*(self.costMod/100))) .. "."
           end
         end
       end
@@ -779,17 +787,31 @@ function storescreen:buttonpressed(key,scancode,isRepeat,controllerType)
       end
     elseif self.screen == "Missions" then
       if self.cursorY > 1 and self.missionButtons[self.cursorY-1] and not self.missionButtons[self.cursorY-1].disabled then
-        local missionData = self.store.offers_missions[self.cursorY-1]
-        local missionID = missionData.mission
+        local missionID = self.missionButtons[self.cursorY-1].missionID
+        local missionData = {}
+        for _,mInfo in pairs(self.faction.offers_missions) do
+          if mInfo.mission == missionID then
+            missionData = mInfo
+            break
+          end
+        end
         if currGame.missionStatus[missionID] then
           local mission = possibleMissions[missionID]
           if mission.can_finish and mission:can_finish(player) then
             local ret,useText = finish_mission(missionID)
-            if useText then self.outText = useText end
+            if ret then 
+              self.outText = "Mission Complete: " .. possibleMissions[missionID].name
+            elseif useText then
+              self.outText = useText
+            end
           end
         else
           local ret,useText = start_mission(missionID,missionData.starting_status,self.store,missionData.starting_data)
-          if useText then self.outText = useText end
+          if ret then 
+            self.outText = "Mission Started: " .. possibleMissions[missionID].name
+          elseif useText then
+            self.outText = useText
+          end
         end
       end
     elseif self.cursorY == 2 then
@@ -860,7 +882,7 @@ function storescreen:buttonpressed(key,scancode,isRepeat,controllerType)
       if (self.cursorY == 1 and self.serviceButtons[1]) then
         self.cursorY = 2
       else
-        for i=self.cursorY-1,#self.serviceButtons,1 do
+        for i=self.cursorY,#self.serviceButtons,1 do
           if self.serviceButtons[i] then
             self.cursorY = i+1
             break
@@ -871,8 +893,8 @@ function storescreen:buttonpressed(key,scancode,isRepeat,controllerType)
       if (self.cursorY == 1 and self.missionButtons[1]) then
         self.cursorY = 2
       else
-        for i=self.cursorY-1,#self.missionButtons,1 do
-          if self.missionButtons[i] or (self.cursorY == 1 and self.missionButtons[1]) then
+        for i=self.cursorY,#self.missionButtons,1 do
+          if self.missionButtons[i] then
             self.cursorY = i+1
             break
           end
@@ -1003,14 +1025,16 @@ function storescreen:mousepressed(x,y,button)
         local serviceData = self.store.offers_services[i]
         local service = possibleServices[serviceData.service]
         local didIt, useText = service:activate(player)
-        if didIt and useText then self.outText = useText end
-        if serviceData.cost then
-          if self.currency_item then
-            local creatureItem = player:has_item(self.store.currency_item)
-            player:delete_item(creatureItem,serviceData.cost)
-          else
-            player.money = player.money - serviceData.cost+round(serviceData.cost*(self.costMod/100))
-            self.outText = (self.outText .. "\n" or "") .. "You lose " .. get_money_name(serviceData.cost+round(serviceData.cost*(self.costMod/100))) .. "."
+        if useText then self.outText = useText end
+        if didIt then
+          if serviceData.cost then
+            if self.currency_item then
+              local creatureItem = player:has_item(self.store.currency_item)
+              player:delete_item(creatureItem,serviceData.cost)
+            else
+              player:update_money(-(serviceData.cost+round(serviceData.cost*(self.costMod/100))))
+              self.outText = (self.outText and self.outText .. "\n" or "") .. "You lose " .. get_money_name(serviceData.cost+round(serviceData.cost*(self.costMod/100))) .. "."
+            end
           end
         end
       end--end button coordinate if
@@ -1036,17 +1060,31 @@ function storescreen:mousepressed(x,y,button)
   elseif self.screen == "Missions" and self.missionButtons then --Services:
     for i,button in ipairs(self.missionButtons) do
       if button and not button.disabled and x > button.minX and x < button.maxX and y > button.minY-self.scrollY and y < button.maxY-self.scrollY then
-        local missionData = self.store.offers_missions[i]
-        local missionID = missionData.mission
+        local missionID = button.missionID
+        local missionData = {}
+        for _,mInfo in pairs(self.store.offers_missions) do
+          if mInfo.mission == missionID then
+            missionData = mInfo
+            break
+          end
+        end
         if currGame.missionStatus[missionID] then
           local mission = possibleMissions[missionID]
           if mission.can_finish and mission:can_finish(player) then
             local ret, useText = finish_mission(missionID)
-            if useText then self.outText = useText end
+            if ret then 
+              self.outText = "Mission Complete: " .. possibleMissions[missionID].name
+            elseif useText then
+              self.outText = useText
+            end
           end
         else
           local ret, useText = start_mission(missionID,missionData.starting_status,self.store,missionData.starting_data)
-          if useText then self.outText = useText end
+          if ret then 
+            self.outText = "Mission Started: " .. possibleMissions[missionID].name
+          elseif useText then
+            self.outText = useText
+          end
         end --end active or not if
       end--end button coordinate if
     end--end button for
@@ -1085,7 +1123,8 @@ end
 function storescreen:update(dt)
   if self.switchNow == true then
     self.switchNow = nil
-    Gamestate.switch(game)
+    local switch = self.previous or game
+    Gamestate.switch(switch)
     Gamestate.update(dt)
     return
   end
@@ -1131,7 +1170,7 @@ function storescreen:player_buys()
   if self.totalCost <= player.money then
     for id,info in ipairs(self.selling_list) do
       if info.buyAmt > 0 then
-        self.store:creature_buys_item(info.item,info.cost,info.buyAmt,player)
+        self.store:creature_buys_item(info.item,info)
         info.buyAmt = 0
       end
     end
@@ -1142,7 +1181,7 @@ end
 function storescreen:player_sells()
   for id,info in ipairs(self.buying_list) do
     if info.buyAmt > 0 then
-      self.store:creature_sells_item(info.item,info.cost,info.buyAmt,player,info.stash)
+      self.store:creature_sells_item(info.item,info)
       info.buyAmt = 0
     end
     self:refresh_lists()

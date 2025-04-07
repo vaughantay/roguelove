@@ -47,7 +47,7 @@
   <li><a href="../classes/Item.html">Item</a></li>
   <li><strong>Map</strong></li>
   <li><a href="../classes/Projectile.html">Projectile</a></li>
-  <li><a href="../classes/ranged_attack.html">ranged_attack</a></li>
+  <li><a href="../classes/RangedAttack.html">RangedAttack</a></li>
   <li><a href="../classes/Service.html">Service</a></li>
   <li><a href="../classes/Spell.html">Spell</a></li>
   <li><a href="../classes/Store.html">Store</a></li>
@@ -96,7 +96,7 @@
 	<td class="summary">Completely clear everything from a map.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#map:isClear">map:isClear (x, y, ctype, ignoreCreats, ignore_safety, projectile)</a></td>
+	<td class="name" nowrap><a href="#map:isClear">map:isClear (x, y, ctype, ignoreCreats, ignore_safety, projectile, ignoreAttackableFeatures)</a></td>
 	<td class="summary">Checks whether a map tile is clear</td>
 	</tr>
 	<tr>
@@ -104,8 +104,24 @@
 	<td class="summary">Checks whether a map tile is totally empty (not just open for movement)</td>
 	</tr>
 	<tr>
+	<td class="name" nowrap><a href="#map:isWall">map:isWall (x, y)</a></td>
+	<td class="summary">Determines if a tile is a wall</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#map:isFloor">map:isFloor (x, y)</a></td>
+	<td class="summary">Determines if a tile's base is a floor.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#map:tile_has_tag">map:tile_has_tag (x, y, tag)</a></td>
+	<td class="summary">Checks if the tile_info of a tile has a certain tag set, or if any of the features in that tile have that tag set</td>
+	</tr>
+	<tr>
 	<td class="name" nowrap><a href="#map:get_contents">map:get_contents (x, y)</a></td>
 	<td class="summary">Gets contents of a map tile</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#map:can_enter">map:can_enter (x, y, creature, fromX, fromY)</a></td>
+	<td class="summary">Run the terrain can_enter() callbacks for the creature's location</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#map:enter">map:enter (x, y, creature, fromX, fromY)</a></td>
@@ -136,15 +152,19 @@
 	<td class="summary">Gets a list of all items (if any) on a tile.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#map:get_tile_actions">map:get_tile_actions (x, y, user, noAdjacent)</a></td>
+	<td class="name" nowrap><a href="#map:tile_has_item">map:tile_has_item (x, y, id)</a></td>
+	<td class="summary">Check if a tile has an item on it</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#map:get_tile_actions">map:get_tile_actions (x, y, user, noAdjacent, noCreature)</a></td>
 	<td class="summary">Gets a list of all feature actions (if any) available at and around a tile.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#map:is_line">map:is_line (startX, startY, endX, endY, pass_through_walls, ctype, ignoreCreats, ignoreSafety)</a></td>
+	<td class="name" nowrap><a href="#map:is_line">map:is_line (startX, startY, endX, endY, pass_through_walls, ctype, ignoreCreats, ignoreSafety, ignoreAttackableFeatures)</a></td>
 	<td class="summary">Determines if you can draw a straight line between two tiles.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#map:get_line">map:get_line (startX, startY, endX, endY, pass_through_walls, ctype, ignoreCreats, ignoreSafety)</a></td>
+	<td class="name" nowrap><a href="#map:get_line">map:get_line (startX, startY, endX, endY, pass_through_walls, ctype, ignoreCreats, ignoreSafety, ignoreAttackableFeatures)</a></td>
 	<td class="summary">Gets a line between two tiles, stopping when you encounter an obstacle.</td>
 	</tr>
 	<tr>
@@ -164,7 +184,7 @@
 	<td class="summary">Add a feature to a tile</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#map:add_effect">map:add_effect (effect, x, y)</a></td>
+	<td class="name" nowrap><a href="#map:add_effect">map:add_effect (effect, x, y, args)</a></td>
 	<td class="summary">Add an effect to a tile</td>
 	</tr>
 	<tr>
@@ -196,15 +216,19 @@
 	<td class="summary">Delete all the pathfinders from the map</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#map:is_passable_for">map:is_passable_for (x, y, cType, include_effects, ignore_safety)</a></td>
+	<td class="name" nowrap><a href="#map:is_passable_for">map:is_passable_for (x, y, cType, include_effects, ignore_safety, ignoreAttackableFeatures)</a></td>
 	<td class="summary">Checks if a tile is passable for a certain creature</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#map:get_tile_hazards">map:get_tile_hazards (x, y, ctype, include_effects)</a></td>
+	<td class="summary">Gets the potential hazards on a tile</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#map:refresh_images">map:refresh_images ()</a></td>
 	<td class="summary">Refresh all the tile images on the map</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#map:refresh_tile_image">map:refresh_tile_image (x, y)</a></td>
+	<td class="name" nowrap><a href="#map:refresh_tile_image">map:refresh_tile_image (x, y, contentsOnly)</a></td>
 	<td class="summary">Refresh a specific tile's tile image</td>
 	</tr>
 	<tr>
@@ -281,7 +305,28 @@
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#map:get_content_tags">map:get_content_tags (tagType, noBranch)</a></td>
-	<td class="summary">Get a map's tags</td>
+	<td class="summary">Get a map's content tags</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#map:has_content_tag">map:has_content_tag (tag, tagType)</a></td>
+	<td class="summary">Checks if a map has a given content tag</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#map:has_tag">map:has_tag (tag)</a></td>
+	<td class="summary">Checks if a map has a descriptive tag.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#map:damage_all">map:damage_all (x, y, amt, attacker, damage_type, args, armor_piercing, noSound, item, ignoreWeakness, attackerSafe, tweak, conditions, source_name, creatureSafe)</a></td>
+	<td class="summary">Applies damage to all creates and features in a tile
+Damage a creature</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#map:register_incident">map:register_incident (incidentID, actor, target, args)</a></td>
+	<td class="summary">Registers an incident as having occured, to be processed by all other creatures who observe it</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#map:clear_caches">map:clear_caches ()</a></td>
+	<td class="summary">Clear all map caches</td>
 	</tr>
 </table>
 
@@ -348,7 +393,7 @@
 </dd>
     <dt>
     <a name = "map:isClear"></a>
-    <strong>map:isClear (x, y, ctype, ignoreCreats, ignore_safety, projectile)</strong>
+    <strong>map:isClear (x, y, ctype, ignoreCreats, ignore_safety, projectile, ignoreAttackableFeatures)</strong>
     </dt>
     <dd>
     Checks whether a map tile is clear
@@ -373,6 +418,9 @@
         </li>
         <li><span class="parameter">projectile</span>
          Boolean. Whether to consider the tile free for a projectile vs a creature.
+        </li>
+        <li><span class="parameter">ignoreAttackableFeatures</span>
+         Boolean. Whether to ignore attackable features when considering a tile clear (optional)
         </li>
     </ul>
 
@@ -421,6 +469,95 @@
 
 </dd>
     <dt>
+    <a name = "map:isWall"></a>
+    <strong>map:isWall (x, y)</strong>
+    </dt>
+    <dd>
+    Determines if a tile is a wall
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">x</span>
+         Number. The x-coordinate to check
+        </li>
+        <li><span class="parameter">y</span>
+         Number. The y-coordinate to check
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        boolean. Whether or not it is a wall tile
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "map:isFloor"></a>
+    <strong>map:isFloor (x, y)</strong>
+    </dt>
+    <dd>
+    Determines if a tile's base is a floor.  Does NOT check if the space is actually open
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">x</span>
+         Number. The x-coordinate to check
+        </li>
+        <li><span class="parameter">y</span>
+         Number. The y-coordinate to check
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        boolean. Whether or not it is a floor tile
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "map:tile_has_tag"></a>
+    <strong>map:tile_has_tag (x, y, tag)</strong>
+    </dt>
+    <dd>
+    Checks if the tile_info of a tile has a certain tag set, or if any of the features in that tile have that tag set
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">x</span>
+         Number. The x-coordinate to check
+        </li>
+        <li><span class="parameter">y</span>
+         Number. The y-coordinate to check
+        </li>
+        <li><span class="parameter">tag</span>
+         String. The tag to look for
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+        boolean. Whether or not it has the tag</li>
+        <li>
+        Feature. The feature that has the tag, if applicable</li>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
     <a name = "map:get_contents"></a>
     <strong>map:get_contents (x, y)</strong>
     </dt>
@@ -442,6 +579,43 @@
     <ol>
 
         Table. A table of all the contents of the tile
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "map:can_enter"></a>
+    <strong>map:can_enter (x, y, creature, fromX, fromY)</strong>
+    </dt>
+    <dd>
+    Run the terrain can_enter() callbacks for the creature's location
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">x</span>
+         Number. The x-coordinate
+        </li>
+        <li><span class="parameter">y</span>
+         Number. The y-coordinate
+        </li>
+        <li><span class="parameter">creature</span>
+         Creature. The creature entering the tile
+        </li>
+        <li><span class="parameter">fromX</span>
+         Number. The x-coordinate the creature is leaving (optional)
+        </li>
+        <li><span class="parameter">fromY</span>
+         Number. The y-coordinate the creature is leaving (optional)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether or not the tile can be entered
     </ol>
 
 
@@ -672,8 +846,39 @@
 
 </dd>
     <dt>
+    <a name = "map:tile_has_item"></a>
+    <strong>map:tile_has_item (x, y, id)</strong>
+    </dt>
+    <dd>
+    Check if a tile has an item on it
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">x</span>
+         Number. The x-coordinate
+        </li>
+        <li><span class="parameter">y</span>
+         Number. The y-coordinate
+        </li>
+        <li><span class="parameter">id</span>
+         String. The ID of the item to check for.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Item or false. The item, if it has it, otherwise false
+    </ol>
+
+
+
+
+</dd>
+    <dt>
     <a name = "map:get_tile_actions"></a>
-    <strong>map:get_tile_actions (x, y, user, noAdjacent)</strong>
+    <strong>map:get_tile_actions (x, y, user, noAdjacent, noCreature)</strong>
     </dt>
     <dd>
     Gets a list of all feature actions (if any) available at and around a tile.
@@ -693,6 +898,9 @@
         <li><span class="parameter">noAdjacent</span>
          Boolean. Whether to count adjacent tiles. Optional, defaults to false (ie adjacent tiles are counted)
         </li>
+        <li><span class="parameter">noCreature</span>
+         Boolean. If true, creature actions (such as speaking) don't count
+        </li>
     </ul>
 
     <h3>Returns:</h3>
@@ -707,7 +915,7 @@
 </dd>
     <dt>
     <a name = "map:is_line"></a>
-    <strong>map:is_line (startX, startY, endX, endY, pass_through_walls, ctype, ignoreCreats, ignoreSafety)</strong>
+    <strong>map:is_line (startX, startY, endX, endY, pass_through_walls, ctype, ignoreCreats, ignoreSafety, ignoreAttackableFeatures)</strong>
     </dt>
     <dd>
     Determines if you can draw a straight line between two tiles.
@@ -739,6 +947,9 @@
         <li><span class="parameter">ignoreSafety</span>
          Boolean. Whether to ignore unsafe but transversable tiles that block the line (optional)
         </li>
+        <li><span class="parameter">ignoreAttackableFeatures</span>
+         Boolean. Whether to ignore attackable features when considering a tile clear (optional)
+        </li>
     </ul>
 
     <h3>Returns:</h3>
@@ -753,7 +964,7 @@
 </dd>
     <dt>
     <a name = "map:get_line"></a>
-    <strong>map:get_line (startX, startY, endX, endY, pass_through_walls, ctype, ignoreCreats, ignoreSafety)</strong>
+    <strong>map:get_line (startX, startY, endX, endY, pass_through_walls, ctype, ignoreCreats, ignoreSafety, ignoreAttackableFeatures)</strong>
     </dt>
     <dd>
     Gets a line between two tiles, stopping when you encounter an obstacle.
@@ -784,6 +995,9 @@
         </li>
         <li><span class="parameter">ignoreSafety</span>
          Boolean. Ignore unsafe but transversable tiles that block the line (optional)
+        </li>
+        <li><span class="parameter">ignoreAttackableFeatures</span>
+         Boolean. Whether to ignore attackable features when considering a tile clear (optional)
         </li>
     </ul>
 
@@ -910,7 +1124,7 @@
          Number. The y-coordinate
         </li>
         <li><span class="parameter">args</span>
-         Anything. Arguments to pass to the feature's new() code
+         Anything. Arguments to pass to the feature's placed() code
         </li>
     </ul>
 
@@ -926,7 +1140,7 @@
 </dd>
     <dt>
     <a name = "map:add_effect"></a>
-    <strong>map:add_effect (effect, x, y)</strong>
+    <strong>map:add_effect (effect, x, y, args)</strong>
     </dt>
     <dd>
     Add an effect to a tile
@@ -942,6 +1156,9 @@
         </li>
         <li><span class="parameter">y</span>
          Number. The y-coordinate
+        </li>
+        <li><span class="parameter">args</span>
+         Anything. Arguments to pass to the feature's placed() code
         </li>
     </ul>
 
@@ -966,7 +1183,7 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">item</span>
-         Item. A specific item object, NOT its ID. Usually a new creature, called using Item('itemID')
+         Item. A specific item object, NOT its ID. Usually a new item, called using Item('itemID')
         </li>
         <li><span class="parameter">x</span>
          Number. The x-coordinate
@@ -1123,7 +1340,10 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">cType</span>
-         String. The creature path type (eg flyer) (optional)
+         String. The creature path type (eg flyer). (optional) Special values:
+  "walls" paths through walls only
+  "alltiles" completely open
+  "roomwalls" avoids rooms and digs through walls
         </li>
         <li><span class="parameter">terrainLimit</span>
          String. If you want to limit the pathfinder to a specific feature ID (optional)
@@ -1154,7 +1374,7 @@
 </dd>
     <dt>
     <a name = "map:is_passable_for"></a>
-    <strong>map:is_passable_for (x, y, cType, include_effects, ignore_safety)</strong>
+    <strong>map:is_passable_for (x, y, cType, include_effects, ignore_safety, ignoreAttackableFeatures)</strong>
     </dt>
     <dd>
     Checks if a tile is passable for a certain creature
@@ -1177,6 +1397,9 @@
         <li><span class="parameter">ignore_safety</span>
          Boolean. Whether to ignore dangerous but transversable tiles (optional)
         </li>
+        <li><span class="parameter">ignoreAttackableFeatures</span>
+         Boolean. Whether to ignore attackable features when considering a tile clear (optional)
+        </li>
     </ul>
 
     <h3>Returns:</h3>
@@ -1184,6 +1407,35 @@
 
         Boolean. If it's passable.
     </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "map:get_tile_hazards"></a>
+    <strong>map:get_tile_hazards (x, y, ctype, include_effects)</strong>
+    </dt>
+    <dd>
+    Gets the potential hazards on a tile
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">x</span>
+
+        </li>
+        <li><span class="parameter">y</span>
+
+        </li>
+        <li><span class="parameter">ctype</span>
+
+        </li>
+        <li><span class="parameter">include_effects</span>
+
+        </li>
+    </ul>
+
 
 
 
@@ -1205,7 +1457,7 @@
 </dd>
     <dt>
     <a name = "map:refresh_tile_image"></a>
-    <strong>map:refresh_tile_image (x, y)</strong>
+    <strong>map:refresh_tile_image (x, y, contentsOnly)</strong>
     </dt>
     <dd>
     Refresh a specific tile's tile image
@@ -1218,6 +1470,9 @@
         </li>
         <li><span class="parameter">y</span>
          Number. The y-coordinate
+        </li>
+        <li><span class="parameter">contentsOnly</span>
+         Boolean. If true, don't refresh the base tile image, just the contents
         </li>
     </ul>
 
@@ -1631,7 +1886,7 @@
     <strong>map:get_content_tags (tagType, noBranch)</strong>
     </dt>
     <dd>
-    Get a map's tags
+    Get a map's content tags
 
 
     <h3>Parameters:</h3>
@@ -1649,6 +1904,170 @@
 
 
 </dd>
+    <dt>
+    <a name = "map:has_content_tag"></a>
+    <strong>map:has_content_tag (tag, tagType)</strong>
+    </dt>
+    <dd>
+    Checks if a map has a given content tag
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">tag</span>
+         String. The tag to check for
+        </li>
+        <li><span class="parameter">tagType</span>
+         String. The type of tag
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether or not it has the tag.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "map:has_tag"></a>
+    <strong>map:has_tag (tag)</strong>
+    </dt>
+    <dd>
+    Checks if a map has a descriptive tag.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">tag</span>
+         String. The tag to check for
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether or not it has the tag.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "map:damage_all"></a>
+    <strong>map:damage_all (x, y, amt, attacker, damage_type, args, armor_piercing, noSound, item, ignoreWeakness, attackerSafe, tweak, conditions, source_name, creatureSafe)</strong>
+    </dt>
+    <dd>
+    Applies damage to all creates and features in a tile
+Damage a creature
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">x</span>
+         Number. The x-coordinate.
+        </li>
+        <li><span class="parameter">y</span>
+         Number. The y-coordinate.
+        </li>
+        <li><span class="parameter">amt</span>
+         Number. The damage to deal.
+        </li>
+        <li><span class="parameter">attacker</span>
+         Entity. The source of the damage.
+        </li>
+        <li><span class="parameter">damage_type</span>
+         String. The damage type of the attack. (optional)
+        </li>
+        <li><span class="parameter">args</span>
+         Table. A table of other arguments. All the below arguments are options to include.
+        </li>
+        <li><span class="parameter">armor_piercing</span>
+         Boolean, or Number. If set to true, it ignores all armor. If set to a number, ignores that much armor. (optional)
+        </li>
+        <li><span class="parameter">noSound</span>
+         Boolean. If set to true, no damage type sound will be played. (optional)
+        </li>
+        <li><span class="parameter">item</span>
+         Item. The weapon used to do the damage. (optional)
+        </li>
+        <li><span class="parameter">ignoreWeakness</span>
+         Boolean. If true, don't apply weakness
+        </li>
+        <li><span class="parameter">attackerSafe</span>
+         Boolean. If true, do not harm the attacker.
+        </li>
+        <li><span class="parameter">tweak</span>
+         Boolean. If true, tweak the damage number.
+        </li>
+        <li><span class="parameter">conditions</span>
+         Table. A table of conditions to possible inflict, in the same format as hitConditions elsewhere.
+        </li>
+        <li><span class="parameter">source_name</span>
+         String. The name to display for the source of the damage.
+        </li>
+        <li><span class="parameter">creatureSafe</span>
+         Boolean. If true, don't damage creatures
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A table of all damaged entities and the damage done to them.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "map:register_incident"></a>
+    <strong>map:register_incident (incidentID, actor, target, args)</strong>
+    </dt>
+    <dd>
+    Registers an incident as having occured, to be processed by all other creatures who observe it
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">incidentID</span>
+         String. The incident type
+        </li>
+        <li><span class="parameter">actor</span>
+         Entity. The creature (or other entity) that caused the incident. Optional
+        </li>
+        <li><span class="parameter">target</span>
+         Entity. The entity (or coordinates), that was the target of the incident. Optional
+        </li>
+        <li><span class="parameter">args</span>
+         Table. Other information to use when processing this incident
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "map:clear_caches"></a>
+    <strong>map:clear_caches ()</strong>
+    </dt>
+    <dd>
+    Clear all map caches
+
+
+
+
+
+
+
+</dd>
 </dl>
 
 
@@ -1656,7 +2075,7 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2023-09-29 12:16:36 </i>
+<i style="float:right;">Last updated 2025-04-07 10:52:23 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

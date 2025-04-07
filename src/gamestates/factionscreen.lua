@@ -15,13 +15,20 @@ function factionscreen:enter(previous,whichFac,stash)
     self.screen="Info"
     self.subScreen="Buy"
     self.outText = nil
-    self.totalCost = {favor=0,money=0}
+    self.totalCost = {favor=0,money=0,reputation=0}
     self.costMod = self.faction:get_cost_modifier(player)
     self:refresh_store_lists()
     self.lineCountdown = .5
     self.navButtons = {}
     self.faction.contacted = true
     self.stash = stash
+    self.previous = previous
+    self.buyButton = nil
+    self.sellButton = nil
+    self.serviceButton = nil
+    self.spellsButton = nil
+    self.missionButton = nil
+    self.favor_bar_value=0
   end
 end
 
@@ -31,16 +38,19 @@ function factionscreen:refresh_store_lists()
 
   for _,ilist in pairs(self.faction:get_inventory()) do
     local item = ilist.item
-    self.selling_list[#self.selling_list+1] = {name=item:get_name(true,1),description=item:get_description(),info=item:get_info(),moneyCost=(ilist.moneyCost and ilist.moneyCost+round(ilist.moneyCost*(self.costMod/100)) or nil),favorCost=ilist.favorCost,membersOnly=ilist.membersOnly,amount=item.amount,buyAmt=0,item=item,reputation_requirement=ilist.reputation_requirement}
+    self.selling_list[#self.selling_list+1] = {name=item:get_name(true,1),description=item:get_description(),info=item:get_info(),moneyCost=(ilist.moneyCost and ilist.moneyCost+round(ilist.moneyCost*(self.costMod/100)) or nil),favorCost=ilist.favorCost,reputationCost=ilist.reputationCost,membersOnly=ilist.membersOnly,amount=item.amount,buyAmt=0,item=item,reputation_requirement=ilist.reputation_requirement}
+  end
+  if self.faction.buys_favor_for_money and (player.favor[self.faction.id] or 0) > 0 then
+    self.buying_list[#self.buying_list+1] = {name="Favor",description="Exchange Favor owed from the " .. self.faction.name .. " for money.",amount=(player.favor[self.faction.id] or 0),moneyCost=self.faction.buys_favor_for_money,buyAmt=0,sellFavor=true}
   end
   for _,ilist in pairs(self.faction:get_buy_list()) do
     local item = ilist.item
-    self.buying_list[#self.buying_list+1] = {name=item:get_name(true,1),description=item:get_description(),info=item:get_info(),moneyCost=(ilist.moneyCost and ilist.moneyCost-round(ilist.moneyCost*(self.costMod/100)) or nil),favorCost=ilist.favorCost,amount=item.amount,buyAmt=0,item=item}
+    self.buying_list[#self.buying_list+1] = {name=item:get_name(true,1),description=item:get_description(),info=item:get_info(),moneyCost=(ilist.moneyCost and ilist.moneyCost-round(ilist.moneyCost*(self.costMod/100)) or nil),favorCost=ilist.favorCost,reputationCost=ilist.reputationCost,amount=item.amount,buyAmt=0,item=item}
   end
   if self.stash then
     for _,ilist in pairs(self.faction:get_buy_list(self.stash)) do
       local item = ilist.item
-      self.buying_list[#self.buying_list+1] = {name=item:get_name(true,1),description=item:get_description(),info=item:get_info(),moneyCost=(ilist.moneyCost and ilist.moneyCost-round(ilist.moneyCost*(self.costMod/100)) or nil),favorCost=ilist.favorCost,amount=item.amount,buyAmt=0,item=item,stash=self.stash}
+      self.buying_list[#self.buying_list+1] = {name=item:get_name(true,1),description=item:get_description(),info=item:get_info(),moneyCost=(ilist.moneyCost and ilist.moneyCost-round(ilist.moneyCost*(self.costMod/100)) or nil),favorCost=ilist.favorCost,reputationCost=ilist.reputationCost,amount=item.amount,buyAmt=0,item=item,stash=self.stash}
     end
   end
 end
@@ -52,6 +62,7 @@ function factionscreen:draw()
   love.graphics.setFont(fonts.textFont)
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
   local uiScale = (prefs['uiScale'] or 1)
+  local tileSize = output:get_tile_size()
   setColor(0,0,0,self.blackScreenAlpha)
   love.graphics.rectangle('fill',0,0,width,height)
   setColor(255,255,255,255)
@@ -68,26 +79,46 @@ function factionscreen:draw()
   --Basic header display:
   love.graphics.printf(faction.name,printX,padding,windowWidth,"center")
   local printY = padding+fontSize*2
-  local reputation = (player.reputation[factionID] or 0)
-  local favor = (player.favor[factionID] or 0)
-  love.graphics.printf("Your Reputation: " .. reputation,printX,printY,windowWidth,"center")
-  printY = printY+fontSize
+  
+  
   --Relationship text:
   local relationship = nil
   if self.playerMember then
-    relationship = "You are a member of this faction."
+    relationship = "Member"
   elseif faction:is_enemy(player) then
-    relationship = "This faction sees you as an enemy."
+    relationship = "Enemy"
   elseif faction:is_friend(player) then
-    relationship = "This faction sees you as a friend."
+    relationship = "Friend"
   else
-    relationship = "This faction is neutral towards you."
+    relationship = "Neutral"
   end
-  love.graphics.printf(relationship,printX,printY,windowWidth,"center")
-  local _, wrappedtext = fonts.textFont:getWrap(relationship, windowWidth)
-  printY=printY+(#wrappedtext)*fontSize
   
-  if not self.playerMember then
+  --Reputation Info:
+  local reputation = (player.reputation[factionID] or 0)
+  local favor = (player.favor[factionID] or 0)
+  love.graphics.printf("Your Reputation: " .. reputation .. " (" .. relationship .. ")",printX,printY,windowWidth,"center")
+  printY = printY+fontSize
+  --[[love.graphics.printf(relationship,printX,printY,windowWidth,"center")
+  local _, wrappedtext = fonts.textFont:getWrap(relationship, windowWidth)
+  printY=printY+(#wrappedtext)*fontSize--]]
+  love.graphics.printf("Your Favor: " .. favor,printX,printY,windowWidth,"center")
+  printY = printY+fontSize
+  if faction.reputation_per_favor_spent then
+    local favor_spent = faction.favor_spent or 0
+    local favor_required = faction.reputation_per_favor_spent-favor_spent
+    local money_required
+    if not faction.no_buy_money or not faction.no_sell_money then
+      money_required = favor_required*(self.money_per_favor or 10)
+    end
+    local repText = "Earn or spend " .. (favor_required and favor_required .. " favor" or "") .. (money_required and (favor_required and " or " or "") .. get_money_name(money_required) or "") .. " here to gain +1 Reputation."
+    love.graphics.printf(repText,printX,printY,windowWidth,"center")
+    local _,rlines = fonts.textFont:getWrap(repText, windowWidth)
+    printY = printY+fontSize*#rlines
+    output:draw_tiny_bar(self.favor_bar_value,faction.reputation_per_favor_spent,midX-100,printY,200,round(tileSize/2),{r=255,g=255,b=255,a=255})
+    printY = printY+tileSize
+  end
+  
+  if not self.playerMember and not faction.never_join then
     --Join text:
     local joinText = nil
     local canJoin,reason = faction:can_join(player)
@@ -200,12 +231,24 @@ function factionscreen:draw()
       printY=printY+(#wrappedtext+1)*fontSize
     end
     if faction.enemy_factions then
-      local enemyText = "Hated Factions:\n"
+      local enemyText = "Hated Factions:\n(You will lose Reputation with " .. self.faction.name .. " if you gain Reputation with these factions)\n"
       for i,fac in ipairs(faction.enemy_factions) do
         enemyText = enemyText .. (i > 1 and ", " or "") .. currWorld.factions[fac].name
       end
       love.graphics.printf(enemyText,printX,printY,maxW,"center")
       local _, wrappedtext = fonts.textFont:getWrap(enemyText, maxW)
+      printY=printY+(#wrappedtext+1)*fontSize
+    end
+    local considered_enemy
+    for _,fac in pairs(currWorld.factions) do
+      if fac.enemy_factions and fac.contacted and in_table(self.faction.id,fac.enemy_factions) then
+        considered_enemy = (considered_enemy and considered_enemy .. ", " or "") .. fac.name
+      end
+    end
+    if considered_enemy then
+      considered_enemy = "Hated by Factions:\n(If you gain Reputation with " .. self.faction.name ..", you will lose Reputation with these factions)\n" .. considered_enemy
+      love.graphics.printf(considered_enemy,printX,printY,maxW,"center")
+      local _, wrappedtext = fonts.textFont:getWrap(considered_enemy, maxW)
       printY=printY+(#wrappedtext+1)*fontSize
     end
     if faction.friendly_types then
@@ -240,7 +283,7 @@ function factionscreen:draw()
           killtext = killtext .. (reputation > 0 and "+" or "") .. reputation .. ": " .. (creatureTypes[typ] and creatureTypes[typ].name or ucfirst(typ)) .. "\n"
         end
       end --end kill_reputation type if
-      love.graphics.printf(killtext,printX,printY,maxW,"left")
+      love.graphics.printf(killtext,printX,printY,maxW,"center")
       local _, wrappedtext = fonts.textFont:getWrap(killtext, maxW)
       printY=printY+(#wrappedtext+1)*fontSize
     end --end if kill reputation anyhwere
@@ -252,7 +295,7 @@ function factionscreen:draw()
         local name = ucfirst(possibleIncidents and possibleIncidents[incidentID] and possibleIncidents[incidentID].name or string.gsub(incidentID,"_"," "))
         reptext = reptext .. (reputation > 0 and "+" or "") .. reputation .. ": " .. name .. "\n" 
       end
-      love.graphics.printf(reptext,printX,printY,maxW,"left")
+      love.graphics.printf(reptext,printX,printY,maxW,"center")
       local _, wrappedtext = fonts.textFont:getWrap(reptext, maxW)
       printY=printY+(#wrappedtext+1)*fontSize
     end
@@ -270,7 +313,7 @@ function factionscreen:draw()
           killtext = killtext .. (favor > 0 and "+" or "") .. favor .. ": creatures of type " .. (creatureTypes[typ] and creatureTypes[typ].name or ucfirst(typ)) .. "\n"
         end
       end --end kill_favor type if
-      love.graphics.printf(killtext,printX,printY,maxW,"left")
+      love.graphics.printf(killtext,printX,printY,maxW,"center")
       local _, wrappedtext = fonts.textFont:getWrap(killtext, maxW)
       printY=printY+(#wrappedtext+1)*fontSize
     end --end if kill favor anyhwere
@@ -305,31 +348,40 @@ function factionscreen:draw()
       local exambuttonW = fonts.buttonFont:getWidth("Examine")+padding
       local exambuttonX = windowX+padding
       local imageX = exambuttonX+exambuttonW+3
-      local nameX = imageX+output:get_tile_size()+4
+      local nameX = imageX+tileSize+4
       local buybuttonW = fonts.buttonFont:getWidth("Buy")+padding
       local yPad = 8
       local buyBoxW = fonts.textFont:getWidth("1000")+8
       local buyBoxX = windowX+windowWidth-buyBoxW-padding*(self.scrollMax == 0 and 1 or 2)
       local buyButtonX = round((buyBoxX+buyBoxW/2)-buybuttonW/2)
-      local priceW = fonts.textFont:getWidth(self:get_cost_text(1000) .. ", 1000 Favor")
-      local priceX = buyBoxX-32-16-priceW
+      local priceW = fonts.textFont:getWidth(self:get_cost_text(1000) .. ", 1000 Favor, 1000 Reputation")
+      local priceX = buyBoxX-32-16-priceW-8
       local nameMaxLen = priceX-nameX
       local lastY = 0
       local descrItem = nil
-      local costLine = "Cost: " .. self:get_cost_text(self.totalCost.money) .. " (have " .. player.money .. "), " .. self.totalCost.favor .. " Favor (have " .. favor .. "). "
+      local moneyText = (self.totalCost.money ~= 0 and self:get_cost_text(self.totalCost.money) .. " (have " .. player.money .. ")")
+      if moneyText and (self.totalCost.favor ~= 0 or self.totalCost.reputation ~= 0) then
+        moneyText = moneyText .. ", "
+      end
+      local favorText = (self.totalCost.favor ~= 0 and self.totalCost.favor .. " Favor (have " .. favor .. ") ")
+      if favorText and self.totalCost.reputation ~= 0 then
+        favorText = favorText .. ", "
+      end
+      local repText = (self.totalCost.reputation ~= 0 and self.totalCost.reputation .. " Reputation")
+      local costLine = "Cost: " .. (moneyText or "") .. (favorText or "")  .. (repText or "") .. (not moneyText and not favorText and not repText and "Nothing" or "")
       local costlineW = fonts.textFont:getWidth(costLine)
-      love.graphics.print(costLine,buyButtonX-costlineW,printY+4)
-      if self.totalCost.money > player.money or self.totalCost.favor > favor then
+      love.graphics.print(costLine,buyButtonX-costlineW-8,printY+4)
+      if self.totalCost.money > player.money or self.totalCost.favor > favor or self.totalCost.reputation > reputation then
         setColor(100,100,100,255)
       end
       self.storeActionButton = output:button(buyButtonX,printY-2,buybuttonW,false,(self.cursorY == 4 and "hover" or nil),"Buy",true)
-      if self.totalCost.money > player.money or self.totalCost.favor > favor then
+      if self.totalCost.money > player.money or self.totalCost.favor > favor or self.totalCost.reputation > reputation then
         setColor(255,255,255,255)
       end
       printY = printY+round(fontSize*1.5)
       local listStartY = printY
       self.listStartY = listStartY
-      self.totalCost.money,self.totalCost.favor=0,0
+      self.totalCost.money,self.totalCost.favor,self.totalCost.reputation=0,0,0
       --Drawing the text:
       love.graphics.push()
       --Create a "stencil" that stops 
@@ -367,13 +419,16 @@ function factionscreen:draw()
         love.graphics.printf(name,nameX,buyTextY,nameMaxLen)
         --Price:
         local priceText = ""
-        if info.moneyCost then
-          priceText = priceText .. get_money_name(info.moneyCost) .. (info.favorCost and ", ")
+        if info.moneyCost and info.moneyCost ~= 0 then
+          priceText = priceText .. get_money_name(info.moneyCost) .. (((info.favorCost and info.favorCost ~= 0) or (info.reputationCost and info.reputationCost ~= 0)) and ", " or "")
         end
-        if info.favorCost then
-          priceText = priceText .. info.favorCost .. " Favor"
+        if info.favorCost and info.favorCost ~= 0 then
+          priceText = priceText .. info.favorCost .. " Favor" .. (info.reputationCost and info.reputationCost ~= 0 and ", " or "")
         end
-        love.graphics.print(priceText,priceX,buyTextY)
+        if info.reputationCost and info.reputationCost ~= 0 then
+          priceText = priceText .. info.reputationCost .. " Reputation"
+        end
+        love.graphics.printf(priceText,priceX,buyTextY,priceW,"right")
         local plusMouse = false
         local minusMouse = false
         local amountMouse = false
@@ -426,6 +481,7 @@ function factionscreen:draw()
         lastY = printY
         self.totalCost.money = self.totalCost.money + (info.buyAmt*(info.moneyCost or 0))
         self.totalCost.favor = self.totalCost.favor + (info.buyAmt*(info.favorCost or 0))
+        self.totalCost.reputation = self.totalCost.reputation + (info.buyAmt*(info.reputationCost or 0))
       end
       love.graphics.setStencilTest()
       if descrItem and descrItem.maxY-self.scrollY > listStartY then
@@ -452,19 +508,28 @@ function factionscreen:draw()
       local sellBoxW = fonts.textFont:getWidth("1000")+8
       local sellBoxX = windowX+windowWidth-sellBoxW-padding*(self.scrollMax == 0 and 1 or 2)
       local sellButtonX = round((sellBoxX+sellBoxW/2)-sellbuttonW/2)
-      local priceW = fonts.textFont:getWidth(self:get_cost_text(1000) .. ", 1000 Favor")
-      local priceX = sellBoxX-32-16-priceW
+      local priceW = fonts.textFont:getWidth(self:get_cost_text(1000) .. " (Highest Known), 1000 Favor, 1000 Reputation")
+      local priceX = sellBoxX-32-16-priceW-8
       local nameMaxLen = priceX-nameX
       local lastY = 0
       local descrItem = nil
-      local costLine = "You will receive: " .. self:get_cost_text(self.totalCost.money) .. " and " .. self.totalCost.favor .. " Favor. "
+      local moneyText = (self.totalCost.money ~= 0 and self:get_cost_text(self.totalCost.money))
+      if moneyText and (self.totalCost.favor ~= 0 or self.totalCost.reputation ~= 0) then
+        moneyText = moneyText .. ", "
+      end
+      local favorText = (self.totalCost.favor ~= 0 and self.totalCost.favor .. " Favor")
+      if favorText and self.totalCost.reputation ~= 0 then
+        favorText = favorText .. ", "
+      end
+      local repText = (self.totalCost.reputation ~= 0 and self.totalCost.reputation .. " Reputation")
+      local costLine = "You will receive: " .. (moneyText or "") .. (favorText or "")  .. (repText or "") .. (not moneyText and not favorText and not repText and "Nothing" or "")
       local costlineW = fonts.textFont:getWidth(costLine)
-      love.graphics.print(costLine,sellButtonX-costlineW,printY+4)
+      love.graphics.print(costLine,sellButtonX-costlineW-8,printY+4)
       self.storeActionButton = output:button(sellButtonX,printY-2,sellbuttonW,false,(self.cursorY == 4 and "hover" or nil),"Sell",true)
       printY = printY+32
       local listStartY = printY
       self.listStartY = listStartY
-      self.totalCost.money,self.totalCost.favor=0,0
+      self.totalCost.money,self.totalCost.favor,self.totalCost.reputation=0,0,0
       --Drawing the text:
       love.graphics.push()
       --Create a "stencil" that stops 
@@ -502,18 +567,23 @@ function factionscreen:draw()
         end
         info.examineButton = output:button(exambuttonX,printY+4,exambuttonW,false,((examineMouse or (selected and self.cursorX == 1)) and "hover" or false),"Examine",true)
         --Icon:
-        output.display_entity(info.item,imageX,sellTextY-8,true,true)
+        if info.item then
+          output.display_entity(info.item,imageX,sellTextY-8,true,true)
+        end
         --Name:
-        love.graphics.printf(name .. (info.stash and " (From " .. info.stash.name .. ")" or ""),nameX,sellTextY,nameMaxLen)
+        love.graphics.printf(name .. (info.stash and " (From " .. info.stash.name .. ")" or "").. (info.item and info.item.equipped and " (Equipped)" or ""),nameX,sellTextY,nameMaxLen)
         --Cost:
         local priceText = ""
-        if info.moneyCost then
-          priceText = priceText .. self:get_cost_text(info.moneyCost) .. (info.favorCost and ", ")
+        if info.moneyCost and info.moneyCost ~= 0 then
+          priceText = priceText .. self:get_cost_text(info.moneyCost) .. (info.item and info.moneyCost >= info.item:get_highest_sell_cost() and " (Highest known)" or "") .. (((info.favorCost and info.favorCost ~= 0) or (info.reputationCost and info.reputationCost ~= 0)) and ", " or "")
         end
-        if info.favorCost then
-          priceText = priceText .. info.favorCost .. " Favor"
+        if info.favorCost and info.favorCost ~= 0  then
+          priceText = priceText .. info.favorCost .. " Favor" .. ((info.reputationCost and info.reputationCost ~= 0) and ", " or "")
         end
-        love.graphics.print(priceText,priceX,sellTextY)
+        if info.reputationCost and info.reputationCost ~= 0  then
+          priceText = priceText .. info.reputationCost .. " Reputation"
+        end
+        love.graphics.printf(priceText,priceX,sellTextY,priceW,"right")
         --Minus button:
         local minusMouse = false
         if info.minusButton and mouseX > info.minusButton.minX and mouseX < info.minusButton.maxX and mouseY > info.minusButton.minY-self.scrollY and mouseY < info.minusButton.maxY-self.scrollY then
@@ -551,13 +621,14 @@ function factionscreen:draw()
         lastY = printY
         self.totalCost.money = self.totalCost.money + (info.buyAmt*(info.moneyCost or 0))
         self.totalCost.favor = self.totalCost.favor + (info.buyAmt*(info.favorCost or 0))
+        self.totalCost.reputation = self.totalCost.reputation + (info.buyAmt*(info.reputationCost or 0))
       end
       love.graphics.setStencilTest()
       if descrItem and descrItem.maxY-self.scrollY > listStartY then
-      local text = descrItem.item:get_name(true,1) .. "\n" .. descrItem.item:get_description()
-      local descX = nameX
-      output:description_box(text,descX,descrItem.maxY,nil,self.scrollY)
-    end
+        local text = descrItem.name.. "\n" .. descrItem.description
+        local descX = nameX
+        output:description_box(text,descX,descrItem.maxY,nil,self.scrollY)
+      end
       love.graphics.pop()
       --Scrollbars
       if lastY*uiScale > height-padding then
@@ -591,10 +662,10 @@ function factionscreen:draw()
       spellCount = spellCount + 1
       local skill = possibleSkills[skillDef.skill]
       local costText = nil
-      if skillDef.moneyCost and skillDef.moneyCost > 0 then
+      if skillDef.moneyCost and skillDef.moneyCost ~= 0 then
         costText = "\n(Cost: " .. get_money_name(skillDef.moneyCost)
       end
-      if skillDef.favorCost and skillDef.favorCost > 0 then
+      if skillDef.favorCost and skillDef.favorCost ~= 0 then
         if costText == nil then
           costText = "\n(Cost: "
         else
@@ -839,6 +910,7 @@ function factionscreen:draw()
             buttonHi = true
           end
           local button = output:button(buttonX,printY,serviceW,false,((buttonHi or self.cursorY == 2+i) and "hover" or false),"Finish",true)
+          button.missionID = missionID
           self.missionButtons[#self.missionButtons+1] = button
           setColor(255,255,255,255)
           printY=printY+32
@@ -873,6 +945,7 @@ function factionscreen:draw()
             buttonHi = true
           end
           local button = output:button(buttonX,printY,serviceW,false,((buttonHi or self.cursorY == 2+i) and "hover" or false),"Accept",true)
+          button.missionID = missionID
           self.missionButtons[#self.missionButtons+1] = button
           printY=printY+32
           setColor(255,255,255,255)
@@ -933,28 +1006,42 @@ function factionscreen:buttonpressed(key,scancode,isRepeat,controllerType)
           local service = possibleServices[serviceData.service]
           local didIt, useText = service:activate(player)
           if useText then self.outText = useText end
-          if serviceData.moneyCost then
-            player.money = player.money - (serviceData.moneyCost+round(serviceData.moneyCost*(self.costMod/100)))
+          if didIt and serviceData.moneyCost then
+            player:update_money(-(serviceData.moneyCost+round(serviceData.moneyCost*(self.costMod/100))))
             self.outText = (self.outText .. "\n" or "") .. "You lose " .. get_money_name(serviceData.moneyCost+round(serviceData.moneyCost*(self.costMod/100))) .. "."
           end
-          if serviceData.favorCost then
+          if didIt and serviceData.favorCost then
             player.favor[self.faction.id] = player.favor[self.faction.id] - serviceData.favorCost
             self.outText = (self.outText .. "\n" or "") .. "You lose " .. serviceData.favorCost .. " Favor."
           end
         end
       elseif self.screen == "Missions" then
         if self.cursorY > 2 and self.missionButtons[self.cursorY-2] and not self.missionButtons[self.cursorY-2].disabled then
-          local missionData = self.faction.offers_missions[self.cursorY-2]
-          local missionID = missionData.mission
+          local missionID = self.missionButtons[self.cursorY-2].missionID
+          local missionData = {}
+          for _,mInfo in pairs(self.faction.offers_missions) do
+            if mInfo.mission == missionID then
+              missionData = mInfo
+              break
+            end
+          end
           if currGame.missionStatus[missionID] then
             local mission = possibleMissions[missionID]
             if mission.can_finish and mission:can_finish(player) then
               local ret,useText = finish_mission(missionID)
-              if useText then self.outText = useText end
+              if ret then 
+                self.outText = "Mission Complete: " .. possibleMissions[missionID].name
+              elseif useText then
+                self.outText = useText
+              end
             end
           else
             local ret,useText = start_mission(missionID,missionData.starting_status,self.faction,missionData.starting_data)
-            if useText then self.outText = useText end
+            if ret then
+              self.outText = "Mission Started: " .. possibleMissions[missionID].name
+            elseif useText then
+              self.outText = useText
+            end
           end
         end
       elseif self.screen == "Spells" then
@@ -1245,7 +1332,7 @@ function factionscreen:mousepressed(x,y,button)
       if listItem.minY and y > listItem.minY-self.scrollY and y < listItem.maxY-self.scrollY then
         self.cursorY = id+4
         self.cursorX = 1
-        local minus,plus,action,numberEntry = listItem.minusButton,listItem.plusButton,listItem.actionButton,listItem.numberEntry
+        local minus,plus,action,numberEntry,examine = listItem.minusButton,listItem.plusButton,listItem.actionButton,listItem.numberEntry,listItem.examineButton
         if x > minus.minX and x < minus.maxX and y > minus.minY-self.scrollY and y < minus.maxY-self.scrollY then
           listItem.buyAmt = math.max(listItem.buyAmt-1,0)
           self.cursorX = 2
@@ -1254,6 +1341,8 @@ function factionscreen:mousepressed(x,y,button)
           self.cursorX = 4
         elseif x > numberEntry.minX and x < numberEntry.maxX and y > numberEntry.minY-self.scrollY and y < numberEntry.maxY-self.scrollY then
           self.cursorX = 3
+        elseif x > examine.minX and x < examine.maxX and y > examine.minY-self.scrollY and y < examine.maxY-self.scrollY then
+          Gamestate.switch(examine_item,listItem.item,nil,true)
         end
         break --no reason to continue looking at other list items if we've already seen one
       end --end x/y check
@@ -1268,13 +1357,13 @@ function factionscreen:mousepressed(x,y,button)
         local service = possibleServices[serviceData.service]
         local didIt, useText = service:activate(player)
         if didIt and useText then self.outText = useText end
-        if serviceData.moneyCost then
-          player.money = player.money - (serviceData.moneyCost+round(serviceData.moneyCost*(self.costMod/100)))
+        if didIt and serviceData.moneyCost then
+          player:update_money(-(serviceData.moneyCost+round(serviceData.moneyCost*(self.costMod/100))))
           self.outText = (self.outText .. "\n" or "") .. "You lose " .. get_money_name(serviceData.moneyCost+round(serviceData.moneyCost*(self.costMod/100))) .. "."
         end
-        if serviceData.favorCost then
+        if didIt and serviceData.favorCost then
           player.favor[self.faction.id] = player.favor[self.faction.id] - serviceData.favorCost
-          self.outText = (self.outText .. "\n" or "") .. "You lose " .. serviceData.favorCost .. " Favor."
+          self.outText = (self.outText and self.outText .. "\n" or "") .. "You lose " .. serviceData.favorCost .. " Favor."
         end
       end--end button coordinate if
     end--end button for
@@ -1299,17 +1388,31 @@ function factionscreen:mousepressed(x,y,button)
   elseif self.screen == "Missions" then
     for i,button in ipairs(self.missionButtons) do
       if button and not button.disabled and x > button.minX and x < button.maxX and y > button.minY-self.scrollY and y < button.maxY-self.scrollY then
-        local missionData = self.faction.offers_missions[i]
-        local missionID = missionData.mission
+        local missionID = button.missionID
+        local missionData = {}
+        for _,mInfo in pairs(self.faction.offers_missions) do
+          if mInfo.mission == missionID then
+            missionData = mInfo
+            break
+          end
+        end
         if currGame.missionStatus[missionID] then
           local mission = possibleMissions[missionID]
           if mission.can_finish and mission:can_finish(player) then
             local ret, useText = finish_mission(missionID)
-            if useText then self.outText = useText end
+            if ret then
+              self.outText = "Mission Complete: " .. possibleMissions[missionID].name
+            elseif useText then
+              self.outText = useText
+            end
           end
         else
           local ret, useText = start_mission(missionID,missionData.starting_status,self.faction,missionData.starting_data)
-          if useText then self.outText = useText end
+          if ret then
+            self.outText = "Mission Started: " .. possibleMissions[missionID].name
+          elseif useText then
+            self.outText = useText
+          end
         end --end active or not if
       end--end button coordinate if
     end--end button for
@@ -1335,10 +1438,10 @@ function factionscreen:mousepressed(x,y,button)
 end --end mousepressed
 
 function factionscreen:player_buys()
-  if self.totalCost.money <= player.money and self.totalCost.favor <= (player.favor[self.faction.id] or 0) then
+  if self.totalCost.money <= player.money and self.totalCost.favor <= (player.favor[self.faction.id] or 0) and self.totalCost.reputation <= (player.reputation[self.faction.id] or 0) then
     for id,info in ipairs(self.selling_list) do
       if info.buyAmt > 0 then
-        self.faction:creature_buys_item(info.item,info.moneyCost,info.favorCost,info.buyAmt,player)
+        self.faction:creature_buys_item(info.item,info)
         info.buyAmt = 0
       end
     end
@@ -1348,8 +1451,13 @@ end
 
 function factionscreen:player_sells()
   for id,info in ipairs(self.buying_list) do
-    if info.buyAmt > 0 then
-      self.faction:creature_sells_item(info.item,info.moneyCost,info.favorCost,info.buyAmt,player,info.stash)
+    if info.buyAmt > 0 and info.item then
+      self.faction:creature_sells_item(info.item,info)
+      info.buyAmt = 0
+    elseif info.buyAmt and info.sellFavor then
+      player:update_favor(self.faction.id,-info.buyAmt,nil,nil,true)
+      local moneyAmt = self.faction.buys_favor_for_money*info.buyAmt
+      player:update_money(moneyAmt)
       info.buyAmt = 0
     end
     self:refresh_store_lists()
@@ -1359,7 +1467,8 @@ end
 function factionscreen:update(dt)
   if self.switchNow == true then
     self.switchNow = nil
-    Gamestate.switch(game)
+    local switch = self.previous or game
+    Gamestate.switch(switch)
     Gamestate.update(dt)
     return
   end
@@ -1377,6 +1486,15 @@ function factionscreen:update(dt)
     end
     if self.cursorY == 3 and self.noBuy then
       self.cursorY = 4
+    end
+  end
+  if self.faction.reputation_per_favor_spent and self.faction.favor_spent then
+    if self.faction.favor_spent > self.favor_bar_value then
+      self.favor_bar_value = math.min(self.favor_bar_value+20*dt,self.faction.favor_spent)
+    elseif self.favor_bar_value == self.faction.reputation_per_favor_spent then
+      self.favor_bar_value = 0
+    elseif self.faction.favor_spent < self.favor_bar_value then
+      self.favor_bar_value = math.min(self.favor_bar_value+20*dt,self.faction.reputation_per_favor_spent)
     end
   end
 end

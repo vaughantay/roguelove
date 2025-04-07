@@ -78,9 +78,12 @@ end
 ---Restocks the store. Default behavior: Restock all defined items up to their original amount, unless restock_amount or restock_to is set.
 function Store:restock()
   --Delete items marked to delete on restock:
-  for id,info in pairs(self.inventory) do
-    if info.delete_on_restock then
+  local i = 1
+  while i <= #self.inventory do
+    if self.inventory[i].delete_on_restock then
       table.remove(self.inventory,id)
+    else
+      i = i + 1
     end
   end
   
@@ -169,7 +172,7 @@ function Store:add_item(item,info)
     end
     price = price + (price * markup/100)
     local currency_mod = (self.currency_item and (self.money_per_currency_item or 10) or 1)
-    info.cost =  math.max(math.floor(price/currency_mod),1)
+    info.cost =  math.max(math.ceil(price/currency_mod),1)
   end
   local index = self:get_inventory_index(item)
   if index then
@@ -308,20 +311,24 @@ end
 
 ---Sell an item to the store
 --@param item Item. The item being sold
+--@param info Table. A table of information passed by the store screen. Can include:
 --@param cost Number. The amount the store will pay per item.
 --@param amt Number. The amount of the item being sold. Optional, defaults to 1.
 --@param creat Creature. The creature selling to the store. Optional, defaults to the player.
 --@para stash Entity. Where the item is actually being held. Optional, defaults to the creature
-function Store:creature_sells_item(item,cost,amt,creature,stash)
-  creature = creature or player
-  stash = stash or creature
+function Store:creature_sells_item(item,info)
+  info = info or {}
+  local cost = info.cost or 0
+  local amt = info.buyAmt or 1
+  local creature = info.creature or player
+  local stash = info.stash or creature
   local totalAmt = item.amount or 1
   if amt > totalAmt then amt = totalAmt end
   local totalCost = cost*amt
   local givenItem = item
   if item.amount > amt then
-    item.possessor = nil --This is done because item.possessor is the creature who owns the item, and Item:clone() does a deep copy of all tables, which means it will create a copy of the owner, which owns a copy of the item, which is owned by another copy of the owner which owns another copy of the item etc etc leading to a crash
-    givenItem = item:clone()
+    item.possessor = nil --This is done because item.possessor is the creature who owns the item, and Item:duplicate() does a deep copy of all tables, which means it will create a copy of the owner, which owns a copy of the item, which is owned by another copy of the owner which owns another copy of the item etc etc leading to a crash
+    givenItem = item:duplicate()
     givenItem.amount = amt
     item.possessor = stash
   end
@@ -338,18 +345,22 @@ function Store:creature_sells_item(item,cost,amt,creature,stash)
       creatureItem.amount = creatureItem.amount+totalCost
     end
   else
-    creature.money = creature.money+totalCost
+    creature:update_money(totalCost)
   end
 end
 
 ---Buy an item from the store
 --@param item Item. The item being sold
+--@param info Table. A table of information passed by the store screen. Can include:
 --@param cost Number. The amount the store is charging per item.
 --@param amt Number. The amount of the item being sold. Optional, defaults to 1.
 --@param creat Creature. The creature selling to the store. Optional, defaults to the player.
 --@return Boolean, Text/nil. True and nil if the buying was successful, False and a string if there's a reason the buying didn't go through.
-function Store:creature_buys_item(item,cost,amt,creature)
-  creature = creature or player
+function Store:creature_buys_item(item,info)
+  info = info or {}
+  local cost = info.cost or 0
+  local amt = info.buyAmt or 1
+  local creature = info.creature or player
   local totalAmt = item.amount or 1
   if totalAmt == -1 then totalAmt = 9999999 end
   if amt > totalAmt then amt = totalAmt end
@@ -368,7 +379,7 @@ function Store:creature_buys_item(item,cost,amt,creature)
         creature:give_item(item)
       elseif not item.stacks then
         for i=1,amt,1 do
-          local newItem = item:clone()
+          local newItem = item:duplicate()
           newItem.amount = 1
           creature:give_item(newItem)
         end
@@ -378,21 +389,21 @@ function Store:creature_buys_item(item,cost,amt,creature)
       if self.currency_item then
         creatureItem.amount = creatureItem.amount-totalCost
       else
-        creature.money = creature.money-totalCost
+        creature:update_money(-totalCost)
       end
     elseif item.stacks then --if buying a stackable item
-      local newItem = item:clone()
+      local newItem = item:duplicate()
       if item.amount ~= -1 then item.amount = item.amount - amt end
       newItem.amount = amt
       creature:give_item(newItem)
       if self.currency_item then
         creatureItem.amount = creatureItem.amount-totalCost
       else
-        creature.money = creature.money-totalCost
+        creature:update_money(-totalCost)
       end
     else --if buying a nonstackable item
       for i=1,amt,1 do
-        local newItem = item:clone()
+        local newItem = item:duplicate()
         newItem.amount=1
         creature:give_item(newItem)
       end
@@ -400,7 +411,7 @@ function Store:creature_buys_item(item,cost,amt,creature)
       if self.currency_item then
         creatureItem.amount = creatureItem.amount-totalCost
       else
-        creature.money = creature.money-totalCost
+        creature:update_money(-totalCost)
       end
     end
     return true
@@ -436,7 +447,7 @@ function Store:teach_spell(spellID,creature)
       local creatureItem = player:has_item(self.currency_item)
       creature:delete_item(creatureItem,spellInfo.cost+round(spellInfo.cost*(costMod/100)))
     else
-      creature.money = creature.money - spellInfo.cost+round(spellInfo.cost*(costMod/100))
+      creature:update_money(-(spellInfo.cost+round(spellInfo.cost*(costMod/100))))
     end
   end
   
@@ -471,7 +482,7 @@ function Store:teach_skill(skillID,creature)
       local creatureItem = player:has_item(self.currency_item)
       creature:delete_item(creatureItem,skillInfo.cost+round(skillInfo.cost*(costMod/100)))
     else
-      creature.money = creature.money - skillInfo.cost+round(skillInfo.cost*(costMod/100))
+      creature:update_money(-(skillInfo.cost+round(skillInfo.cost*(costMod/100))))
     end
   end
   
@@ -748,10 +759,11 @@ function Store:get_teachable_skills(creature)
   
   --Determine which skills are available:
   for _,skillDef in pairs(skills) do
-    local player_val = creature:get_skill(skillDef.skill,true)
+    local skillID = skillDef.skill
+    local skill = possibleSkills[skillID]
+    local player_val = creature:get_skill(skillID,true)
+    if not skillDef.max and skill.max then skillDef.max = skill.max end
     if not player_val or not skillDef.max or player_val < skillDef.max then
-      local skillID = skillDef.skill
-      local skill = possibleSkills[skillID]
       local cost = (skillDef.cost or 0)*(player_val+1)
       cost = cost + round(cost*(costMod/100))
       local currencyItem = self.currency_item

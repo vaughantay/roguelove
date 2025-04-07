@@ -3,6 +3,7 @@ menu = {whiteAlpha=0}
 function menu:enter()
   output:play_playlist('menu')
   self.cursorY = 1
+  self.winY = 0
 end
 
 function menu:draw()
@@ -10,34 +11,43 @@ function menu:draw()
   love.graphics.push()
   love.graphics.scale(uiScale,uiScale)
   local width, height = round(love.graphics:getWidth()/uiScale),round(love.graphics:getHeight()/uiScale)
+  local midX,midY = round(width/2),round(height/2)
+  local spacing = fonts.menuFont:getHeight()
   setColor(255,255,255,255)
-	love.graphics.setFont(fonts.graveFontBig)
-	love.graphics.printf(gamesettings.name,14,16,width-28,"center")
-	love.graphics.setFont(fonts.graveFontSmall)
-	love.graphics.setFont(fonts.graveFontBig)
-  local spacing = 40
+  local winW = 400
+  local winH = spacing*8
+  local printX = round(midX-winW/2)
+  local printY = 32
+	love.graphics.setFont(fonts.titleFont)
+	love.graphics.printf(gamesettings.name,printX+16,32,winW,"center")
+  printY = printY+96
+  local winY = printY
+  self.winY = winY
+  output:draw_window(printX,winY,printX+winW,winY+winH)
+  printY=printY+16
   if (self.cursorY >= 1 and self.cursorY <= 8) and Gamestate.current() == menu then
 		setColor(100,100,100,255)
-		love.graphics.rectangle("fill",width/2-256+80,(self.cursorY*spacing+57),512-161,45)
+		love.graphics.rectangle("fill",printX+16,(self.cursorY-1)*spacing+winY+16,winW,spacing)
+    setColor(255,255,255,255)
 	end
-  setColor(255,255,255)
-  local printY = 100
-  love.graphics.printf("Start a New Game",14,printY,width-28,"center")
+  love.graphics.setFont(fonts.menuFont)
+  love.graphics.printf("Start a New Game",printX+16,printY,winW,"center")
   printY = printY + spacing
-	love.graphics.printf("Load a Saved Game",14,printY,width-28,"center")
+	love.graphics.printf("Load a Saved Game",printX+16,printY,winW,"center")
   printY = printY + spacing
-	love.graphics.printf("How to Play",14,printY,width-28,"center")
+	love.graphics.printf("How to Play",printX+16,printY,winW,"center")
   printY = printY + spacing
-	love.graphics.printf("Stats and Records",14,printY,width-28,"center")
+  setColor(50,50,50,255)
+	love.graphics.printf("Stats and Records",printX+16,printY,winW,"center")
   printY = printY + spacing
-	love.graphics.printf("Monsterpedia",14,printY,width-28,"center")
+  setColor(255,255,255,255)
+	love.graphics.printf("Monsterpedia",printX+16,printY,winW,"center")
   printY = printY + spacing
-  love.graphics.printf("Settings & Controls",14,printY,width-28,"center")
+  love.graphics.printf("Settings & Controls",printX+16,printY,winW,"center")
   printY = printY + spacing
-  love.graphics.printf("Credits",14,printY,width-28,"center")
+  love.graphics.printf("Credits",printX+16,printY,winW,"center")
   printY = printY + spacing
-  love.graphics.printf("Quit",14,printY,width-28,"center")
-	setColor(255,255,255)
+  love.graphics.printf("Quit",printX+16,printY,winW,"center")
 	love.graphics.setFont(fonts.textFont)
   if gamesettings.version_text then
     love.graphics.printf(gamesettings.version_text,16,height-prefs['fontSize']*4,width-14,"center")
@@ -100,11 +110,12 @@ function menu:update(dt)
   x,y = x/uiScale, y/uiScale
   local width = love.graphics.getWidth()
   local startX = round(width/uiScale/2)-256+80
+  local spacing = fonts.menuFont:getHeight()
 	if y ~= output.mouseY and x > startX and x < startX+512-161 then -- only do this if the mouse has moved
     output.mouseY = y
     local done = false
     for line=1,8,1 do
-      if y > (line*40+57) and y < (line*40+102) then
+      if y > (line-1)*spacing+self.winY+16 and y < (line)*spacing+self.winY+16 then
         self.cursorY = line
         done = true
         break

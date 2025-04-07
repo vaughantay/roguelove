@@ -35,15 +35,17 @@ function spellscreen:enter(previous,locked)
   self.buttons = {}
   self.upgradeButtons = {}
   self.settingsButtons = {}
+  self.itemButtons = {}
   self.buttonCount = 0
   self.ignoreMouse = true
   
   self.yModPerc = 0
-  if previous == game then
+  if previous == game or previous == loadout or previous == multiselect  then
     self.yModPerc = 100
     tween(0.2,self,{yModPerc=0})
     output:sound('stoneslideshort',2)
   end
+  self.previous = previous
   self.spellList = {}
 end
 
@@ -59,7 +61,8 @@ function spellscreen:draw()
   local x,y=self.x,self.y
   local mouseX,mouseY = love.mouse.getPosition()
   mouseX,mouseY = round(mouseX/uiScale),round(mouseY/uiScale)
-  local fontSize = prefs['fontSize']
+  local fontSize = fonts.textFont:getHeight()
+  local headerSize = fonts.headerFont:getHeight()
   local tileSize = output:get_tile_size()
   local lineSize = math.max(fontSize,tileSize)
   local padYtext = math.ceil((lineSize-fontSize)/2)
@@ -73,8 +76,10 @@ function spellscreen:draw()
   output:draw_window(1,1,sidebarX-padding,height-padding)
   output:draw_window(sidebarX,1,width-padding,height-padding)
   
+  love.graphics.setFont(fonts.headerFont)
   love.graphics.printf("Spells and Abilities",padding,padding,window1w,"center")
-  local printY = padding+round(fontSize*1.5)
+  love.graphics.setFont(fonts.textFont)
+  local printY = padding+headerSize
   local printX = (prefs['noImages'] and 14 or 32)
   local spellPoints = (player.spellPoints or 0)
   local spellSlots = player:get_free_spell_slots()
@@ -104,10 +109,12 @@ function spellscreen:draw()
   local mousedSpell = nil
   local slotcount = 0
   if self.unmemorized and #self.unmemorized > 0 then
+    love.graphics.setFont(fonts.headerFont)
     love.graphics.printf("Memorized Spells",x+padX,printY,window1w-x-padX,"center")
-    printY=printY+round(fontSize*1.5)
+    love.graphics.setFont(fonts.textFont)
+    printY=printY+headerSize
   end
-	for i, spell in pairs(playerSpells) do
+	for i, spell in ipairs(playerSpells) do
     local moused = not self.ignoreMouse and (mouseX > printX and mouseX < window1w and mouseY+self.scrollY > printY and mouseY+self.scrollY < printY+lineSize+2)
     local spellID = spell.id
 		spells[i] = spellID
@@ -115,7 +122,7 @@ function spellscreen:draw()
     local target_type = spell.target_type
     local active = spell.active
     local item = spell.from_item
-    local upgrade = not item and (count(spell:get_possible_upgrades()) > 0)
+    local upgrade = not item and (count(spell:get_possible_upgrades(true)) > 0)
     --Draw the highlight box:
     if (self.cursorY == i) then
       if self.cursorX == 2 then
@@ -131,20 +138,22 @@ function spellscreen:draw()
       setColor(255,255,255,255)
       mousedSpell = i
     end
+    local textColor = {r=255,g=255,b=255,a=255}
     if player.cooldowns[spell] or spell:requires(player) == false or (spell.charges and spell.charges < 1) then
       if moused or self.cursorY == i then
-        setColor((active and (upgrade and 12 or 0) or 25),25,(upgrade and 0 or (active and 0 or 25)),255)
+        textColor.r, textColor.g, textColor.b = (active and (upgrade and 12 or 0) or 25), 25, (upgrade and 0 or (active and 0 or 25))
       else
-        setColor((active and (upgrade and 50 or 0) or 100),100,(upgrade and 0 or (active and 0 or 100)),255)
+        textColor.r, textColor.g, textColor.b = (active and (upgrade and 50 or 0) or 100), 100, (upgrade and 0 or (active and 0 or 100))
       end
     else
-      setColor((active and (upgrade and 200 or 100) or 255),255,(upgrade and 0 or (active and 100 or 255)),255)
+      textColor.r, textColor.g, textColor.b = (active and (upgrade and 200 or 100) or 255), 255, (upgrade and 0 or (active and 100 or 255))
     end --end cooldowns if
     if not spell.freeSlot then
       slotcount = slotcount + 1
     end
     local num = (spell.freeSlot and "-) " or slotcount .. ") ")
     local thisPadX = fonts.textFont:getWidth(num)
+    setColor(textColor.r,textColor.g,textColor.b,textColor.a)
     love.graphics.print(num,x+padX,printY+padYtext)
     if spell and images['spell' .. (spell.image_name or spell.id)] then
       if spell.color then
@@ -152,8 +161,8 @@ function spellscreen:draw()
       end
       love.graphics.draw(images['spell' .. (spell.image_name or spell.id)],x+padX+thisPadX,printY)
       thisPadX = thisPadX + tileSize+2
-      setColor(255,255,255,255)
     end
+    setColor(textColor.r,textColor.g,textColor.b,textColor.a)
     local spellText = name .. (player.cooldowns[spell] and " (" .. player.cooldowns[spell] .. " turns to recharge)" or "") .. (target_type == "passive" and " (Passive)" or "") .. (active and " (Active)" or "") .. (upgrade and " (+)" or "")
 		love.graphics.print(spellText,x+padX+thisPadX,printY+padYtext)
     setColor(255,255,255,255)
@@ -162,8 +171,10 @@ function spellscreen:draw()
     printY = printY+lineSize+2
 	end
   if spellSlots and spellSlots > 0 then
+    love.graphics.setFont(fonts.headerFont)
     love.graphics.printf("Free Slots",x+padX,printY,window1w-x-padX,"center")
-    printY=printY+round(fontSize*1.5)
+    love.graphics.setFont(fonts.textFont)
+    printY=printY+headerSize
     for i=1,spellSlots,1 do
       local slot = i+count(playerSpells)
       local moused = not self.ignoreMouse and (mouseX > printX and mouseX < window1w and mouseY+self.scrollY > printY and mouseY+self.scrollY < printY+lineSize+2)
@@ -188,8 +199,10 @@ function spellscreen:draw()
     end
   end
   if self.unmemorized and #self.unmemorized > 0 then
+    love.graphics.setFont(fonts.headerFont)
     love.graphics.printf("Unmemorized Spells",x+padX,printY,window1w-x-padX,"center")
-    printY=printY+round(fontSize*1.5)
+    love.graphics.setFont(fonts.textFont)
+    printY=printY+headerSize
     for i, spell in pairs(self.unmemorized) do
       local index = #playerSpells+i+(spellSlots or 0)
       local moused = not self.ignoreMouse and (mouseX > printX and mouseX < window1w and mouseY+self.scrollY > printY and mouseY+self.scrollY < printY+lineSize+2)
@@ -237,9 +250,7 @@ function spellscreen:draw()
   love.graphics.pop()
   
   --Description Box:
-  local spellEntry = (self.spellList[mousedSpell] or self.spellList[self.cursorY])
-  self.buttons = {}
-  self.upgradebuttons = {}
+  local spellEntry = (self.spellList[self.cursorY] or self.spellList[mousedSpell])
   if spellEntry ~= nil and spellEntry.spell then
     local spell = spellEntry.spell
     love.graphics.push()
@@ -252,6 +263,10 @@ function spellscreen:draw()
     local selected = (self.cursorX ~= 1)
     local memorized = player:has_spell(spell.id)
     local item = spell.from_item
+    
+    if item then
+      spellText = spellText .. "\n\nGranted by " .. item:get_name(true) .. "."
+    end
     
     if target_type == "passive" then
       spellText = spellText .. "\n\nThis ability is passive and is used automatically when needed."
@@ -288,16 +303,28 @@ function spellscreen:draw()
       end
     end
     
-    if item then
-      spellText = spellText .. "\nGranted by " .. item:get_name(true) .. "."
-    end
-    
     local oldFont = love.graphics.getFont()
     love.graphics.setFont(fonts.textFont)
     local width, tlines = fonts.textFont:getWrap(spellText,window2w)
     local sheight = (#tlines+1)*fontSize
     love.graphics.printf(spell.name,printX,printY,window2w,"center")
     printY=printY+fontSize+2
+    if spell.level then
+      love.graphics.printf("Level " .. spell.level,printX,printY,window2w,"center")
+      printY=printY+fontSize+2
+    end
+    if spell.arcana then
+      local arcText = ""
+      for i,arc in ipairs(spell.arcana) do
+        if i > 1 then
+          arcText = arcText .. ", "
+        end
+        local arcInfo = arcana_list[arc]
+        arcText = arcText .. ucfirst((arcInfo.name or arc))
+      end
+      love.graphics.printf(arcText,printX,printY,window2w,"center")
+      printY=printY+fontSize+2
+    end
     love.graphics.printf(spellText,printX,printY,window2w,"left")
     printY=printY+sheight
     
@@ -333,7 +360,7 @@ function spellscreen:draw()
     if not self.locked then
       if memorized and not item and (spell.forgettable or (gamesettings.spells_forgettable_by_default and spell.forgettable ~= false)) then
         self.buttonCount = self.buttonCount + 1
-        local forgetText = "Forget"
+        local forgetText = "Unmemorize"
         local buttonWidth = fonts.buttonFont:getWidth(forgetText)+25
         self.buttons.forget = output:button(printX,printY,buttonWidth,false,(self.cursorX == 2 and self.sidebarCursorY == self.buttonCount and "hover" or nil),forgetText,true)
         self.buttons.forget.buttonNum = self.buttonCount
@@ -375,8 +402,10 @@ function spellscreen:draw()
     --sort_table(settings,'name')
     if count(settings) > 0 then
       local buttonY=0
+      love.graphics.setFont(fonts.headerFont)
       love.graphics.printf("Settings:",printX,printY,window2w,"left")
-      printY=printY+settingH
+      love.graphics.setFont(fonts.textFont)
+      printY=printY+headerSize
       for settingID,info in pairs(settings) do
         self.buttonCount = self.buttonCount+1
         buttonY = buttonY+1
@@ -390,7 +419,9 @@ function spellscreen:draw()
         if prefs['noImages'] then
           love.graphics.print((info.enabled and "(Y)" or "(N)"),printX,printY)
         else
+          setColor(0,255,255,255)
           love.graphics.draw((info.enabled and images.uicheckboxchecked or images.uicheckbox),printX,printY)
+          setColor(255,255,255,255)
         end
         local setText = info.name .. (info.description and " (" .. info.description .. ")" or "")
         love.graphics.printf(setText,printX+boxW,printY,window2w-scrollPad,"left")
@@ -407,16 +438,19 @@ function spellscreen:draw()
     
     love.graphics.printf(statText,printX,printY,window2w-scrollPad,"left")
     local _, slines = fonts.textFont:getWrap(statText,window2w-scrollPad)
-    local sHeight = (#slines+1)*fontSize
+    local sHeight = (statText == "" and 0 or #slines*fontSize)
     printY = printY+sHeight
     
     --Print upgrades
-    if spell.possible_upgrades then
+    local upgrade_stat = spell.upgrade_stat or "spellPoints"
+    local upgrade_stat_name = (upgrade_stat == "spellPoints" and gamesettings.default_spell_upgrade_stat_name or false)
+    if spell.possible_upgrades and not item and not player.oldBody then
       local upgrades = spell:get_possible_upgrades()
       if count(upgrades) > 0 then
+        love.graphics.setFont(fonts.headerFont)
         love.graphics.printf("Upgrades:",printX,printY,window2w-scrollPad,"left")
-        local upgrade_stat = spell.upgrade_stat or "spellPoints"
-        local upgrade_stat_name = (upgrade_stat == "spellPoints" and gamesettings.default_spell_upgrade_stat_name or false)
+        love.graphics.setFont(fonts.textFont)
+        printY=printY+headerSize
         local points_available = player[upgrade_stat] or 0
         if not upgrade_stat_name then
           for _,stInfo in pairs(possibleSkillTypes) do
@@ -429,21 +463,25 @@ function spellscreen:draw()
         end
         if not upgrade_stat_name then upgrade_stat_name = "Point" end
         if spell.free_upgrades > 0 then
-          printY=printY+fontSize
           love.graphics.printf(spell.free_upgrades .. " Free Upgrade" .. (spell.free_upgrades > 1 and "s available" or " available"),printX,printY,window2w-scrollPad,"left")
+          printY=printY+fontSize
         end
         if points_available > 0 then
-          printY=printY+fontSize
           love.graphics.printf(points_available .. " " .. upgrade_stat_name .. (points_available > 1 and "s available" or " available"),printX,printY,window2w-scrollPad,"left")
+          printY=printY+fontSize
         end
         if spell.spellPoints > 0 then
+          love.graphics.printf(spell.spellPoints .. " " .. upgrade_stat_name .. (spell.spellPoints > 1 and "s" or "") .. " available for this ability",printX,printY,window2w-scrollPad,"left")
           printY=printY+fontSize
-          love.graphics.printf(spell.spellPoints .. " " .. upgrade_stat_name .. (spell.spellPoints > 1 and "s" or "") .. " available specifically for this ability",printX,printY,window2w-scrollPad,"left")
         end
-        printY=printY+fontSize+5
-        local buttonY = 1
+        if self.locked then
+          local explainText = "(You can upgrade your spells from the desk in your tower.)"
+          local _,elines = fonts.textFont:getWrap(explainText,window2w-scrollPad)
+          love.graphics.printf(explainText,printX,printY,window2w-scrollPad,"left")
+          printY = printY+fontSize*#elines
+        end
+        local buttonY = 0
         local mod = self.buttonCount
-        local upDesc,upY = nil,nil
         --Sort alphabetically:
         local sorted = {}
         for id,level in pairs(upgrades) do
@@ -451,6 +489,8 @@ function spellscreen:draw()
         end
         sort_table(sorted,'name')
         for _,info in ipairs(sorted) do
+          buttonY=buttonY+1
+          self.buttonCount = self.buttonCount + 1
           local id = info.id
           local level = upgrades[id]
           if self.sidebarCursorY==buttonY+mod and printY-self.descScrollY < self.descStartY then
@@ -466,14 +506,21 @@ function spellscreen:draw()
           if not self.ignoreMouse and self.upgradeButtons[buttonY] and mouseX > self.upgradeButtons[buttonY].minX and mouseX < self.upgradeButtons[buttonY].maxX and mouseY > self.upgradeButtons[buttonY].minY-self.descScrollY and mouseY < self.upgradeButtons[buttonY].maxY-self.descScrollY then
             mouseOver = true
           end
+          if self.locked then
+            setColor(100,100,100,255)
+          end
           self.upgradeButtons[buttonY] = output:tinybutton(printX,printY+1,true,((mouseOver or self.sidebarCursorY==buttonY+mod) and "hover" or false),"+",true)
           self.upgradeButtons[buttonY].upgradeID = id
+          if self.locked then
+            self.upgradeButtons[buttonY].disabled = true
+          end
           setColor(255,255,255,255)
           local buttonW = 34
           local details = spell.possible_upgrades[id]
           local level_details = spell.possible_upgrades[id][level]
           local cost = spell:get_upgrade_cost(id)
           local name = (level_details.name or details.name or ucfirst(id))
+          name = string.gsub(name,'_',' ')
           local description = (level_details.description or details.description or nil)
           local i = 1
           local point_cost = cost.point_cost
@@ -509,7 +556,7 @@ function spellscreen:draw()
                 local sortByVal = item_details.sortBy
                 local _,_,has_amt = player:has_item(item_details.item,sortByVal)
                 local name = item_details.displayName or (amount > 1 and possibleItems[item_details.item].pluralName or possibleItems[item_details.item].name)
-                costText = costText .. (firstCost == false and ", " or "") .. amount .. " " .. name .. " (You have " .. has_amt .. ")"
+                costText = costText .. (firstCost == false and ", " or "") .. amount .. " " .. name .. " (have " .. has_amt .. ")"
                 firstCost = false
               end --end item cost for
             end --end item cost if
@@ -520,10 +567,104 @@ function spellscreen:draw()
           local dHeight = (#dlines+1)*fontSize
           printY = printY+dHeight
           self.upgradeButtons[buttonY].textMaxY = printY
-          buttonY=buttonY+1
         end --end upgrade for
       end --end count upgrades > 0
     end --end if upgrades
+    
+    --Print appliable items:
+    local items = spell:get_appliable_items(player)
+    if items and #items > 0 and not item and not player.oldBody then
+      local buttonY = 0
+      local mod = self.buttonCount
+      love.graphics.setFont(fonts.headerFont)
+      love.graphics.printf("Apply Items:",printX,printY,window2w-scrollPad,"left")
+      love.graphics.setFont(fonts.textFont)
+      printY=printY+headerSize
+      if self.locked then
+        local explainText = "(You can apply items to your spells at the desk in your tower.)"
+        local _,elines = fonts.textFont:getWrap(explainText,window2w-scrollPad)
+        love.graphics.printf(explainText,printX,printY,window2w-scrollPad,"left")
+        printY = printY+fontSize*#elines
+      end
+      for _,item_details in ipairs(items) do
+        local amount_required = item_details.amount_required or 1
+        local item
+        local name
+        local has_amt = 0
+        if item_details.item then
+          item = item_details.item
+          name = item:get_name(true,amount_required)
+          has_amt = item.amount
+        else
+          local sortByVal = item_details.sortBy
+          local has_item,_,has_amt2 = player:has_item(item_details.itemID,sortByVal)
+          if has_item then
+            item = has_item
+            name = item:get_name(true,amount_required)
+            has_amt = has_amt2
+          else
+            name = (amount_required > 1 and amount_required .. " " or "") .. (item_details.displayName or (amount_required > 1 and possibleItems[item_details.itemID].pluralName or possibleItems[item_details.itemID].name))
+          end
+        end
+        
+        local costText = name .. " (have " .. has_amt .. ")"
+        local modX = 32
+        buttonY=buttonY+1
+        self.buttonCount = self.buttonCount + 1
+        local mouseOver = false
+        if self.itemButtons[buttonY] and mouseX > self.itemButtons[buttonY].minX and mouseX < self.itemButtons[buttonY].maxX and mouseY > self.itemButtons[buttonY].minY-self.descScrollY and mouseY < self.itemButtons[buttonY].maxY-self.descScrollY then
+          mouseOver = true
+        end
+        if has_amt < amount_required or self.locked then
+          setColor(100,100,100,255)
+        end
+        self.itemButtons[buttonY] = output:tinybutton(printX,printY+padYtext,true,((mouseOver or self.sidebarCursorY==buttonY+mod) and "hover" or false),"+",true)
+        setColor(255,255,255,255)
+        self.itemButtons[buttonY].item = item
+        self.itemButtons[buttonY].textMaxY = printY
+        if has_amt < amount_required or self.locked then
+          self.itemButtons[buttonY].disabled = true
+        end
+        if item then
+          output.display_entity(item,printX+modX,printY,true,true,1)
+        else
+          local itemDef = possibleItems[item_details.itemID]
+          local image_name = "item" .. (item_details.image_name or itemDef.image_name or item_details.itemID)
+          if not images[image_name] then
+            if images["itemdefault"] then
+              image_name = "itemdefault"
+            else
+              image_name = false
+            end
+          end
+          local color = item_details.color or itemDef.color or {r=255,g=255,b=255,a=255}
+          setColor(color.r,color.g,color.b,color.a)
+          if image_name then
+            love.graphics.draw(images[image_name],printX+modX,printY)
+          else
+            love.graphics.setFont((prefs['noImages'] and fonts.mapFont or fonts.mapFontWithImages))
+            love.graphics.print(itemDef.symbol,printX+modX,printY)
+            love.graphics.setFont(fonts.textFont)
+          end
+        end
+        setColor(255,255,255,255)
+        love.graphics.printf(costText,printX+modX+tileSize,printY+padYtext,window2w-scrollPad,"left")
+        printY=printY+fontSize
+        if item_details.bonuses then
+          local bonusText
+          for bonus,amt in pairs(item_details.bonuses) do
+            local bonusName = spell.stats and spell.stats[bonus] and spell.stats[bonus].name or bonus
+            if bonusName == upgrade_stat then bonusName = upgrade_stat_name end
+            bonusName = ucfirst(bonusName)
+            bonusName = string.gsub(bonusName,'_',' ')
+            bonusText = (bonusText and bonusText .. "\n\t" or "\t") .. bonusName .. ": " .. (amt > 0 and "+" or "") .. amt
+          end
+          love.graphics.printf(bonusText,printX+modX+tileSize,printY+padYtext,window2w-scrollPad,"left")
+          local _,blines = fonts.textFont:getWrap(bonusText,window2w-padding-scrollPad)
+          printY=printY+(#blines-1)*fontSize+lineSize
+        end
+      end
+    end
     
     love.graphics.setFont(oldFont)
     love.graphics.setStencilTest()
@@ -554,7 +695,7 @@ function spellscreen:buttonpressed(key,scancode,isRepeat,controllerType)
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
   width,height = round(width/uiScale),round(height/uiScale)
   key,scancode,isRepeat = input:parse_key(key,scancode,isRepeat,controllerType)
-	if (key == "escape") then
+	if (key == "escape") or key == "spell" then
     if self.cursorX == 1 then
       self:switchBack()
     else
@@ -587,8 +728,17 @@ function spellscreen:buttonpressed(key,scancode,isRepeat,controllerType)
       if self.upgradeButtons then
         for index,button in ipairs(self.upgradeButtons) do
           local mod = count(self.buttons)+(self.settingsButtons and #self.settingsButtons or 0)
-          if self.sidebarCursorY == index+mod then
+          if self.sidebarCursorY == index+mod and not button.disabled then
             self:perform_upgrade(button.upgradeID)
+            return
+          end
+        end
+      end
+      if self.itemButtons then
+        for index,button in ipairs(self.itemButtons) do
+          local mod = count(self.buttons)+(self.settingsButtons and #self.settingsButtons or 0)+(self.upgradeButtons and #self.upgradeButtons or 0)
+          if self.sidebarCursorY == index+mod and not button.disabled then
+            self:apply_item(button.item)
             return
           end
         end
@@ -599,7 +749,10 @@ function spellscreen:buttonpressed(key,scancode,isRepeat,controllerType)
       if (self.spellList[self.cursorY-1] ~= nil) then
         self.cursorY = self.cursorY - 1
         self.descScrollY = 0
+        self.buttons = {}
         self.upgradeButtons = {}
+        self.settingsButtons = {}
+        self.itemButtons = {}
       end
       if self.spellList[self.cursorY] and self.spellList[self.cursorY].minY-self.scrollY-prefs['fontSize'] < self.startY then
         self:scrollUp()
@@ -608,6 +761,7 @@ function spellscreen:buttonpressed(key,scancode,isRepeat,controllerType)
       self.sidebarCursorY = math.max(self.sidebarCursorY-1,1)
       local topButtonCount = count(self.buttons)
       local settingsButtons = (self.settingsButtons and #self.settingsButtons or 0)
+      local upgradeButtons = (self.upgradeButtons and #self.upgradeButtons or 0)
       if self.sidebarCursorY <= topButtonCount then
         self.descScrollY = 0
       elseif self.settingsButtons[self.sidebarCursorY-topButtonCount] then
@@ -618,6 +772,10 @@ function spellscreen:buttonpressed(key,scancode,isRepeat,controllerType)
         while self.upgradeButtons[self.sidebarCursorY-topButtonCount-settingsButtons].minY-self.descScrollY < self.descStartY do
           self:descScrollUp()
         end
+      elseif self.itemButtons[self.sidebarCursorY-topButtonCount-settingsButtons-upgradeButtons] then
+        while self.itemButtons[self.sidebarCursorY-topButtonCount-settingsButtons-upgradeButtons].minY-self.descScrollY < self.descStartY do
+          self:descScrollUp()
+        end
       end
     end
 	elseif (key == "south") then
@@ -625,16 +783,20 @@ function spellscreen:buttonpressed(key,scancode,isRepeat,controllerType)
       if (self.spellList[self.cursorY+1] ~= nil) then
         self.cursorY = self.cursorY + 1
         self.descScrollY = 0
+        self.buttons = {}
         self.upgradeButtons = {}
+        self.settingsButtons = {}
+        self.itemButtons = {}
       end
-      if self.spellList[self.cursorY].maxY-self.scrollY+prefs['fontSize'] >= round(love.graphics.getHeight()/uiScale)-32 and self.scrollY < self.scrollMax then
+      if self.spellList[self.cursorY] and self.spellList[self.cursorY].maxY-self.scrollY+prefs['fontSize'] >= round(love.graphics.getHeight()/uiScale)-32 and self.scrollY < self.scrollMax then
         self:scrollDown()
       end
     else -- if a spell is selected
       local topButtonCount = count(self.buttons)
       local settingsButtons = (self.settingsButtons and #self.settingsButtons or 0)
       local upgradeButtons = (self.upgradeButtons and #self.upgradeButtons or 0)
-      local max = upgradeButtons+settingsButtons+topButtonCount
+      local itemButtons = (self.itemButtons and #self.itemButtons or 0)
+      local max = upgradeButtons+settingsButtons+itemButtons+topButtonCount
       if self.sidebarCursorY < max then
         self.sidebarCursorY = self.sidebarCursorY+1
       end
@@ -646,12 +808,22 @@ function spellscreen:buttonpressed(key,scancode,isRepeat,controllerType)
         while self.upgradeButtons[self.sidebarCursorY-topButtonCount-settingsButtons].textMaxY-self.descScrollY > height-self.padY do
           self:descScrollDown()
         end
+      elseif self.itemButtons[self.sidebarCursorY-topButtonCount-settingsButtons-upgradeButtons] then
+        while self.itemButtons[self.sidebarCursorY-topButtonCount-settingsButtons-upgradeButtons].textMaxY-self.descScrollY > height-self.padY do
+          self:descScrollDown()
+        end
       end
     end
   elseif (key == "east") then
     if self.cursorX == 1 and self.spellList[self.cursorY] and self.spellList[self.cursorY].spell then self:select_spell(self.cursorY) end
   elseif (key == "west") then
     self.cursorX = 1
+  elseif tonumber(key) then
+    local num = tonumber(key)
+    if num == 0 then num = 10 end
+    if self.spellList[num] then
+      self:select_spell(num)
+    end
 	end
 end
 
@@ -691,8 +863,13 @@ function spellscreen:mousepressed(x,y,button)
         end
       end
       for index,button in ipairs(self.upgradeButtons) do
-        if x > button.minX and x < button.maxX and y+self.descScrollY > button.minY and y+self.descScrollY < button.maxY then
+        if not button.disabled and x > button.minX and x < button.maxX and y+self.descScrollY > button.minY and y+self.descScrollY < button.maxY then
           return self:perform_upgrade(button.upgradeID)
+        end
+      end
+      for index,button in ipairs(self.itemButtons) do
+        if not button.disabled and x > button.minX and x < button.maxX and y+self.descScrollY > button.minY and y+self.descScrollY < button.maxY then
+          return self:apply_item(button.item)
         end
       end
     end --end if cursorX > 1
@@ -758,7 +935,7 @@ end
 function spellscreen:update(dt)
   if self.switchNow == true then
     self.switchNow = nil
-    Gamestate.switch(game)
+    Gamestate.switch(self.previous or game)
     Gamestate.update(dt)
     return
   end
@@ -831,6 +1008,14 @@ function spellscreen:perform_upgrade(upgradeID)
   end
   if spell:apply_upgrade(upgradeID) then
     self.upgradeButtons = {}
+    return true
+  end
+end
+
+function spellscreen:apply_item(item)
+  local spell = self.spellList[self.cursorY].spell
+  if spell:apply_item(item) then
+    self.itemButtons = {}
     return true
   end
 end

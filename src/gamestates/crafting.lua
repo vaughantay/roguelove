@@ -1,7 +1,8 @@
 crafting = {}
 
-function crafting:enter(previous,recipe_type)
+function crafting:enter(previous,recipe_type,stash)
   self.hideUncraftable = self.hideUncraftable or false
+  self.stash = stash
   self:refresh_craft_list()
   self.craft_coordinates = {toggle={minX=0,maxX=0,minY=0,maxY=0}}
   self.makeAmt = 1
@@ -26,7 +27,7 @@ function crafting:enter(previous,recipe_type)
 end
 
 function crafting:refresh_craft_list()
-  local craft_list = player:get_all_possible_recipes(self.hideUncraftable,self.recipe_type)
+  local craft_list = player:get_all_possible_recipes(self.hideUncraftable,self.recipe_type,self.stash)
   local crafts = {}
   for _,craftID in ipairs(craft_list) do
     local craftData = {id=craftID,craftable=true,secondary_ingredients={}}
@@ -35,9 +36,17 @@ function crafting:refresh_craft_list()
     if recipe.ingredients then
       craftData.ingredients = {}
       for iid,amount in pairs(recipe.ingredients) do
+        local stash
         local item = possibleItems[iid]
         local _,_,player_amount = player:has_item(iid)
-        local ing = {id=iid,amount=amount,player_amount=player_amount,enough=(player_amount>=amount)}
+        if player_amount < amount and self.stash then
+          local _,_,stash_amount = self.stash:has_item(iid)
+          if stash_amount >= amount then
+            player_amount = stash_amount
+            stash = self.stash
+          end
+        end
+        local ing = {id=iid,amount=amount,player_amount=player_amount,enough=(player_amount>=amount),stash=stash}
         craftData.ingredients[ing.id] = ing
         if player_amount < amount then craftData.craftable = false end
       end
@@ -67,7 +76,7 @@ function crafting:refresh_craft_list()
     if recipe.requires_tools then
       craftData.requires_tools = {}
       for _,tool in ipairs(recipe.requires_tools) do
-        local has_item = player:has_item(tool)
+        local has_item = player:has_item(tool) or (self.stash and self.stash:has_item(tool))
         craftData.requires_tools[#craftData.requires_tools+1] = {toolID=tool,has_item=has_item}
         if not has_item then craftData.craftable=false end
       end
@@ -84,6 +93,14 @@ function crafting:refresh_craft_list()
             break
           end --end if has_tag
         end -- end inventory for
+        if not craftData.tool_properties[prop] and self.stash then
+          for _,item in pairs(self.stash:get_inventory()) do
+            if item.crafting_tool_properties and in_table(prop,item.crafting_tool_properties) then
+              craftData.tool_properties[prop] = item
+              break
+            end --end if has_tag
+          end -- end inventory for
+        end
         if not craftData.tool_properties[prop] then
           craftData.craftable=false
         end
@@ -114,6 +131,30 @@ function crafting:refresh_craft_list()
               craftData.ingredient_properties[prop][#craftData.ingredient_properties[prop]+1] = {item=item,amount=item.crafting_ingredient_properties[prop]}
               craftData.ingredient_properties[prop].amount = craftData.ingredient_properties[prop].amount + item.crafting_ingredient_properties[prop]*item.amount
               craftData.secondary_ingredients[item] = 0
+            end
+          end
+        end
+        if self.stash then
+          for _, item in pairs(self.stash:get_inventory()) do
+            if item.crafting_ingredient_properties and item.crafting_ingredient_properties[prop] and not recipe.results[item.id]  then
+              local typeMatch = false
+              if recipe.ingredient_types then
+                if item.crafting_ingredient_types then
+                  for _,itype in pairs(recipe.ingredient_types) do
+                    if in_table(itype,item.crafting_ingredient_types) then
+                      typeMatch = true
+                      break
+                    end
+                  end
+                end
+              else --if ingredient types aren't set, don't worry about matching
+                typeMatch = true
+              end
+              if typeMatch then
+                craftData.ingredient_properties[prop][#craftData.ingredient_properties[prop]+1] = {item=item,amount=item.crafting_ingredient_properties[prop],stash=self.stash}
+                craftData.ingredient_properties[prop].amount = craftData.ingredient_properties[prop].amount + item.crafting_ingredient_properties[prop]*item.amount
+                craftData.secondary_ingredients[item] = 0
+              end
             end
           end
         end
@@ -167,8 +208,26 @@ function crafting:refresh_craft_list()
       end
     end
     
+    local resCount = 1
     if not self.hideUncraftable or craftData.craftable then crafts[#crafts+1] = craftData end
+    if recipe.name then
+      craftData.name = recipe.name
+    else
+      craftData.name = ""
+      for item,amount in pairs(recipe.results) do
+        if possibleItems[item] then
+          if resCount > 1 then craftData.name = craftData.name .. ", " end
+          if amount > 1 then
+            craftData.name = craftData.name .. amount .. " " .. ucfirst(possibleItems[item].pluralName or "x " .. ucfirst(possibleItems[item].name))
+          else
+            craftData.name = craftData.name .. ucfirst(possibleItems[item].name)
+          end
+        end
+        resCount = resCount + 1
+      end
+    end
   end --end craft list for
+  sort_table(crafts,'name')
   self.crafts = crafts
 end
 
@@ -183,7 +242,7 @@ function crafting:draw()
   local mouseX,mouseY = love.mouse.getPosition()
   mouseX,mouseY = round(mouseX/uiScale),round(mouseY/uiScale)
   local fontSize = prefs['fontSize']
-  local tileSize = output:get_tile_size()
+  local tileSize = output:get_tile_size(true)
   local lineSize = math.max(fontSize,tileSize)
   local outHeight = 0
 	
@@ -240,21 +299,8 @@ function crafting:draw()
 	for i,craftInfo in ipairs(self.crafts) do
     local craftID = craftInfo.id
     local name = ""
-    local count = 1
     local recipe = possibleRecipes[craftID]
-    if recipe.name then
-      name = recipe.name
-    else
-      for item,amount in pairs(recipe.results) do
-        if count > 1 then name = name .. ", " end
-        if amount > 1 then
-          name = name .. amount .. " " .. ucfirst(possibleItems[item].pluralName or "x " .. ucfirst(possibleItems[item].name))
-        else
-          name = name .. ucfirst(possibleItems[item].name)
-        end
-        count = count + 1
-      end
-    end
+    name = craftInfo.name
     local _, nameLines = fonts.textFont:getWrap(name, window1w)
     if self.selected == i then
       setColor(150,150,150,255)
@@ -323,13 +369,15 @@ function crafting:draw()
     
     for iid,amount in pairs(recipe.results) do
       local item = possibleItems[iid]
-      item.baseType = "item"
-      if item.id == nil then item.id = iid end
-      local resultText = (amount > 1 and item.pluralName and amount .. " " .. ucfirst(item.pluralName) or ucfirst(item.name) .. (amount > 1 and " x " .. amount or "")) .. " (" .. item.description .. ")"
-      output.display_entity(item,sidebarX+padX,descY,"force")
-      love.graphics.printf(resultText,sidebarX+padX+tileSize,descY,window2w,"left")
-      local _, dlines = fonts.textFont:getWrap(resultText,window2w)
-      descY = descY+math.max(fontSize*(#dlines+1),lineSize)
+      if item then
+        item.baseType = "item"
+        if item.id == nil then item.id = iid end
+        local resultText = (amount > 1 and item.pluralName and amount .. " " .. ucfirst(item.pluralName) or ucfirst(item.name) .. (amount > 1 and " x " .. amount or "")) .. " (" .. item.description .. ")"
+        output.display_entity(item,sidebarX+padX,descY,"force")
+        love.graphics.printf(resultText,sidebarX+padX+tileSize,descY,window2w,"left")
+        local _, dlines = fonts.textFont:getWrap(resultText,window2w)
+        descY = descY+math.max(fontSize*(#dlines+1),lineSize)
+      end
     end
     descY = descY+fontSize
     local buttonY = 0
@@ -364,7 +412,7 @@ function crafting:draw()
         if item.id == nil then item.id = iid end
         local player_amount = ingInfo.player_amount or 0
         local amount = ingInfo.amount
-        local ingText = (amount > 1 and item.pluralName and amount .. " " .. ucfirst(item.pluralName) or ucfirst(item.name) .. (amount > 1 and " x " .. amount or "")) .. " (have " .. player_amount .. ")"
+        local ingText = (amount > 1 and item.pluralName and amount .. " " .. ucfirst(item.pluralName) or ucfirst(item.name) .. (amount > 1 and " x " .. amount or "")) .. " (have " .. player_amount .. ")" .. (ingInfo.stash and " (From " .. ingInfo.stash.name .. ")" or "")
         if not ingInfo.enough then
           setColor(200,0,0,255)
         end
@@ -404,7 +452,7 @@ function crafting:draw()
             local item = details.item
             buttonY = buttonY+1
             --Minus Button:
-            local minusButton = output:tinybutton(minusButtonX,descY,nil,(minusMouse or (self.sideCursorY == buttonY and self.cursorX == 1) and "hover" or false),"-")
+            local minusButton = output:tinybutton(minusButtonX,descY-6,nil,(minusMouse or (self.sideCursorY == buttonY and self.cursorX == 1) and "hover" or false),"-")
             minusButton.craftInfo = craftInfo
             minusButton.property = propInfo
             minusButton.details = details
@@ -414,7 +462,7 @@ function crafting:draw()
             self.buttons[#self.buttons+1] = minusButton
             
             --Amount Box:
-            local numberEntry = {minX=amountBoxX,minY=descY-2,maxX=amountBoxX+amountBoxW,maxY=descY-2+fontSize+4,buttonX=2,buttonY=buttonY,buttonType="box"}
+            local numberEntry = {minX=amountBoxX,minY=descY,maxX=amountBoxX+amountBoxW,maxY=descY-2+fontSize+4,buttonX=2,buttonY=buttonY,buttonType="box"}
             numberEntry.craftInfo = craftInfo
             numberEntry.property = propInfo
             numberEntry.details = details
@@ -434,7 +482,7 @@ function crafting:draw()
             love.graphics.printf(craftInfo.secondary_ingredients[item],amountBoxX,descY,amountBoxW,"center")
         
             --Plus Button:
-            local plusButton = output:tinybutton(plusButtonX,descY,nil,(plusMouse or (self.sideCursorY == buttonY and self.cursorX == 3) and "hover" or false),"+")
+            local plusButton = output:tinybutton(plusButtonX,descY-6,nil,(plusMouse or (self.sideCursorY == buttonY and self.cursorX == 3) and "hover" or false),"+")
             plusButton.craftInfo = craftInfo
             plusButton.property = propInfo
             plusButton.details = details
@@ -444,11 +492,11 @@ function crafting:draw()
             self.buttons[#self.buttons+1] = plusButton
             
             --Item display:
-            local itemText = item:get_name(true,1) .. ": " .. details.amount .. " (have " .. item.amount .. ")"
-            output.display_entity(item,iconX,descY,true,true)
+            local itemText = item:get_name(true,1) .. ": " .. details.amount .. " (have " .. item.amount .. ")" .. (item.possessor ~= player and " (From " .. item.possessor.name .. ")" or "")
+            output.display_entity(item,iconX,descY-6,true,true)
             love.graphics.printf(itemText,ingredientX,descY,ingredientW,"left")
             local _, dlines = fonts.textFont:getWrap(propText,ingredientW)
-            descY = descY+prefs['fontSize']*#dlines
+            descY = descY+math.max(prefs['fontSize']*#dlines,tileSize)
           end
         end
       end
@@ -892,7 +940,7 @@ function crafting:doCraft(craftIndex)
       end
     end
     if propCheck then
-      local result,text = player:craft_recipe(craftID,craftInfo.secondary_ingredients)
+      local result,text = player:craft_recipe(craftID,craftInfo.secondary_ingredients,self.stash)
       if result == true and not text then
         text = possibleCrafts[craftID].result_text
       end

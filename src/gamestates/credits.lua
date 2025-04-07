@@ -11,31 +11,31 @@ function credits:draw()
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
   setColor(255,255,255,255)
   
-  love.graphics.setFont(fonts.graveFontBig)
+  love.graphics.setFont(fonts.menuFont)
   setColor(255,255,255,255)
   love.graphics.printf(gamesettings.name,14,100,width-28,"center")
   if self.slide == 1 then
-    love.graphics.setFont(fonts.graveFontSmall)
+    love.graphics.setFont(fonts.headerFont)
     love.graphics.printf("Programming, Graphics, Music",math.floor(width/3),240,math.floor(width/3),"center")
     love.graphics.setFont(fonts.textFont)
     love.graphics.printf("Taylor Vaughan",math.floor(width/3),270,math.floor(width/3),"center")
   elseif self.slide == 2 then
-    love.graphics.setFont(fonts.graveFontSmall)
+    love.graphics.setFont(fonts.headerFont)
     love.graphics.printf("Beta Testing",math.floor(width/3),240,math.floor(width/3),"center")
     love.graphics.setFont(fonts.textFont)
     love.graphics.printf([[]],math.floor(width/3),270,math.floor(width/3),"center")
   elseif self.slide == 3 then
-    love.graphics.setFont(fonts.graveFontSmall)
+    love.graphics.setFont(fonts.headerFont)
     love.graphics.printf("Uses Sounds Created By",math.floor(width/3),200,math.floor(width/3),"center")
     love.graphics.setFont(fonts.textFont)
     love.graphics.printf([[]],math.floor(width/3),230,math.floor(width/3),"center")
   elseif self.slide == 4 then
-    love.graphics.setFont(fonts.graveFontSmall)
+    love.graphics.setFont(fonts.headerFont)
     love.graphics.printf("Uses Sounds Created By",math.floor(width/3),140,math.floor(width/3),"center")
     love.graphics.setFont(fonts.textFont)
     love.graphics.printf([[]],math.floor(width/3)-5,170,math.floor(width/3)+10,"center")
   elseif self.slide == 5 then
-    love.graphics.setFont(fonts.graveFontSmall)
+    love.graphics.setFont(fonts.headerFont)
     love.graphics.printf("Some Music Samples From",math.floor(width/3),140,math.floor(width/3),"center")
         love.graphics.printf("Fonts",math.floor(width/3),340,math.floor(width/3),"center")
     love.graphics.setFont(fonts.textFont)
@@ -43,7 +43,7 @@ function credits:draw()
     love.graphics.printf([[Venice Classic, freeware by soixantedeux.
 ]],math.floor(width/3)-5,370,math.floor(width/3)+10,"center")
   elseif self.slide == 6 then
-    love.graphics.setFont(fonts.graveFontSmall)
+    love.graphics.setFont(fonts.headerFont)
     love.graphics.printf("External Libraries",math.floor(width/3),140,math.floor(width/3),"center")
     love.graphics.setFont(fonts.textFont)
     love.graphics.printf([[LÖVE game development framework, ZLIB License.

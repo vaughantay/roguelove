@@ -43,6 +43,12 @@ function Item:init(itemID,tags,info,ignoreNewFunc)
       local newSpell = Spell(spellID)
       newSpell.from_item = self
       self.spells_granted[#self.spells_granted+1] = newSpell
+      if self.charges and newSpell.charges then
+        newSpell.charges = self.charges
+        if self.max_charges then
+          newSpell.max_charges = self.max_charges
+        end
+      end
     end
   end
   if self.image_varieties and not self.image_name then
@@ -52,15 +58,19 @@ function Item:init(itemID,tags,info,ignoreNewFunc)
 	return self
 end
 
----Clones an instance of the item.
+---Duplicates an instance of the item.
 --@return Item. The item itself.
-function Item:clone()
+function Item:duplicate()
   local newItem = Item(self.id,nil,nil,true)
 	for key, val in pairs(self) do
     if type(val) ~= "function" and type(val) ~= "table" then
       newItem[key] = self[key]
     elseif type(val) == "table" then
-      newItem[key] = copy_table(self[key])
+      if val.baseType then --if the value is an entity of some kind, don't create a copy, just use the same entity
+        newItem[key] = self[key]
+      else
+        newItem[key] = copy_table(self[key])
+      end
     end
 	end
   return newItem
@@ -78,11 +88,32 @@ end
 function Item:get_info()
   if not self:is_identified() then return "Its properties are unknown." end
 	local uses = ""
+  if self.mission then
+    uses = uses .. "Important item for a mission" .. (possibleMissions[self.mission] and ": " .. possibleMissions[self.mission].name or ".")
+  end
+  if self.equippable then
+    local equipText = "Can be equipped"
+    if self.equipSlot then
+      local equipSize = self.equipSize or 1
+      equipText = equipText .. " in the \"" .. ucfirst(self.equipSlot) .. "\" equipment slot" .. (equipSize > 1 and " (requires " .. equipSize .. " spaces)" or "") .. "."
+    end
+    local impressions = self:get_impressions()
+    if count(impressions) > 0 then
+      local i =1
+      equipText = equipText .. "\nYou will give the " .. (count(impressions) > 1 and "impressions " or "impression ")
+      for _,imp in pairs(impressions) do
+        equipText = equipText .. (i > 1 and i == count(impressions) and " and " or "") .. "\"" .. ucfirst(imp) .. (count(impressions) > 2 and i ~= count(impressions) and "," or "") .. "\""
+        i = i+1
+      end
+      equipText = equipText .. " if it's equipped."
+    end
+    uses = uses .. "\n" .. equipText
+  end
   if self.kills then
     uses = uses .. "\nKills: " .. self.kills
   end
   if self.charges and not self.hide_charges then
-    uses = uses .. "\n" .. (self.charge_name and ucfirst(self.charge_name) or (self.ammo_name and "Current Ammo" or "Charges")) .. (self.ammo_name and " (" .. self.ammo_name .. ")" or "") .. ": " .. self.charges .. (self.max_charges and "/" .. self.max_charges or "") .."\n"
+    uses = uses .. "\n" .. (self.charge_name and ucfirst(self.charge_name) or (self.ammo_name and "Current Ammo" or "Charges")) .. (self.ammo_name and " (" .. self.ammo_name .. ")" or "") .. ": " .. self.charges .. (self.max_charges and "/" .. self.max_charges or "")
   end
   if self.possessor and self.possessor.cooldowns and self.possessor.cooldowns[self] then
     uses = uses .. "\nYou can't use this item again for another " .. self.possessor.cooldowns[self] .. " turns."
@@ -123,11 +154,48 @@ function Item:get_info()
   if self.info then
     uses = uses .. "\n" .. self.info
   end
+  local slots = self:get_open_enchantment_slots()
+  local slotCount = count(slots)
+  if slotCount > 0 then
+    local slotText = "\n\nOpen Enchantment Slots: "
+    local i = 0
+    for slot,amt in pairs(slots) do
+      i = i + 1
+      slotText = slotText .. ucfirst(slot) .. ": " .. amt .. (i < slotCount and ", " or "")
+    end
+    uses = uses .. slotText
+  end
   local enches = self:get_enchantments()
   if count(enches) > 0 then
     for ench,turns in pairs(enches) do
       local enchantment = enchantments[ench]
-      uses = uses .. "\n\n" .. ucfirst(enchantment.name) .. ((enchantment.removal_type and turns ~= -1) and " (" .. turns .. " " .. enchantment.removal_type .. "s remaining)" or "") .. "\n" .. enchantment.description
+      uses = uses .. "\n\n" .. ucfirst(enchantment.name) .. ((enchantment.removal_type and turns ~= -1) and " (" .. turns .. " " .. enchantment.removal_type .. "s remaining)" or "") .. (enchantment.enchantment_type and (not gamesettings.hidden_enchantment_slots or not in_table(enchantment.enchantment_type,gamesettings.hidden_enchantment_slots)) and "\nEnchantment Type: " .. ucfirst(enchantment.enchantment_type) or "") .. "\n" .. enchantment.description
+      if enchantment.bonuses then
+        for bonus,amt in pairs(enchantment.bonuses) do
+          if bonus ~= 'value' and bonus ~= 'value_percent' then
+            local isPercent = (string.find(bonus,"percent") or string.find(bonus,"chance"))
+            uses = uses .. "\n\t* " .. ucfirstall(string.gsub(string.gsub(bonus, "_", " "), "percent", "")) .. ": " .. (amt > 0 and "+" or "") .. amt .. (isPercent and "%" or "")
+          end
+        end
+      end
+      local ed = enchantment.extra_damage
+      if ed then
+        local toOnly = ""
+        if ed.only_creature_types then
+          toOnly = " to "
+          for i,ctype in ipairs(ed.only_creature_types) do
+            if i ~= 1 and #ed.only_creature_types ~= 2 then
+              toOnly = toOnly .. ", "
+            end
+            if i ~= 1 and i == #ed.only_creature_types then
+              toOnly = toOnly .. "and "
+            end
+            toOnly = toOnly .. (creatureTypes[ctype] and creatureTypes[ctype].name or ctype)
+          end
+          toOnly = toOnly .. " creatures"
+        end
+        uses = uses .. "\n\t* " .. (ed.damage and "+" .. ed.damage .. " " or "") .. (ed.damage_percent and (ed.damage and ", " or "") .. "+ " .. ed.damage_percent .. "% ") .. "additional " .. (ed.damage_type and damage_types[ed.damage_type] and damage_types[ed.damage_type].name or ed.damage_type or "") .. " damage" .. toOnly
+      end
     end
   end
 	return uses
@@ -137,8 +205,9 @@ end
 --@param full Boolean. If false, the item will be called "a dagger", if true, the item will be called "Dagger".
 --@param amount Number. The number of items in question. (optional)
 --@param withLevel Boolean. If true, show the item's level if it has one (optional)
+--@param noProper Boolean. If true, don't show the proper name
 --@return String. The name of the item
-function Item:get_name(full,amount,withLevel)
+function Item:get_name(full,amount,withLevel,noProper)
   local identified = self:is_identified()
   local name = (not identified and self.unidentified_name or self.name)
   local pname = (not identified and self.unidentified_plural_name or self.pluralName)
@@ -159,7 +228,7 @@ function Item:get_name(full,amount,withLevel)
     end
   end --end enchantment info
 	if (full == true) then
-		if (identified or self.proper_name_when_unidentified) and self.properName ~= nil then
+		if not noProper and (identified or self.proper_name_when_unidentified) and self.properName ~= nil then
 			return self.properName .. " (" .. levelPrefix .. prefix .. name .. suffix .. ")"
 		else
       if self.stacks and amount > 1 then
@@ -172,7 +241,7 @@ function Item:get_name(full,amount,withLevel)
         return ucfirst(prefix .. name .. suffix .. levelSuffix)
       end
 		end
-	elseif (identified or self.proper_name_when_unidentified) and self.properName ~= nil then
+	elseif not noProper and (identified or self.proper_name_when_unidentified) and self.properName ~= nil then
 		return self.properName
 	else
     if self.stacks and amount > 1 then
@@ -182,7 +251,7 @@ function Item:get_name(full,amount,withLevel)
           return amount .. " x " .. prefix .. name .. suffix .. levelSuffix
         end
     else
-      return (vowel(prefix .. name) and "an " or "a " ) .. prefix .. name .. suffix
+      return (self.article and self.article .. " " or (vowel(prefix .. name) and "an " or "a " )) .. prefix .. name .. suffix
     end
 	end
 end
@@ -239,7 +308,9 @@ function Item:use(target,user,ignoreCooldowns)
     if user == player then output:out("You can't use that item again for another " .. user.cooldowns[self] .. " turns.") end
 		return false,"You can't use that item again for another " .. user.cooldowns[self] .. " turns."
   end
+  
 	if possibleItems[self.id].use then
+    if target and #target == 1 and not self.accepts_multiple_targets then target = target[1] end --if being passed only a single target, just set that as the target
     local status,r,other = pcall(possibleItems[self.id].use,self,target,user)
     if not status then
       local errtxt = "Error from " .. user:get_name() .. " using item " .. self.name .. ": " .. r
@@ -255,7 +326,7 @@ function Item:use(target,user,ignoreCooldowns)
       if self.consumed then
         self:delete(nil,1)
       elseif self.charges and not self.no_automatic_charge_decrease then
-        self.charges = math.max(0,self.charges - 1)
+        self:update_charges(-1)
       end
     end
     --Deactivate applicable spells:
@@ -387,7 +458,7 @@ function Item:attack(target,wielder,forceHit,ignore_callbacks,forceBasic)
       output:out(wielder:get_name() .. ' attacks ' .. target:get_name() .. " with " .. self:get_name()  .. ", dealing " .. dmg .. " damage.")
     end
     return dmg
-	elseif wielder:touching(target) and (ignore_callbacks or wielder:callbacks('attacks',target) and target:callbacks('attacked',self)) then
+	elseif wielder:touching(target) and (ignore_callbacks or wielder:callbacks('attacks',target) and target:callbacks('attacked',wielder)) then
     local result,dmg="miss",0
     if possibleItems[self.id].calc_attack then
       result,dmg = possibleItems[self.id].calc_attack(self,target,wielder)
@@ -403,6 +474,11 @@ function Item:attack(target,wielder,forceHit,ignore_callbacks,forceBasic)
       dmg = 0
       if player:can_see_tile(wielder.x,wielder.y) or player:can_see_tile(target.x,target.y) and player:does_notice(wielder) and player:does_notice(target) then
         output:out(txt)
+        local popup = Effect('dmgpopup')
+        popup.image_name = "miss"
+        popup.symbol=""
+        popup.color = {r=0,g=0,b=150,a=150}
+        currMap:add_effect(popup,target.x,target.y)
       end
       for ench,_ in pairs(self:get_enchantments()) do
         if enchantments[ench].after_miss then
@@ -567,7 +643,7 @@ function Item:reload(possessor,ammo)
       
       local amt = math.min(missing_ammo,ammo_used*charges_granted) --don't reload more than the item can hold
       
-      self.charges = self.charges + amt
+      self:update_charges(amt)
       possessor:delete_item(ammo,ammo_used)
     end
     self.usingAmmo = ammo.id
@@ -667,13 +743,14 @@ function Item:qualifies_for_enchantment(eid,permanent,artifactOnly)
   if not self.enchantable then return false end
   local enchantment = enchantments[eid]
   
-  if (permanent and enchantment.neverPermanent) or (artifactOnly and enchantment.neverArtifact) then
+  if not enchantment or (permanent and enchantment.neverPermanent) or (artifactOnly and enchantment.neverArtifact) then
     return false
   end
   if self.max_enchantments and #self.enchantments >= self.max_enchantments then
     return false
   end
-  if enchantment.enchantment_type and self.enchantment_slots and self.enchantment_slots[enchantment.enchantment_type] then
+  
+  if enchantment.enchantment_type then
     local slots_used = 0
     if self.enchantments then
       for enID,_ in pairs(self.enchantments) do
@@ -683,7 +760,7 @@ function Item:qualifies_for_enchantment(eid,permanent,artifactOnly)
         end
       end
     end
-    if slots_used >= self.enchantment_slots[enchantment.enchantment_type] then
+    if slots_used >= (self.enchantment_slots and self.enchantment_slots[enchantment.enchantment_type] or 0) then
       return false
     end
   end
@@ -740,15 +817,38 @@ function Item:qualifies_for_enchantment(eid,permanent,artifactOnly)
   return true
 end
 
+function Item:get_open_enchantment_slots()
+  if self.enchantment_slots then
+    local slots = self.enchantment_slots
+    if self.enchantments then
+      for enID,_ in pairs(self.enchantments) do
+        local enc = enchantments[enID]
+        local slot = enc.enchantment_type
+        if slot and slots[slot] then
+          slots[slot] = slots[slot]-1
+          if slots[slot] < 1 then slots[slot] = nil end
+        end
+      end
+    end
+    for slot,openings in pairs(slots) do
+      if gamesettings.hidden_enchantment_slots and in_table(slot,gamesettings.hidden_enchantment_slots) then
+        slots[slot] = nil
+      end
+    end
+    return slots
+  end
+end
+
 ---Get a list of all possible enchantments the item could have
 --@param permanent Boolean. Whether the enchantment has to qualify as a permanent enchantment (optional)
 --@param artifactOnly Boolean. Whether to only consider enchantments without the neverArtifact flag
+--@param enchantment_type String. The enchantment type to look at (Optional)
 --@return Table. A list of all enchantment IDs
-function Item:get_possible_enchantments(permanent,artifactOnly)
+function Item:get_possible_enchantments(permanent,artifactOnly,enchantment_type)
   if not self.enchantable then return {} end
   local possibles = {}
   for eid,ench in pairs(enchantments) do
-    if not ench.specialOnly and self:qualifies_for_enchantment(eid,permanent,artifactOnly) then
+    if (not enchantment_type or ench.enchantment_type == enchantment_type) and not ench.specialOnly and self:qualifies_for_enchantment(eid,permanent,artifactOnly) then
       possibles[#possibles+1] = eid
     end
   end
@@ -910,7 +1010,21 @@ end
 --@return Number. The value of the item
 function Item:get_value()
   local base = (self.value or 0)
-  return base + round(base*(self:get_enchantment_bonus('value_percent')/100)) + self:get_enchantment_bonus('value')
+  return base + round(base*(self:get_enchantment_bonus('value_percent',true)/100)) + self:get_enchantment_bonus('value',true)
+end
+
+---Checks the threatvalue of an item
+--@return Number. The value of the item
+function Item:get_threat()
+  local base = (self.threat or 0)
+  return base + round(base*(self:get_enchantment_bonus('threat_percent')/100)) + self:get_enchantment_bonus('threat')
+end
+
+---Checks the threat_modifier value of an item
+--@return Number. The value of the item
+function Item:get_threat_modifier()
+  local base = (self.threat_modifier or 0)
+  return base + round(base*(self:get_enchantment_bonus('threat_modifier_percent')/100)) + self:get_enchantment_bonus('threat_modifier')
 end
 
 ---Checks if an item has a descriptive tag.
@@ -1094,15 +1208,20 @@ end
 --@return Item. The new item stack
 function Item:splitStack(amount)
   if self.stacks and amount > 0 and amount < self.amount then
-    local oldOwner = self.possessor
-    self.possessor = nil --This is done because item.possessor is the creature who has the item, and Item:clone() does a deep copy of all tables, which means it will create a copy of the owner, which owns a copy of the item, which is owned by another copy of the owner which owns another copy of the item etc etc leading to a crash
-    local newItem = self:clone()
+    local oldPossessor = self.possessor
+    local oldOwner = self.owner
+    self.possessor = nil --This is done because item.possessor is the creature who has the item, and Item:duplicate() does a deep copy of all tables, which means it will create a copy of the owner, which owns a copy of the item, which is owned by another copy of the owner which owns another copy of the item etc etc leading to a crash
+    self.owner = nil
+    local newItem = self:duplicate()
     self.amount = self.amount - amount
     newItem.amount = amount
     newItem.stacks = false --To prevent the new stack from being re-added to the old stack
     if oldOwner then
-      self.possessor,newItem.possessor = oldOwner
-      oldOwner:give_item(newItem)
+      self.owner,newItem.owner = oldOwner
+    end
+    if oldPossessor then
+      self.possessor,newItem.possessor = oldPossessor
+      oldPossessor:give_item(newItem,true)
     end
     newItem.stacks = true
     return newItem
@@ -1113,6 +1232,69 @@ end
 --@return Table. A list of the spells
 function Item:get_spells_granted()
   return (self.spells_granted or {})
+end
+
+---Returns the value 
+function Item:get_armor(damageType,noBonus,no_all)
+  local armor = 0
+  if damageType then
+    if damage_types[damageType] and damage_types[damageType].no_all then
+      no_all = true
+    end
+  end
+  
+  if self.armor then
+    if not no_all and type(self.armor) == "number" then
+      armor = armor + self.armor
+    else
+      if damageType and self.armor[damageType] then
+        armor = armor + self.armor[damageType]
+      elseif not no_all and self.armor.all then
+        armor = armor + self.armor.all
+      end
+    end
+  end
+  
+  if not noBonus then
+    for _,ench in ipairs(self:get_enchantments()) do
+      local enchantment = enchantments[ench]
+      if enchantment and enchantment.armor then
+        if damageType and enchantment.armor[damageType] then
+          armor = armor + enchantment.armor[damageType]
+        elseif not no_all and enchantment.armor.all then
+          armor = armor + self.armor.all
+        end
+      end
+    end
+    local pre_enchant = armor
+    if damageType then
+      armor = armor + round(pre_enchant*(self:get_enchantment_bonus(damageType .. '_armor_percent')/100)) + self:get_enchantment_bonus(damageType .. '_armor')
+    end
+    if not no_all then
+      armor = armor + round(pre_enchant*(self:get_enchantment_bonus('all_armor_percent')/100)) + self:get_enchantment_bonus('all_armor')
+      armor = armor + round(pre_enchant*(self:get_enchantment_bonus('armor_percent')/100)) + self:get_enchantment_bonus('armor')
+    end
+    if armor > 0 then --only apply armor boost enchantments if the armor type > 0
+      armor = armor + round(pre_enchant*(self:get_enchantment_bonus('armor_modifier_percent')/100)) + self:get_enchantment_bonus('armor_modifier')
+    end
+  end
+  
+  if armor < 0 then armor = 0 end
+  return armor
+end
+
+---Returns a list of armor granted to the wearer of this equipment
+--@return Table. A list of the armor values
+function Item:get_all_armor(noBonus)
+  local armor = {}
+  
+  for dtype,_ in pairs(damage_types) do
+    local val = self:get_armor(dtype,noBonus)
+    if val ~= 0 then
+      armor[dtype] = val
+    end
+  end
+  return armor
 end
 
 ---Returns a list of shops and factions that will buy an item
@@ -1138,6 +1320,21 @@ function Item:get_buyer_list()
     sort_table(options,'text')
   end
   return options
+end
+
+---Gets the highest cost of known stores/factions that will buy an item
+function Item:get_highest_sell_cost()
+  local buyers = self:get_buyer_list()
+  local bestCost = 0
+  local bestBuyer
+  
+  for _,buyerInfo in ipairs(buyers) do
+    if buyerInfo.moneyCost and buyerInfo.moneyCost >= bestCost then
+      bestCost = buyerInfo.moneyCost
+      bestBuyer = buyerInfo.text
+    end
+  end
+  return bestCost
 end
 
 ---Gets a list of all types a item is
@@ -1207,7 +1404,7 @@ function Item:callbacks(callback_type,...)
         output:out("Error in item " .. self.id .. " callback \"" .. callback_type .. "\": " .. r)
         print("Error in item " .. self.id .. " callback \"" .. callback_type .. "\": " .. r)
       end
-		if (r == false) then return false end
+		if (r == false) then return false,other end
     ret = other
   end
   for ench,_ in pairs(self:get_enchantments()) do
@@ -1258,4 +1455,108 @@ function Item:get_potential_targets(user,previous_targets)
     return targets
   end --end creature if
   return {}
+end
+
+---Changes the amount of charges that an item has
+--@param amt The amount to change the charges by
+function Item:update_charges(amt)
+  if self.charges then
+    self.charges = self.charges + amt
+    if self.charges < 0 then self.charges = 0
+    elseif self.max_charges and self.charges > self.max_charges then self.charges = self.max_charges end
+    if self.spells_granted then
+      for _,spell in pairs(self.spells_granted) do
+        if spell.charges then
+          spell.charges = self.charges
+        end
+      end
+    end
+  end
+end
+
+---Get the items and skills that you will receive from studying an item
+function Item:get_study_results()
+  local study_results = {}
+  if self.study_items then
+    study_results.study_items = copy_table(self.study_items)
+  end
+  if self.study_skills then
+    study_results.study_skills = copy_table(self.study_skills)
+  end
+  if self.study_recipes then
+    study_results.study_recipes = copy_table(self.study_recipes)
+  end
+  if self.arcana then
+    study_results.arcana = (type(self.arcana) == "table" and copy_table(self.arcana) or {self.arcana})
+  end
+  if self.study_passed_tags then
+    study_results.study_passed_tags = copy_table(self.study_passed_tags)
+  end
+  
+  for enchID,turns in pairs(self.enchantments or {}) do
+    if turns == -1 then --only look at permanent enchantments
+      local enchantmentData = enchantments[enchID]
+      if enchantmentData.study_items then
+        if not study_results.study_items then study_results.study_items = {} end
+        for item,amt in pairs(enchantmentData.study_items) do
+          study_results.study_items[item] = (study_results.study_items[item] or 0)+amt
+        end
+      end
+      if enchantmentData.study_skills then
+        if not study_results.study_skills then study_results.study_skills = {} end
+        for skill,amt in pairs(enchantmentData.study_skills) do
+          study_results.study_skills[skill] = (study_results.study_skills[skill] or 0)+amt
+        end
+      end
+      if enchantmentData.study_recipes then
+        study_results.study_recipes = merge_tables(study_results.study_recipes or {},enchantmentData.study_recipes)
+      end
+      if enchantmentData.arcana then
+        study_results.arcana = merge_tables(study_results.arcana or {},(type(enchantmentData.arcana) == "table" and enchantmentData.arcana or {enchantmentData.arcana}))
+      end
+      if enchantmentData.study_passed_tags then
+        study_results.study_passed_tags = merge_tables(study_results.study_passed_tags or {},enchantmentData.study_passed_tags)
+      end
+    end
+  end --end enchantment for
+  
+  if study_results.study_recipes then
+    local unlearned = {}
+    for _,recipeID in ipairs(study_results.study_recipes) do
+      if not player.known_recipes[recipeID] then
+        unlearned[#unlearned+1] = recipeID
+      end
+    end
+    study_results.study_recipes = (count(unlearned) > 0 and unlearned or nil)
+  end
+  
+  --If arcana is the only entry in the study_results table, don't return it
+  if study_results.arcana and count(study_results) == 1 then
+    return {}
+  end
+  
+  return study_results
+end
+
+---Gets impressions provided when equipping an item.
+--@return Table. A list of impressions
+function Item:get_impressions()
+  local impressions = {}
+  
+  if self.impressions then
+    for _,impression in pairs(self.impressions) do
+      impressions[impression] = impression
+    end
+  end
+  
+  for enchID,turns in pairs(self.enchantments or {}) do
+    local enchantmentData = enchantments[enchID]
+    if enchantmentData.impressions then
+      for _,impression in pairs(enchantmentData.impressions) do
+        impressions[impression] = impression
+      end
+    end
+  end
+  
+  return impressions
 end

@@ -42,11 +42,9 @@ end
 
 ---Returns button name for command
 --@param command String. Command name
-function input:get_button_name(command)
+function input:get_button_name(command,controllerType)
+  if not controllerType then controllerType = "keyboard" end
   if keybindings[command] then
-    if input:is_gamepad() and keybindings[command].gamepad then
-      return keybindings[command].gamepad[1]
-    end
-    return keybindings[command].keyboard[1]
+    return keybindings[command][controllerType][1]
   end
 end

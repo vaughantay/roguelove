@@ -18,9 +18,9 @@ function monsterpedia:enter(previous,selectMonster)
     if totalstats.creature_kills[monster] then
       local creat = possibleMonsters[monster]
       if creat then
-        monsterpedia.list[creat.level] = (monsterpedia.list[creat.level] or {})
-        if monsterpedia.list[creat.level] then
-          monsterpedia.list[creat.level][#monsterpedia.list[creat.level]+1] = {id=monster,name=creat.name}
+        monsterpedia.list[creat.level or 1] = (monsterpedia.list[creat.level or 1] or {})
+        if monsterpedia.list[creat.level or 1] then
+          monsterpedia.list[creat.level or 1][#monsterpedia.list[creat.level or 1]+1] = {id=monster,name=creat.name}
         end
       end
     end
@@ -32,7 +32,7 @@ function monsterpedia:enter(previous,selectMonster)
   end
   
   --Store a second table of positions, for when the player is browsing
-  local lineSize = math.max(output:get_tile_size(),prefs['fontSize'],prefs['asciiSize'])
+  local lineSize = math.max(output:get_tile_size(true),prefs['fontSize'],prefs['asciiSize'])
   local printY = lineSize*2
   for level, monsters in pairs (monsterpedia.list) do --loop through levels
     monsterpedia.positions[#monsterpedia.positions+1] = {id=-1,startY=printY,endY=printY+lineSize,level=level}
@@ -64,7 +64,7 @@ function monsterpedia:draw()
   love.graphics.push()
   love.graphics.translate(0,height*(self.yModPerc/100))
   --Draw the actual Monsterpedia:
-  local tileSize = output:get_tile_size()
+  local tileSize = output:get_tile_size(true)
 	love.graphics.setFont(fonts.textFont)
   output:draw_window(0,0,400,height-32)
   output:draw_window(432,0,width-32,height-32)
@@ -137,7 +137,7 @@ function monsterpedia:draw()
     local start = 24
 		setColor(255,255,255,255)
 		love.graphics.printf(ucfirst(creat.name),450,start,(width-460-scrollPad),"center")
-		love.graphics.printf("Level " .. creat.level,450,start+fontSize,(width-460-scrollPad),"center")
+		if creat.level then love.graphics.printf("Level " .. creat.level,450,start+fontSize,(width-460-scrollPad),"center") end
     local types = ""
     for _,ctype in pairs((creat.types or {})) do
       if types ~= "" then types = types .. ", " .. (creatureTypes[ctype] and creatureTypes[ctype].name or ucfirst(ctype))
@@ -153,7 +153,6 @@ function monsterpedia:draw()
     if creat.max_mp then text = text .. "\nMax MP: " .. creat.max_mp end
     text = text .. "\nSight Radius: " .. creat.perception
     if creat.stealth then text = text .. "\nStealth Modifier: " .. creat.stealth .. "%" end
-    if creat.armor then text = text .. "\nDamage Absorbtion: " .. creat.armor .. "" end
     if creat.ranged_attack and rangedAttacks[creat.ranged_attack] then text = text .. "\nRanged Attack: " .. rangedAttacks[creat.ranged_attack].name end
     --Extra stats:
     if creat.extra_stats then
@@ -303,23 +302,23 @@ function monsterpedia:draw()
     local _,tlines = fonts.textFont:getWrap(text,(width-475-scrollPad))
     local printY = statStart+(#tlines+1)*fontSize
     self.rightYmax = printY+fontSize-love.graphics:getHeight()
-    love.graphics.setStencilTest()
-    love.graphics.pop()
 	end
+  love.graphics.setStencilTest()
+  love.graphics.pop()
   self.closebutton = output:closebutton(24,24)
   love.graphics.pop()
 end
 
 function monsterpedia:buttonpressed(key,scancode,isRepeat,controllerType)
-  local lineSize = math.max(output:get_tile_size(),prefs['fontSize'],prefs['asciiSize'])
+  local lineSize = math.max(output:get_tile_size(true),prefs['fontSize'],prefs['asciiSize'])
   key,scancode,isRepeat = input:parse_key(key,scancode,isRepeat,controllerType)
   if (key == "north") then
     self.cursorY = self.cursorY - 1
     self.rightScroll = 0
-    if monsterpedia.positions[self.cursorY].id == -1 then --if you're on a label
+    if self.positions[self.cursorY] and monsterpedia.positions[self.cursorY].id == -1 then --if you're on a label
       self.cursorY = math.max(1,self.cursorY - 1) --just go to the next place
     end
-    while self.positions[self.cursorY].startY-monsterpedia.scroll*lineSize < lineSize*2 and monsterpedia.scroll>0 do --if you select past the top of the screen and have scrolled down, scroll back up
+    while self.positions[self.cursorY] and self.positions[self.cursorY].startY-monsterpedia.scroll*lineSize < lineSize*2 and monsterpedia.scroll>0 do --if you select past the top of the screen and have scrolled down, scroll back up
       monsterpedia:scrollUp()
     end
     if self.cursorY < 1 then self.cursorY = 1 end --if, after all that, the cursor is offscreen, move it back down
@@ -328,10 +327,10 @@ function monsterpedia:buttonpressed(key,scancode,isRepeat,controllerType)
       self.cursorY = self.cursorY + 1
       self.rightScroll = 0
     end
-    if monsterpedia.positions[self.cursorY].id == -1 then --if you're on a label
+    if self.positions[self.cursorY] and self.positions[self.cursorY].id == -1 then --if you're on a label
       self.cursorY = math.min(self.cursorY + 1,#self.positions) --just go to the next place
     end
-    while self.positions[self.cursorY].endY-monsterpedia.scroll*lineSize > love.graphics.getHeight()-32 do
+    while self.positions[self.cursorY] and self.positions[self.cursorY].endY-monsterpedia.scroll*lineSize > love.graphics.getHeight()-32 do
       monsterpedia:scrollDown()
     end
   elseif (key == "escape") then
@@ -348,7 +347,7 @@ function monsterpedia:update(dt)
     return
   end
   local x,y = love.mouse.getPosition()
-  local tileSize = output:get_tile_size()
+  local tileSize = output:get_tile_size(true)
   local lineSize = math.max(tileSize,prefs['fontSize'],prefs['asciiSize'])
   if x~=output.mouseX or y~=output.mouseY then
     output.mouseX = x

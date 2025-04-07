@@ -70,7 +70,7 @@
   <li><a href="../classes/Item.html">Item</a></li>
   <li><a href="../classes/Map.html">Map</a></li>
   <li><a href="../classes/Projectile.html">Projectile</a></li>
-  <li><a href="../classes/ranged_attack.html">ranged_attack</a></li>
+  <li><a href="../classes/RangedAttack.html">RangedAttack</a></li>
   <li><a href="../classes/Service.html">Service</a></li>
   <li><a href="../classes/Spell.html">Spell</a></li>
   <li><a href="../classes/Store.html">Store</a></li>
@@ -105,7 +105,7 @@ The resulting image will be loaded into images[image_typename], for example imag
 	<td class="summary">Move the cursor to another tile.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#setCursor">setCursor (x, y, force, allow_current_creature)</a></td>
+	<td class="name" nowrap><a href="#setCursor">setCursor (x, y, force, noScroll, allow_current_creature)</a></td>
 	<td class="summary">Set the cursor to a given tile.</td>
 	</tr>
 	<tr>
@@ -149,6 +149,10 @@ The resulting image will be loaded into images[image_typename], for example imag
 	<td class="summary">Draw a bar</td>
 	</tr>
 	<tr>
+	<td class="name" nowrap><a href="#draw_tiny_bar">draw_tiny_bar (val, max_val, x, y, width, height, color)</a></td>
+	<td class="summary">Draw a bar</td>
+	</tr>
+	<tr>
 	<td class="name" nowrap><a href="#sound">sound (soundName, pitchDiff)</a></td>
 	<td class="summary">Play a sound</td>
 	</tr>
@@ -165,7 +169,7 @@ The resulting image will be loaded into images[image_typename], for example imag
 	<td class="summary">Draw a scrollbar on the screen</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#button">button (x, y, width, small, special, text, useScaling)</a></td>
+	<td class="name" nowrap><a href="#button">button (x, y, width, small, special, text, useScaling, color)</a></td>
 	<td class="summary">Draw a button</td>
 	</tr>
 	<tr>
@@ -213,8 +217,16 @@ The resulting image will be loaded into images[image_typename], for example imag
 	<td class="summary">Runs some code after a duration has passed Uses Timer from HUMP, see documentation at https://hump.readthedocs.io/en/latest/timer.html#Timer.after for more info and examples.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#show_achievement_popup">show_achievement_popup (achievement)</a></td>
-	<td class="summary">Shows an achievement popup.</td>
+	<td class="name" nowrap><a href="#show_achievement_notification">show_achievement_notification (achievement)</a></td>
+	<td class="summary">Shows an achievement notification.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#show_notification">show_notification (achievemtextent, image)</a></td>
+	<td class="summary">Shows a notification.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#show_popup">show_popup (achievement)</a></td>
+	<td class="summary">Shows a popup.</td>
 	</tr>
 </table>
 
@@ -329,7 +341,7 @@ The resulting image will be loaded into images[image_typename], for example imag
 </dd>
     <dt>
     <a name = "setCursor"></a>
-    <strong>setCursor (x, y, force, allow_current_creature)</strong>
+    <strong>setCursor (x, y, force, noScroll, allow_current_creature)</strong>
     </dt>
     <dd>
     Set the cursor to a given tile.
@@ -346,6 +358,9 @@ This function handles snapping between possible targets, if targeting something 
         </li>
         <li><span class="parameter">force</span>
          Boolean. If set to true, this will force the cursor to a certain location, even if it wouldn't normally be allowed.
+        </li>
+        <li><span class="parameter">noScroll</span>
+         Boolean. If true, don't scroll the map
         </li>
         <li><span class="parameter">allow_current_creature</span>
          Boolean. If not set to true and the game is in targetting mode, will ignore the current target
@@ -585,6 +600,44 @@ This function handles snapping between possible targets, if targeting something 
 
 </dd>
     <dt>
+    <a name = "draw_tiny_bar"></a>
+    <strong>draw_tiny_bar (val, max_val, x, y, width, height, color)</strong>
+    </dt>
+    <dd>
+    Draw a bar
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">val</span>
+         Number. The value at which to draw the bar
+        </li>
+        <li><span class="parameter">max_val</span>
+         Number. The maximum value the bar could hold
+        </li>
+        <li><span class="parameter">x</span>
+         Number. The x-coordinate to start at for the bar
+        </li>
+        <li><span class="parameter">y</span>
+         Number. The Y-coordinate to start at for the bar
+        </li>
+        <li><span class="parameter">width</span>
+         Number. The width of the bar
+        </li>
+        <li><span class="parameter">height</span>
+         Number. The height of the bar
+        </li>
+        <li><span class="parameter">color</span>
+         Table.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
     <a name = "sound"></a>
     <strong>sound (soundName, pitchDiff)</strong>
     </dt>
@@ -699,7 +752,7 @@ This function handles snapping between possible targets, if targeting something 
 </dd>
     <dt>
     <a name = "button"></a>
-    <strong>button (x, y, width, small, special, text, useScaling)</strong>
+    <strong>button (x, y, width, small, special, text, useScaling, color)</strong>
     </dt>
     <dd>
     Draw a button
@@ -727,6 +780,9 @@ This function handles snapping between possible targets, if targeting something 
         </li>
         <li><span class="parameter">useScaling</span>
          Boolean. Whether to take into account the game's UI scaling setting. Optional
+        </li>
+        <li><span class="parameter">color</span>
+
         </li>
     </ul>
 
@@ -1092,11 +1148,54 @@ This function handles snapping between possible targets, if targeting something 
 
 </dd>
     <dt>
-    <a name = "show_achievement_popup"></a>
-    <strong>show_achievement_popup (achievement)</strong>
+    <a name = "show_achievement_notification"></a>
+    <strong>show_achievement_notification (achievement)</strong>
     </dt>
     <dd>
-    Shows an achievement popup.
+    Shows an achievement notification.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">achievement</span>
+         Text. The ID of the achievement to show.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "show_notification"></a>
+    <strong>show_notification (achievemtextent, image)</strong>
+    </dt>
+    <dd>
+    Shows a notification.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">achievemtextent</span>
+         Text. The text for the notificaiton
+        </li>
+        <li><span class="parameter">image</span>
+         Image. The full image name to display (optional
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "show_popup"></a>
+    <strong>show_popup (achievement)</strong>
+    </dt>
+    <dd>
+    Shows a popup.
 
 
     <h3>Parameters:</h3>
@@ -1118,7 +1217,7 @@ This function handles snapping between possible targets, if targeting something 
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2023-09-29 12:16:36 </i>
+<i style="float:right;">Last updated 2025-04-07 10:52:23 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

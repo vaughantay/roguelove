@@ -47,7 +47,7 @@
   <li><a href="../classes/Item.html">Item</a></li>
   <li><a href="../classes/Map.html">Map</a></li>
   <li><a href="../classes/Projectile.html">Projectile</a></li>
-  <li><a href="../classes/ranged_attack.html">ranged_attack</a></li>
+  <li><a href="../classes/RangedAttack.html">RangedAttack</a></li>
   <li><a href="../classes/Service.html">Service</a></li>
   <li><a href="../classes/Spell.html">Spell</a></li>
   <li><a href="../classes/Store.html">Store</a></li>
@@ -92,6 +92,14 @@
 	<td class="summary">Initiate a faction from its definition.</td>
 	</tr>
 	<tr>
+	<td class="name" nowrap><a href="#faction:get_name">faction:get_name ()</a></td>
+	<td class="summary">Returns the faction's name</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#faction:get_description">faction:get_description ()</a></td>
+	<td class="summary">Returns the faction's description</td>
+	</tr>
+	<tr>
 	<td class="name" nowrap><a href="#faction:is_enemy">faction:is_enemy (creature)</a></td>
 	<td class="summary">Determine if a creature is an enemy of the faction.</td>
 	</tr>
@@ -114,6 +122,10 @@
 	<tr>
 	<td class="name" nowrap><a href="#faction:teach_spell">faction:teach_spell (spellID, creature)</a></td>
 	<td class="summary">Have a creature learn a spell from a faction.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#faction:teach_skill">faction:teach_skill (skillID, creature)</a></td>
+	<td class="summary">Have a creature learn a skill from a faction.</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#faction:generate_items">faction:generate_items ()</a></td>
@@ -140,11 +152,19 @@
 	<td class="summary">Gets a list of the items that a creature can sell to a faction</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#faction:creature_sells_item">faction:creature_sells_item (item, moneyCost, favorCost, amt, creat)</a></td>
+	<td class="name" nowrap><a href="#faction:get_sell_cost">faction:get_sell_cost (item)</a></td>
+	<td class="summary">Determines the cost the faction will sell the item for</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#faction:get_buy_cost">faction:get_buy_cost (item)</a></td>
+	<td class="summary">Determines if a store will buy an item, and returns the price if so</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#faction:creature_sells_item">faction:creature_sells_item (item, info, moneyCost, favorCost, reputationCost, amt, creat)</a></td>
 	<td class="summary">Sell an item to the faction</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#faction:creature_buys_item">faction:creature_buys_item (item, moneyCost, favorCost, amt, creat)</a></td>
+	<td class="name" nowrap><a href="#faction:creature_buys_item">faction:creature_buys_item (item, info, moneyCost, favorCost, amt, creat)</a></td>
 	<td class="summary">Buy an item from the faction</td>
 	</tr>
 	<tr>
@@ -156,12 +176,32 @@
 	<td class="summary">Get all possible random items the faction can stock</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#faction:generate_random_item">faction:generate_random_item (list)</a></td>
+	<td class="name" nowrap><a href="#faction:generate_random_item">faction:generate_random_item (list, info., artifact_chance, enchantment_chance, noAdd)</a></td>
 	<td class="summary">Generate a random item from the faction's possible random items list</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#faction:generate_gifts">faction:generate_gifts (items)</a></td>
+	<td class="summary">Generates a gift from the faction</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#faction:get_possible_gift_items">faction:get_possible_gift_items ()</a></td>
+	<td class="summary">Get all possible gift items the faction can offer</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#faction:get_cost_modifier">faction:get_cost_modifier (creature)</a></td>
 	<td class="summary">Gets the modifier for items sold in the faction store</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#faction:get_teachable_spells">faction:get_teachable_spells (creature)</a></td>
+	<td class="summary">Gets the list of spells the faction can teach a given creature</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#faction:get_teachable_skills">faction:get_teachable_skills (creature)</a></td>
+	<td class="summary">Gets the list of skills the store can teach a given creature</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#faction:process_incident">faction:process_incident (incidentID, actor, target, args)</a></td>
+	<td class="summary">Registers an incident as having occured, to be processed by all other creatures who observe it</td>
 	</tr>
 </table>
 
@@ -191,6 +231,44 @@
     <ol>
 
         self Faction. The faction itself.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "faction:get_name"></a>
+    <strong>faction:get_name ()</strong>
+    </dt>
+    <dd>
+    Returns the faction's name
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Text. The name
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "faction:get_description"></a>
+    <strong>faction:get_description ()</strong>
+    </dt>
+    <dd>
+    Returns the faction's description
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Text. The description
     </ol>
 
 
@@ -343,6 +421,34 @@
 
 </dd>
     <dt>
+    <a name = "faction:teach_skill"></a>
+    <strong>faction:teach_skill (skillID, creature)</strong>
+    </dt>
+    <dd>
+    Have a creature learn a skill from a faction.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">skillID</span>
+         String. The ID of the skill they're trying to learn.
+        </li>
+        <li><span class="parameter">creature</span>
+         Creature. The creature learning the skill. (optional, defaults to the player)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether learning the skill was successful or not.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
     <a name = "faction:generate_items"></a>
     <strong>faction:generate_items ()</strong>
     </dt>
@@ -463,8 +569,58 @@
 
 </dd>
     <dt>
+    <a name = "faction:get_sell_cost"></a>
+    <strong>faction:get_sell_cost (item)</strong>
+    </dt>
+    <dd>
+    Determines the cost the faction will sell the item for
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">item</span>
+         Item. The item to consider
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. With moneyCost and favorCost values
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "faction:get_buy_cost"></a>
+    <strong>faction:get_buy_cost (item)</strong>
+    </dt>
+    <dd>
+    Determines if a store will buy an item, and returns the price if so
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">item</span>
+         Item. The item to consider
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        False or Number. False if the store won't buy it, the price if it will
+    </ol>
+
+
+
+
+</dd>
+    <dt>
     <a name = "faction:creature_sells_item"></a>
-    <strong>faction:creature_sells_item (item, moneyCost, favorCost, amt, creat)</strong>
+    <strong>faction:creature_sells_item (item, info, moneyCost, favorCost, reputationCost, amt, creat)</strong>
     </dt>
     <dd>
     Sell an item to the faction
@@ -475,11 +631,17 @@
         <li><span class="parameter">item</span>
          Item. The item being sold
         </li>
+        <li><span class="parameter">info</span>
+         Table. A table of information passed by the faction screen. Can include the following:
+        </li>
         <li><span class="parameter">moneyCost</span>
-         Number. The amount of money the faction will pay per item.
+         Number. The amount of money the faction will pay per item
         </li>
         <li><span class="parameter">favorCost</span>
-         Number. The amount of favor the faction will pay per item.
+         Number. The amount of favor the faction will pay per item
+        </li>
+        <li><span class="parameter">reputationCost</span>
+         Number. The amount of reputation the faction will pay per item
         </li>
         <li><span class="parameter">amt</span>
          Number. The amount of the item being sold. Optional, defaults to 1
@@ -496,7 +658,7 @@
 </dd>
     <dt>
     <a name = "faction:creature_buys_item"></a>
-    <strong>faction:creature_buys_item (item, moneyCost, favorCost, amt, creat)</strong>
+    <strong>faction:creature_buys_item (item, info, moneyCost, favorCost, amt, creat)</strong>
     </dt>
     <dd>
     Buy an item from the faction
@@ -506,6 +668,9 @@
     <ul>
         <li><span class="parameter">item</span>
          Item. The item being sold
+        </li>
+        <li><span class="parameter">info</span>
+         Table. A table of information passed by the faction screen. Can include the following:
         </li>
         <li><span class="parameter">moneyCost</span>
          Number. The amount of money the faction is charging per item.
@@ -577,7 +742,7 @@
 </dd>
     <dt>
     <a name = "faction:generate_random_item"></a>
-    <strong>faction:generate_random_item (list)</strong>
+    <strong>faction:generate_random_item (list, info., artifact_chance, enchantment_chance, noAdd)</strong>
     </dt>
     <dd>
     Generate a random item from the faction's possible random items list
@@ -588,8 +753,59 @@
         <li><span class="parameter">list</span>
          Table. A list of item IDs to pull from. Optional, defaults to the list from get_possible_random_items()
         </li>
+        <li><span class="parameter">info.</span>
+         Table. A table of potential values including:
+        </li>
+        <li><span class="parameter">artifact_chance</span>
+         Number.
+        </li>
+        <li><span class="parameter">enchantment_chance</span>
+         Number.
+        </li>
+        <li><span class="parameter">noAdd</span>
+         Boolean. If true, don't add the item to inventory
+        </li>
     </ul>
 
+
+
+
+
+</dd>
+    <dt>
+    <a name = "faction:generate_gifts"></a>
+    <strong>faction:generate_gifts (items)</strong>
+    </dt>
+    <dd>
+    Generates a gift from the faction
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">items</span>
+         Table. The items to give
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "faction:get_possible_gift_items"></a>
+    <strong>faction:get_possible_gift_items ()</strong>
+    </dt>
+    <dd>
+    Get all possible gift items the faction can offer
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A list of the item IDs
+    </ol>
 
 
 
@@ -615,6 +831,85 @@
 
 
 </dd>
+    <dt>
+    <a name = "faction:get_teachable_spells"></a>
+    <strong>faction:get_teachable_spells (creature)</strong>
+    </dt>
+    <dd>
+    Gets the list of spells the faction can teach a given creature
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">creature</span>
+         Creature. Optional, defaults to player
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A list of possible spells
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "faction:get_teachable_skills"></a>
+    <strong>faction:get_teachable_skills (creature)</strong>
+    </dt>
+    <dd>
+    Gets the list of skills the store can teach a given creature
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">creature</span>
+         Creature. Optional, defaults to player
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A list of possible skills
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "faction:process_incident"></a>
+    <strong>faction:process_incident (incidentID, actor, target, args)</strong>
+    </dt>
+    <dd>
+    Registers an incident as having occured, to be processed by all other creatures who observe it
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">incidentID</span>
+         String. The incident type
+        </li>
+        <li><span class="parameter">actor</span>
+         Entity. The creature (or other entity) that caused the incident. Optional
+        </li>
+        <li><span class="parameter">target</span>
+         Entity. The entity (or coordinates), that was the target of the incident. Optional
+        </li>
+        <li><span class="parameter">args</span>
+         Table. Other information to use when processing this incident
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
 </dl>
 
 
@@ -622,7 +917,7 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2023-09-29 12:16:36 </i>
+<i style="float:right;">Last updated 2025-04-07 10:52:23 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

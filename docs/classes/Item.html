@@ -47,7 +47,7 @@
   <li><strong>Item</strong></li>
   <li><a href="../classes/Map.html">Map</a></li>
   <li><a href="../classes/Projectile.html">Projectile</a></li>
-  <li><a href="../classes/ranged_attack.html">ranged_attack</a></li>
+  <li><a href="../classes/RangedAttack.html">RangedAttack</a></li>
   <li><a href="../classes/Service.html">Service</a></li>
   <li><a href="../classes/Spell.html">Spell</a></li>
   <li><a href="../classes/Store.html">Store</a></li>
@@ -88,19 +88,19 @@
 <h2><a href="#Methods">Methods</a></h2>
 <table class="function_list">
 	<tr>
-	<td class="name" nowrap><a href="#item:init">item:init (type_name, tags, info, ignoreNewFunc)</a></td>
+	<td class="name" nowrap><a href="#item:init">item:init (itemID, tags, info, ignoreNewFunc)</a></td>
 	<td class="summary">Create an instance of the item.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#item:clone">item:clone (type_name, info, amt, ignoreNewFunc)</a></td>
-	<td class="summary">Clones an instance of the item.</td>
+	<td class="name" nowrap><a href="#item:duplicate">item:duplicate ()</a></td>
+	<td class="summary">Duplicates an instance of the item.</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#item:get_description">item:get_description (withName)</a></td>
 	<td class="summary">Get the description of the item.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#item:get_name">item:get_name (full, amount, withLevel)</a></td>
+	<td class="name" nowrap><a href="#item:get_name">item:get_name (full, amount, withLevel, noProper)</a></td>
 	<td class="summary">Get the name of the item.</td>
 	</tr>
 	<tr>
@@ -112,7 +112,7 @@
 	<td class="summary">"Use" the item.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#item:get_damage">item:get_damage (target, wielder)</a></td>
+	<td class="name" nowrap><a href="#item:get_damage">item:get_damage (wielder)</a></td>
 	<td class="summary">Find out how much damage an item will deal.</td>
 	</tr>
 	<tr>
@@ -140,7 +140,7 @@
 	<td class="summary">Determine if an item qualifies for a particular enchantment</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#item:get_possible_enchantments">item:get_possible_enchantments (permanent)</a></td>
+	<td class="name" nowrap><a href="#item:get_possible_enchantments">item:get_possible_enchantments (permanent, artifactOnly, enchantment_type)</a></td>
 	<td class="summary">Get a list of all possible enchantments the item could have</td>
 	</tr>
 	<tr>
@@ -160,7 +160,7 @@
 	<td class="summary">Return a list of all enchantments currently applied to an item</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#item:get_enchantment_bonus">item:get_enchantment_bonus (bonusType)</a></td>
+	<td class="name" nowrap><a href="#item:get_enchantment_bonus">item:get_enchantment_bonus (bonusType, permanentOnly)</a></td>
 	<td class="summary">Returns the total value of the bonuses of a given type provided by enchantments.</td>
 	</tr>
 	<tr>
@@ -192,6 +192,14 @@
 	<td class="summary">Checks the value of an item</td>
 	</tr>
 	<tr>
+	<td class="name" nowrap><a href="#item:get_threat">item:get_threat ()</a></td>
+	<td class="summary">Checks the threatvalue of an item</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#item:get_threat_modifier">item:get_threat_modifier ()</a></td>
+	<td class="summary">Checks the threat_modifier value of an item</td>
+	</tr>
+	<tr>
 	<td class="name" nowrap><a href="#item:has_tag">item:has_tag (tag, ignore_enchantments)</a></td>
 	<td class="summary">Checks if an item has a descriptive tag.</td>
 	</tr>
@@ -204,7 +212,7 @@
 	<td class="summary">Add multiple tags to an item</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#item:delete">item:delete (map)</a></td>
+	<td class="name" nowrap><a href="#item:delete">item:delete (map, amount)</a></td>
 	<td class="summary">Delete an item</td>
 	</tr>
 	<tr>
@@ -223,6 +231,62 @@
 	<td class="name" nowrap><a href="#item:cleanup">item:cleanup (map)</a></td>
 	<td class="summary">Perform an item's cleanup() callback, if applicable.</td>
 	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#item:is_ingredient_in">item:is_ingredient_in (all)</a></td>
+	<td class="summary">Determines what recipes the item is an ingredient in:</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#item:splitStack">item:splitStack (amount)</a></td>
+	<td class="summary">Split off a new stack of an item</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#item:get_spells_granted">item:get_spells_granted ()</a></td>
+	<td class="summary">Returns a list of spells granted to the wearer of this equipment</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#item:get_armor">item:get_armor (damageType, noBonus, no_all)</a></td>
+	<td class="summary">Returns the value</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#item:get_all_armor">item:get_all_armor (noBonus)</a></td>
+	<td class="summary">Returns a list of armor granted to the wearer of this equipment</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#item:get_buyer_list">item:get_buyer_list ()</a></td>
+	<td class="summary">Returns a list of shops and factions that will buy an item</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#item:get_highest_sell_cost">item:get_highest_sell_cost ()</a></td>
+	<td class="summary">Gets the highest cost of known stores/factions that will buy an item</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#item:get_types">item:get_types (base_only)</a></td>
+	<td class="summary">Gets a list of all types a item is</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#item:is_type">item:is_type (ctype, base_only)</a></td>
+	<td class="summary">Checks if an item is of a certain type</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#item:callbacks">item:callbacks (callback_type, Anything.)</a></td>
+	<td class="summary">Checks the callbacks of the base item type and any enchantments the item has</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#item:get_potential_targets">item:get_potential_targets (user, previous_targets)</a></td>
+	<td class="summary">Gets potential targets of a item.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#item:update_charges">item:update_charges (amt)</a></td>
+	<td class="summary">Changes the amount of charges that an item has</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#item:get_study_results">item:get_study_results ()</a></td>
+	<td class="summary">Get the items and skills that you will receive from studying an item</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#item:get_impressions">item:get_impressions ()</a></td>
+	<td class="summary">Gets impressions provided when equipping an item.</td>
+	</tr>
 </table>
 
 <br/>
@@ -234,7 +298,7 @@
     <dl class="function">
     <dt>
     <a name = "item:init"></a>
-    <strong>item:init (type_name, tags, info, ignoreNewFunc)</strong>
+    <strong>item:init (itemID, tags, info, ignoreNewFunc)</strong>
     </dt>
     <dd>
     Create an instance of the item.  Don't call this directly. Called via Item('itemID')
@@ -242,7 +306,7 @@
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">type_name</span>
+        <li><span class="parameter">itemID</span>
          String. The ID of the item.
         </li>
         <li><span class="parameter">tags</span>
@@ -267,28 +331,13 @@
 
 </dd>
     <dt>
-    <a name = "item:clone"></a>
-    <strong>item:clone (type_name, info, amt, ignoreNewFunc)</strong>
+    <a name = "item:duplicate"></a>
+    <strong>item:duplicate ()</strong>
     </dt>
     <dd>
-    Clones an instance of the item.
+    Duplicates an instance of the item.
 
 
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">type_name</span>
-         String. The ID of the item.
-        </li>
-        <li><span class="parameter">info</span>
-         Anything. Argument to pass into the item's new() function.
-        </li>
-        <li><span class="parameter">amt</span>
-         Number. The amount of the item to create.
-        </li>
-        <li><span class="parameter">ignoreNewFunc</span>
-         Boolean. Whether to ignore the item's new() function
-        </li>
-    </ul>
 
     <h3>Returns:</h3>
     <ol>
@@ -327,7 +376,7 @@
 </dd>
     <dt>
     <a name = "item:get_name"></a>
-    <strong>item:get_name (full, amount, withLevel)</strong>
+    <strong>item:get_name (full, amount, withLevel, noProper)</strong>
     </dt>
     <dd>
     Get the name of the item.
@@ -343,6 +392,9 @@
         </li>
         <li><span class="parameter">withLevel</span>
          Boolean. If true, show the item's level if it has one (optional)
+        </li>
+        <li><span class="parameter">noProper</span>
+         Boolean. If true, don't show the proper name
         </li>
     </ul>
 
@@ -418,7 +470,7 @@
 </dd>
     <dt>
     <a name = "item:get_damage"></a>
-    <strong>item:get_damage (target, wielder)</strong>
+    <strong>item:get_damage (wielder)</strong>
     </dt>
     <dd>
     Find out how much damage an item will deal.  The item's damage value + the wielder's get_damage(), but might be overridden by an item's get_damage() code
@@ -426,9 +478,6 @@
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">target</span>
-         Entity. The target of the item's attack.
-        </li>
         <li><span class="parameter">wielder</span>
          Creature. The creature using the item.
         </li>
@@ -620,7 +669,7 @@
 </dd>
     <dt>
     <a name = "item:get_possible_enchantments"></a>
-    <strong>item:get_possible_enchantments (permanent)</strong>
+    <strong>item:get_possible_enchantments (permanent, artifactOnly, enchantment_type)</strong>
     </dt>
     <dd>
     Get a list of all possible enchantments the item could have
@@ -630,6 +679,12 @@
     <ul>
         <li><span class="parameter">permanent</span>
          Boolean. Whether the enchantment has to qualify as a permanent enchantment (optional)
+        </li>
+        <li><span class="parameter">artifactOnly</span>
+         Boolean. Whether to only consider enchantments without the neverArtifact flag
+        </li>
+        <li><span class="parameter">enchantment_type</span>
+         String. The enchantment type to look at (Optional)
         </li>
     </ul>
 
@@ -727,7 +782,7 @@
 </dd>
     <dt>
     <a name = "item:get_enchantment_bonus"></a>
-    <strong>item:get_enchantment_bonus (bonusType)</strong>
+    <strong>item:get_enchantment_bonus (bonusType, permanentOnly)</strong>
     </dt>
     <dd>
     Returns the total value of the bonuses of a given type provided by enchantments.
@@ -737,6 +792,9 @@
     <ul>
         <li><span class="parameter">bonusType</span>
          Text. The bonus type to look at
+        </li>
+        <li><span class="parameter">permanentOnly</span>
+         Boolean. If true, only look at permanent enchantments
         </li>
     </ul>
 
@@ -890,6 +948,44 @@
 
 </dd>
     <dt>
+    <a name = "item:get_threat"></a>
+    <strong>item:get_threat ()</strong>
+    </dt>
+    <dd>
+    Checks the threatvalue of an item
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The value of the item
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "item:get_threat_modifier"></a>
+    <strong>item:get_threat_modifier ()</strong>
+    </dt>
+    <dd>
+    Checks the threat_modifier value of an item
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The value of the item
+    </ol>
+
+
+
+
+</dd>
+    <dt>
     <a name = "item:has_tag"></a>
     <strong>item:has_tag (tag, ignore_enchantments)</strong>
     </dt>
@@ -959,7 +1055,7 @@
 </dd>
     <dt>
     <a name = "item:delete"></a>
-    <strong>item:delete (map)</strong>
+    <strong>item:delete (map, amount)</strong>
     </dt>
     <dd>
     Delete an item
@@ -968,7 +1064,10 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">map</span>
-
+         Map. The map to the delete the item off of (optional, defaults to current map)
+        </li>
+        <li><span class="parameter">amount</span>
+         Number. The amount of the item to delete. If nil, delete it all
         </li>
     </ul>
 
@@ -1039,6 +1138,313 @@
 
 
 </dd>
+    <dt>
+    <a name = "item:is_ingredient_in"></a>
+    <strong>item:is_ingredient_in (all)</strong>
+    </dt>
+    <dd>
+    Determines what recipes the item is an ingredient in:
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">all</span>
+         Boolean. If true, get all recipes, not just known recipes.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "item:splitStack"></a>
+    <strong>item:splitStack (amount)</strong>
+    </dt>
+    <dd>
+    Split off a new stack of an item
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">amount</span>
+         Number. The number in the new stack
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Item. The new item stack
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "item:get_spells_granted"></a>
+    <strong>item:get_spells_granted ()</strong>
+    </dt>
+    <dd>
+    Returns a list of spells granted to the wearer of this equipment
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A list of the spells
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "item:get_armor"></a>
+    <strong>item:get_armor (damageType, noBonus, no_all)</strong>
+    </dt>
+    <dd>
+    Returns the value
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">damageType</span>
+
+        </li>
+        <li><span class="parameter">noBonus</span>
+
+        </li>
+        <li><span class="parameter">no_all</span>
+
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "item:get_all_armor"></a>
+    <strong>item:get_all_armor (noBonus)</strong>
+    </dt>
+    <dd>
+    Returns a list of armor granted to the wearer of this equipment
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">noBonus</span>
+
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A list of the armor values
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "item:get_buyer_list"></a>
+    <strong>item:get_buyer_list ()</strong>
+    </dt>
+    <dd>
+    Returns a list of shops and factions that will buy an item
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "item:get_highest_sell_cost"></a>
+    <strong>item:get_highest_sell_cost ()</strong>
+    </dt>
+    <dd>
+    Gets the highest cost of known stores/factions that will buy an item
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "item:get_types"></a>
+    <strong>item:get_types (base_only)</strong>
+    </dt>
+    <dd>
+    Gets a list of all types a item is
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">base_only</span>
+         Boolean. If true, don't look at types applied by enchantments
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A table of item types
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "item:is_type"></a>
+    <strong>item:is_type (ctype, base_only)</strong>
+    </dt>
+    <dd>
+    Checks if an item is of a certain type
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">ctype</span>
+         String. The item type to check for
+        </li>
+        <li><span class="parameter">base_only</span>
+         Boolean. If true, don't look at types applied by enchantments
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether or not the item is that type
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "item:callbacks"></a>
+    <strong>item:callbacks (callback_type, Anything.)</strong>
+    </dt>
+    <dd>
+    Checks the callbacks of the base item type and any enchantments the item has
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">callback_type</span>
+         String. The callback type to check.
+        </li>
+        <li><span class="parameter">Anything.</span>
+         Any info you want to pass to the callback. Each callback type is probably looking for something specific (optional)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+        Boolean. If any of the callbacks returned true or false.</li>
+        <li>
+        Table. Any other information that the callbacks might return.</li>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "item:get_potential_targets"></a>
+    <strong>item:get_potential_targets (user, previous_targets)</strong>
+    </dt>
+    <dd>
+    Gets potential targets of a item.  Uses the item's own get_potential_targets() function if it has one, or defaults to seen creatures if it doesn't and it's a creature-targeting item
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">user</span>
+         Creature. The caster of the spell
+        </li>
+        <li><span class="parameter">previous_targets</span>
+         Table. The already-targeted targets of the item, if applicable
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A list of potential targets
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "item:update_charges"></a>
+    <strong>item:update_charges (amt)</strong>
+    </dt>
+    <dd>
+    Changes the amount of charges that an item has
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">amt</span>
+         The amount to change the charges by
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "item:get_study_results"></a>
+    <strong>item:get_study_results ()</strong>
+    </dt>
+    <dd>
+    Get the items and skills that you will receive from studying an item
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "item:get_impressions"></a>
+    <strong>item:get_impressions ()</strong>
+    </dt>
+    <dd>
+    Gets impressions provided when equipping an item.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A list of impressions
+    </ol>
+
+
+
+
+</dd>
 </dl>
 
 
@@ -1046,7 +1452,7 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2023-09-29 12:16:36 </i>
+<i style="float:right;">Last updated 2025-04-07 10:52:23 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

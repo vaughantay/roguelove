@@ -47,7 +47,7 @@
   <li><a href="../classes/Item.html">Item</a></li>
   <li><a href="../classes/Map.html">Map</a></li>
   <li><a href="../classes/Projectile.html">Projectile</a></li>
-  <li><a href="../classes/ranged_attack.html">ranged_attack</a></li>
+  <li><a href="../classes/RangedAttack.html">RangedAttack</a></li>
   <li><a href="../classes/Service.html">Service</a></li>
   <li><a href="../classes/Spell.html">Spell</a></li>
   <li><strong>Store</strong></li>
@@ -116,16 +116,24 @@
 	<td class="summary">Gets a list of the items that a creature can sell to a store</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#store:creature_sells_item">store:creature_sells_item (item, cost, amt, creat)</a></td>
+	<td class="name" nowrap><a href="#store:get_buy_cost">store:get_buy_cost (item)</a></td>
+	<td class="summary">Determines if a store will buy an item, and returns the price if so</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#store:creature_sells_item">store:creature_sells_item (item, info, cost, amt, creat)</a></td>
 	<td class="summary">Sell an item to the store</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#store:creature_buys_item">store:creature_buys_item (item, cost, amt, creat)</a></td>
+	<td class="name" nowrap><a href="#store:creature_buys_item">store:creature_buys_item (item, info, cost, amt, creat)</a></td>
 	<td class="summary">Buy an item from the store</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#store:teach_spell">store:teach_spell (spellID, creature)</a></td>
 	<td class="summary">Have a creature learn a spell from a store.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#store:teach_skill">store:teach_skill (skillID, creature)</a></td>
+	<td class="summary">Have a creature learn a skill from a store.</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#store:get_inventory_index">store:get_inventory_index (item)</a></td>
@@ -138,6 +146,14 @@
 	<tr>
 	<td class="name" nowrap><a href="#store:generate_random_item">store:generate_random_item (list)</a></td>
 	<td class="summary">Generate a random item from the store's possible random items list</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#store:get_teachable_spells">store:get_teachable_spells (creature)</a></td>
+	<td class="summary">Gets the list of spells the store can teach a given creature</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#store:get_teachable_skills">store:get_teachable_skills (creature)</a></td>
+	<td class="summary">Gets the list of skills the store can teach a given creature</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#store:requires">store:requires ()</a></td>
@@ -298,8 +314,33 @@
 
 </dd>
     <dt>
+    <a name = "store:get_buy_cost"></a>
+    <strong>store:get_buy_cost (item)</strong>
+    </dt>
+    <dd>
+    Determines if a store will buy an item, and returns the price if so
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">item</span>
+         Item. The item to consider
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        False or Number. False if the store won't buy it, the price if it will
+    </ol>
+
+
+
+
+</dd>
+    <dt>
     <a name = "store:creature_sells_item"></a>
-    <strong>store:creature_sells_item (item, cost, amt, creat)</strong>
+    <strong>store:creature_sells_item (item, info, cost, amt, creat)</strong>
     </dt>
     <dd>
     Sell an item to the store
@@ -309,6 +350,9 @@
     <ul>
         <li><span class="parameter">item</span>
          Item. The item being sold
+        </li>
+        <li><span class="parameter">info</span>
+         Table. A table of information passed by the store screen. Can include:
         </li>
         <li><span class="parameter">cost</span>
          Number. The amount the store will pay per item.
@@ -328,7 +372,7 @@
 </dd>
     <dt>
     <a name = "store:creature_buys_item"></a>
-    <strong>store:creature_buys_item (item, cost, amt, creat)</strong>
+    <strong>store:creature_buys_item (item, info, cost, amt, creat)</strong>
     </dt>
     <dd>
     Buy an item from the store
@@ -338,6 +382,9 @@
     <ul>
         <li><span class="parameter">item</span>
          Item. The item being sold
+        </li>
+        <li><span class="parameter">info</span>
+         Table. A table of information passed by the store screen. Can include:
         </li>
         <li><span class="parameter">cost</span>
          Number. The amount the store is charging per item.
@@ -382,6 +429,34 @@
     <ol>
 
         Boolean. Whether learning the spell was successful or not.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "store:teach_skill"></a>
+    <strong>store:teach_skill (skillID, creature)</strong>
+    </dt>
+    <dd>
+    Have a creature learn a skill from a store.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">skillID</span>
+         String. The ID of the skill they're trying to learn.
+        </li>
+        <li><span class="parameter">creature</span>
+         Creature. The creature learning the skill. (optional, defaults to the player)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether learning the skill was successful or not.
     </ol>
 
 
@@ -455,6 +530,56 @@
 
 </dd>
     <dt>
+    <a name = "store:get_teachable_spells"></a>
+    <strong>store:get_teachable_spells (creature)</strong>
+    </dt>
+    <dd>
+    Gets the list of spells the store can teach a given creature
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">creature</span>
+         Creature. Optional, defaults to player
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A list of possible spells
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "store:get_teachable_skills"></a>
+    <strong>store:get_teachable_skills (creature)</strong>
+    </dt>
+    <dd>
+    Gets the list of skills the store can teach a given creature
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">creature</span>
+         Creature. Optional, defaults to player
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A list of possible skills
+    </ol>
+
+
+
+
+</dd>
+    <dt>
     <a name = "store:requires"></a>
     <strong>store:requires ()</strong>
     </dt>
@@ -480,7 +605,7 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2023-09-29 12:16:36 </i>
+<i style="float:right;">Last updated 2025-04-07 10:52:23 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

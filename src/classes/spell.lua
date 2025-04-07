@@ -92,6 +92,10 @@ function Spell:get_info()
   if self.range then
     statText = statText .. "Max Range: " .. self.range .. "\n"
   end
+  if (self.min_targets and self.min_targets > 1) or (self.max_targets and self.max_targets > 1) then
+    local min,max = (self.min_targets or 1), (self.max_targets or self.min_targets or 1)
+    statText = statText .. "Number of targets: " .. (min == max and min or (min .. " - " .. max)) .. "\n"
+  end
   if self.deactivate_on_damage_chance then
     statText = statText .. "Chance of Deactivation when Damaged: " .. self.deactivate_on_damage_chance .. "%" .. "\n"
   end
@@ -127,8 +131,9 @@ function Spell:get_info()
     end
     for i,stat in ipairs(stats) do
       local value = self:get_stat(stat.id)
+      local baseValue = self:get_stat(stat.id,nil,true)
       if value ~= false and stat.hide ~= true and (value ~= 0 or stat.hide_when_zero ~= true) then
-        statText = statText .. stat.name .. (type(value) ~= "boolean" and ": " .. value .. (stat.is_percentage and "%" or "") or "") .. (stat.description and " (" .. stat.description .. ")" or "") .. "\n"
+        statText = statText .. stat.name .. (type(value) ~= "boolean" and ": " .. value .. (stat.is_percentage and "%" or "") or "") .. (value ~= baseValue and " (" .. baseValue .. (stat.is_percentage and "%" or "") .. " base)" or "") .. (stat.description and " (" .. stat.description .. ")" or "") .. "\n"
       end
     end
   end
@@ -263,7 +268,7 @@ function Spell:use(target, caster, ignoreCooldowns, ignoreCost)
           caster.mp = caster.mp - self.mp_cost
         end
         if self.charges then
-          self.charges = self.charges - 1
+          self:update_charges(-1,true)
         end
         if self.stat_cost then
           for stat,cost in pairs(self.stat_cost) do
@@ -408,7 +413,18 @@ end
 --@param use_type String. The way in which this spell is being used. Either aggressive, defensive, fleeing or friendly.
 --@return Entity. The new target of the spell.
 function Spell:decide(target,caster,use_type)
-  if possibleSpells[self.id].decide then return possibleSpells[self.id].decide(self,target,caster,use_type) end
+  if possibleSpells[self.id].decide then
+    local status,r = pcall(possibleSpells[self.id].decide,self,target,caster,use_type)
+    if not status then
+      local errtxt = "Error from " .. caster:get_name() .. " decide code " .. self.name .. ": " .. r
+      output:out(errtxt)
+      print(errtxt)
+      return false
+    end
+    if r and type(r) == "table" then
+      return r
+    end
+  end
   return target --default to already-selected target
 end
 
@@ -416,7 +432,14 @@ end
 --@param possessor Creature. The creature who's trying to use the spell.
 --@return true
 function Spell:requires(possessor)
-  if possibleSpells[self.id].requires then return possibleSpells[self.id].requires(self,possessor) end
+  if possibleSpells[self.id].requires then
+    local status,r,text = pcall(possibleSpells[self.id].requires,self,possessor)
+    if status == false then
+      output:out("Error in spell " .. self.name .. " requires code: " .. r)
+      print("Error in spell " .. self.name .. " requires code: " .. r)
+    end
+    return r,text
+  end
   return true
 end
 
@@ -482,8 +505,9 @@ end
 ---Get the stat for a spell
 --@param stat String. The stat to return
 --@param possessor Creature. The creature to look at when determine the spell's stats
+--@param noBonus Boolean. If true, don't apply any bonuses, just return the base stat
 --@return Anything. Whatever the stat's value is (or false if not set)
-function Spell:get_stat(stat,possessor)
+function Spell:get_stat(stat,possessor,noBonus)
   possessor = possessor or self.possessor
   local value = false
   local stat_type = nil
@@ -499,6 +523,8 @@ function Spell:get_stat(stat,possessor)
   if type(value) ~= "number" then
     return value
   end
+  
+  if value == 0 or noBonus then return value end --don't add bonuses to stats are set to 0
   
   --Modifiers from Creature:get_bonus()
   if possessor and possessor.baseType == "creature" then
@@ -517,6 +543,12 @@ function Spell:get_stat(stat,possessor)
     if stat ~= stat_type then --this is done because frequently the name of the stat is "damage" and the stat type is also "damage" and we don't want to apply the bonus twice
       bonus = bonus + possessor:get_bonus('spell_' .. stat)
       perc = perc + possessor:get_bonus('spell_' .. stat .. '_percent')
+      if self.types then
+        for _,stype in pairs(self.types) do
+          bonus = bonus + possessor:get_bonus(stype .. '_spell_' .. stat)
+          perc = perc + possessor:get_bonus(stype .. '_spell_' .. stat .. '_percent')
+        end
+      end
     end
     value = value + math.ceil(value*(perc/100))
     value = value + bonus
@@ -820,7 +852,137 @@ function Spell:apply_upgrade(upgradeID,force)
   return false
 end
 
----Placeholder for the upgrade_requires() callback, used to determine if the creature meets the requirements for using the spell
+---Get upgrade items that can be applied to a spell
+--@possessor Creature. The possessor of the spell.
+function Spell:get_appliable_items(possessor)
+  local upgrade_items = {}
+  local alreadyChecked = {}
+  for _,item in ipairs(possessor:get_inventory()) do
+    if item.applied_to_spell_types then
+      for _,sType in ipairs(item.applied_to_spell_types) do
+        if self:is_type(sType) then
+          for stat,bonus in pairs(item.applied_to_spell_bonus) do
+            if stat == "spellPoints" and count(self:get_possible_upgrades()) == 0 then
+              break
+            end
+            if self[stat] or (self.stats and self.stats[stat] and not self.stats[stat].no_upgrade and (not self.stats[stat].max or self.stats[stat].max > self.stats[stat].value)) then --Check to make sure at least one bonus can apply to this spell
+              upgrade_items[#upgrade_items+1] = {item=item,bonuses=item.applied_to_spell_bonus,amount_required=(item.applied_to_spell_required_amount or 1)}
+              alreadyChecked[item.id .. (item.sortBy and item[item.sortBy] or "")] = true
+              break
+            end
+          end
+        end
+      end
+    end
+  end
+  
+  if self.appliable_items then
+    for _,itemDetails in ipairs(self.appliable_items) do
+      if not alreadyChecked[itemDetails.itemID .. (itemDetails.sortBy and itemDetails.sortBy or "")] then
+        if itemDetails.bonuses then
+          for stat,bonus in pairs(itemDetails.bonuses) do
+            if stat == "spellPoints" and count(self:get_possible_upgrades()) == 0 then
+              break
+            end
+            if self[stat] or (self.stats and self.stats[stat] and not self.stats[stat].no_upgrade and (not self.stats[stat].max or self.stats[stat].max > self.stats[stat].value)) then --Check to make sure at least one bonus can apply to this spell
+              upgrade_items[#upgrade_items+1] = itemDetails
+              alreadyChecked[itemDetails.itemID .. (itemDetails.sortBy and itemDetails.sortBy or "")] = true
+              break
+            end
+          end
+        end
+      end
+    end
+  end
+
+  if self.arcana then
+    for _,arcID in ipairs(self.arcana) do
+      local arcDetails = arcana_list[arcID]
+      if arcDetails.appliable_items then
+        for _,itemDetails in ipairs(arcDetails.appliable_items) do
+          if not alreadyChecked[itemDetails.itemID .. (itemDetails.sortBy and itemDetails.sortBy or "")] then
+            if itemDetails.bonuses then
+              for stat,bonus in pairs(itemDetails.bonuses) do
+                if stat == "spellPoints" and count(self:get_possible_upgrades()) == 0 then
+                  break
+                end
+                if self[stat] or (self.stats and self.stats[stat] and not self.stats[stat].no_upgrade and (not self.stats[stat].max or self.stats[stat].max > self.stats[stat].value)) then --Check to make sure at least one bonus can apply to this spell
+                  upgrade_items[#upgrade_items+1] = itemDetails
+                  alreadyChecked[itemDetails.itemID .. (itemDetails.sortBy and itemDetails.sortBy or "")] = true
+                  break
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+  return upgrade_items
+end
+
+---Apply an item to a spell, gaining its bonuses
+--@param item Item. The item to apply
+function Spell:apply_item(item)
+  --TODO: custom apply code
+  if item.applied_to_spell_bonus then
+    for stat,bonus in pairs(item.applied_to_spell_bonus) do
+      if self[stat] then
+        if type(self[stat]) == "number" and type(bonus) == "number" then
+          self[stat] = self[stat] + bonus
+        else
+          self[stat] = bonus
+        end
+      elseif self.stats and self.stats[stat] then
+        if type(self.stats[stat].value) == "number" and type(bonus) == "number" then
+          self.stats[stat].value = self.stats[stat].value + bonus
+          if self.stats[stat].max then self.stats[stat].value = math.min(self.stats[stat].max,self.stats[stat].value) end
+        else
+          self.stats[stat].value = true
+        end
+        local bonusName = self.stats[stat].apply_to_bonus
+        if bonusName then
+          self.bonuses = self.bonuses or {}
+          self.bonuses[bonusName] = self.stats[stat].value
+        end
+      end
+    end
+    item:delete(nil,(item.applied_to_spell_required_amount or 1))
+    return
+  end
+  
+  --If the appliability is defined in the spell or the arcana:
+  local upgrade_items = self:get_appliable_items(self.possessor)
+  for _,itemInfo in ipairs(upgrade_items) do
+    if itemInfo.item == item.id and itemInfo.sortBy == item[item.sortBy] and item.amount >= (itemInfo.amount or 1) then
+      --TODO: custom applied code
+      if itemInfo.bonuses then
+        for stat,bonus in pairs(itemInfo.bonuses) do
+          if self[stat] then
+            if type(self[stat]) == "number" and type(bonus) == "number" then
+              self[stat] = self[stat] + bonus
+            else
+              self[stat] = bonus
+            end
+          elseif self.stats and self.stats[stat] then
+            if type(self.stats[stat]) == "number" and type(bonus) == "number" then
+              self.stats[stat].value = self.stats[stat].value + bonus
+            else
+              self.stats[stat].value = true
+            end
+            local bonusName = self.stats[stat].apply_to_bonus
+            if bonusName then
+              self.bonuses = self.bonuses or {}
+              self.bonuses[bonusName] = self.stats[stat].value
+            end
+          end
+        end
+      end
+    end
+  end
+end
+
+---Placeholder for the upgrade_requires() callback, used to determine if the creature meets the requirements for upgrading the spell
 --@param possessor Creature. The creature who's trying to upgrade the spell
 --@param upgradeID String. The ID of the upgrade
 --@return true
@@ -897,7 +1059,7 @@ function Spell:setting_available(settingID)
   end
 end
 
---Toggle a setting on or off
+---Toggle a setting on or off
 --@param settingID String. The ID of the setting
 --@return Boolean. The setting's new value, false for off, true for on
 function Spell:toggle_setting(settingID)
@@ -910,5 +1072,46 @@ function Spell:toggle_setting(settingID)
         end
       end
     end --end exlucions if
+  end
+end
+
+---Update the charges for a spell
+--@param amount Number. The amount to change it by
+--@param silent Boolean. If true, don't show a popup
+function Spell:update_charges(amount,silent)
+  if self.from_item and self.from_item.charges then
+    return self.from_item:update_charges(amount,silent)
+  end
+  self.charges = self.charges + amount
+  if self.max_charges and self.charges > self:get_stat('max_charges') then self.charges = self:get_stat('max_charges') end
+  if self.charges < 0 then self.charges = 0 end
+  if self.charges == 0 and self.possessor == player and not currGame.tutorialsSeen['lowSpells'] and currMap.mapType ~= "home" then
+    show_tutorial('lowSpells')
+  end
+  --Add item popup:
+  if self.possessor == player and not silent then
+    local popup1 = Effect('dmgpopup')
+    popup1.symbol = (amount > 0 and "+" or "") .. (amount ~= 1 and amount or "")
+    if amount > 0 then
+      popup1.color = {r=0,g=255,b=0,a=150}
+    else
+      popup1.color = {r=255,g=0,b=0,a=150}
+    end
+    local tileMod = round(fonts.mapFontWithImages:getWidth(popup1.symbol)/2)
+    popup1.xMod = -tileMod
+    local popup2 = Effect('dmgpopup')
+    popup2.image_name = self.image_name or self.id
+    popup2.imageType = "spell"
+    popup2.xMod = tileMod
+    popup2.speed = popup1.speed
+    if (self.use_color_with_tiles ~= false or gamesettings.always_use_color_with_tiles) and self.color then
+      popup2.color = {r=self.color.r,g=self.color.g,b=self.color.b,a=150}
+    else
+      popup2.color = {r=255,g=255,b=255,a=150}
+    end
+    popup1.paired = popup2
+    popup2.paired = popup1
+    currMap:add_effect(popup1,self.possessor.x,self.possessor.y)
+    currMap:add_effect(popup2,self.possessor.x,self.possessor.y)
   end
 end

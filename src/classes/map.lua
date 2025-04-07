@@ -47,7 +47,7 @@ function Map:clear(open,clearAll)
 		for y = 1, self.height, 1 do
 			self.seenMap[x][y] = false
 			self:clear_tile(x,y)
-      if open and x ~= 1 and x ~= self.width and y ~= 1 and y ~= self.height then
+      if open then
         self[x][y] = "."
       else
         self[x][y] = "#"
@@ -62,11 +62,11 @@ function Map:clear(open,clearAll)
       self.contents[x] = {}
       self.seenMap[x] = {}
       self.lightMap[x] = {}
-    end
-    for y = 1, self.height, 1 do
-      self.seenMap[x][y] = false
-      self.contents[x][y] = {}
-      self.lightMap[x][y] = false
+      for y = 1, self.height, 1 do
+        self.seenMap[x][y] = false
+        self.contents[x][y] = {}
+        self.lightMap[x][y] = false
+      end
     end
   end
 end
@@ -78,16 +78,17 @@ end
 --@param ignoreCreats Boolean. Whether to ignore creatures when considering a tile clear (optional)
 --@param ignore_safety Boolean. Whether to ignore dangerous but transversable features (optional)
 --@param projectile Boolean. Whether to consider the tile free for a projectile vs a creature.
+--@param ignoreAttackableFeatures Boolean. Whether to ignore attackable features when considering a tile clear (optional)
 --@return Boolean. Whether the tile is clear
-function Map:isClear(x,y,ctype,ignoreCreats,ignore_safety,projectile)
+function Map:isClear(x,y,ctype,ignoreCreats,ignore_safety,projectile,ignoreAttackableFeatures)
   if x < 2 or y < 2 or x >= self.width or y >= self.height then return false end
 	if self:isWall(x,y) then return false end --if there's a wall there, it's not clear
   if ignoreCreats ~= true and self:get_tile_creature(x,y) then return false end --if there's a creature there, it's not clear
-  if ctype ~= nil then return self:is_passable_for(x,y,ctype,false,ignore_safety,projectile) end --if you're asking about a specific creature type, pass it off
+  if ctype ~= nil then return self:is_passable_for(x,y,ctype,false,ignore_safety,projectile,ignoreAttackableFeatures) end --if you're asking about a specific creature type, pass it off
   --Otherwise, generic:
-  if type(self[x][y]) == "table" and (self[x][y].blocksMovement == true or self[x][y].impassable == true) then return false end --if the square is a special tile and said tile is generally impassable, it's not clear
+  if type(self[x][y]) == "table" and ((self[x][y].blocksMovement == true or self[x][y].impassable == true) and not (ignoreAttackableFeatures and self[x][y].attackable)) then return false end --if the square is a special tile and said tile is generally impassable, it's not clear
 	for id, entity in pairs(self.contents[x][y]) do
-		if entity.blocksMovement == true or entity.impassable == true then
+		if (entity.blocksMovement == true or entity.impassable == true) and not (ignoreAttackableFeatures and entity.attackable) then
 			return false
 		end
 	end
@@ -147,15 +148,16 @@ end
 --@param y Number. The y-coordinate to check
 --@param tag String. The tag to look for
 --@return boolean. Whether or not it has the tag
+--@return Feature. The feature that has the tag, if applicable
 function Map:tile_has_tag(x,y,tag)
   if not self:in_map(x,y) then return false end
   if self.tile_info[x][y][tag] then return true end
   if type(self[x][y]) == "table" and self[x][y][tag] or (self[x][y].tags and in_table(tag,self[x][y].tags)) then
-    return true
+    return true,self[x][y]
   end
   for _,f in pairs(self:get_contents(x,y)) do
     if f[tag] or (f.tags and in_table(tag,f.tags)) then
-      return true
+      return true,f
     end
   end
 end
@@ -212,6 +214,10 @@ function Map:can_see_through(x,y,args)
     self.sightblock_cache[x .. ',' .. y] = false 
 		return false
 	end
+  if type(self[x][y]) == "table" and self[x][y].blocksSight then
+    self.sightblock_cache[x .. ',' .. y] = false
+    return false
+  end
   for id,entity in pairs(self.contents[x][y]) do
     if entity.blocksSight == true then
       self.sightblock_cache[x .. ',' .. y] = false
@@ -245,11 +251,16 @@ function Map:get_tile_creature(x,y,get_attackable_features,ignoreNoDraw)
 		return false
 	else
     local tileFeat = false
+    if get_attackable_features and type(self[x][y]) == "table" and self[x][y].baseType == "feature" and (self[x][y].attackable == true or self[x][y].pushable == true) then
+      tileFeat = self[x][y]
+    end
 		for id, entity in pairs(self.contents[x][y]) do
-			if entity.baseType == "creature" and (ignoreNoDraw or entity.noDraw ~= true) then
+      if entity.x ~= x or entity.y ~= y or entity.isDead or (entity.hp and entity.hp < 0) then
+        self.contents[x][y][entity] = nil
+      elseif entity.baseType == "creature" and (ignoreNoDraw or entity.noDraw ~= true) then
         self.creature_cache[x .. ',' .. y] = entity
         return entity --immediately return the first creature you find
-      elseif (get_attackable_features == true and entity.baseType == "feature" and (entity.attackable == true or entity.pushable == true or entity.possessable == true)) then
+      elseif (get_attackable_features == true and entity.baseType == "feature" and (entity.attackable == true or entity.pushable == true)) then
 				tileFeat = entity --don't immediately return a feature, because a creature may be standing on it
 			end
 		end
@@ -346,13 +357,27 @@ function Map:get_tile_items(x,y,getAdjacent,ignoreContainers)
 	return items
 end
 
+---Check if a tile has an item on it
+--@param x Number. The x-coordinate
+--@param y Number. The y-coordinate
+--@param id String. The ID of the item to check for.
+--@return Item or false. The item, if it has it, otherwise false
+function Map:tile_has_item(x,y,id,ignoreContainers)
+  if not self:in_map(x,y) then return false end
+  for _,eff in pairs(self:get_tile_items(x,y,false,ignoreContainers)) do
+    if eff.id == id then return eff end
+  end
+  return false
+end --end function
+
 ---Gets a list of all feature actions (if any) available at and around a tile.
 --@param x Number. The x-coordinate
 --@param y Number. The y-coordinate
 --@param user Creature. The user looking for actions. Optional, defaults to player
 --@param noAdjacent Boolean. Whether to count adjacent tiles. Optional, defaults to false (ie adjacent tiles are counted)
+--@param noCreature Boolean. If true, creature actions (such as speaking) don't count
 --@return A table of items (may be empty)
-function Map:get_tile_actions(x,y,user,noAdjacent)
+function Map:get_tile_actions(x,y,user,noAdjacent,noCreature)
   if not self:in_map(x,y) then return {} end
   user = player or user
   
@@ -362,19 +387,21 @@ function Map:get_tile_actions(x,y,user,noAdjacent)
       if entity.actions then
         for id,act in pairs(entity.actions) do
           if entity:action_requires(user,id) ~= false then
-            actions[#actions+1] = {id=id,entity=entity,text=act.text,description=act.description,order=act.order,image=(act.image or 'feature' .. (entity.image_name or entity.id)),image_color=(act.image_color or (entity.use_color_with_tiles or (gamesettings.always_use_color_with_tiles and entity.use_color_with_tiles ~= false) and entity.color) or nil),noDirection=act.noDirection}
+            actions[#actions+1] = {id=id,entity=entity,text=act.text,description=act.description,order=act.order,image=act.image,image_color=act.image_color,noDirection=act.noDirection,click_defaults_to_move=act.click_defaults_to_move}
           end --end requires if
         end --end action for
       end --end if
     end --end entity for
-    local creat = self:get_tile_creature(x,y)
-    if creat and creat ~= user then
-      local dialogID = creat:get_dialog(user)
-      if dialogID then
-        local name = creat:get_name()
-        actions[#actions+1] = {id='speak_' .. name, entity=creat, text="Talk to " .. name, image=('creature' .. (creat.image_name or creat.id)),image_color=(creat.use_color_with_tiles or (gamesettings.always_use_color_with_tiles and creat.use_color_with_tiles ~= false) and creat.color or nil),dialogID = dialogID}
-      end --end if dialogID
-    end --end if creat
+    if not noCreature then
+      local creat = self:get_tile_creature(x,y)
+      if creat and creat ~= user then
+        local dialogID = creat:get_dialog(user)
+        if dialogID then
+          local name = creat:get_name()
+          actions[#actions+1] = {id='speak_' .. name, entity=creat, text="Talk to " .. name,dialogID = dialogID}
+        end --end if dialogID
+      end --end if creat
+    end
   else
     for x2=x-1,x+1,1 do
       for y2=y-1,y+1,1 do
@@ -382,19 +409,21 @@ function Map:get_tile_actions(x,y,user,noAdjacent)
           if entity.actions then
             for id,act in pairs(entity.actions) do
               if (not act.noAdjacent or (x2 == x and y2 == y)) and entity:action_requires(user,id) ~= false then
-                actions[#actions+1] = {id=id,entity=entity,text=act.text,description=act.description,order=act.order,image=(act.image or 'feature' .. (entity.image_name or entity.id)),image_color=(act.image_color or (entity.use_color_with_tiles or (gamesettings.always_use_color_with_tiles and entity.use_color_with_tiles ~= false) and entity.color) or nil),noDirection=act.noDirection}
+                actions[#actions+1] = {id=id,entity=entity,text=act.text,description=act.description,order=act.order,image=act.image,image_color=act.image_color,noDirection=act.noDirection,click_defaults_to_move=act.click_defaults_to_move}
               end --end requires if
             end --end action for
           end --end if
         end --end entity for
-        local creat = self:get_tile_creature(x2,y2)
-        if creat and creat ~= user then
-          local dialogID = creat:get_dialog(user)
-          if dialogID then
-            local name = creat:get_name()
-            actions[#actions+1] = {id='speak_' .. name, entity=creat, text="Talk to " .. name, image=('creature' .. (creat.image_name or creat.id)),image_color=(creat.use_color_with_tiles or (gamesettings.always_use_color_with_tiles and creat.use_color_with_tiles ~= false) and creat.color or nil),dialogID = dialogID}
-          end --end if dialogID
-        end --end if creat
+        if not noCreature then
+          local creat = self:get_tile_creature(x2,y2)
+          if creat and creat ~= user then
+            local dialogID = creat:get_dialog(user)
+            if dialogID then
+              local name = creat:get_name()
+              actions[#actions+1] = {id='speak_' .. name, entity=creat, text="Talk to " .. name,dialogID = dialogID}
+            end --end if dialogID
+          end --end if creat
+        end
       end --end yfor
     end --end xfor
   end
@@ -410,13 +439,14 @@ end
 --@param ctype String. The creature path type (eg flyer) (optional)
 --@param ignoreCreats Boolean. Whether to ignore creatures that block the line (optional)
 --@param ignoreSafety Boolean. Whether to ignore unsafe but transversable tiles that block the line (optional)
+--@param ignoreAttackableFeatures Boolean. Whether to ignore attackable features when considering a tile clear (optional)
 --@return Boolean. Whether or not you can draw the line.
-function Map:is_line(startX,startY,endX,endY,pass_through_walls,ctype,ignoreCreats,ignoreSafety,projectile)
+function Map:is_line(startX,startY,endX,endY,pass_through_walls,ctype,ignoreCreats,ignoreSafety,projectile,ignoreAttackableFeatures)
   local bresenham = require 'lib.bresenham'
   if pass_through_walls then
     return bresenham.los(startX,startY,endX,endY, function() return true end)
   else
-    return bresenham.los(startX,startY,endX,endY, function(map,x,y,ctype,ignoreCreats,ignoreSafety,projectile) return self:isClear(x,y,ctype,ignoreCreats,ignoreSafety,projectile) end,self,ctype,ignoreCreats,ignoreSafety,projectile)
+    return bresenham.los(startX,startY,endX,endY, function(map,x,y,ctype,ignoreCreats,ignoreSafety,projectile,ignoreAttackableFeatures) return self:isClear(x,y,ctype,ignoreCreats,ignoreSafety,projectile,ignoreAttackableFeatures) end,self,ctype,ignoreCreats,ignoreSafety,projectile,ignoreAttackableFeatures)
   end -- end pass through walls if
 end
 
@@ -429,13 +459,14 @@ end
 --@param ctype String. The creature path type (eg flyer) (optional)
 --@param ignoreCreats Boolean. Ignore creatures that block the line (optional)
 --@param ignoreSafety Boolean. Ignore unsafe but transversable tiles that block the line (optional)
+--@param ignoreAttackableFeatures Boolean. Whether to ignore attackable features when considering a tile clear (optional)
 --@return A table full of tile values.
-function Map:get_line(startX,startY,endX,endY,pass_through_walls,ctype,ignoreCreats,ignoreSafety,projectile)
+function Map:get_line(startX,startY,endX,endY,pass_through_walls,ctype,ignoreCreats,ignoreSafety,projectile,ignoreAttackableFeatures)
   local bresenham = require 'lib.bresenham'
   if pass_through_walls then
     return bresenham.line(startX,startY,endX,endY, function() return true end)
   else
-    return bresenham.line(startX,startY,endX,endY, function(map,x,y,ctype,ignoreCreats,ignoreSafety,projectile) return self:isClear(x,y,ctype,ignoreCreats,ignoreSafety,projectile) end,self,ctype,ignoreCreats,ignoreSafety,projectile)
+    return bresenham.line(startX,startY,endX,endY, function(map,x,y,ctype,ignoreCreats,ignoreSafety,projectile,ignoreAttackableFeatures) return self:isClear(x,y,ctype,ignoreCreats,ignoreSafety,projectile,ignoreAttackableFeatures) end,self,ctype,ignoreCreats,ignoreSafety,projectile,ignoreAttackableFeatures)
   end --end pass_through_walls if
 end
 
@@ -515,8 +546,12 @@ function Map:add_feature(feature,x,y,args)
     print("Tried to add non-existent feature to map " .. self:get_name() .. ' at ' .. x .. ', ' .. y)
     return false
   end
-	x = (x or random(2,self.width-1))
-	y = (y or random(2,self.height-1))
+  if not x or not y or not self:in_map(x,y) then
+    return false
+  end
+  if feature.one_per_tile and self:tile_has_feature(x,y,feature.id) then
+    return false
+  end
 	self.contents[x][y][feature] = feature
   feature.x,feature.y = x,y
   self.feature_cache[x .. ',' .. y] = nil
@@ -549,6 +584,16 @@ function Map:add_effect(effect,x,y,args)
     output:out("Error: Tried to add non-existent effect to map " .. self:get_name() .. ' at ' .. x .. ', ' .. y)
     print("Tried to add non-existent effect to map " .. self:get_name() .. ' at ' .. x .. ', ' .. y)
     return false
+  end
+  if effect.one_per_tile and self:tile_has_effect(x,y,effect.id) then
+    local oldeffect = self:tile_has_effect(x,y,effect.id)
+    if oldeffect and oldeffect ~= effect then
+      if oldeffect.turns_remaining and effect.turns_remaining and effect.turns_remaining ~= -1 then
+        effect.turns_remaining = (oldeffect.turns_remaining == -1 and -1 or math.max(effect.turns_remaining,oldeffect.turns_remaining))
+      end
+      if effect.damage or oldeffect.damage then effect.damage = math.max(effect.damage or 0,oldeffect.damage or 0) end
+    end
+    oldeffect:delete()
   end
   effect.x,effect.y = x,y
   self.effect_cache[x .. ',' .. y] = nil
@@ -625,6 +670,9 @@ function Map:change_tile(feature,x,y,dontRefreshSight)
     print("Tried to replace tile with non-existent feature on map " .. self:get_name() .. ' at ' .. x .. ', ' .. y)
     return false
   end
+  if feature.never_replace_floor then
+    return self:add_feature(feature,x,y)
+  end
 	self[x][y] = feature
   if type(feature) == "table" then
     feature.x,feature.y = x,y
@@ -698,8 +746,8 @@ function Map:swap(creature1,creature2)
 	creature1.x,creature1.y,creature2.x,creature2.y = orig1x,orig1y,orig2x,orig2y
 	currMap.contents[orig1x][orig1y][creature1] = nil
 	currMap.contents[orig2x][orig2y][creature2] = nil
-  currMap.creature_cache[creature1.x .. "," .. creature1.y] = nil
-  currMap.creature_cache[creature2.x .. "," .. creature2.y] = nil
+  currMap.creature_cache[orig1x .. "," .. orig1y] = nil
+  currMap.creature_cache[orig2x .. "," .. orig2y] = nil
   creature1.can_move_cache[orig2x .. ',' .. orig2y] = nil
   creature2.can_move_cache[orig1x .. ',' .. orig1y] = nil
 	creature1:moveTo(orig2x,orig2y)
@@ -707,28 +755,42 @@ function Map:swap(creature1,creature2)
 end
 
 ---Refresh a pathfinder on the map
---@param cType String. The creature path type (eg flyer). If it's "alltiles" then it will create a pathfinder that's completely open (optional)
+--@param cType String. The creature path type (eg flyer). (optional) Special values:
+--  "walls" paths through walls only
+--  "alltiles" completely open
+--  "roomwalls" avoids rooms and digs through walls
 --@param terrainLimit String. If you want to limit the pathfinder to a specific feature ID (optional)
 --@param ignoreSafety Boolean. Whether to ignore hazards (optional)
 function Map:refresh_pathfinder(cType,terrainLimit,ignoreSafety)
   if not pathfinders[self] then pathfinders[self] = {} end
   if not grids[self] then grids[self] = {} end
-  if (self.collisionMaps[(cType or 'basic') .. (terrainLimit or "") .. (ignoreSafety and "unsafe" or "")] == nil) then self.collisionMaps[(cType or 'basic') .. (terrainLimit or "") .. (ignoreSafety and "unsafe" or "")] = {} end
+  local mapLabel = (cType or 'basic') .. (terrainLimit or "") .. (ignoreSafety and "unsafe" or "")
+  if (self.collisionMaps[mapLabel] == nil) then self.collisionMaps[mapLabel] = {} end
 	for y = 1, self.height, 1 do
-    if (self.collisionMaps[(cType or 'basic') .. (terrainLimit or "") .. (ignoreSafety and "unsafe" or "")][y] == nil) then self.collisionMaps[(cType or 'basic') .. (terrainLimit or "") .. (ignoreSafety and "unsafe" or "")][y] = {} end
+    if (self.collisionMaps[mapLabel][y] == nil) then self.collisionMaps[mapLabel][y] = {} end
 		for x = 1, self.width, 1 do
-      self.collisionMaps[(cType or 'basic') .. (terrainLimit or "") .. (ignoreSafety and "unsafe" or "")][y][x] = 0
-      if cType ~= "alltiles" then
-        if self:is_passable_for(x,y,cType,false,ignoreSafety) == false or (terrainLimit and not self:tile_has_feature(x,y,terrainLimit)) then self.collisionMaps[(cType or 'basic') .. (terrainLimit or "") .. (ignoreSafety and "unsafe" or "")][y][x] = 1 end
+      self.collisionMaps[mapLabel][y][x] = 0
+      if cType == "walls" then
+        if x == 1 or x == self.width or y == 1 or y == self.width or not self:isWall(x,y) then
+          self.collisionMaps[mapLabel][y][x] = 1
+        end
+      elseif cType == "roomwalls" then
+        if x == 1 or x == self.width or y == 1 or y == self.width then
+          self.collisionMaps[mapLabel][y][x] = 1
+        elseif self.tile_info[x][y].room then
+          self.collisionMaps[mapLabel][y][x] = 1
+        end
+      elseif cType ~= "alltiles" then
+        if self:is_passable_for(x,y,cType,false,ignoreSafety) == false or (terrainLimit and not self:tile_has_feature(x,y,terrainLimit)) then self.collisionMaps[mapLabel][y][x] = 1 end
       end
 		end
 	end
   
-  if grids[self][(cType or 'basic') .. (terrainLimit or "") .. (ignoreSafety and "unsafe" or "")] == nil or pathfinders[self][(cType or 'basic') .. (terrainLimit or "") .. (ignoreSafety and "unsafe" or "")] == nil then
+  if grids[self][mapLabel] == nil or pathfinders[self][mapLabel] == nil then
     local Grid = require('lib.jumper.grid')
-    grids[self][(cType or 'basic') .. (terrainLimit or "") .. (ignoreSafety and "unsafe" or "")] = Grid(self.collisionMaps[(cType or 'basic') .. (terrainLimit or "") .. (ignoreSafety and "unsafe" or "")])
+    grids[self][mapLabel] = Grid(self.collisionMaps[mapLabel])
     local Pathfinder = require 'lib.jumper.pathfinder'
-    pathfinders[self][(cType or 'basic') .. (terrainLimit or "") .. (ignoreSafety and "unsafe" or "")] = Pathfinder(grids[self][(cType or 'basic') .. (terrainLimit or "") .. (ignoreSafety and "unsafe" or "")],'ASTAR',0)
+    pathfinders[self][mapLabel] = Pathfinder(grids[self][mapLabel],'ASTAR',0)
   end
 end
 
@@ -745,21 +807,26 @@ end
 --@param cType String. The creature path type (eg flyer) (optional)
 --@param include_effects Boolean. Whether to include effects in the passable check (optional)
 --@param ignore_safety Boolean. Whether to ignore dangerous but transversable tiles (optional)
+--@param ignoreAttackableFeatures Boolean. Whether to ignore attackable features when considering a tile clear (optional)
 --@return Boolean. If it's passable.
-function Map:is_passable_for(x,y,ctype,include_effects,ignore_safety,projectile)
+function Map:is_passable_for(x,y,ctype,include_effects,ignore_safety,projectile,ignoreAttackableFeatures)
   if not self:in_map(x,y) then return false end
   if type(self[x][y]) == "string" then
     if self[x][y] == "#" then return false end
   elseif type(self[x][y]) == "table" then
     local tile = self[x][y]
-    if tile.blocksMovement == true and (projectile == true or tile.pathThrough ~= true) then return false end
-    if tile.impassable and (ctype == nil or tile.passableFor[ctype] ~= true) then return false end
+    if not (self[x][y].attackable and ignoreAttackableFeatures) then
+      if tile.blocksMovement == true and (projectile == true or tile.pathThrough ~= true) then return false end
+      if tile.impassable and (ctype == nil or tile.passableFor[ctype] ~= true) then return false end
+    end
     if not ignore_safety and tile.hazard and tile.hazard > 1 and ((tile.hazardousFor == nil and (ctype == nil or tile.safeFor == nil or tile.safeFor[ctype] ~= true)) or (ctype ~= nil and tile.hazardousFor and tile.hazardousFor[ctype] == true)) then return false end
   end
   --Check Features:
   for _,feat in pairs(self:get_tile_features(x,y)) do
-    if feat.blocksMovement == true and (projectile == true or feat.pathThrough ~= true) then return false end
-    if feat.impassable and (ctype == nil or feat.passableFor[ctype] ~= true) then return false end
+    if not (feat.attackable and ignoreAttackableFeatures) then
+      if feat.blocksMovement == true and (projectile == true or feat.pathThrough ~= true) then return false end
+      if feat.impassable and (ctype == nil or feat.passableFor[ctype] ~= true) then return false end
+    end
     if not ignore_safety and feat.hazard and feat.hazard > 1 and ((feat.hazardousFor == nil and (ctype == nil or feat.safeFor == nil or feat.safeFor[ctype] ~= true)) or (ctype ~= nil and feat.hazardousFor ~= nil and feat.hazardousFor[ctype] == true)) then return false end
   end
   --Check effects:
@@ -770,6 +837,28 @@ function Map:is_passable_for(x,y,ctype,include_effects,ignore_safety,projectile)
   end --end include effects
   return true
 end
+
+---Gets the potential hazards on a tile
+function Map:get_tile_hazards(x,y,ctype,include_effects)
+  local hazards = {}
+  if not self:in_map(x,y) then return hazards end
+  if type(self[x][y]) == "table" then
+    local tile = self[x][y]
+    if tile.hazard and tile.hazard > 1 and ((tile.hazardousFor == nil and (ctype == nil or tile.safeFor == nil or tile.safeFor[ctype] ~= true)) or (ctype ~= nil and tile.hazardousFor and tile.hazardousFor[ctype] == true)) then hazards[#hazards+1] = tile end
+  end
+   --Check Features:
+  for _,feat in pairs(self:get_tile_features(x,y)) do
+    if feat.hazard and feat.hazard > 1 and ((feat.hazardousFor == nil and (ctype == nil or feat.safeFor == nil or feat.safeFor[ctype] ~= true)) or (ctype ~= nil and feat.hazardousFor ~= nil and feat.hazardousFor[ctype] == true)) then hazards[#hazards+1] = feat end
+  end
+  --Check effects:
+  if include_effects then
+    for _,eff in pairs(self:get_tile_effects(x,y)) do
+      if eff.hazard and ((eff.hazardousFor == nil and (ctype == nil or eff.safeFor == nil or eff.safeFor[ctype] ~= true)) or (ctype ~= nil and eff.hazardousFor ~= nil and eff.hazardousFor[ctype] == true)) then hazards[#hazards+1] = eff end
+    end --end effect for
+  end --end include effects
+  return hazards
+end
+--@return Table. A list of the hazards
 
 ---Refresh all the tile images on the map
 function Map:refresh_images()
@@ -883,20 +972,22 @@ function Map:refresh_light(light,forceRefresh)
     return
   end
   --If not, then refresh its light tiles:
-  if not light.lightTiles or forceRefresh then light.lightTiles = {} end
-  local dist = light.lightDist or 0
-  for lx = light.x-dist,light.x+dist,1 do
-    for ly = light.y-dist,light.y+dist,1 do
-      if self:in_map(lx,ly) and (not self.lightMap[lx][ly] or self.lightMap[lx][ly] == true) then
-        local dist2tile = calc_distance(light.x,light.y,lx,ly)
-        local bresenham = require 'lib.bresenham'
-        if dist2tile <= dist and bresenham.los(light.x,light.y,lx,ly, self.can_see_through,self) and (self[lx][ly] ~= "#" or bresenham.los(light.x,light.y,player.x,player.y, self.can_see_through,self)) then --if it's close enough, and there's LOS, it's lit!
-          self.lightMap[lx][ly] = light.lightColor or true
-          light.lightTiles[#light.lightTiles+1] = {x=lx,y=ly}
-        end -- end distance if
-      end --end if not self.lightMap
-    end --end fory
-  end--end forx
+  if light.x and light.y then
+    if not light.lightTiles or forceRefresh then light.lightTiles = {} end
+    local dist = light.lightDist or 0
+    for lx = light.x-dist,light.x+dist,1 do
+      for ly = light.y-dist,light.y+dist,1 do
+        if self:in_map(lx,ly) and (not self.lightMap[lx][ly] or self.lightMap[lx][ly] == true) then
+          local dist2tile = calc_distance(light.x,light.y,lx,ly)
+          local bresenham = require 'lib.bresenham'
+          if dist2tile <= dist and bresenham.los(light.x,light.y,lx,ly, self.can_see_through,self) and (self[lx][ly] ~= "#" or bresenham.los(light.x,light.y,player.x,player.y, self.can_see_through,self)) then --if it's close enough, and there's LOS, it's lit!
+            self.lightMap[lx][ly] = light.lightColor or true
+            light.lightTiles[#light.lightTiles+1] = {x=lx,y=ly}
+          end -- end distance if
+        end --end if not self.lightMap
+      end --end fory
+    end--end forx
+  end
 end
 
 ---Checks if a tile is lit.
@@ -946,19 +1037,19 @@ function Map:get_creature_list(force,allowAll)
   local specialCreats = nil
   local cTypes = nil
   local cFactions = nil
-  local cTags = whichMap.creatureTags or whichMap.contentTags
+  local cTags = self:get_content_tags('creature')
   local fTags = self:get_content_tags('forbidden')
   local rTags = self:get_content_tags('required')
   
   --Look at specific creatures first:
   if whichMap.creatures then
     if (whichMap.noBranchCreatures or whichMap.noBranchContent) or not branch.creatures then
-      specialCreats = whichMap.creatures
+      specialCreats = copy_table(whichMap.creatures)
     else
       specialCreats =  merge_tables(whichMap.creatures,branch.creatures)
     end
-  elseif not whichMap.noBranchCreatures and not whichMap.noBranchContent then --if the mapTypes doesn't have creatures, fall back to the branch's creatures
-    specialCreats = branch.creatures --if branch doesn't have creatures, this will set it to nil and just use regular creatures
+  elseif not whichMap.noBranchCreatures and not whichMap.noBranchContent and branch.creatures then --if the mapTypes doesn't have creatures, fall back to the branch's creatures
+    specialCreats = copy_table(branch.creatures) --if branch doesn't have creatures, this will set it to nil and just use regular creatures
   end
   if not specialCreats then
     specialCreats = {}
@@ -982,13 +1073,6 @@ function Map:get_creature_list(force,allowAll)
     end
   elseif not whichMap.noBranchCreatures and not whichMap.noBranchContent then --if the mapTypes doesn't have creatureFactions, fall back to the branch's creatureFactions
     cFactions = branch.creatureFactions --if branch doesn't have creatureFactions, this will keep it as nil
-  end
-  if cTags then
-    if not whichMap.noBranchCreatures and not whichMap.noBranchContent and (branch.creatureTags or branch.contentTags) then
-      cTags =  merge_tables(cTags,(branch.creatureTags or branch.contentTags))
-    end
-  elseif not whichMap.noBranchCreatures and not whichMap.noBranchContent then --if the mapTypes doesn't have creatureTags, fall back to the branch's creatureTags
-    cTags = branch.creatureTags or branch.contentTags --if branch doesn't have creatureTags, this will keep it as nil
   end
   
   --Add the types and factions to the specialCreats list
@@ -1049,6 +1133,14 @@ function Map:get_creature_list(force,allowAll)
           end
         end
       end
+      if done and creat.forbiddenMapTags then
+        for _, fTag in ipairs(creat.forbiddenMapTags) do
+          if in_table(fTag,cTags) then
+            done = false
+            break
+          end
+        end
+      end
       if done then
         specialCreats[#specialCreats+1] = cid
       end
@@ -1070,31 +1162,22 @@ function Map:get_item_list(force,allowAll)
   local whichMap = mapTypes[self.mapType]
   local branch = currWorld.branches[self.branch]
   local specialItems = nil
-  local iTags = whichMap.itemTags or whichMap.contentTags
+  local iTags = self:get_content_tags('item')
   local fTags = self:get_content_tags('forbidden')
   local rTags = self:get_content_tags('required')
   
   --Look at specific items first:
   if whichMap.items then
     if (whichMap.noBranchItems or whichMap.noBranchContent) or not branch.items then
-      specialItems = whichMap.items
+      specialItems = copy_table(whichMap.items)
     else
       specialItems =  merge_tables(whichMap.items,branch.items)
     end
-  elseif not whichMap.noBranchItems and not whichMap.noBranchContent then --if the mapTypes doesn't have creatures, fall back to the branch's items
-    specialItems = branch.items --if branch doesn't have creatures, this will set it to nil and just use regular items
+  elseif not whichMap.noBranchItems and not whichMap.noBranchContent and branch.items then --if the mapTypes doesn't have creatures, fall back to the branch's items
+    specialItems = copy_table(branch.items) --if branch doesn't have creatures, this will set it to nil and just use regular items
   end
   
-  --Look at item tags next:
-  if iTags then
-    if not whichMap.noBranchItems and not whichMap.noBranchContent and (branch.itemTags or branch.contentTags) then
-      iTags =  merge_tables(iTags,(branch.itemTags or branch.contentTags))
-    end
-  else --if the mapTypes doesn't have itemTags, fall back to the branch's itemTags
-    iTags = branch.itemTags or branch.contentTags --if branch doesn't have itemTags, this will keep it as nil
-  end
-  
-  local tagged_items = mapgen:get_content_list_from_tags('item',iTags,fTags,rTags)
+  local tagged_items = mapgen:get_content_list_from_tags('item',iTags,{forbiddenTags=fTags,requiredTags=rTags})
   specialItems = merge_tables(specialItems,tagged_items)
   
   self.item_list = specialItems
@@ -1112,32 +1195,23 @@ function Map:get_store_list(force)
   local store_list = nil
   local whichMap = mapTypes[self.mapType]
   local branch = currWorld.branches[self.branch]
-  local sTags = whichMap.storeTags or whichMap.contentTags
+  local sTags = self:get_content_tags('store')
   local fTags = self:get_content_tags('forbidden')
   local rTags = self:get_content_tags('required')
   
   --Look at specific stores first:
   if whichMap.stores then
     if (whichMap.noBranchStores or whichMap.noBranchContent) or not branch.stores then
-      store_list = whichMap.stores
+      store_list = copy_table(whichMap.stores)
     else
       store_list =  merge_tables(whichMap.stores,branch.stores)
     end
-  elseif not whichMap.noBranchStores and not whichMap.noBranchContent then --if the mapTypes doesn't have stores, fall back to the branch's stores
-    store_list = branch.stores --if branch doesn't have stores, this will set it to nil and just use regular stores
-  end
-  
-  --Look at tags next:
-  if sTags then
-    if not whichMap.noBranchStores and not whichMap.noBranchContent and (branch.storeTags or branch.contentTags) then
-      sTags =  merge_tables(fTags,(branch.storeTags or branch.contentTags))
-    end
-  elseif not whichMap.noBranchContent then --if the mapTypes doesn't have storeTags, fall back to the branch's factionTags
-    sTags = branch.storeTags or branch.contentTags --if branch doesn't have storeTags, this will keep it as nil
+  elseif not whichMap.noBranchStores and not whichMap.noBranchContent and branch.stores then --if the mapTypes doesn't have stores, fall back to the branch's stores
+    store_list = copy_table(branch.stores) --if branch doesn't have stores, this will set it to nil and just use regular stores
   end
   
   --Add the tagged stores to the store list
-  local tagged_stores = mapgen:get_content_list_from_tags('store',sTags,fTags,rTags)
+  local tagged_stores = mapgen:get_content_list_from_tags('store',sTags,{forbiddenTags=fTags,requiredTags=rTags})
   store_list = merge_tables(store_list,tagged_stores)
   self.store_list = store_list
   return store_list
@@ -1154,32 +1228,23 @@ function Map:get_faction_list(force)
   local whichMap = mapTypes[self.mapType]
   local branch = currWorld.branches[self.branch]
   local faction_list = nil
-  local fTags = whichMap.factionTags or whichMap.contentTags
+  local fTags = self:get_content_tags('faction')
   local forbiddenTags = self:get_content_tags('forbidden')
   local rTags = self:get_content_tags('required')
   
   --Look at specific factions first:
   if whichMap.factions then
     if (whichMap.noBranchFactions or whichMap.noBranchContent) or not branch.factions then
-      faction_list = whichMap.factions
+      faction_list = copy_table(whichMap.factions)
     else
       faction_list =  merge_tables(whichMap.factions,branch.factions)
     end
-  elseif not whichMap.noBranchFactions and not whichMap.noBranchContent then --if the mapTypes doesn't have factions, fall back to the branch's factions
-    faction_list = branch.factions --if branch doesn't have factions, this will set it to nil and just use regular factions
-  end
-  
-  --Look at faction tags next:
-  if fTags then
-    if not whichMap.noBranchFactions and not whichMap.noBranchContent and (branch.factionTags or branch.contentTags) then
-      fTags =  merge_tables(fTags,(branch.factionTags or branch.contentTags))
-    end
-  elseif not whichMap.noBranchContent then --if the mapTypes doesn't have factionTags, fall back to the branch's factionTags
-    fTags = branch.factionTags or branch.contentTags --if branch doesn't have itemTags, this will keep it as nil
+  elseif not whichMap.noBranchFactions and not whichMap.noBranchContent and branch.factions then --if the mapTypes doesn't have factions, fall back to the branch's factions
+    faction_list = copy_table(branch.factions) --if branch doesn't have factions, this will set it to nil and just use regular factions
   end
   
   --Add the tagged factions to the faction list
-  local tagged_factions = mapgen:get_content_list_from_tags('faction',fTags,forbiddenTags,rTags)
+  local tagged_factions = mapgen:get_content_list_from_tags('faction',fTags,{forbiddenTags=forbiddenTags,requiredTags=rTags})
   faction_list = merge_tables(faction_list,tagged_factions)
   self.faction_list = faction_list
   return faction_list
@@ -1269,7 +1334,7 @@ function Map:populate_creatures(creatTotal,forceGeneric)
       if not placed then
         local cx,cy = random(2,self.width-1),random(2,self.height-1)
         local tries = 0
-        while nc:can_move_to(cx,cy,self) == false or self:tile_has_tag(cx,cy,'door') or self:tile_has_feature(cx,cy,'exit') or not self:isClear(cx,cy,nc.pathType) or self.tile_info[cx][cy].noCreatures do
+        while nc:can_move_to(cx,cy,self) == false or self:tile_has_tag(cx,cy,'door') or self:tile_has_feature(cx,cy,'exit') or not self:isClear(cx,cy,nc:get_pathType()) or self.tile_info[cx][cy].noCreatures do
           cx,cy = random(2,self.width-1),random(2,self.height-1)
           tries = tries+1
           if tries > 100 then break end
@@ -1293,7 +1358,7 @@ function Map:populate_creatures(creatTotal,forceGeneric)
         for i=1,spawn_amt,1 do
           local tries = 1
           local cx,cy = random(x-tries,x+tries),random(y-tries,y+tries)
-          while nc:can_move_to(cx,cy,self) == false or self:tile_has_tag(cx,cy,'door') or self:tile_has_feature(cx,cy,'exit') or not self:isClear(cx,cy,nc.pathType) or self.tile_info[cx][cy].noCreatures do
+          while nc:can_move_to(cx,cy,self) == false or self:tile_has_tag(cx,cy,'door') or self:tile_has_feature(cx,cy,'exit') or not self:isClear(cx,cy,nc:get_pathType()) or self.tile_info[cx][cy].noCreatures do
             cx,cy = random(x-tries,x+tries),random(y-tries,y+tries)
             tries = tries + 1
             if tries > 10 then break end
@@ -1365,13 +1430,16 @@ function Map:populate_items(itemTotal,forceGeneric)
   end
   
   for spk,sp in pairs(item_spawn_points) do
-    if sp.baseType == "feature" and possibleFeatures[sp.id].populate_items then
-      possibleFeatures[sp.id].populate_items(sp,self)
+    if sp.baseType == "feature" then
+      sp:populate_items(self)
+      sp.used=true
       goto continue
     end
     
     local sp_item_list = {}
     local sp_passedTags = merge_tables(passedTags,(sp.passedTags or {}))
+    local artifact_chance = sp.artifact_chance or self.artifact_chance or self.artifact_chance or branch.artifact_chance or gamesettings.artifact_chance or 0
+    local enchantment_chance = sp.enchantment_chance or self.enchantment_chance or self.enchantment_chance or branch.enchantment_chance or gamesettings.enchantment_chance or 0
     
     --Create item list:
     if sp.items then
@@ -1379,19 +1447,23 @@ function Map:populate_items(itemTotal,forceGeneric)
     end --end if items
     if sp.itemTags or sp.contentTags or sp.forbiddenTags then
       local tags = sp.itemTags or sp.contentTags or dec.itemTags or dec.contentTags or {}
+      local required = sp.requiredTags
       local forbidden = sp.forbiddenTags
-      local tagged_items = mapgen:get_content_list_from_tags('item',tags,forbidden)
+      local tagged_items = mapgen:get_content_list_from_tags('item',tags,{forbiddenTags=forbidden,requiredTags=required})
       sp_item_list = merge_tables(sp_item_list,tagged_items)
     elseif not sp.items then --if there's no item list or tag list set, just use the item list of the room
       sp_item_list = item_list
     end
     
     ::gen_item::
-    local ni = mapgen:generate_item(min_level,max_level,sp_item_list,sp_passedTags)
+    local ni = mapgen:generate_item(min_level,max_level,sp_item_list,sp_passedTags,nil,enchantment_chance,artifact_chance)
     newItems[#newItems+1] = ni
+    ni.origin_map = self.id
+    ni.origin_branch = self.branch
     
     if sp.inventory then
       sp:give_item(ni)
+      sp:modify_generated_item(ni)
       if #sp:get_inventory() >= (sp.inventory_space or 1) then
         sp.used = true
       else
@@ -1411,8 +1483,11 @@ function Map:populate_items(itemTotal,forceGeneric)
   
   --Generate items on floor:
   if not self.noItems and itemTotal > 0 then
+    local artifact_chance = self.artifact_chance or gamesettings.artifact_chance or 0
+    local enchantment_chance = self.enchantment_chance or gamesettings.enchantment_chance or 0
+    
     for item_amt = 1,itemTotal,1 do
-      local ni = mapgen:generate_item(min_level,max_level,item_list,passedTags)
+      local ni = mapgen:generate_item(min_level,max_level,item_list,passedTags,nil,enchantment_chance,artifact_chance)
       if ni == false then break end
       
       local ix,iy = random(2,self.width-1),random(2,self.height-1)
@@ -1534,7 +1609,7 @@ function Map:cleanup()
     for y=1,self.height,1 do
       local contents = self:get_contents(x,y)
       for _,content in pairs(contents) do
-        if content.remove_on_cleanup or content.summoned then
+        if content.remove_on_cleanup or content.summoned or (content.baseType == "creature" and content:has_condition('summoned')) then
           if content.delete then content:delete(self)
           elseif content.remove then content:remove(self) end
         elseif content.baseType == "item" then
@@ -1583,7 +1658,7 @@ function Map:get_name(noBranch)
       name = name .. branch.name
     end
     if not branch.hideDepth then
-      name = name .. " " .. (branch.depthName or "Depth") .. " " .. self.depth
+      name = name .. ", " .. (branch.depthName or "Depth") .. " " .. self.depth
     end
     if self.name and name ~= "" then
       name = name .. ": "
@@ -1611,8 +1686,9 @@ end
 --@param noBranch Boolean. If true, don't look at branch's tags
 function Map:get_content_tags(tagType,noBranch)
   local tagLabel = (tagType and tagType .. "Tags" or "contentTags")
-  noBranch = noBranch or self.noBranchContent or (tagType and self['noBranch' .. ucfirst(tagType) .. "s"])
-  local tags = (self[tagLabel] or (tagLabel ~= "passedTags" and tagLabel ~= "forbiddenTags" and tagLabel ~= "requiredTags" and self.contentTags) or {})
+  local whichMap = mapTypes[self.mapType]
+  noBranch = noBranch or whichMap.noBranchContent or (tagType and whichMap['noBranch' .. ucfirst(tagType) .. "s"])
+  local tags = ((self[tagLabel] and count(self[tagLabel]) > 0 and self[tagLabel]) or (tagLabel ~= "passedTags" and tagLabel ~= "forbiddenTags" and tagLabel ~= "requiredTags" and self.contentTags) or {})
   if not noBranch then
     local branch = currWorld.branches[self.branch]
     local bTags = branch[tagLabel] or (tagLabel ~= "passedTags" and tagLabel ~= "forbiddenTags" and tagLabel ~= "requiredTags" and branch.contentTags)
@@ -1660,9 +1736,10 @@ end
 --@param tweak Boolean. If true, tweak the damage number.
 --@param conditions Table. A table of conditions to possible inflict, in the same format as hitConditions elsewhere.
 --@param source_name String. The name to display for the source of the damage.
---@param creatureSafe Boolean. A table of creatures not to damage
+--@param creatureSafe Boolean. If true, don't damage creatures
 --@return Table. A table of all damaged entities and the damage done to them.
 function Map:damage_all(x,y,damage,attacker,damage_type,args)
+  args = args or {}
   local creat = currMap:get_tile_creature(x,y)
   if creat and not args.creatureSafe and (creat ~= attacker or not args.attackerSafe) then
     local dmg = creat:damage((args.tweak and tweak(damage) or damage),attacker,damage_type,args.armor_piercing,args.noSound,args.item,args.ignore_weakness)

@@ -12,6 +12,21 @@ function Condition:init(data)
 	return self
 end
 
+---Gets the full description of the condition
+--@param noBoosts Boolean. If true, don't display the boosts
+--@param possessor Creature. The creature who has the condition. Used for displaying customized boosts
+--@return String. The description
+function Condition:get_description(noBoosts,possessor)
+  local desc = self.description or ""
+  
+  if not noBoosts then
+    local boosts = {}
+    if self then end
+  end
+  
+  return desc
+end
+
 ---Placeholder for the advance() callback, code called by the condition every turn
 --@param possessor Creature. The creature who's afflicted with the condition
 --@return true
@@ -37,10 +52,11 @@ end
 --@param possessor Creature. The creature who's afflicted with the condition
 --@param applier Creature. The creature who inflicts the condition
 --@param turns Number. The number of turns to apply the condition.
+--@param args Anything. Arguments to pass to the condition.
 --@return Boolean. Whether the application was successful or not.
-function Condition:apply(possessor,applier,turns)
+function Condition:apply(possessor,applier,turns,args)
   if (self.applied ~= nil) then
-    return self:applied(possessor,applier,turns)
+    return self:applied(possessor,applier,turns,args)
   end
 end
 

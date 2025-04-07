@@ -80,7 +80,7 @@ function Faction:is_enemy(creature)
     end --end ctype for
   end --end if self.enemy_types
   --Next, look if the creature's reputation with your faction is low enough to be considered an enemy
-  if self.hostile_threshold and creature.reputation and (creature.reputation[self.id] or 0) < self.hostile_threshold then
+  if self.hostile_threshold and creature.reputation and (creature.reputation[self.id] or 0) <= self.hostile_threshold then
     return true
   end
   --Next, if the creature is a player or a friend of the player, we'll look at some player-specific stuff
@@ -121,7 +121,7 @@ function Faction:is_friend(creature)
     end --end ctype for
   end --end if self.friendly_types
   --Finally, look if the creature's reputation with your faction is high enough to be considered an friend
-  if self.hostile_threshold and creature.reputation and (creature.reputation[self.id] or 0) > self.friendly_threshold then
+  if self.hostile_threshold and creature.reputation and (creature.reputation[self.id] or 0) >= self.friendly_threshold then
     return true
   end
   return false
@@ -239,10 +239,10 @@ function Faction:teach_spell(spellID,creature)
   
   --Pay the price:
   if spellInfo.moneyCost and spellInfo.moneyCost > 0 then
-    creature.money = creature.money - (spellInfo.moneyCost+round(spellInfo.moneyCost*(self:get_cost_modifier(player)/100)))
+    creature:update_money(-(spellInfo.moneyCost+round(spellInfo.moneyCost*(self:get_cost_modifier(player)/100))))
   end
   if spellInfo.favorCost and spellInfo.favorCost > 0  then
-    creature.favor[self.id] = creature.favor[self.id] - spellInfo.favorCost
+    creature:update_favor(self.id,-spellInfo.favorCost,nil,nil,true)
   end
   --Teach it, finally:
   creature:learn_spell(spellID)
@@ -267,11 +267,11 @@ function Faction:teach_skill(skillID,creature)
   
   --Pay the price:
   if skillInfo.moneyCost and skillInfo.moneyCost > 0 then
-    creature.money = creature.money - skillInfo.moneyCost
+    creature:update_money(-skillInfo.moneyCost)
   end
   
   if skillInfo.favorCost and skillInfo.favorCost > 0 then
-    creature.favor[self.id] = (creature.favor[self.id] or 0) - skillInfo.favorCost
+    creature:update_favor(self.id,-skillInfo.favorCost,nil,nil,true)
   end
   
   --Teach it, finally:
@@ -322,9 +322,12 @@ end
 ---Restocks the faction's inventory. Default behavior: Restock all defined items up to their original amount, unless restock_amount or restock_to is set.
 function Faction:restock()
   --Delete items marked to delete on restock:
-  for id,info in pairs(self.inventory) do
-    if info.delete_on_restock then
+  local i = 1
+  while i <= #self.inventory do
+    if self.inventory[i].delete_on_restock then
       table.remove(self.inventory,id)
+    else
+      i = i + 1
     end
   end
   
@@ -393,25 +396,10 @@ end
 function Faction:add_item(item,info)
   local makeNew = true
   info = info or {}
-  if not info.moneyCost and not info.favorCost then
-    local price = item:get_value()
-    local markup = self.sell_markup or 0
-    if self.item_type_sell_markups then
-      local largest = 0
-      local smallest = 0
-      for itype,mark in pairs(self.item_type_sell_markups) do
-        if item:is_type(itype) then
-          largest = math.max(largest,mark)
-          smallest = math.min(smallest,mark)
-        end
-      end
-      markup = markup+largest+smallest
-    end
-    price = price + (price * markup/100)
-    local favor_mod = (self.money_per_favor or 10)
-    info.moneyCost =  math.max(price,1)
-    info.favorCost = math.max(math.floor(info.moneyCost/favor_mod),1)
-    if self.only_sells_favor then info.moneyCost = nil end
+  if not info.moneyCost and not info.favorCost and not info.reputationCost then
+    local costs = self:get_sell_cost(item)
+    if not self.no_sell_money then info.moneyCost = costs.moneyCost end
+    if not self.no_sell_favor then info.favorCost = costs.favorCost end
   end
   local index = self:get_inventory_index(item)
   if index then
@@ -462,10 +450,35 @@ function Faction:get_buy_list(creat)
   for id,item in ipairs(creat.inventory) do
     local price = self:get_buy_cost(item)
     if price then
-      buying[#buying+1] = {item=item,moneyCost=price.moneyCost,favorCost=price.favorCost}
+      buying[#buying+1] = {item=item,moneyCost=price.moneyCost,favorCost=price.favorCost,reputationCost=price.reputationCost}
     end
   end
   return buying
+end
+
+---Determines the cost the faction will sell the item for
+--@param item Item. The item to consider
+--@return Table. With moneyCost and favorCost values
+function Faction:get_sell_cost(item)
+  local info = {}
+  local price = item:get_value()
+  local markup = self.sell_markup or 0
+  if self.item_type_sell_markups then
+    local largest = 0
+    local smallest = 0
+    for itype,mark in pairs(self.item_type_sell_markups) do
+      if item:is_type(itype) then
+        largest = math.max(largest,mark)
+        smallest = math.min(smallest,mark)
+      end
+    end
+    markup = markup+largest+smallest
+  end
+  price = price + (price * markup/100)
+  local favor_mod = (self.money_per_favor or 10)
+  info.moneyCost =  math.max(price,1)
+  info.favorCost = math.max(math.floor(info.moneyCost/favor_mod),1)
+  return info
 end
 
 ---Determines if a store will buy an item, and returns the price if so
@@ -504,10 +517,21 @@ function Faction:get_buy_cost(item)
           end
           markup = markup+largest+smallest
         end
-        price = price + (price * markup/100)
+        price = price + round(price * markup/100)
         local moneyCost = math.max(price,1)
         local favorCost = math.max(math.floor(moneyCost/(self.money_per_favor or 10)),1)
-        return {favorCost=favorCost,moneyCost=(not self.only_buys_favor and moneyCost or nil)}
+        local reputationCost = 0
+        if self.item_type_buy_reputation then
+          local largest = 0
+          for itype,reputation in pairs(self.item_type_buy_reputation) do
+            if item:is_type(itype) then
+              largest = math.max(largest,reputation)
+            end
+          end
+          reputationCost = largest
+          if reputationCost == 0 then reputationCost = nil end
+        end
+        return {favorCost=(not self.no_buy_favor and favorCost or nil),moneyCost=(not self.no_buy_money and moneyCost or nil),reputationCost=reputationCost}
       end
     end
   elseif self.buys_tags and item:get_value() > 0 then
@@ -539,12 +563,22 @@ function Faction:get_buy_cost(item)
             end
           end
           markup = markup+largest+smallest
-          print(item.name,markup)
         end
-        price = price + (price * markup/100)
-        local moneyCost = math.max(price,1)
+        price = price + round(price * markup/100)
+        local moneyCost = math.ceil(math.max(price,1))
         local favorCost = math.max(math.floor(moneyCost/(self.money_per_favor or 10)),1)
-        return {favorCost=favorCost,moneyCost=(not self.only_buys_favor and moneyCost or nil)}
+        local reputationCost = 0
+        if self.item_type_buy_reputation then
+          local largest = 0
+          for itype,reputation in pairs(self.item_type_buy_reputation) do
+            if item:is_type(itype) then
+              largest = math.max(largest,reputation)
+            end
+          end
+          reputationCost = largest
+          if reputationCost == 0 then reputationCost = nil end
+        end
+        return {favorCost=(not self.no_buy_favor and favorCost or nil),moneyCost=(not self.no_buy_money and moneyCost or nil),reputationCost=reputationCost}
       end
     end
   end
@@ -553,30 +587,37 @@ end
 
 ---Sell an item to the faction
 --@param item Item. The item being sold
---@param moneyCost Number. The amount of money the faction will pay per item.
---@param favorCost Number. The amount of favor the faction will pay per item.
+--@param info Table. A table of information passed by the faction screen. Can include the following:
+--@param moneyCost Number. The amount of money the faction will pay per item
+--@param favorCost Number. The amount of favor the faction will pay per item
+--@param reputationCost Number. The amount of reputation the faction will pay per item
 --@param amt Number. The amount of the item being sold. Optional, defaults to 1
 --@param creat Creature. The creature selling. Optional, defaults to the player
 --@para stash Entity. Where the item is actually being held. Optional, defaults to the creature
-function Faction:creature_sells_item(item,moneyCost,favorCost,amt,creature,stash)
-  creature = creature or player
-  stash = stash or creature
-  moneyCost = moneyCost or 0
-  favorCost = favorCost or 0
+function Faction:creature_sells_item(item,info)
+  info = info or {}
+  local creature = info.creature or player
+  local stash = info.stash or creature
+  local moneyCost = info.moneyCost or 0
+  local favorCost = info.favorCost or 0
+  local reputationCost = info.reputationCost or 0
+  local amt = info.buyAmt or 1
   local totalAmt = item.amount or 1
   if amt > totalAmt then amt = totalAmt end
   local totalCost = moneyCost*amt
   local totalFavor = favorCost*amt
+  local totalReputation = reputationCost*amt
   local givenItem = item
   if item.amount > amt then
-    item.possessor = nil --This is done because item.possessor is the creature who owns the item, and Item:clone() does a deep copy of all tables, which means it will create a copy of the owner, which owns a copy of the item, which is owned by another copy of the owner which owns another copy of the item etc etc leading to a crash
-    givenItem = item:clone()
+    item.possessor = nil --This is done because item.possessor is the creature who owns the item, and Item:duplicate() does a deep copy of all tables, which means it will create a copy of the owner, which owns a copy of the item, which is owned by another copy of the owner which owns another copy of the item etc etc leading to a crash
+    givenItem = item:duplicate()
     givenItem.amount = amt
     item.possessor = stash
   end
   self:add_item(givenItem)
   stash:delete_item(item,amt)
-  creature.favor[self.id] = (creature.favor[self.id] or 0) + totalFavor
+  creature:update_favor(self.id,totalFavor,nil,nil,true)
+  creature:update_reputation(self.id,totalReputation)
   if self.currency_item then
     local creatureItem = creature:has_item(self.currency_item)
     if not creatureItem then
@@ -587,26 +628,32 @@ function Faction:creature_sells_item(item,moneyCost,favorCost,amt,creature,stash
       creatureItem.amount = creatureItem.amount+totalCost
     end
   else
-    creature.money = creature.money+totalCost
+    creature:update_money(totalCost)
   end
 end
 
 ---Buy an item from the faction
 --@param item Item. The item being sold
+--@param info Table. A table of information passed by the faction screen. Can include the following:
 --@param moneyCost Number. The amount of money the faction is charging per item.
 --@param favorCost Number. The amount of favor the faction is charging per item.
 --@param amt Number. The amount of the item being sold. Optional, defaults to 1.
 --@param creat Creature. The creature selling. Optional, defaults to the player.
 --@return Boolean, Text/nil. True and nil if the buying was successful, False and a string if there's a reason the buying didn't go through.
-function Faction:creature_buys_item(item,moneyCost,favorCost,amt,creature)
-  creature = creature or player
-  moneyCost = moneyCost or 0
-  favorCost = favorCost or 0
+function Faction:creature_buys_item(item,info)
+  info = info or {}
+  local moneyCost = info.moneyCost or 0
+  local favorCost = info.favorCost or 0
+  local repCost = info.reputationCost or 0
+  local amt = info.buyAmt or 1
+  local creature = info.creature or player
   local totalAmt = item.amount or 1
   if totalAmt == -1 then totalAmt = 9999999 end
   if amt > totalAmt then amt = totalAmt end
   local totalCost = moneyCost*amt
   local totalFavorCost = favorCost*amt
+  local totalRepCost = repCost*amt
+  local total
   local canBuy = false
   local creatureItem = nil
   if self.currency_item then
@@ -615,48 +662,51 @@ function Faction:creature_buys_item(item,moneyCost,favorCost,amt,creature)
   else
     canBuy = (creature.money >= totalCost)
   end --end currency checks
-  if canBuy and (creature.favor[self.id] or 0) >= totalFavorCost then
+  if canBuy and (creature.favor[self.id] or 0) >= totalFavorCost and (creature.reputation[self.id] or 0) >= totalRepCost then
     if amt == totalAmt then
       if item.stacks or totalAmt == 1 then
         creature:give_item(item)
       elseif not item.stacks then
         for i=1,amt,1 do
-          local newItem = item:clone()
+          local newItem = item:duplicate()
           newItem.amount = nil
           creature:give_item(newItem)
         end
       end
       local id = self:get_inventory_index(item)
       table.remove(self.inventory,id)
-      creature.favor[self.id] = (creature.favor[self.id] or 0) - totalFavorCost
+      creature:update_favor(self.id,-totalFavorCost,nil,nil,true)
+      creature:update_reputation(self.id,-totalRepCost)
       if self.currency_item then
         creatureItem.amount = creatureItem.amount-totalCost
       else
-        creature.money = creature.money-totalCost
+        creature:update_money(-totalCost)
       end
     elseif item.stacks then
-      local newItem = item:clone()
+      local newItem = item:duplicate()
       if item.amount ~= -1 then item.amount = item.amount - amt end
       newItem.amount = amt
       creature:give_item(newItem)
-      creature.favor[self.id] = (creature.favor[self.id] or 0) - totalFavorCost
+      creature:update_favor(self.id,-totalFavorCost,nil,nil,true)
+      creature:update_reputation(self.id,-totalRepCost)
       if self.currency_item then
         creatureItem.amount = creatureItem.amount-totalCost
       else
-        creature.money = creature.money-totalCost
+        creature:update_money(-totalCost)
       end
     else --if buying a nonstackable item
       for i=1,amt,1 do
-        local newItem = item:clone()
+        local newItem = item:duplicate()
         newItem.amount = 1
         creature:give_item(newItem)
       end
       if item.amount ~= -1 then item.amount = item.amount - amt end
-      creature.favor[self.id] = (creature.favor[self.id] or 0) - totalFavorCost
+      creature:update_favor(self.id,-totalFavorCost,nil,nil,true)
+      creature:update_reputation(self.id,-totalRepCost)
       if self.currency_item then
         creatureItem.amount = creatureItem.amount-totalCost
       else
-        creature.money = creature.money-totalCost
+        creature:update_money(-totalCost)
       end
     end
     return true
@@ -747,14 +797,19 @@ end
   
 ---Generate a random item from the faction's possible random items list
 --@param list Table. A list of item IDs to pull from. Optional, defaults to the list from get_possible_random_items()
-function Faction:generate_random_item(list)
+--@param info. Table. A table of potential values including:
+--@param artifact_chance Number.
+--@param enchantment_chance Number.
+--@param noAdd Boolean. If true, don't add the item to inventory
+function Faction:generate_random_item(list,info)
+  info = info or {}
   local possibles = list or self:get_possible_random_items()
   local itemID = possibles[random(#possibles)]
   local tags = self.passedTags
   local item = Item(itemID,tags)
-  if random(1,100) <= (self.artifact_chance or gamesettings.artifact_chance) then
+  if random(1,100) <= (info.artifact_chance or self.artifact_chance or gamesettings.artifact_chance) then
     mapgen:make_artifact(item,tags)
-  elseif random(1,100) <= gamesettings.enchantment_chance then
+  elseif random(1,100) <= (info.enchantment_chance or self.enchantment_chance or gamesettings.enchantment_chance) then
     local possibles = item:get_possible_enchantments(true)
     if count(possibles) > 0 then
       local eid = get_random_element(possibles)
@@ -762,7 +817,141 @@ function Faction:generate_random_item(list)
     end
   end
   if not item.amount then item.amount = 1 end --This is here because non-stackable items don't generate with amounts
-  self:add_item(item,{randomly_generated=true,delete_on_restock=self.delete_random_items_on_restock})
+  if not info.noAdd then self:add_item(item,{randomly_generated=true,delete_on_restock=self.delete_random_items_on_restock}) end
+  return item
+end
+
+---Generates a gift from the faction
+--@param items Table. The items to give
+function Faction:generate_gifts()
+  --Do custom gift code:
+  if possibleFactions[self.id].generate_gift then
+    local status,r = pcall(possibleFactions[self.id].generate_gift,self)
+    if status == false then
+      output:out("Error in faction " .. self.id .. " generate_gift code: " .. r)
+      print("Error in faction " .. self.id .. " generate_gift code: " .. r)
+    end
+    if r == false then
+      return
+    elseif type(r) == "table" then
+      if r.baseType == "item" then
+        return {r}
+      else
+        return r
+      end
+    end
+  end
+  
+  local finalVal = tweak(self.gift_value or 0)
+  if not finalVal or finalVal == 0 then
+    return false
+  end
+  local possibles = self:get_possible_gift_items()
+  local tags = self.passedTags
+  possibles = shuffle(possibles)
+  local gifts = {}
+  local gift_value = 0
+  local max_items = self.max_gift_items or 5
+  local items_given = 0
+  while gift_value < finalVal and items_given < max_items and count(possibles) > 0 do
+    local item = self:generate_random_item(possibles,{noAdd=true,artifact_chance=0})
+    if item.id == "money" then
+      item.amount = finalVal - gift_value
+    end
+    local value = item:get_value()*item.amount
+    if value <= (finalVal-gift_value) then
+      gifts[#gifts+1] = item
+      gift_value = gift_value + value*item.amount
+      items_given = items_given+1
+    else
+      remove_from_array(possibles,item.id)
+    end
+  end
+  return gifts
+end
+
+---Get all possible gift items the faction can offer
+--@return Table. A list of the item IDs
+function Faction:get_possible_gift_items()
+  local possibles = self.gift_items or {}
+  local forbidden_types = self.gift_forbidden_types or self.forbidden_sells_types
+  local required_types = self.gift_required_types or self.required_sells_types
+  local forbidden_tags = self.gift_forbidden_tags or self.forbidden_sells_tags
+  local required_tags = self.gift_required_tags or self.required_sells_tags
+  local types = self.gift_types or self.sells_types
+  local tags = self.gift_tags or self.sells_tags
+  local value_max = self.gift_value or 0
+  for id,item in pairs(possibleItems) do
+    local alreadyDone = false
+    for _,iid in ipairs(possibles) do
+      if id == iid then
+        alreadyDone = true
+        break
+      end
+    end
+    if not alreadyDone then
+      if item.value and not item.neverSpawn and not item.neverStore and not item.delete_after_heist and item.value <= value_max then --don't sell valueless items or items that don't spawn naturally
+        local done = false
+        if forbidden_types then
+          for _,itype in ipairs(forbidden_types) do
+            if item.types and in_table(itype,item.types) then
+              done = true
+              break
+            end
+          end
+        end
+        if not done and required_types then
+          for _,itype in ipairs(required_types) do
+            if not item.types or not in_table(itype,item.types) then
+              done = true
+              break
+            end
+          end
+        end
+        if not done and forbidden_tags then
+          for _,tag in ipairs(forbidden_tags) do
+            if item.tags and in_table(tag,item.tags) then
+              done = true
+              break
+            end
+          end
+        end
+        if not done and required_tags then
+          for _,tag in ipairs(required_tags) do
+            if not item.tags or not in_table(tag,item.tags) then
+              done = true
+              break
+            end
+          end
+        end
+        if not done and types then
+          for _,itype in ipairs(types) do --check tags
+            if (item.types and in_table(itype,item.types)) then
+              done = true
+              possibles[#possibles+1] = id
+              break
+            end --end tags if
+          end --end sells_tag for
+        end
+        if not done and tags then
+          for _,tag in ipairs(tags) do --check tags
+            if (item.tags and in_table(tag,item.tags)) then
+              possibles[#possibles+1] = id
+              break
+            end --end tags if
+          end --end sells_tag for
+        end
+      end
+    end --end alreadySells if
+  end --end value and neverSpawn if
+  if count(possibles) == 0 and self.sells_items then
+    for _,info in pairs(self.sells_items) do
+      if not info.artifact then
+        possibles[#possibles+1] = info.item
+      end
+    end
+  end
+  return possibles
 end
   
 ---Gets the modifier for items sold in the faction store
@@ -965,10 +1154,11 @@ function Faction:get_teachable_skills(creature)
   
   --Determine which skills are available:
   for _,skillDef in pairs(skills) do
-    local player_val = creature:get_skill(skillDef.skill,true)
+    local skillID = skillDef.skill
+    local skill = possibleSkills[skillID]
+    local player_val = creature:get_skill(skillID,true)
+    if not skillDef.max and skill.max then skillDef.max = skill.max end
     if not player_val or not skillDef.max or player_val < skillDef.max then
-      local skillID = skillDef.skill
-      local skill = possibleSkills[skillID]
       local moneyCost = (skillDef.moneyCost or 0)*(player_val+1)
       moneyCost = moneyCost + round(moneyCost*(costMod/100))
       local favorCost = (skillDef.favorCost or 0)

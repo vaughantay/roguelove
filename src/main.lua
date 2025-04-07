@@ -63,16 +63,17 @@ function love.load(arg)
  	load_prefs()
   quads = gen_quads()
   fonts = {
-    graveFontBig = love.graphics.newFont("assets/fonts/VeniceClassic.ttf",36),
-    graveFontSmall = love.graphics.newFont("assets/fonts/VeniceClassic.ttf",24),
+    titleFont = love.graphics.newFont("assets/fonts/VeniceClassic.ttf",36),
+    headerFont = love.graphics.newFont("assets/fonts/VeniceClassic.ttf",24),
     buttonFont = love.graphics.newFont("assets/fonts/VeniceClassic.ttf",18),
     miniMapFont = love.graphics.newFont("assets/fonts/VeraMono.ttf",8),
     mapFont = love.graphics.newFont("assets/fonts/VeraMono.ttf",prefs['asciiSize']),
     --mapFontDys = love.graphics.newFont("OpenDyslexic-Regular.otf",prefs['asciiSize']),
     mapFontWithImages = love.graphics.newFont("assets/fonts/VeraMono.ttf",output:get_tile_size()),
     textFont = love.graphics.newFont(prefs['fontSize']),
+    --fancyTextFont = love.graphics.newFont("assets/fonts/NotJamSignature.ttf",prefs['fontSize']),
     descFont = love.graphics.newFont(prefs['descFontSize']),
-    menuFont = love.graphics.newFont(24),
+    menuFont = love.graphics.newFont("assets/fonts/VeniceClassic.ttf",36),
     --dysFont = love.graphics.newFont("OpenDyslexic-Regular.otf",14)
   }
   --[[if prefs['noImages'] ~= true then
@@ -104,14 +105,39 @@ function love.load(arg)
 end
 
 function love.draw()
-	Gamestate.draw()
+  local status,r = pcall(Gamestate.draw)
+  love.graphics.setStencilTest()
+  if status == false then
+    if currGame then
+      Gamestate.switch(game)
+      output:out("Error in gamestate draw code: " .. r)
+    else
+      Gamestate.switch(menu)
+    end
+    print("Error in gamestate draw code: " .. r)
+  end
+  --Gamestate.draw()
   if output.notifications and output.notifications[1] then output.notifications[1]:draw() end
   if output.popup then output.popup:draw() end
   if debugMode then love.graphics.print("FPS: "..tostring(love.timer.getFPS( )), 10, 10) end
   if debugMode then love.graphics.print("Gamepad: "..tostring(input:is_gamepad()), 10, 25) end
+  if Gamestate.current() ~= game then
+    love.mouse.setVisible(true)
+  end
 end
 
 function love.update(dt)
+  local status,r = pcall(Gamestate.update,dt)
+  if status == false then
+    if currGame then
+      Gamestate.switch(game)
+      output:out("Error in gamestate update code: " .. r)
+    else
+      Gamestate.switch(menu)
+    end
+    print("Error in gamestate update code: " .. r)
+  end
+  --Gamestate.update(dt)
   Timer.update(dt)
   if output.notifications and output.notifications[1] then
     output.notifications[1]:update(dt)
@@ -119,7 +145,6 @@ function love.update(dt)
       table.remove(output.notifications,1)
     end
   end
-  Gamestate.update(dt)
 end
 
 function love.keypressed(key, scancode, isRepeat)
@@ -131,11 +156,25 @@ function love.keypressed(key, scancode, isRepeat)
     end
     return
   end
-  Gamestate.buttonpressed(key, scancode, isRepeat, 'keyboard')
+  local status,r = pcall(Gamestate.buttonpressed,key, scancode, isRepeat, 'keyboard')
+  if status == false then
+    if currGame then
+      output:out("Error in gamestate buttonpressed code: " .. r)
+    end
+    print("Error in gamestate buttonpressed code: " .. r)
+  end
+  --Gamestate.buttonpressed(key, scancode, isrepeat, 'keyboard')
 end
 
 function love.textinput(text)
-  Gamestate.textinput(text)
+  local status,r = pcall(Gamestate.textinput,text)
+  if status == false then
+    if currGame then
+      output:out("Error in gamestate textinput code: " .. r)
+    end
+    print("Error in gamestate textinput code: " .. r)
+  end
+  --Gamestate.textinput(text)
 end
 
 if love._os == "NX" then
@@ -172,19 +211,47 @@ else
       output.popup = nil
       return
     end
-    Gamestate.mousepressed(x,y,button)
+    local status,r = pcall(Gamestate.mousepressed,x,y,button)
+    if status == false then
+      if currGame then
+        output:out("Error in gamestate mousepressed code: " .. r)
+      end
+      print("Error in gamestate mousepressed code: " .. r)
+    end
+    --Gamestate.mousepressed(x,y,button)
   end
   
   function love.mousemoved(x,y,dx,dy,touch)
-    Gamestate.mousemoved(x,y,dx,dy,touch)
+    local status,r = pcall(Gamestate.mousemoved,x,y,dx,dy,touch)
+    if status == false then
+      if currGame then
+        output:out("Error in gamestate mousemoved code: " .. r)
+      end
+      print("Error in gamestate mousemoved code: " .. r)
+    end
+    --Gamestate.mousemoved(x,y,dx,dy,touch)
   end
   
   function love.mousereleased(x,y,button)
-    Gamestate.mousereleased(x,y,button)
+    local status,r = pcall(Gamestate.mousereleased,x,y,button)
+    if status == false then
+      if currGame then
+        output:out("Error in gamestate mousereleased code: " .. r)
+      end
+      print("Error in gamestate mousereleased code: " .. r)
+    end
+    --Gamestate.mousereleased(x,y,button)
   end
   
   function love.wheelmoved(x,y)
-    Gamestate.wheelmoved(x,y)
+    local status,r = pcall(Gamestate.wheelmoved,x,y)
+    if status == false then
+      if currGame then
+        output:out("Error in gamestate wheelmoved code: " .. r)
+      end
+      print("Error in gamestate wheelmoved code: " .. r)
+    end
+    --Gamestate.wheelmoved(x,y)
   end  
 end
 

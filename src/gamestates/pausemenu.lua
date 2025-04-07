@@ -42,7 +42,7 @@ function pausemenu:draw()
     love.graphics.rectangle("line",self.x,self.y,200,112) -- warning outline
   end]]
   output:draw_window(startX,startY,startX+166+(prefs['noImages'] and 16 or 0),startY+244+(prefs['noImages'] and 16 or 0))
-  love.graphics.setFont(fonts.graveFontSmall)
+  love.graphics.setFont(fonts.headerFont)
   self.buttons = {}
   local buttonY,buttonAdd = startY+26,48
   self.buttons[#self.buttons+1] = output:button(startX+25,buttonY,150,nil,(self.cursorY == 1 and "hover" or "image"))

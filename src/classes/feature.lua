@@ -47,9 +47,9 @@ end
 --@return String. The name.
 function Feature:get_name(full)
   if (full == true) then
-		return ucfirst(self.name) 
+		return ucfirst(self.name)
 	else
-		return (self.properNamed ~= true and "a " or "") .. self.name
+		return (self.article and self.article .. " " or (self.properNamed ~= true and (vowel(self.name) and "an " or "a " )) or "") .. self.name
 	end
 end
 
@@ -64,6 +64,9 @@ function Feature:get_description()
     for i,item in ipairs(self.inventory) do
       txt = txt .. (i ~= 1 and ", " or "") .. item:get_name(true)
     end
+  end
+  if self.turns_remaining and self.turns_remaining ~= -1 then
+    txt = txt .. "Turns remaining: " .. self.turns_remaining
   end
   return txt
 end
@@ -183,6 +186,7 @@ end
 --@return Number. The final damage that was done.
 function Feature:damage(amt,source,damage_type,force,armor_piercing)
   amt = math.ceil(amt) --just in case! to prevent fractional damage
+  damage_type = damage_type or gamesettings.default_damage_type
   amt = self:calculate_damage_received(amt,damage_type,armor_piercing)
   
   if amt <= 0 then
@@ -233,6 +237,7 @@ end
 --@return Number. The final damage done.
 function Feature:calculate_damage_received(amt,damage_type,armor_piercing,ignoreWeakness)
   local bonuses = 0
+  damage_type = damage_type or gamesettings.default_damage_type
   --Apply damage weaknesses, resistances, and armor
   if damage_type then
     if self.damage_type_healing and in_table(damage_type,self.damage_type_healing) then
@@ -284,7 +289,11 @@ function Feature:destroy(source,damage_type)
   end
   if ret ~= false then
     if self.destroy_feature and not currMap:tile_has_tag(self.x,self.y,'absorbs') then
-      currMap:add_feature(Feature(self.destroy_feature),self.x,self.y)
+      local feat = Feature(self.destroy_feature)
+      if self.copy_color_to_destroy_feature then
+        feat.color = copy_table(self.color)
+      end
+      currMap:add_feature(feat,self.x,self.y)
     end
     if self.destroy_effect then
       currMap:add_effect(Effect(self.destroy_effect),self.x,self.y)
@@ -303,6 +312,7 @@ function Feature:delete(map)
   map = map or currMap
   if map[self.x][self.y] == self then
     map[self.x][self.y] = "."
+    map:refresh_tile_image(self.x,self.y)
   else
     for id,f in pairs(map.contents[self.x][self.y]) do
       if f == self or id == self then
@@ -311,6 +321,9 @@ function Feature:delete(map)
     end --end for
   end
   map.feature_cache[self.x .. ',' .. self.y] = nil
+  if self.animator then
+    self.animator:delete(map)
+  end
   if self.castsLight then map.lights[self] = nil end
   if self.blocksSight then refresh_player_sight() end
 end
@@ -319,7 +332,8 @@ end
 --Used for features that look different if they're next to each other, like water, when its surrounding has changed.
 --@return Boolean. Whether the image name was refreshed or not
 function Feature:refresh_image_name(map)
-  if possibleFeatures[self.id].refresh_image_name then
+  map = map or currMap
+  if self.x and self.y and possibleFeatures[self.id].refresh_image_name then
     local status,r = pcall(possibleFeatures[self.id].refresh_image_name,self,map)
     if status == false then
       output:out("Error in feature " .. self.name .. " refresh image code: " .. r)
@@ -340,28 +354,13 @@ function Feature:is_hazardous_for(ctype)
   return false
 end
 
----Checks a feature's combust() callback, if applicable, and then lights it on fire if applicable.
---@param skip_basic Boolean. Whether to skip the combust() callback and just go ahead and light the fire. (optional)
---@param source Entity. The cause of the combustion
-function Feature:combust(skip_basic,source)
-  if not skip_basic and possibleFeatures[self.id].combust then
-    local status,r = pcall(possibleFeatures[self.id].combust,self,source)
-    if status == false then
-      output:out("Error in feature " .. self.name .. " combust code: " .. r)
-      print("Error in feature " .. self.name .. " combust code: " .. r)
-    end
-    return r
-  end
-  currMap:add_effect(Effect('fire',{creator=source,turns=(self.fireTime or 10)}),self.x,self.y)
-  self:delete()
-end
-
 ---Perform a feature's action() callback, if applicable.
 --@param activator Creature. The creature activating the feature.
 --@param actionID Text. The ID of the action (optional, only if a feature has multiple actions available).
-function Feature:action(activator,actionID)
+--@param args. Anything. Other arguments to pass to the action (optional)
+function Feature:action(activator,actionID,args)
   if possibleFeatures[self.id].action then
-    local status,r = pcall(possibleFeatures[self.id].action,self,activator,actionID)
+    local status,r = pcall(possibleFeatures[self.id].action,self,activator,actionID,args)
     if status == false then
       output:out("Error in feature " .. self.name .. " action code: " .. r)
       print("Error in feature " .. self.name .. " action code: " .. r)
@@ -380,6 +379,21 @@ function Feature:action_requires(activator,actionID)
     if status == false then
       output:out("Error in feature " .. self.name .. " action requires code: " .. r)
       print("Error in feature " .. self.name .. " action requires code: " .. r)
+    end
+    return r
+  end
+  return true
+end
+
+---Perform a feature's take_item() callback, if applicable.
+--@param taker Creature. The creature taking the item from the feature
+--@param item Item. The item being taken
+function Feature:take_item(taker,item)
+  if possibleFeatures[self.id].take_item then
+    local status,r = pcall(possibleFeatures[self.id].take_item,self,taker,item)
+    if status == false then
+      output:out("Error in feature " .. self.name .. " take_item code: " .. r)
+      print("Error in feature " .. self.name .. " take_item code: " .. r)
     end
     return r
   end
@@ -406,6 +420,7 @@ end
 ---Transfer an item to a feature's inventory
 --@param item Item. The item to give.
 function Feature:give_item(item)
+  if item.possessor == self or self:has_specific_item(item) then return false end
   if (item.stacks == true) then
     local it,inv_id = self:has_item(item.id,(item.sortBy and item[item.sortBy]),item.enchantments,item.level)
     if inv_id then
@@ -499,6 +514,20 @@ function Feature:has_item(itemID,sortBy,enchantments,level)
 	return false,nil,0
 end
 
+---Check if a feature has a specific item
+--@param item Item. The item to check for
+--@return either Boolean or Item. False, or the specific item they have in their inventory
+--@return either nil or Number. The index of the item in the inventory
+--@return either nil or Number. The amount of the item the feature has
+function Feature:has_specific_item(item)
+	for id, it in ipairs(self.inventory) do
+    if item == it then
+      return it,id,it.amount
+		end
+	end --end inventory for
+	return false
+end
+
 ---Checks if a feature has a descriptive tag.
 --@param tag String. The tag to check for
 --@return Boolean. Whether or not it has the tag.
@@ -507,4 +536,167 @@ function Feature:has_tag(tag)
     return true
   end
   return false
+end
+
+---Populate items in a feature
+--@param map Map. The map the feature is in.
+--@param room Room. The room the feature is in.
+--@param forceDefault Boolean. If true, don't use any custom populate_items code
+function Feature:populate_items(map,room,forceDefault)
+  if possibleFeatures[self.id].populate_items and not forceDefault then
+    local status,r = pcall(possibleFeatures[self.id].populate_items,self,map,room)
+    if status == false then
+      output:out("Error in feature " .. self.name .. " populate_items code: " .. r)
+      print("Error in feature " .. self.name .. " populate_items code: " .. r)
+    end
+    self.used=true
+    for _,item in pairs(self.inventory) do
+      item.origin_map = map.id
+      item.origin_branch = map.branch
+    end
+    return r
+  end
+  
+  if self.item_chance and random(1,100) > self.item_chance then
+    return {}
+  end
+  local newItems = {}
+  local item_list = {}
+  local min_level = map:get_min_level(true)
+  local max_level = map:get_max_level(true)
+  local decTags = (room and room.decorator and roomDecorators[room.decorator].passedTags or {})
+  local mapPassed = map:get_content_tags('passed')
+  local mapTags = (not self.noMapTags and map:get_content_tags('item') or nil)
+  local passedTags = merge_tables(decTags, mapPassed,(self.passedTags or {}))
+  local artifact_chance = self.artifact_chance or self.artifact_chance or map.artifact_chance or gamesettings.artifact_chance or 0
+  local enchantment_chance = self.enchantment_chance or self.enchantment_chance or map.enchantment_chance or gamesettings.enchantment_chance or 0
+  
+  --Create item list:
+  if self.items then
+    item_list = self.items or {}
+  end --end if items
+  if self.itemTags or self.contentTags or self.forbiddenTags then
+    local tags = self.itemTags or self.contentTags or dec.itemTags or dec.contentTags or {}
+    local forbidden = self.forbiddenTags
+    local required = self.requiredTags
+    local tagged_items = mapgen:get_content_list_from_tags('item',tags,{forbiddenTags=forbidden,requiredTags=required,mapTags=mapTags})
+    item_list = merge_tables(item_list,tagged_items)
+  elseif not self.items then --if there's no item list or tag list set, just use the item list of the room
+    item_list = (room and room:get_item_list() or map:get_item_list())
+  end
+  
+  ::gen_item::
+  local ni = mapgen:generate_item(min_level,max_level,item_list,passedTags,nil,artifact_chance,enchantment_chance)
+  newItems[#newItems+1] = ni
+  self:modify_generated_item(ni,map,room)
+  ni.origin_branch = map.branch
+  ni.origin_map = map.id
+  --ni.origin_room = room
+  
+  if self.inventory then
+    self:give_item(ni)
+    if #self:get_inventory() >= (self.inventory_space or 1) then
+      self.used = true
+    else
+      goto gen_item
+    end
+  else
+    map:add_item(ni,self.x,self.y)
+    self.used = true
+  end
+  return newItems
+end
+
+---Modify an item generated by a feature
+--@param item Item. The item to modify.
+--@param map Map. The map the feature is in.
+--@param room Room. The room the feature is in.
+function Feature:modify_generated_item(item,map,room)
+  if possibleFeatures[self.id].modify_generated_item then
+    local status,r = pcall(possibleFeatures[self.id].modify_generated_item,self,item,map,room)
+    if status == false then
+      output:out("Error in feature " .. self.name .. " modify_generated_item code: " .. r)
+      print("Error in feature " .. self.name .. " modify_generated_item code: " .. r)
+    end
+    return r
+  end
+end
+
+--Combustion, freezing, etc.
+
+---Checks a feature's combust() callback, if applicable, and then lights it on fire if applicable.
+--@param skip_basic Boolean. Whether to skip the combust() callback and just go ahead and light the fire. (optional)
+--@param source Entity. The cause of the combustion
+function Feature:combust(skip_basic,source)
+  if not skip_basic and possibleFeatures[self.id].combust then
+    local status,r = pcall(possibleFeatures[self.id].combust,self,source)
+    if status == false then
+      output:out("Error in feature " .. self.name .. " combust code: " .. r)
+      print("Error in feature " .. self.name .. " combust code: " .. r)
+    end
+    return r
+  end
+  currMap:add_effect(Effect('fire',{creator=source,turns=(self.fireTime or 10)}),self.x,self.y)
+  currMap:register_incident('light_fire',source,self)
+  self:delete()
+end
+
+---Checks a feature's apply_cold() callback, if applicable, or its cold_feature flag, if applicable
+--@param source Entity. The cause of the freezing
+function Feature:apply_cold(source)
+  if possibleFeatures[self.id].apply_cold then
+    local status,r = pcall(possibleFeatures[self.id].apply_cold,self,source)
+    if status == false then
+      output:out("Error in feature " .. self.name .. " apply_cold code: " .. r)
+      print("Error in feature " .. self.name .. " apply_cold code: " .. r)
+    end
+    return r
+  end
+  local chilled = false
+  if self.cold_feature then
+    local newfeat = Feature(self.cold_feature)
+    if currMap[self.x][self.y] == self and not self.remain_on_cold then
+      currMap:change_tile(newfeat,self.x,self.y)
+    else
+      currMap:add_feature(newfeat,self.x,self.y)
+    end
+    chilled = true
+  end
+  if self.cold_effect then
+    local neweff = Effect(self.cold_effect)
+    neweff.creator = source
+    currMap:add_effect(neweff,self.x,self.y)
+    chilled = true
+  end
+  if chilled and not self.remain_on_cold then self:delete() end
+end
+
+---Checks a feature's apply_heat() callback, if applicable, or its heat_feature flag, if applicable
+--@param source Entity. The cause of the melting
+function Feature:apply_heat(source)
+  if possibleFeatures[self.id].melt then
+    local status,r = pcall(possibleFeatures[self.id].apply_heat,self,source)
+    if status == false then
+      output:out("Error in feature " .. self.name .. " apply_heat code: " .. r)
+      print("Error in feature " .. self.name .. " apply_heat code: " .. r)
+    end
+    return r
+  end
+  local heated = false
+  if self.heat_feature then
+    local newfeat = Feature(self.heat_feature)
+    if currMap[self.x][self.y] == self and not self.remain_on_heat then
+      currMap:change_tile(newfeat,self.x,self.y)
+    else
+      currMap:add_feature(newfeat,self.x,self.y)
+    end
+    heated = true
+  end
+  if self.heat_effect then
+    local neweff = Effect(self.heat_effect)
+    neweff.creator = source
+    currMap:add_effect(neweff,self.x,self.y)
+    heated = true
+  end
+  if heated and not self.remain_on_heat then self:delete() end
 end

@@ -41,7 +41,7 @@ function RangedAttack:use(target, attacker, item)
   if not attacker:callbacks('use_ranged_ability',target,self,item) then return false end
   if (item and (item.charges or (item.usesAmmo and not item.max_charges))) or (not item and attacker.ranged_charges) then --if it's not an infinite attack
     if item and item.charges and item.charges > 0 then
-      item.charges = item.charges - 1
+      item:update_charges(-1)
     elseif not item and attacker.ranged_charges and attacker.ranged_charges > 0 then
       attacker.ranged_charges = attacker.ranged_charges - 1
     elseif item and item.usesAmmo and (not item.max_charges or item.max_charges == 0) then --if it uses ammo but not loaded with ammo
@@ -64,6 +64,13 @@ function RangedAttack:use(target, attacker, item)
       end
     end
   end -- end charges if
+  
+  if item and item.throwable then
+    if item.amount > 1 then
+      item = item:splitStack(1)
+    end
+    player:delete_item(item,1)
+  end
   
   --Do the attack itself:
   if attacker == player then update_stat('ability_used',self.name) end

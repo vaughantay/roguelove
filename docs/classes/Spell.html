@@ -47,7 +47,7 @@
   <li><a href="../classes/Item.html">Item</a></li>
   <li><a href="../classes/Map.html">Map</a></li>
   <li><a href="../classes/Projectile.html">Projectile</a></li>
-  <li><a href="../classes/ranged_attack.html">ranged_attack</a></li>
+  <li><a href="../classes/RangedAttack.html">RangedAttack</a></li>
   <li><a href="../classes/Service.html">Service</a></li>
   <li><strong>Spell</strong></li>
   <li><a href="../classes/Store.html">Store</a></li>
@@ -96,23 +96,27 @@
 	<td class="summary">Get the description of the spell, its cost, and potentially a description of why you can't use it.</td>
 	</tr>
 	<tr>
+	<td class="name" nowrap><a href="#spell:get_info">spell:get_info ()</a></td>
+	<td class="summary">Returns all the stats of the spell</td>
+	</tr>
+	<tr>
 	<td class="name" nowrap><a href="#spell:target">spell:target (target, caster, ignoreCooldowns)</a></td>
 	<td class="summary">Start targeting a spell (unless it's a self-only spell, in which case it just goes ahead and casts it).</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#spell:use">spell:use (target, caster, ignoreCooldowns, ignoreMP)</a></td>
+	<td class="name" nowrap><a href="#spell:use">spell:use (target, caster, ignoreCooldowns, ignoreCost)</a></td>
 	<td class="summary">Cast a spell.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#spell:can_use">spell:can_use (target, caster, ignoreCooldowns, ignoreMP)</a></td>
+	<td class="name" nowrap><a href="#spell:can_use">spell:can_use (target, caster, ignoreCooldowns, ignoreCost)</a></td>
 	<td class="summary">Checks to see if the spell can be used right now</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#spell:advance_active">spell:advance_active (target, caster, ignoreCooldowns, ignoreMP)</a></td>
+	<td class="name" nowrap><a href="#spell:advance_active">spell:advance_active (target, caster, ignoreCooldowns, ignoreCost)</a></td>
 	<td class="summary">Placeholder for the advance_active() callback, which is called every turn a spell is active</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#spell:finish">spell:finish (target, caster, ignoreCooldowns, ignoreMP)</a></td>
+	<td class="name" nowrap><a href="#spell:finish">spell:finish (target, caster, ignoreCooldowns, ignoreCost)</a></td>
 	<td class="summary">Placeholder for the finish() callback, which is called when a spell is toggled off or stops being channeled.</td>
 	</tr>
 	<tr>
@@ -140,7 +144,11 @@
 	<td class="summary">Checks if a spell has a descriptive tag.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#spell:get_stat">spell:get_stat (stat, possessor)</a></td>
+	<td class="name" nowrap><a href="#spell:is_type">spell:is_type (tag)</a></td>
+	<td class="summary">Checks if a spell is of a specific type</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#spell:get_stat">spell:get_stat (stat, possessor, noBonus)</a></td>
 	<td class="summary">Get the stat for a spell</td>
 	</tr>
 	<tr>
@@ -148,16 +156,28 @@
 	<td class="summary">Gets the possible upgrades for a spell</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#spell:can_upgrade">spell:can_upgrade (upgradeID, level)</a></td>
+	<td class="name" nowrap><a href="#spell:can_upgrade">spell:can_upgrade (upgrade)</a></td>
 	<td class="summary">Determines whether you're able to perform an upgrade</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#spell:get_upgrade_cost">spell:get_upgrade_cost (upgradeID)</a></td>
+	<td class="summary">Gets the costs associated with a spell upgrade</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#spell:apply_upgrade">spell:apply_upgrade (upgradeID, force)</a></td>
 	<td class="summary">Applies an upgrade to a spell</td>
 	</tr>
 	<tr>
+	<td class="name" nowrap><a href="#spell:get_appliable_items">spell:get_appliable_items (possessor)</a></td>
+	<td class="summary">Get upgrade items that can be applied to a spell</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#spell:apply_item">spell:apply_item (item)</a></td>
+	<td class="summary">Apply an item to a spell, gaining its bonuses</td>
+	</tr>
+	<tr>
 	<td class="name" nowrap><a href="#spell:upgrade_requires">spell:upgrade_requires (possessor, upgradeID)</a></td>
-	<td class="summary">Placeholder for the upgrade_requires() callback, used to determine if the creature meets the requirements for using the spell</td>
+	<td class="summary">Placeholder for the upgrade_requires() callback, used to determine if the creature meets the requirements for upgrading the spell</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#spell:get_potential_targets">spell:get_potential_targets (caster, previous_targets)</a></td>
@@ -170,6 +190,14 @@
 	<tr>
 	<td class="name" nowrap><a href="#spell:setting_available">spell:setting_available (settingID)</a></td>
 	<td class="summary">Checks whether a spell setting is available</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#spell:toggle_setting">spell:toggle_setting (settingID)</a></td>
+	<td class="summary">Toggle a setting on or off</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#spell:update_charges">spell:update_charges (amount, silent)</a></td>
+	<td class="summary">Update the charges for a spell</td>
 	</tr>
 </table>
 
@@ -231,6 +259,25 @@
 
 </dd>
     <dt>
+    <a name = "spell:get_info"></a>
+    <strong>spell:get_info ()</strong>
+    </dt>
+    <dd>
+    Returns all the stats of the spell
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        String. The stats of the spell
+    </ol>
+
+
+
+
+</dd>
+    <dt>
     <a name = "spell:target"></a>
     <strong>spell:target (target, caster, ignoreCooldowns)</strong>
     </dt>
@@ -263,7 +310,7 @@
 </dd>
     <dt>
     <a name = "spell:use"></a>
-    <strong>spell:use (target, caster, ignoreCooldowns, ignoreMP)</strong>
+    <strong>spell:use (target, caster, ignoreCooldowns, ignoreCost)</strong>
     </dt>
     <dd>
     Cast a spell.
@@ -280,7 +327,7 @@
         <li><span class="parameter">ignoreCooldowns</span>
          Boolean. If set to true, this will ignore whether or not the spell is on a cooldown.
         </li>
-        <li><span class="parameter">ignoreMP</span>
+        <li><span class="parameter">ignoreCost</span>
          Boolean. If set to true, this will make the spell not use MP when cast
         </li>
     </ul>
@@ -297,7 +344,7 @@
 </dd>
     <dt>
     <a name = "spell:can_use"></a>
-    <strong>spell:can_use (target, caster, ignoreCooldowns, ignoreMP)</strong>
+    <strong>spell:can_use (target, caster, ignoreCooldowns, ignoreCost)</strong>
     </dt>
     <dd>
     Checks to see if the spell can be used right now
@@ -314,7 +361,7 @@
         <li><span class="parameter">ignoreCooldowns</span>
          Boolean. If set to true, this will ignore whether or not the spell is on a cooldown.
         </li>
-        <li><span class="parameter">ignoreMP</span>
+        <li><span class="parameter">ignoreCost</span>
          Boolean. If set to true, this will make the spell not use MP when cast
         </li>
     </ul>
@@ -331,7 +378,7 @@
 </dd>
     <dt>
     <a name = "spell:advance_active"></a>
-    <strong>spell:advance_active (target, caster, ignoreCooldowns, ignoreMP)</strong>
+    <strong>spell:advance_active (target, caster, ignoreCooldowns, ignoreCost)</strong>
     </dt>
     <dd>
     Placeholder for the advance_active() callback, which is called every turn a spell is active
@@ -348,7 +395,7 @@
         <li><span class="parameter">ignoreCooldowns</span>
          Boolean. If set to true, this will ignore whether or not the spell is on a cooldown.
         </li>
-        <li><span class="parameter">ignoreMP</span>
+        <li><span class="parameter">ignoreCost</span>
          Boolean. If set to true, this will make the spell not use MP when cast
         </li>
     </ul>
@@ -365,7 +412,7 @@
 </dd>
     <dt>
     <a name = "spell:finish"></a>
-    <strong>spell:finish (target, caster, ignoreCooldowns, ignoreMP)</strong>
+    <strong>spell:finish (target, caster, ignoreCooldowns, ignoreCost)</strong>
     </dt>
     <dd>
     Placeholder for the finish() callback, which is called when a spell is toggled off or stops being channeled.
@@ -382,7 +429,7 @@
         <li><span class="parameter">ignoreCooldowns</span>
          Boolean. If set to true, this will ignore whether or not the spell is on a cooldown.
         </li>
-        <li><span class="parameter">ignoreMP</span>
+        <li><span class="parameter">ignoreCost</span>
          Boolean. If set to true, this will make the spell not use MP when cast
         </li>
     </ul>
@@ -561,8 +608,33 @@
 
 </dd>
     <dt>
+    <a name = "spell:is_type"></a>
+    <strong>spell:is_type (tag)</strong>
+    </dt>
+    <dd>
+    Checks if a spell is of a specific type
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">tag</span>
+         String. The tag to check for
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether or not it has the tag.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
     <a name = "spell:get_stat"></a>
-    <strong>spell:get_stat (stat, possessor)</strong>
+    <strong>spell:get_stat (stat, possessor, noBonus)</strong>
     </dt>
     <dd>
     Get the stat for a spell
@@ -575,6 +647,9 @@
         </li>
         <li><span class="parameter">possessor</span>
          Creature. The creature to look at when determine the spell's stats
+        </li>
+        <li><span class="parameter">noBonus</span>
+         Boolean. If true, don't apply any bonuses, just return the base stat
         </li>
     </ul>
 
@@ -615,7 +690,7 @@
 </dd>
     <dt>
     <a name = "spell:can_upgrade"></a>
-    <strong>spell:can_upgrade (upgradeID, level)</strong>
+    <strong>spell:can_upgrade (upgrade)</strong>
     </dt>
     <dd>
     Determines whether you're able to perform an upgrade
@@ -623,11 +698,28 @@
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">upgradeID</span>
+        <li><span class="parameter">upgrade</span>
          String. The ID of the upgrade
         </li>
-        <li><span class="parameter">level</span>
-         Number. The level of the upgrade
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "spell:get_upgrade_cost"></a>
+    <strong>spell:get_upgrade_cost (upgradeID)</strong>
+    </dt>
+    <dd>
+    Gets the costs associated with a spell upgrade
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">upgradeID</span>
+         String. The ID of the upgrade
         </li>
     </ul>
 
@@ -665,11 +757,51 @@
 
 </dd>
     <dt>
+    <a name = "spell:get_appliable_items"></a>
+    <strong>spell:get_appliable_items (possessor)</strong>
+    </dt>
+    <dd>
+    Get upgrade items that can be applied to a spell
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">possessor</span>
+
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "spell:apply_item"></a>
+    <strong>spell:apply_item (item)</strong>
+    </dt>
+    <dd>
+    Apply an item to a spell, gaining its bonuses
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">item</span>
+         Item. The item to apply
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
     <a name = "spell:upgrade_requires"></a>
     <strong>spell:upgrade_requires (possessor, upgradeID)</strong>
     </dt>
     <dd>
-    Placeholder for the upgrade_requires() callback, used to determine if the creature meets the requirements for using the spell
+    Placeholder for the upgrade_requires() callback, used to determine if the creature meets the requirements for upgrading the spell
 
 
     <h3>Parameters:</h3>
@@ -770,6 +902,54 @@
 
 
 </dd>
+    <dt>
+    <a name = "spell:toggle_setting"></a>
+    <strong>spell:toggle_setting (settingID)</strong>
+    </dt>
+    <dd>
+    Toggle a setting on or off
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">settingID</span>
+         String. The ID of the setting
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. The setting's new value, false for off, true for on
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "spell:update_charges"></a>
+    <strong>spell:update_charges (amount, silent)</strong>
+    </dt>
+    <dd>
+    Update the charges for a spell
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">amount</span>
+         Number. The amount to change it by
+        </li>
+        <li><span class="parameter">silent</span>
+         Boolean. If true, don't show a popup
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
 </dl>
 
 
@@ -777,7 +957,7 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2023-09-29 12:16:36 </i>
+<i style="float:right;">Last updated 2025-04-07 10:52:23 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

@@ -70,7 +70,7 @@
   <li><a href="../classes/Item.html">Item</a></li>
   <li><a href="../classes/Map.html">Map</a></li>
   <li><a href="../classes/Projectile.html">Projectile</a></li>
-  <li><a href="../classes/ranged_attack.html">ranged_attack</a></li>
+  <li><a href="../classes/RangedAttack.html">RangedAttack</a></li>
   <li><a href="../classes/Service.html">Service</a></li>
   <li><a href="../classes/Spell.html">Spell</a></li>
   <li><a href="../classes/Store.html">Store</a></li>
@@ -96,7 +96,7 @@
 	<td class="summary">Initializes and creates a new creature at the given level.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#generate_item">generate_item (min_level, max_level, list, tags, allowAll)</a></td>
+	<td class="name" nowrap><a href="#generate_item">generate_item (min_level, max_level, list, tags, allowAll, enchantment_chance, artifact_chance)</a></td>
 	<td class="summary">Initializes and creates a new item at the given level.</td>
 	</tr>
 	<tr>
@@ -104,11 +104,11 @@
 	<td class="summary">Turns an item into a random artifact</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#generate_branch">generate_branch (branchID)</a></td>
+	<td class="name" nowrap><a href="#generate_branch">generate_branch (branchID, args)</a></td>
 	<td class="summary">Creates an instance of a branch, to be attached to a given playthrough</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#floodFill">floodFill (map, lookFor, startX, startY)</a></td>
+	<td class="name" nowrap><a href="#floodFill">floodFill (map, lookFor, startX, startY, noRandom)</a></td>
 	<td class="summary">Perform a floodfill operation, getting all walls or floor that touch.</td>
 	</tr>
 	<tr>
@@ -170,6 +170,10 @@
 	<tr>
 	<td class="name" nowrap><a href="#generate_room">generate_room (minX, minY, maxX, maxY, map, rectChance)</a></td>
 	<td class="summary">Generate a room on a map</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#can_place_room">can_place_room (minX, minY, maxX, maxY, map)</a></td>
+	<td class="summary">Determines whether you can place a room in a location</td>
 	</tr>
 </table>
 
@@ -250,10 +254,10 @@
 </dd>
     <dt>
     <a name = "generate_item"></a>
-    <strong>generate_item (min_level, max_level, list, tags, allowAll)</strong>
+    <strong>generate_item (min_level, max_level, list, tags, allowAll, enchantment_chance, artifact_chance)</strong>
     </dt>
     <dd>
-    Initializes and creates a new item at the given level.  The item itself must then actually be added to the map using Map:add_item() TODO: enchantments are basically guaranteed to be applied
+    Initializes and creates a new item at the given level.  The item itself must then actually be added to the map using Map:add_item()
 
 
     <h3>Parameters:</h3>
@@ -272,6 +276,12 @@
         </li>
         <li><span class="parameter">allowAll</span>
          Boolean. If True, items with the specialOnly flag can still be chosen (but items with the neverSpawn flag set still cannot). Optional
+        </li>
+        <li><span class="parameter">enchantment_chance</span>
+         Number. The chance of the item spawning with an enchantment
+        </li>
+        <li><span class="parameter">artifact_chance</span>
+         Number. The chance of the item spawning as an artifact
         </li>
     </ul>
 
@@ -310,7 +320,7 @@
 </dd>
     <dt>
     <a name = "generate_branch"></a>
-    <strong>generate_branch (branchID)</strong>
+    <strong>generate_branch (branchID, args)</strong>
     </dt>
     <dd>
     Creates an instance of a branch, to be attached to a given playthrough
@@ -320,6 +330,9 @@
     <ul>
         <li><span class="parameter">branchID</span>
          Text. The ID of the branch
+        </li>
+        <li><span class="parameter">args</span>
+         Anything. Arguments to pass to the branch
         </li>
     </ul>
 
@@ -335,7 +348,7 @@
 </dd>
     <dt>
     <a name = "floodFill"></a>
-    <strong>floodFill (map, lookFor, startX, startY)</strong>
+    <strong>floodFill (map, lookFor, startX, startY, noRandom)</strong>
     </dt>
     <dd>
     Perform a floodfill operation, getting all walls or floor that touch.  Only works for walls and floor, not features.
@@ -347,13 +360,16 @@
          Map. The map to look at
         </li>
         <li><span class="parameter">lookFor</span>
-         String. Either "." or "#" although if your maps use other strings it could look for those too. Defaults to "."
+         String. "." or "#" for floors or walls, or the ID of a feature. Defaults to "."
         </li>
         <li><span class="parameter">startX</span>
          Number. The X-coordinate to start at. Optional, will pick a randon tile if blank
         </li>
         <li><span class="parameter">startY</span>
          Number. The Y-coordinate to start at. Optional, will pick a random tile if blank
+        </li>
+        <li><span class="parameter">noRandom</span>
+         Boolean. If true, don't hop to a random tile if the initial tile doesn't match
         </li>
     </ul>
 
@@ -392,7 +408,7 @@
          Table. The table of floodFill values.
         </li>
         <li><span class="parameter">lookFor</span>
-         String. Either "." or "#" although if your maps use other strings it could look for those too. Defaults to "."
+         String. "." or "#" for floors or walls, or the ID of a feature. Defaults to "."
         </li>
         <li><span class="parameter">numTiles</span>
          Number. The number of tiles currently matching the floodfill criteria
@@ -827,6 +843,38 @@
 
 
 </dd>
+    <dt>
+    <a name = "can_place_room"></a>
+    <strong>can_place_room (minX, minY, maxX, maxY, map)</strong>
+    </dt>
+    <dd>
+    Determines whether you can place a room in a location
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">minX</span>
+         Number. The minimum X value of the room.
+        </li>
+        <li><span class="parameter">minY</span>
+         Number. The minimum Y value of the room.
+        </li>
+        <li><span class="parameter">maxX</span>
+         Number. The maximum X value of the room.
+        </li>
+        <li><span class="parameter">maxY</span>
+         Number. The maximum Y value of the room.
+        </li>
+        <li><span class="parameter">map</span>
+         Map. The map to create the room on.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
 </dl>
 
 
@@ -834,7 +882,7 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2023-09-29 12:16:36 </i>
+<i style="float:right;">Last updated 2025-04-07 10:52:23 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

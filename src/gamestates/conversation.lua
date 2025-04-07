@@ -1,6 +1,6 @@
 conversation = {}
 
-function conversation:enter(previous,speaker,asker,dialogID)
+function conversation:enter(previous,speaker,asker,dialogID,args)
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
   local uiScale = (prefs['uiScale'] or 1)
   local tileSize = output:get_tile_size()
@@ -27,7 +27,7 @@ function conversation:enter(previous,speaker,asker,dialogID)
   tween(0.2,self,{yModPerc=0})
   output:sound('stoneslideshort',2)
   
-  self.windowW,self.windowH = math.min(width-tileSize,550),math.min(height-tileSize,550)
+  self.windowW,self.windowH = math.min(width-tileSize,550),math.min(height-tileSize,750)
   self.startX,self.startY = round(width/2-self.windowW/2)-round(tileSize/2),round(height/2-self.windowH/2)-round(tileSize/2)
   self.endX,self.endY = self.startX+self.windowW,self.startY+self.windowH
   
@@ -37,9 +37,9 @@ function conversation:enter(previous,speaker,asker,dialogID)
   end
   
   if dialogID and speaker then
-    self:load_dialog(dialogID,speaker)
+    self:load_dialog(dialogID,speaker,args)
   elseif speaker and speaker:get_dialog(asker) then
-    self:load_dialog(speaker:get_dialog(asker),speaker)
+    self:load_dialog(speaker:get_dialog(asker),speaker,args)
   else --if we have no dialog to load, just go home
     self:switchBack()
   end
@@ -192,7 +192,7 @@ function conversation:draw()
   love.graphics.pop()
 end
 
-function conversation:load_dialog(dialogID,speaker)
+function conversation:load_dialog(dialogID,speaker,args)
   local dialog = possibleDialogs[dialogID]
   if not dialog then
     self:set_text("ERROR: No dialog with ID " .. dialogID .. " found.")
@@ -201,9 +201,21 @@ function conversation:load_dialog(dialogID,speaker)
 	local text
   --Use the text function if it has one
   if dialog.display_text then
-    --TODO: error check
-    print(self.dialogID)
-    text = dialog:display_text((speaker or self.speaker),self.asker,self.dialogID)
+    local status,r = pcall(dialog.display_text,dialog,(speaker or self.speaker),self.asker,self.dialogID,args)
+    if status == false then
+      output:out("Error in dialog " .. dialogID .. " display_text code: " .. r)
+      print("Error in dialog " .. dialogID .. " display_text code: " .. r)
+    else
+      text = r
+    end
+	end
+  
+  if dialog.after_dialog then
+    local status,r = pcall(dialog.after_dialog,dialog,(speaker or self.speaker),self.asker,self.dialogID,args)
+    if status == false then
+      output:out("Error in dialog " .. dialogID .. " after_dialog: " .. r)
+      print("Error in dialog " .. dialogID .. " after_dialog: " .. r)
+    end
 	end
 
   if not text then
@@ -227,15 +239,18 @@ function conversation:load_dialog(dialogID,speaker)
 
   self.dialog = dialog
   self.dialogID = dialogID
-  self.responses = self:load_responses()
+  self.responses = self:load_responses(args)
   self:refresh_response_height()
   
 	currGame.dialog_seen[dialogID] = (currGame.dialog_seen[dialogID] or 0)+1
+  if not speaker.dialog_seen then
+    speaker.dialog_seen = {}
+  end
   speaker.dialog_seen[dialogID] = (speaker.dialog_seen[dialogID] or 0)+1
 end
 
 
-function conversation:load_responses()
+function conversation:load_responses(args)
   self.cursorY = 1
   local dialog = self.dialog
   local text_done = self.text_index >= self.max_text_index
@@ -246,14 +261,19 @@ function conversation:load_responses()
     return {{text="...",moves_to_dialog=dialog.moves_to_dialog}}
   end
   if dialog.ends_conversation then
-    return {{text="End Conversation",ends_conversation=true}}
+    return {{text="[End Conversation]",ends_conversation=true}}
   end
 
   --Custom display_responses function
   local responses
   if dialog.display_responses then
-    --TODO: error check
-    responses = dialog:display_responses(self.speaker,self.asker)
+    local status,r = pcall(dialog.display_responses,dialog,self.speaker,self.asker,args)
+    if status == false then
+      output:out("Error in dialog " .. self.dialogID .. " display_responses code: " .. r)
+      print("Error in dialog " .. self.dialogID .. " display_responses code: " .. r)
+    else
+      responses = r
+    end
     if type(responses) == "table" and #responses > 0 then
       --TODO: check that responses have all necessary features
       return responses
@@ -267,15 +287,30 @@ function conversation:load_responses()
       local requires, showAnyway = true,true
       local disabled = false
       if respData.requires then
-        --TODO: error check
-        requires, showAnyway = respData:requires(self.speaker, self.asker)
+        local status,requires, showAnyway = pcall(respData.requires,respData,self.speaker,self.asker,args)
+        if status == false then
+          output:out("Error in response" .. respID .. " of " .. self.dialogID .. " requires code: " .. r)
+          print("Error in response" .. respID .. " of " .. self.dialogID .. " requires code: " .. r)
+        end
+        disabled = (not requires and showAnyway)
+      elseif dialog.response_requires and respData.id then
+        local status,requires, showAnyway = pcall(dialog.response_requires,dialog,self.speaker,self.asker,respData.id,args)
+        if status == false then
+          output:out("Error in response " .. respData.id .. " of " .. self.dialogID .. " response_requires code: " .. r)
+          print("Error in response " .. respData.id .. " of " .. self.dialogID .. " response_requires code: " .. r)
+        end
         disabled = (not requires and showAnyway)
       end
       if requires ~= false or disabled then
         local text
         if respData.display_text then
-          --TODO: error check
-          text = respData:display_text(self.speaker,self.asker,self.dialogID)
+          local status,r = pcall(respData.display_text,respData,self.speaker,self.asker,self.dialogID,args)
+          if status == false then
+            output:out("Error in response " .. respID .. " of " .. self.dialogID .. " display_text code: " .. r)
+            print("Error in response " .. respID .. " of " .. self.dialogID .. " display_text code: " .. r)
+          else
+            text = r
+          end
         end
         if not text then
           text = (respData.text_random and get_random_element(respData.text_random) or respData.text)
@@ -289,7 +324,7 @@ function conversation:load_responses()
   end
 
   --If responses aren't set for this dialog, or no responses were possible:
-  return {{text="End conversation",ends_conversation=true}}
+  return {{text="[End conversation]",ends_conversation=true}}
 end
 
 function conversation:refresh_response_height()
@@ -306,13 +341,13 @@ function conversation:refresh_response_height()
   end
 end
 
-function conversation:advance_dialog()
+function conversation:advance_dialog(args)
   local dialog = self.dialog
   if self.max_text_index > self.text_index then
     self.text_index = self.text_index+1
     self:set_text(self.text_table[self.text_index],self.current_text.speaker)
     if self.text_index == self.max_text_index then
-      self.responses = self:load_responses()
+      self.responses = self:load_responses(args)
       self:refresh_response_height()
     end
     return
@@ -327,27 +362,41 @@ function conversation:set_text(text,speaker)
 end
 
 function conversation:select_response(response)
+  local speaker = response.speaker or self.speaker
+  local args = response.args
+  local dialog = self.dialog
   if response.text ~= "..." and not response.silent then
     self:set_text(response.text,self.asker)
   end
+  
+  local status,ret
 	if response.data and response.data.selected then
-  --TODO: error check
-		local ret = response.data.selected(self.speaker,self.asker)
-		if ret == false then
-			return self:end_conversation()
-		end
-		if ret and possibleDialogs[ret] then
-			return self:load_dialog(ret,self.speaker)
-		end
-	end
+    status,ret = pcall(response.data.selected,speaker,self.asker,args)
+    if status == false then
+      output:out("Error in response " .. response.text .. " of " .. self.dialogID .. " selected code: " .. ret)
+      print("Error in response " .. response.text .. " of " .. self.dialogID .. " selected code: " .. ret)
+    end
+  elseif dialog.response_selected and response.id then
+    status,ret = pcall(dialog.response_selected,dialog,self.speaker,self.asker,response.id,args)
+    if status == false then
+      output:out("Error in response " .. response.id .. " of " .. self.dialogID .. " response_selected code: " .. ret)
+      print("Error in response " .. response.id .. " of " .. self.dialogID .. " response_selected code: " .. ret)
+    end
+  end
+  if ret == false then
+    return self:end_conversation()
+  end
+  if ret and possibleDialogs[ret] then
+    return self:load_dialog(ret,speaker,args)
+  end
 	if response.advance then
-		return self:advance_dialog()
+		return self:advance_dialog(args)
   end
 	if response.ends_conversation then
 		return self:end_conversation()
 	end
 	if response.moves_to_dialog then
-		return self:load_dialog(response.moves_to_dialog,self.speaker)
+		return self:load_dialog(response.moves_to_dialog,speaker,args)
 	end
 	--If none of those are set, do nothing
 	self:set_text("ERROR: No action set for response \"" .. (response.text or "nil") .. "\"")

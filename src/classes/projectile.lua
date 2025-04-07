@@ -32,6 +32,9 @@ function Projectile:init(projectile_type,source,target,info)
   self.timer = 0
   self.path = nil
   self.stopsInput = (self.stopsInput == nil and true or self.stopsInput)
+  if self.spin_speed then
+    self.angle = random(0,math.ceil(2*math.pi))
+  end
 	currMap.projectiles[self] = self
   if self.angled == true then
     if self.symbol == "/" then
@@ -64,6 +67,12 @@ end
 
 ---Refresh or create the projectile's path
 function Projectile:refresh_path()
+  if not self.target then
+    print("ERROR: No target set for projectile " .. self.id .. ", deleting")
+    output:out("ERROR: No target set for projectile " .. self.id .. ", deleting")
+    self:delete()
+    return
+  end
   if (self.projectile == true) then
     self.path = currMap:get_line(self.x,self.y,self.target.x,self.target.y)
   else --if it passes through obstacles
@@ -81,7 +90,7 @@ function Projectile:advance()
     if not self.neverInstant then
       for id, path in ipairs(self.path) do
         local x,y = path[1],path[2]
-        if id == #self.path or (self.passThrough ~= true and currMap:isClear(x,y,'flyer') == false) then
+        if id == #self.path or (self.passThrough ~= true and currMap:isClear(x,y,'airborne') == false) then
           local creat = currMap:get_tile_creature(x,y,true)
           if creat and creat ~= self.source then self:hits(creat)
           else self:hits({x=x,y=y}) end
@@ -110,7 +119,7 @@ function Projectile:update(dt,force_generic)
   end
   if (self.timer <= 0 or force_generic == true) then
     if (force_generic ~= true and projectiles[self.id].update) then
-      local status,r = pcall(projectiles[self.id].advance,self,dt)
+      local status,r = pcall(projectiles[self.id].update,self,dt)
       if status == false then
         output:out("Error in projectile " .. self.id .. " update code: " .. r)
         print("Error in projectile " .. self.id .. " update code: " .. r)
@@ -131,19 +140,26 @@ function Projectile:update(dt,force_generic)
         timers[tostring(self) .. 'moveTween'] = tween(self.time_per_tile,self,{xMod=0,yMod=0})
       end
       table.remove(self.path,1)
-      if self.passThrough ~= true and currMap:isClear(self.x,self.y,'flyer') == false then
+      if projectiles[self.id].enters_tile then
+        local status,r = pcall(projectiles[self.id].enters_tile,self)
+        if status == false then
+          output:out("Error in projectile " .. self.id .. " enters_tile code: " .. r)
+          print("Error in projectile " .. self.id.. " enters_tile code: " .. r)
+        end
+      end
+      if self.passThrough ~= true and currMap:isClear(self.x,self.y,'airborne') == false then
         local creat = currMap:get_tile_creature(self.x,self.y,true)
         if creat and creat ~= self.source then
           local dmg = self:hits(creat)
           for ench,_ in pairs(self:get_enchantments()) do
-          if enchantments[ench].after_damage then
-            local status,r = pcall(enchantments[ench].after_damage,enchantments[ench],self,creat,dmg)
-            if status == false then
-              output:out("Error in enchantment " .. ench .. " after_damage code: " .. r)
-              print("Error in enchantment " .. ench.. " after_damage code: " .. r)
+            if enchantments[ench].after_damage then
+              local status,r = pcall(enchantments[ench].after_damage,enchantments[ench],self,creat,dmg)
+              if status == false then
+                output:out("Error in enchantment " .. ench .. " after_damage code: " .. r)
+                print("Error in enchantment " .. ench.. " after_damage code: " .. r)
+              end
             end
-          end
-        end --end enchantment after_damage for
+          end --end enchantment after_damage for
         end
       end
     else --reached the end of the line
@@ -175,6 +191,13 @@ function Projectile:update(dt,force_generic)
   else
     self.timer = self.timer - dt
   end --end timer check
+  if self.spin_speed then
+    if self.symbol == "/" then self.symbol = "-"
+    elseif self.symbol == "-" then self.symbol = "\\"
+    elseif self.symbol == "\\" then self.symbol = "|"
+    elseif self.symbol == "|" then self.symbol = "/" end
+    self.angle = (self.angle or 0)+dt*self.spin_speed*math.pi
+  end
 end --end update() function
 
 ---Called when a projectile hits something
@@ -200,6 +223,8 @@ function Projectile:hits(target,force_generic)
       local txt = (type(self.miss_item) == "table" and self.miss_item:get_name() or "The " .. self.name) .. " hits " .. target:get_name()
       if dmg and dmg > 0 then
         txt = txt .. " for " .. dmg .. (self.damage_type and " " .. self.damage_type or "") .. " damage"
+      elseif dmg and dmg < 0 then
+        txt = txt .. ", healing " .. -dmg .. " HP"
       end --end dmg/nodmg if
       --Add extra damage
       local loopcount = 1
@@ -218,7 +243,7 @@ function Projectile:hits(target,force_generic)
         txt = txt .. amt .. " " .. dtype .. " damage"
       end
       txt = txt .. "."
-      output:out(txt)
+      if not self.silent then output:out(txt) end
     end --end playersees if
     local hitCons = self:get_hit_conditions()
     if hitCons and target.baseType == "creature" then
@@ -261,7 +286,7 @@ function Projectile:hits(target,force_generic)
   end
   
   --Handle creating an item if necessary:
-  if self.miss_item and (self.miss_item_on_hit or not dmg) and (not self.miss_item_chance or random(1,100) <= self.miss_item_chance) and currMap:isClear(target.x,target.y,nil,true,true) then
+  if self.miss_item and (self.miss_item_on_hit or not dmg) and (not self.miss_item_chance or random(1,100) <= self.miss_item_chance) and not currMap:isWall(target.x,target.y) and not currMap:has_tag(target.x,target.y,'absorbs') then
     local it = nil
     if type(self.miss_item) == "string" then
       it = currMap:add_item(Item(self.miss_item),target.x,target.y,true)
