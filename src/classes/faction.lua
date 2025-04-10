@@ -481,9 +481,9 @@ function Faction:get_sell_cost(item)
   return info
 end
 
----Determines if a store will buy an item, and returns the price if so
+---Determines if a faction will buy an item, and returns the price if so
 --@param item Item. The item to consider
---@return False or Number. False if the store won't buy it, the price if it will
+--@return False or Number. False if the faction won't buy it, the price if it will
 function Faction:get_buy_cost(item)
   if self.buys_items and self.buys_items[item.id] then
     return self.buys_items[item.id]
@@ -1100,7 +1100,7 @@ function Faction:get_teachable_spells(creature)
   return spell_list
 end
 
----Gets the list of skills the store can teach a given creature
+---Gets the list of skills the faction can teach a given creature
 --@param creature Creature. Optional, defaults to player
 --@return Table. A list of possible skills
 function Faction:get_teachable_skills(creature)
@@ -1190,6 +1190,63 @@ function Faction:get_teachable_skills(creature)
   end
   
   return skill_list
+end
+
+---Gets the list of missions the faction can teach a given creature
+--@param creature Creature. Optional, defaults to player
+--@return Table. A list of possible missions
+function Faction:get_available_missions(creature)
+  local missions = {}
+  local missionCount = 0
+  
+  if self.offers_missions then
+    for i, mData in ipairs(self.offers_missions) do
+      local missionID = mData.mission
+      local active = get_mission_status(missionID)
+      local mission = possibleMissions[missionID]
+      if possibleMissions[missionID] and (not currGame.finishedMissions[missionID] or (mission.repeatable and (not mission.repeat_limit or currGame.finishedMissions[missionID].repetitions < mission.repeat_limit))) then
+        local mData = {missionID=missionID}
+        mData.name = mission.name
+        mData.description = (get_mission_data(missionID,'description') or mission.description)
+        
+        if active then
+          mData.active = true
+          local canFinish,canFinishText = nil,nil
+          if mission.can_finish then
+            canFinish,canFinishText = mission:can_finish(player)
+          end
+          if not canFinish then
+            canFinishText = "You are currently on this mission" .. (canFinishText and ". " .. canFinishText or ".")
+          end
+          mData.disabled = not canFinish
+          mData.explainText = canFinishText
+        else --Not active mission
+          local canDo,canDoText = nil,nil
+          if mData.membersOnly and not self.playerMember then
+            canDoText = "This mission is only offered to members."
+            canDo = false
+          elseif mData.reputation_requirement and creature.reputation[self.id] < mData.reputation_requirement then
+            canDoText = "Requires at least " .. mData.reputation_requirement .. " reputation."
+            canDo = false
+          elseif not mission.requires then
+            canDo = true
+          else
+            canDo,canDoText = mission:requires(creature)
+          end
+          if not canDo then
+            canDoText = "You're not eligible for this mission" .. (canDoText and ": " .. canDoText or ".")
+          end
+          mData.disabled = not canDo
+          mData.explainText = canDoText
+        end --end active mission or not if
+        if not (mData.disabled and mission.hide_when_disabled) then
+          missions[#missions+1] = mData
+        end
+      end
+    end
+  end
+  
+  return missions
 end
   
 ---Registers an incident as having occured, to be processed by all other creatures who observe it

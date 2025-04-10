@@ -792,6 +792,57 @@ function Store:get_teachable_skills(creature)
   return skill_list
 end
 
+---Gets the list of missions the store can teach a given creature
+--@param creature Creature. Optional, defaults to player
+--@return Table. A list of possible missions
+function Store:get_available_missions(creature)
+  local missions = {}
+  local missionCount = 0
+  
+  if self.offers_missions then
+    for i, mData in ipairs(self.offers_missions) do
+      local missionID = mData.mission
+      local active = get_mission_status(missionID)
+      local mission = possibleMissions[missionID]
+      if possibleMissions[missionID] and (not currGame.finishedMissions[missionID] or (mission.repeatable and (not mission.repeat_limit or currGame.finishedMissions[missionID].repetitions < mission.repeat_limit))) then
+        local mData = {missionID=missionID}
+        mData.name = mission.name
+        mData.description = (get_mission_data(missionID,'description') or mission.description)
+        
+        if active then
+          mData.active = true
+          local canFinish,canFinishText = nil,nil
+          if mission.can_finish then
+            canFinish,canFinishText = mission:can_finish(player)
+          end
+          if not canFinish then
+            canFinishText = "You are currently on this mission" .. (canFinishText and ". " .. canFinishText or ".")
+          end
+          mData.disabled = not canFinish
+          mData.explainText = canFinishText
+        else --Not active mission
+          local canDo,canDoText = nil,nil
+          if not mission.requires then
+            canDo = true
+          else
+            canDo,canDoText = mission:requires(creature)
+          end
+          if not canDo then
+            canDoText = "You're not eligible for this mission" .. (canDoText and ": " .. canDoText or ".")
+          end
+          mData.disabled = not canDo
+          mData.explainText = canDoText
+        end --end active mission or not if
+        if not (mData.disabled and mission.hide_when_disabled) then
+          missions[#missions+1] = mData
+        end
+      end
+    end
+  end
+  
+  return missions
+end
+
 ---Placeholder for the requires() code, which is run to determine if the player can enter the store or not.
 --@return True.
 function Store:requires()

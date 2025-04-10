@@ -169,27 +169,54 @@ function factionscreen:draw()
     infobuttonW,shopbuttonW,servicebuttonW,spellbuttonW,missionbuttonW = biggestButton,biggestButton,biggestButton,biggestButton,biggestButton
     local totalWidth = windowWidth
     local startX = windowX+math.floor(windowWidth/2-padding-2.5*biggestButton)+padding
+    local totalButtons = 2
     self.navButtons = {}
+    if self.faction.offers_services and count(self.faction.offers_services) > 0 then
+      totalButtons = totalButtons+1
+    end
+    if count(self.faction:get_teachable_spells(player)) > 0 or count(self.faction:get_teachable_skills(player)) > 0 then
+      totalButtons = totalButtons+1
+    end
+    if count(self.faction:get_available_missions(player)) > 0 then
+      totalButtons = totalButtons+1
+    end
+    local buttonX = windowX+math.floor(windowWidth/2-padding-(totalButtons/2)*biggestButton)+padding
     if self.screen == "Info" then setColor(150,150,150,255) end
-    self.infoButton = output:button(startX,printY,infobuttonW+padX,false,((self.cursorX == 1 and self.cursorY == 2) and "hover" or nil),"Information",true)
+    self.infoButton = output:button(buttonX,printY,infobuttonW,false,((self.cursorX == 1 and self.cursorY == 2) and "hover" or nil),"Information",true)
     self.navButtons[#self.navButtons+1] = self.infoButton
+    self.infoButton.cursorX = #self.navButtons
+    buttonX = buttonX + infobuttonW
     if self.screen == "Info" then setColor(255,255,255,255) end
     if self.screen == "Items" then setColor(150,150,150,255) end
-    self.shopButton = output:button(startX+infobuttonW+padX*2,printY,shopbuttonW,false,((self.cursorX == 2 and self.cursorY == 2) and "hover" or nil),"Items",true)
+    self.shopButton = output:button(buttonX,printY,shopbuttonW,false,((self.cursorX == 2 and self.cursorY == 2) and "hover" or nil),"Items",true)
     self.navButtons[#self.navButtons+1] = self.shopButton
+    self.shopButton.cursorX = #self.navButtons
+    buttonX = buttonX + shopbuttonW
     if self.screen == "Items" then setColor(255,255,255,255) end
-    if self.screen == "Spells" then setColor(150,150,150,255) end
-    self.spellsButton = output:button(startX+infobuttonW+shopbuttonW+padX*3,printY,spellbuttonW,false,((self.cursorX == 3 and self.cursorY == 2) and "hover" or nil),"Skills/Abilities",true)
-    self.navButtons[#self.navButtons+1] = self.spellsButton
-    if self.screen == "Spells" then setColor(255,255,255,255) end
-    if self.screen == "Services" then setColor(150,150,150,255) end
-    self.serviceButton = output:button(startX+infobuttonW+shopbuttonW+spellbuttonW+padX*4,printY,servicebuttonW,false,((self.cursorX == 4 and self.cursorY == 2) and "hover" or nil),"Services",true)
-    self.navButtons[#self.navButtons+1] = self.serviceButton
-    if self.screen == "Services" then setColor(255,255,255,255) end
-    if self.screen == "Missions" then setColor(150,150,150,255) end
-    self.missionButton = output:button(startX+infobuttonW+shopbuttonW+spellbuttonW+servicebuttonW+padX*5,printY,missionbuttonW,false,((self.cursorX == 5 and self.cursorY == 2) and "hover" or nil),"Missions",true)
-    self.navButtons[#self.navButtons+1] = self.missionButton
-    if self.screen == "Missions" then setColor(255,255,255,255) end
+    if count(self.faction:get_teachable_spells(player)) > 0 or count(self.faction:get_teachable_skills(player)) > 0 then
+      if self.screen == "Spells" then setColor(150,150,150,255) end
+      self.spellsButton = output:button(buttonX,printY,spellbuttonW,false,((self.cursorX == #self.navButtons+1 and self.cursorY == 1) and "hover" or nil),"Skills/Abilities",true)
+      self.navButtons[#self.navButtons+1] = self.spellsButton
+      self.spellsButton.cursorX = #self.navButtons
+      buttonX=buttonX+spellbuttonW+padX
+      if self.screen == "Spells" then setColor(255,255,255,255) end
+    end
+    if count(self.faction.offers_services) > 0 then
+      if self.screen == "Services" then setColor(150,150,150,255) end
+      self.serviceButton = output:button(buttonX,printY,servicebuttonW,false,((self.cursorX == #self.navButtons+1 and self.cursorY == 1) and "hover" or nil),"Services",true)
+      self.navButtons[#self.navButtons+1] = self.serviceButton
+      self.serviceButton.cursorX = #self.navButtons
+      buttonX=buttonX+servicebuttonW+padX
+      if self.screen == "Services" then setColor(255,255,255,255) end
+    end
+    if count(self.faction:get_available_missions(player)) > 0 then
+      if self.screen == "Missions" then setColor(150,150,150,255) end
+      self.missionButton = output:button(buttonX,printY,missionbuttonW,false,((self.cursorX == #self.navButtons+1 and self.cursorY == 1) and "hover" or nil),"Missions",true)
+      self.navButtons[#self.navButtons+1] = self.missionButton
+      self.missionButton.cursorX = #self.navButtons
+      buttonX=buttonX+missionbuttonW+padX
+      if self.screen == "Missions" then setColor(255,255,255,255) end
+    end
     printY = printY+padX
   else
     local _, wrappedtext = fonts.textFont:getWrap("You need a reputation higher than " .. faction.enter_threshold .. " to do business with this faction.", windowWidth)
@@ -865,8 +892,8 @@ function factionscreen:draw()
     end
   elseif self.screen == "Missions" then
     self.missionButtons = {}
-    local missions = (faction.offers_missions or {})
-    local missionCount = 0
+    local missions = faction:get_available_missions(player)
+    local missionCount = count(missions)
     local lastY = 0
     
     --Drawing the text:
@@ -879,87 +906,67 @@ function factionscreen:draw()
     love.graphics.setStencilTest("greater",0)
     love.graphics.translate(0,-self.scrollY)
     for i, mData in ipairs(missions) do
-      local missionID = mData.mission
-      local active = currGame.missionStatus[missionID]
+      local missionID = mData.missionID
       local mission = possibleMissions[missionID]
-      if possibleMissions[missionID] and (not currGame.finishedMissions[missionID] or (mission.repeatable and (not mission.repeat_limit or currGame.finishedMissions[missionID].repetitions < mission.repeat_limit)))  then
-        missionCount = missionCount+1
-        love.graphics.setFont(fonts.headerFont)
-        local missionHeader = mission.name
-        local __, wrappedtext = fonts.textFont:getWrap(missionHeader, windowWidth)
-        love.graphics.printf(missionHeader,printX,printY,windowWidth,"center")
-        printY=math.ceil(printY+(#wrappedtext+0.5)*fonts.headerFont:getHeight())
-        love.graphics.setFont(fonts.textFont)
-        local missionText = (get_mission_data(missionID,'description') or mission.description)
-        local __, wrappedtext = fonts.textFont:getWrap(missionText, windowWidth)
-        love.graphics.printf(missionText,printX,printY,windowWidth,"center")
-        printY=math.ceil(printY+(#wrappedtext+1)*fontSize)
-        
-        if active then
-          local canFinish,canFinishText = nil,nil
-          if mission.can_finish then
-            canFinish,canFinishText = mission:can_finish(player)
-          end
-          if not canFinish then
-            setColor(150,150,150,255)
-          end
-          local serviceW = fonts.buttonFont:getWidth("Finish")+padding
-          local buttonX = math.floor(midX-serviceW/2)
-          local buttonHi = false
-          if mouseX > buttonX and mouseX < buttonX+serviceW and mouseY > printY-self.scrollY and mouseY < printY+32-self.scrollY then
-            buttonHi = true
-          end
-          local button = output:button(buttonX,printY,serviceW,false,((buttonHi or self.cursorY == 2+i) and "hover" or false),"Finish",true)
-          button.missionID = missionID
-          self.missionButtons[#self.missionButtons+1] = button
-          setColor(255,255,255,255)
-          printY=printY+32
-          if not canFinish then
-            canFinishText = "You are currently on this mission" .. (canFinishText and ". " .. canFinishText or ".")
-            local __, wrappedtext = fonts.textFont:getWrap(canFinishText, windowWidth)
-            love.graphics.printf(canFinishText,printX,printY,windowWidth,"center")
-            printY=printY+(#wrappedtext+1)*fontSize
-            button.disabled=true
-          end
-          printY=printY+fontSize
-        else --Not active mission
-          local canDo,canDoText = nil,nil
-          if mData.membersOnly and not self.playerMember then
-            canDoText = "This mission is only offered to members."
-            canDo = false
-          elseif mData.reputation_requirement and reputation < mData.reputation_requirement then
-            canDoText = "Requires at least " .. mData.reputation_requirement .. " reputation."
-            canDo = false
-          elseif not mission.requires then
-            canDo = true
-          elseif not canDo then
-            canDo,canDoText = mission:requires(player)
-          end
-          if canDo == false then
-            setColor(150,150,150,255)
-          end
-          local serviceW = fonts.buttonFont:getWidth("Accept")+padding
-          local buttonX = math.floor(midX-serviceW/2)
-          local buttonHi = false
-          if mouseX > buttonX and mouseX < buttonX+serviceW and mouseY > printY-self.scrollY and mouseY < printY+32-self.scrollY then
-            buttonHi = true
-          end
-          local button = output:button(buttonX,printY,serviceW,false,((buttonHi or self.cursorY == 2+i) and "hover" or false),"Accept",true)
-          button.missionID = missionID
-          self.missionButtons[#self.missionButtons+1] = button
-          printY=printY+32
-          setColor(255,255,255,255)
-          if not canDo then
-            canDoText = "You're not eligible for this mission" .. (canDoText and ": " .. canDoText or ".")
-            local __, wrappedtext = fonts.textFont:getWrap(canDoText, windowWidth)
-            love.graphics.printf(canDoText,printX,printY,windowWidth,"center")
-            printY=printY+(#wrappedtext+1)*fontSize
-            button.disabled=true
-          end
-          printY=printY+fontSize
-          lastY = printY
-        end --end active mission or not if
-      end
+      love.graphics.setFont(fonts.headerFont)
+      local missionHeader = mData.name
+      local __, wrappedtext = fonts.textFont:getWrap(missionHeader, windowWidth)
+      love.graphics.printf(missionHeader,printX,printY,windowWidth,"center")
+      printY=math.ceil(printY+(#wrappedtext+0.5)*fonts.headerFont:getHeight())
+      love.graphics.setFont(fonts.textFont)
+      local missionText = mData.description
+      local __, wrappedtext = fonts.textFont:getWrap(missionText, windowWidth)
+      love.graphics.printf(missionText,printX,printY,windowWidth,"center")
+      printY=math.ceil(printY+(#wrappedtext+1)*fontSize)
+      
+      if mData.active then
+        local canFinish,canFinishText = not mData.disabled,mData.explainText
+        if not canFinish then
+          setColor(150,150,150,255)
+        end
+        local serviceW = fonts.buttonFont:getWidth("Finish")+padding
+        local buttonX = math.floor(midX-serviceW/2)
+        local buttonHi = false
+        if mouseX > buttonX and mouseX < buttonX+serviceW and mouseY > printY-self.scrollY and mouseY < printY+32-self.scrollY then
+          buttonHi = true
+        end
+        local button = output:button(buttonX,printY,serviceW,false,((buttonHi or self.cursorY == 2+i) and "hover" or false),"Finish",true)
+        button.missionID = missionID
+        self.missionButtons[#self.missionButtons+1] = button
+        setColor(255,255,255,255)
+        printY=printY+32
+        if not canFinish then
+          local __, wrappedtext = fonts.textFont:getWrap(canFinishText, windowWidth)
+          love.graphics.printf(canFinishText,printX,printY,windowWidth,"center")
+          printY=printY+(#wrappedtext+1)*fontSize
+          button.disabled=true
+        end
+        printY=printY+fontSize
+      else --Not active mission
+        local canDo,canDoText = not mData.disabled,mData.explainText
+        if canDo == false then
+          setColor(150,150,150,255)
+        end
+        local serviceW = fonts.buttonFont:getWidth("Accept")+padding
+        local buttonX = math.floor(midX-serviceW/2)
+        local buttonHi = false
+        if mouseX > buttonX and mouseX < buttonX+serviceW and mouseY > printY-self.scrollY and mouseY < printY+32-self.scrollY then
+          buttonHi = true
+        end
+        local button = output:button(buttonX,printY,serviceW,false,((buttonHi or self.cursorY == 2+i) and "hover" or false),"Accept",true)
+        button.missionID = missionID
+        self.missionButtons[#self.missionButtons+1] = button
+        printY=printY+32
+        setColor(255,255,255,255)
+        if not canDo then
+          local __, wrappedtext = fonts.textFont:getWrap(canDoText, windowWidth)
+          love.graphics.printf(canDoText,printX,printY,windowWidth,"center")
+          printY=printY+(#wrappedtext+1)*fontSize
+          button.disabled=true
+        end
+        printY=printY+fontSize
+        lastY = printY
+      end --end active mission or not if
     end
     if missionCount == 0 then
       love.graphics.printf("There are currently no missions available.",printX,printY,windowWidth,"center")
@@ -1019,7 +1026,7 @@ function factionscreen:buttonpressed(key,scancode,isRepeat,controllerType)
         if self.cursorY > 2 and self.missionButtons[self.cursorY-2] and not self.missionButtons[self.cursorY-2].disabled then
           local missionID = self.missionButtons[self.cursorY-2].missionID
           local missionData = {}
-          for _,mInfo in pairs(self.faction.offers_missions) do
+          for _,mInfo in pairs(self.faction:get_available_missions(player)) do
             if mInfo.mission == missionID then
               missionData = mInfo
               break
@@ -1094,8 +1101,8 @@ function factionscreen:buttonpressed(key,scancode,isRepeat,controllerType)
     end --end cursorY tests within return
   elseif key == "west" then
     self.cursorX = self.cursorX - 1
-    if self.cursorY == 2 and self.cursorX < 1 then self.cursorX = 5 end --looping if on the nav buttons
-    if self.cursorY < 2 then self.cursorY = 2 self.cursorX = 5 end --if above the nav buttons, move to them
+    if self.cursorY == 2 and self.cursorX < 1 then self.cursorX = #self.navButtons end --looping if on the nav buttons
+    if self.cursorY < 2 then self.cursorY = 2 self.cursorX = #self.navButtons end --if above the nav buttons, move to them
     if self.screen == "Items" then
       if self.cursorY == 3 and not self.noBuy then --looping if on the nav buttons
         self.cursorX = 1
@@ -1105,7 +1112,7 @@ function factionscreen:buttonpressed(key,scancode,isRepeat,controllerType)
     end
   elseif key == "east" then
     self.cursorX = self.cursorX + 1
-    if self.cursorY == 2 and self.cursorX > 5 then self.cursorX = 1 end --looping if on the nav buttons
+    if self.cursorY == 2 and self.cursorX > #self.navButtons then self.cursorX = 1 end --looping if on the nav buttons
     if self.cursorY < 2 then self.cursorY = 2 self.cursorX = 1 end --if above the nav buttons, move to them
     if self.screen == "Items" then
       if self.cursorY == 3 and not self.noBuy then
@@ -1390,7 +1397,7 @@ function factionscreen:mousepressed(x,y,button)
       if button and not button.disabled and x > button.minX and x < button.maxX and y > button.minY-self.scrollY and y < button.maxY-self.scrollY then
         local missionID = button.missionID
         local missionData = {}
-        for _,mInfo in pairs(self.faction.offers_missions) do
+        for _,mInfo in pairs(self.faction:get_available_missions(player)) do
           if mInfo.mission == missionID then
             missionData = mInfo
             break
