@@ -32,6 +32,7 @@ function multiselect:enter(previous,list,title,closeAfter,advanceAfter,descripti
 end
 
 function multiselect:refresh_list()
+  self.list = self.list or {}
   local fontSize = fonts.textFont:getHeight()
   local _,titleLines = fonts.textFont:getWrap(self.title,self.boxW-self.padX)
   local startY = self.y+(#titleLines+2)*fontSize

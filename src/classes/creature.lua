@@ -2242,7 +2242,6 @@ function Creature:give_item(item,silent)
     popup2.itemID = item.id
     popup2.sortBy = (item.sortBy and item[item.sortBy] or nil)
     popup2.itemAmt = initial_amt
-    print(debug.traceback())
     currMap:add_effect(popup1,self.x,self.y)
     currMap:add_effect(popup2,self.x,self.y)
   end
