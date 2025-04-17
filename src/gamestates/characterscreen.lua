@@ -6,6 +6,7 @@ function characterscreen:enter(previous)
   output:sound('stoneslideshort',2)
   self.skillButtons = {}
   self.learnButtons = {}
+  self.factionButtons = {}
   self.cursorY = 0
   self.cursorX = 1
   self.scrollY = 0
@@ -477,12 +478,25 @@ function characterscreen:draw()
     printY = printY + fontSize]]
     lastY = printY
   elseif self.screen == "factions" then
+    self.factionButtons = {}
     local memberFacs = {}
+    local factionNum = 0
+    local infobuttonW = fonts.buttonFont:getWidth("Information")+padding
+    local factionX = padding
+    local factionXfirst = factionX+infobuttonW
     if count(player.factions) > 0 then
       love.graphics.printf("Member of: ",padding,printY,math.floor(width/uiScale)-padding,"center")
       printY = printY + fontSize
       for _,fid in ipairs(player.factions) do
+        factionNum = factionNum + 1
         memberFacs[fid] = true
+        local fButton = self.factionButtons[#self.factionButtons+1]
+        local examineMouse = false
+        if fButton and mouseX > fButton.minX and mouseX < fButton.maxX and mouseY > fButton.minY-self.scrollY and mouseY < fButton.maxY-self.scrollY then
+          examineMouse = true
+        end
+        self.factionButtons[#self.factionButtons+1] = output:button(factionX,printY+4,infobuttonW,false,((examineMouse or self.cursorY == factionNum) and "hover" or false),"Information",true)
+        self.factionButtons[#self.factionButtons].fid = fid
         local fac = currWorld.factions[fid]
         local imgPad = 0
         if images['faction' .. (fac.image_name or fid)] then
@@ -490,12 +504,12 @@ function characterscreen:draw()
           if fac.color then
             setColor(fac.color.r,fac.color.g,fac.color.b,fac.color.a)
           end
-          love.graphics.draw(images['faction' .. (fac.image_name or fid)],padding,printY-padYtext)
+          love.graphics.draw(images['faction' .. (fac.image_name or fid)],factionXfirst,printY-padYtext)
           setColor(255,255,255,255)
         end
         local facText = fac.name .. " Reputation: " .. (player.reputation[fid] or 0) .. ", Favor: " .. (player.favor[fid] or 0) .. "\n" .. (fac.map_description or fac.description)
-        love.graphics.print(facText,padding,printY)
-        local _,tlines = fonts.textFont:getWrap(facText,math.floor(width/uiScale)-padding*2)
+        love.graphics.printf(facText,factionXfirst+imgPad,printY,math.floor(width/uiScale)-padding-imgPad-factionXfirst)
+        local _,tlines = fonts.textFont:getWrap(facText,math.floor(width/uiScale)-padding-factionXfirst-imgPad)
         printY = printY + math.max(tileSize,round((#tlines+0.5)*fontSize))
       end
       printY = printY + fontSize*2
@@ -511,20 +525,28 @@ function characterscreen:draw()
     end
     sort_table(factions_known,'name')
     for _,fac in ipairs(factions_known) do
+      factionNum = factionNum+1
       local fid = fac.id
       local imgPad = 0
+      local fButton = self.factionButtons[#self.factionButtons+1]
+      local examineMouse = false
+      if fButton and mouseX > fButton.minX and mouseX < fButton.maxX and mouseY > fButton.minY-self.scrollY and mouseY < fButton.maxY-self.scrollY then
+        examineMouse = true
+      end
+      self.factionButtons[#self.factionButtons+1] = output:button(factionX,printY+4,infobuttonW,false,((examineMouse or self.cursorY == factionNum) and "hover" or false),"Information",true)
+      self.factionButtons[#self.factionButtons].fid = fid
       if images['faction' .. (fac.image_name or fid)] then
         imgPad = imgPad + tileSize
         if fac.color then
           setColor(fac.color.r,fac.color.g,fac.color.b,fac.color.a)
         end
-        love.graphics.draw(images['faction' .. (fac.image_name or fid)],padding,printY-padYtext)
+        love.graphics.draw(images['faction' .. (fac.image_name or fid)],factionXfirst,printY-padYtext)
         setColor(255,255,255,255)
       end
       local attitude = (fac:is_enemy(player) and "Hostile" or (fac:is_friend(player) and "Friendly" or "Neutral"))
       local facText = fac.name .. " - Reputation: " .. (player.reputation[fid] or 0) .. " (" .. attitude .. "), Favor: " .. (player.favor[fid] or 0) .. "\n" .. (fac.map_description or fac.description)
-      love.graphics.printf(facText,padding+imgPad,printY,math.floor(width/uiScale)-padding*2-imgPad)
-      local _,tlines = fonts.textFont:getWrap(facText,math.floor(width/uiScale)-padding*2-imgPad)
+      love.graphics.printf(facText,factionXfirst+imgPad,printY,math.floor(width/uiScale)-padding-imgPad-factionXfirst)
+      local _,tlines = fonts.textFont:getWrap(facText,math.floor(width/uiScale)-padding-imgPad-factionXfirst)
       printY = printY + math.max(tileSize,round((#tlines+0.5)*fontSize))
     end --end reputation for
     lastY = printY
@@ -593,12 +615,28 @@ function characterscreen:buttonpressed(key,scancode,isRepeat,controllerType)
       else
         self.cursorY = 0
       end
+    elseif self.screen == "factions" then
+      local whichButton = self.factionButtons[self.cursorY-1]
+      if whichButton and whichButton.minY > self.screenStartY+self.scrollY then
+        self.cursorY = self.cursorY-1
+      elseif self.scrollY > 0 then
+        self:scrollUp()
+      else
+        self.cursorY = 0
+      end
     else
       self:scrollUp()
     end
   elseif key == "south" then
     if self.screen == "character" then
       local whichButton = self.skillButtons[self.cursorY+1] or (self.cursorY+1 > #self.skillButtons and self.learnButtons[self.cursorY+1]) or nil
+      if whichButton and whichButton.maxY < height+self.scrollY then
+        self.cursorY = self.cursorY+1
+      else
+        self:scrollDown()
+      end
+    elseif self.screen == "factions" then
+      local whichButton = self.factionButtons[self.cursorY+1]
       if whichButton and whichButton.maxY < height+self.scrollY then
         self.cursorY = self.cursorY+1
       else
@@ -619,10 +657,15 @@ function characterscreen:buttonpressed(key,scancode,isRepeat,controllerType)
         self.screen = "missions"
         self.scrollY=0
       end
-    elseif self.skillButtons[self.cursorY] then
-      self:use_skillButton(self.skillButtons[self.cursorY].skill)
-    elseif self.learnButtons[self.cursorY] then
-      self:use_learnButton(self.learnButtons[self.cursorY].info)
+    elseif self.screen == "character" then
+      elseif self.skillButtons[self.cursorY] then
+        self:use_skillButton(self.skillButtons[self.cursorY].skill)
+      elseif self.learnButtons[self.cursorY] then
+        self:use_learnButton(self.learnButtons[self.cursorY].info)
+    elseif self.screen == "factions" then
+      if self.factionButtons[self.cursorY] then
+        Gamestate.switch(factionscreen,self.factionButtons[self.cursorY].fid,nil,true)
+      end
     end
   elseif key == "east" then
     if self.cursorY == 0 then self.cursorX = math.min(self.cursorX+1,3) end
@@ -647,6 +690,11 @@ function characterscreen:mousepressed(x,y,button)
   for id,button in pairs(self.learnButtons) do
     if x > button.minX and x < button.maxX and y > button.minY-self.scrollY and y < button.maxY-self.scrollY then
       self:use_learnButton(button.info)
+    end
+  end
+  for id,button in pairs(self.factionButtons) do
+    if x > button.minX and x < button.maxX and y > button.minY-self.scrollY and y < button.maxY-self.scrollY then
+      Gamestate.switch(factionscreen,button.fid,nil,true)
     end
   end
   if x > self.charButton.minX and x < self.charButton.maxX and y > self.charButton.minY and y < self.charButton.maxY then

@@ -1,6 +1,6 @@
 factionscreen = {}
 
-function factionscreen:enter(previous,whichFac,stash)
+function factionscreen:enter(previous,whichFac,stash,infoOnly)
   if previous ~= examine_item then
     self.yModPerc = 100
     self.blackScreenAlpha=0
@@ -10,10 +10,11 @@ function factionscreen:enter(previous,whichFac,stash)
     self.cursorX = 1
     self.scrollY = 0
     self.scrollMax = 0
+    self.infoOnly = infoOnly
     self.faction = currWorld.factions[whichFac]
     self.playerMember = player:is_faction_member(whichFac)
     self.screen="Info"
-    self.subScreen="Buy"
+    self.subScreen=(self.faction.noSell and "Sell" or "Buy")
     self.outText = nil
     self.totalCost = {favor=0,money=0,reputation=0}
     self.costMod = self.faction:get_cost_modifier(player)
@@ -157,71 +158,78 @@ function factionscreen:draw()
     printY=printY+#wrappedtext*fontSize
   end
   
-  if not faction.enter_threshold or ((player.reputation[factionID] or 0) >= faction.enter_threshold) then
-    printY=printY+fontSize
-    local padX = 8
-    local infobuttonW = fonts.buttonFont:getWidth("Information")+padding
-    local shopbuttonW = fonts.buttonFont:getWidth("Items")+padding
-    local spellbuttonW = fonts.buttonFont:getWidth("Skills/Abilities")+padding
-    local servicebuttonW = fonts.buttonFont:getWidth("Services")+padding
-    local missionbuttonW = fonts.buttonFont:getWidth("Missions")+padding
-    local biggestButton = math.max(infobuttonW,shopbuttonW,servicebuttonW,spellbuttonW,missionbuttonW)
-    infobuttonW,shopbuttonW,servicebuttonW,spellbuttonW,missionbuttonW = biggestButton,biggestButton,biggestButton,biggestButton,biggestButton
-    local totalWidth = windowWidth
-    local startX = windowX+math.floor(windowWidth/2-padding-2.5*biggestButton)+padding
-    local totalButtons = 2
-    self.navButtons = {}
-    if self.faction.offers_services and count(self.faction.offers_services) > 0 then
-      totalButtons = totalButtons+1
+  if not self.infoOnly then
+    if not faction.enter_threshold or ((player.reputation[factionID] or 0) >= faction.enter_threshold) then
+      printY=printY+fontSize
+      local padX = 8
+      local infobuttonW = fonts.buttonFont:getWidth("Information")+padding
+      local shopbuttonW = fonts.buttonFont:getWidth("Items")+padding
+      local spellbuttonW = fonts.buttonFont:getWidth("Skills/Abilities")+padding
+      local servicebuttonW = fonts.buttonFont:getWidth("Services")+padding
+      local missionbuttonW = fonts.buttonFont:getWidth("Missions")+padding
+      local biggestButton = math.max(infobuttonW,shopbuttonW,servicebuttonW,spellbuttonW,missionbuttonW)
+      infobuttonW,shopbuttonW,servicebuttonW,spellbuttonW,missionbuttonW = biggestButton,biggestButton,biggestButton,biggestButton,biggestButton
+      local totalWidth = windowWidth
+      local startX = windowX+math.floor(windowWidth/2-padding-2.5*biggestButton)+padding
+      local totalButtons = 1
+      self.navButtons = {}
+      if not self.faction.noBuy or not self.faction.noSell then
+        totalButtons = totalButtons+1
+      end
+      if self.faction.offers_services and count(self.faction.offers_services) > 0 then
+        totalButtons = totalButtons+1
+      end
+      if count(self.faction:get_teachable_spells(player)) > 0 or count(self.faction:get_teachable_skills(player)) > 0 then
+        totalButtons = totalButtons+1
+      end
+      if count(self.faction:get_available_missions(player)) > 0 then
+        totalButtons = totalButtons+1
+      end
+      local buttonX = windowX+math.floor(windowWidth/2-padding-(totalButtons/2)*biggestButton)+padding
+      if self.screen == "Info" then setColor(150,150,150,255) end
+      self.infoButton = output:button(buttonX,printY,infobuttonW,false,((self.cursorX == #self.navButtons+1 and self.cursorY == 2) and "hover" or nil),"Information",true)
+      self.navButtons[#self.navButtons+1] = self.infoButton
+      self.infoButton.cursorX = #self.navButtons
+      buttonX = buttonX + infobuttonW+padX
+      if self.screen == "Info" then setColor(255,255,255,255) end
+      if not self.faction.noBuy or not self.faction.noSell then
+        if self.screen == "Items" then setColor(150,150,150,255) end
+        self.shopButton = output:button(buttonX,printY,shopbuttonW,false,((self.cursorX == #self.navButtons+1 and self.cursorY == 2) and "hover" or nil),"Items",true)
+        self.navButtons[#self.navButtons+1] = self.shopButton
+        self.shopButton.cursorX = #self.navButtons
+        buttonX = buttonX + shopbuttonW+padX
+        if self.screen == "Items" then setColor(255,255,255,255) end
+      end
+      if count(self.faction:get_teachable_spells(player)) > 0 or count(self.faction:get_teachable_skills(player)) > 0 then
+        if self.screen == "Spells" then setColor(150,150,150,255) end
+        self.spellsButton = output:button(buttonX,printY,spellbuttonW,false,((self.cursorX == #self.navButtons+1 and self.cursorY == 2) and "hover" or nil),"Skills/Abilities",true)
+        self.navButtons[#self.navButtons+1] = self.spellsButton
+        self.spellsButton.cursorX = #self.navButtons
+        buttonX=buttonX+spellbuttonW+padX
+        if self.screen == "Spells" then setColor(255,255,255,255) end
+      end
+      if count(self.faction:get_available_services(player)) > 0 then
+        if self.screen == "Services" then setColor(150,150,150,255) end
+        self.serviceButton = output:button(buttonX,printY,servicebuttonW,false,((self.cursorX == #self.navButtons+1 and self.cursorY == 2) and "hover" or nil),"Services",true)
+        self.navButtons[#self.navButtons+1] = self.serviceButton
+        self.serviceButton.cursorX = #self.navButtons
+        buttonX=buttonX+servicebuttonW+padX
+        if self.screen == "Services" then setColor(255,255,255,255) end
+      end
+      if count(self.faction:get_available_missions(player)) > 0 then
+        if self.screen == "Missions" then setColor(150,150,150,255) end
+        self.missionButton = output:button(buttonX,printY,missionbuttonW,false,((self.cursorX == #self.navButtons+1 and self.cursorY == 2) and "hover" or nil),"Missions",true)
+        self.navButtons[#self.navButtons+1] = self.missionButton
+        self.missionButton.cursorX = #self.navButtons
+        buttonX=buttonX+missionbuttonW+padX
+        if self.screen == "Missions" then setColor(255,255,255,255) end
+      end
+      printY = printY+padX
+    else
+      local _, wrappedtext = fonts.textFont:getWrap("You need a reputation higher than " .. faction.enter_threshold .. " to do business with this faction.", windowWidth)
+      love.graphics.printf("You need reputation higher than " .. faction.enter_threshold .. " to do business with this faction.",printX,printY,windowWidth,"center")
+      printY=printY+(#wrappedtext)*fontSize-math.ceil(padding/2)
     end
-    if count(self.faction:get_teachable_spells(player)) > 0 or count(self.faction:get_teachable_skills(player)) > 0 then
-      totalButtons = totalButtons+1
-    end
-    if count(self.faction:get_available_missions(player)) > 0 then
-      totalButtons = totalButtons+1
-    end
-    local buttonX = windowX+math.floor(windowWidth/2-padding-(totalButtons/2)*biggestButton)+padding
-    if self.screen == "Info" then setColor(150,150,150,255) end
-    self.infoButton = output:button(buttonX,printY,infobuttonW,false,((self.cursorX == 1 and self.cursorY == 2) and "hover" or nil),"Information",true)
-    self.navButtons[#self.navButtons+1] = self.infoButton
-    self.infoButton.cursorX = #self.navButtons
-    buttonX = buttonX + infobuttonW
-    if self.screen == "Info" then setColor(255,255,255,255) end
-    if self.screen == "Items" then setColor(150,150,150,255) end
-    self.shopButton = output:button(buttonX,printY,shopbuttonW,false,((self.cursorX == 2 and self.cursorY == 2) and "hover" or nil),"Items",true)
-    self.navButtons[#self.navButtons+1] = self.shopButton
-    self.shopButton.cursorX = #self.navButtons
-    buttonX = buttonX + shopbuttonW
-    if self.screen == "Items" then setColor(255,255,255,255) end
-    if count(self.faction:get_teachable_spells(player)) > 0 or count(self.faction:get_teachable_skills(player)) > 0 then
-      if self.screen == "Spells" then setColor(150,150,150,255) end
-      self.spellsButton = output:button(buttonX,printY,spellbuttonW,false,((self.cursorX == #self.navButtons+1 and self.cursorY == 1) and "hover" or nil),"Skills/Abilities",true)
-      self.navButtons[#self.navButtons+1] = self.spellsButton
-      self.spellsButton.cursorX = #self.navButtons
-      buttonX=buttonX+spellbuttonW+padX
-      if self.screen == "Spells" then setColor(255,255,255,255) end
-    end
-    if count(self.faction.offers_services) > 0 then
-      if self.screen == "Services" then setColor(150,150,150,255) end
-      self.serviceButton = output:button(buttonX,printY,servicebuttonW,false,((self.cursorX == #self.navButtons+1 and self.cursorY == 1) and "hover" or nil),"Services",true)
-      self.navButtons[#self.navButtons+1] = self.serviceButton
-      self.serviceButton.cursorX = #self.navButtons
-      buttonX=buttonX+servicebuttonW+padX
-      if self.screen == "Services" then setColor(255,255,255,255) end
-    end
-    if count(self.faction:get_available_missions(player)) > 0 then
-      if self.screen == "Missions" then setColor(150,150,150,255) end
-      self.missionButton = output:button(buttonX,printY,missionbuttonW,false,((self.cursorX == #self.navButtons+1 and self.cursorY == 1) and "hover" or nil),"Missions",true)
-      self.navButtons[#self.navButtons+1] = self.missionButton
-      self.missionButton.cursorX = #self.navButtons
-      buttonX=buttonX+missionbuttonW+padX
-      if self.screen == "Missions" then setColor(255,255,255,255) end
-    end
-    printY = printY+padX
-  else
-    local _, wrappedtext = fonts.textFont:getWrap("You need a reputation higher than " .. faction.enter_threshold .. " to do business with this faction.", windowWidth)
-    love.graphics.printf("You need reputation higher than " .. faction.enter_threshold .. " to do business with this faction.",printX,printY,windowWidth,"center")
-    printY=printY+(#wrappedtext)*fontSize-math.ceil(padding/2)
   end
   printY=printY+padding
   love.graphics.line(printX,printY,printX+windowWidth-padding,printY)
@@ -355,7 +363,7 @@ function factionscreen:draw()
       self.scrollMax = 0
     end
   elseif self.screen == "Items" then
-    if not self.faction.noBuy then
+    if not self.faction.noBuy and not self.faction.noSell then
       local padX = 8
       local buybuttonW = fonts.textFont:getWidth("Buy")+padding
       local sellbuttonW = fonts.textFont:getWidth("Sell")+padding
@@ -793,7 +801,7 @@ function factionscreen:draw()
   elseif self.screen == "Services" then
     self.serviceButtons = {}
     local serviceCount = 0
-    local services = faction.offers_services or {}
+    local services = faction:get_available_services(player)
     local lastY = 0
     local maxX = windowWidth-padding
     if self.maxScroll and self.maxScroll > 0 then
@@ -812,63 +820,32 @@ function factionscreen:draw()
     for i,servData in ipairs(services) do
       local servID = servData.service
       serviceCount = serviceCount+1
-      local service = possibleServices[servID]
-      local costText = service:get_cost_text(player) or servData.costText or service.costText
-      if costText == nil then
-        local moneyText = (servData.moneyCost and get_money_name(servData.moneyCost+round(servData.moneyCost*(self.costMod/100))) or nil)
-        local favorText = (servData.favorCost and servData.favorCost.. " Favor" or nil)
-        if moneyText then
-          costText = moneyText .. (favorText and ", " .. favorText)
-        else
-          costText = favorText
-        end
-      end
       love.graphics.setFont(fonts.headerFont)
-      local serviceHeader = service.name
+      local serviceHeader = servData.name
       local __, wrappedtext = fonts.textFont:getWrap(serviceHeader, windowWidth)
       love.graphics.printf(serviceHeader,printX,printY,windowWidth,"center")
       printY=math.ceil(printY+(#wrappedtext*fonts.headerFont:getHeight()))
       love.graphics.setFont(fonts.textFont)
-      local serviceText = (costText and " (Cost: " .. costText .. ")" or "") .. "\n" .. service.description
+      local serviceText = servData.description
       local __, wrappedtext = fonts.textFont:getWrap(serviceText, windowWidth)
       love.graphics.printf(serviceText,printX,printY,maxX,"center")
       printY=math.ceil(printY+(#wrappedtext+1)*fontSize)
       
-      local canDo,canDoText = nil,nil
-      if servData.membersOnly and not self.playerMember then
-        canDoText = "This service is only provided to members."
-        canDo = false
-      elseif servData.reputation_requirement and reputation < servData.reputation_requirement then
-        canDoText = "Requires at least " .. servData.reputation_requirement .. " reputation for this service to be performed."
-        canDo = false
-      elseif servData.favorCost and favor < servData.favorCost then
-        canDoText = "You don't have enough favor."
-        canDo = false
-      elseif servData.moneyCost and player.money < servData.moneyCost+round(servData.moneyCost*(self.costMod/100)) then
-        canDoText = "You don't have enough money."
-        canDo = false
-      elseif not service.requires then
-        canDo=true
-      else
-        canDo,canDoText = service:requires(player)
-        if canDo == false then
-          canDoText = "You're not eligible for this service" .. (canDoText and ": " .. canDoText or ".")
-        end
-      end
+      local canDo,canDoText = not servData.disabled,servData.explainText
       if canDo == false then
         setColor(150,150,150,255)
       end
-      local serviceW = fonts.buttonFont:getWidth(service.name)+padding
+      local serviceW = fonts.buttonFont:getWidth("Select " .. servData.name)+padding
       local buttonX = math.floor(midX-serviceW/2+padding/2)
       local buttonHi = false
       if mouseX > buttonX and mouseX < buttonX+serviceW and mouseY > printY-self.scrollY and mouseY < printY+32-self.scrollY then
         buttonHi = true
       end
-      local button = output:button(buttonX,printY,serviceW,false,((buttonHi or self.cursorY == 2+#self.serviceButtons+1) and "hover" or false),service.name)
+      local button = output:button(buttonX,printY,serviceW,false,((buttonHi or self.cursorY == 2+#self.serviceButtons+1) and "hover" or false),"Select " .. servData.name)
       self.serviceButtons[#self.serviceButtons+1] = button
       setColor(255,255,255,255)
       printY=printY+32
-      if canDo == false then
+      if canDo == false and canDoText then
         local __, wrappedtext = fonts.textFont:getWrap(canDoText, windowWidth)
         love.graphics.printf(canDoText,printX,printY,maxX,"center")
         printY=printY+(#wrappedtext+1)*fontSize
@@ -1068,7 +1045,7 @@ function factionscreen:buttonpressed(key,scancode,isRepeat,controllerType)
           end
         end
       elseif self.screen == "Items" then
-        if self.cursorY == 3 and not self.noBuy then --buttons
+        if self.cursorY == 3 and not (self.faction.noBuy or self.faction.noSell) then --buttons
           if self.cursorX == 1 then
             self.subScreen = "Buy"
             self.cursorY = 4
@@ -1104,7 +1081,7 @@ function factionscreen:buttonpressed(key,scancode,isRepeat,controllerType)
     if self.cursorY == 2 and self.cursorX < 1 then self.cursorX = #self.navButtons end --looping if on the nav buttons
     if self.cursorY < 2 then self.cursorY = 2 self.cursorX = #self.navButtons end --if above the nav buttons, move to them
     if self.screen == "Items" then
-      if self.cursorY == 3 and not self.noBuy then --looping if on the nav buttons
+      if self.cursorY == 3 and not (self.faction.noBuy or self.faction.noSell) then --looping if on the nav buttons
         self.cursorX = 1
       else
         self.cursorX = math.max(1,self.cursorX)
@@ -1115,7 +1092,7 @@ function factionscreen:buttonpressed(key,scancode,isRepeat,controllerType)
     if self.cursorY == 2 and self.cursorX > #self.navButtons then self.cursorX = 1 end --looping if on the nav buttons
     if self.cursorY < 2 then self.cursorY = 2 self.cursorX = 1 end --if above the nav buttons, move to them
     if self.screen == "Items" then
-      if self.cursorY == 3 and not self.noBuy then
+      if self.cursorY == 3 and not (self.faction.noBuy or self.faction.noSell) then
         self.cursorX = 2
       elseif self.cursorY > 4 then
         local list = (self.subScreen == "Buy" and self.selling_list or self.buying_list)
@@ -1171,11 +1148,17 @@ function factionscreen:buttonpressed(key,scancode,isRepeat,controllerType)
     elseif self.screen == "Items" then
       if self.cursorY > 1 then
         self.cursorY = self.cursorY - 1
+        if self.cursorY == 3 then
+          if (self.faction.noBuy or self.faction.noSell) then
+            self.cursorY = 2
+          elseif self.subScreen == "Buy" then
+            self.cursorX = 1
+          else
+            self.cursorX = 2
+          end
+        end
         if self.cursorY == 2 then
           self.cursorX = 2
-        elseif self.cursorY == 3 then
-          if self.subScreen == "Buy" then self.cursorX = 1
-          else self.cursorX = 2 end
         end
       end
     end --end cursorY check
@@ -1491,7 +1474,7 @@ function factionscreen:update(dt)
         v.buyAmt = v.amount
       end
     end
-    if self.cursorY == 3 and self.noBuy then
+    if self.cursorY == 3 and (self.faction.noBuy or self.faction.noSell) then
       self.cursorY = 4
     end
   end

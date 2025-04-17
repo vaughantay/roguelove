@@ -1192,12 +1192,67 @@ function Faction:get_teachable_skills(creature)
   return skill_list
 end
 
+---Gets the list of services the faction can offer a given creature
+--@param creature Creature. Optional, defaults to player
+--@return Table. A list of possible services
+function Faction:get_available_services(creature)
+  local services = {}
+  
+  if self.offers_services then
+    local costMod = self:get_cost_modifier(creature)
+    for i,servData in ipairs(self.offers_services) do
+      local service_data = {service=servData.service}
+      local servID = servData.service
+      local service = possibleServices[servID]
+      local costText = service:get_cost_text(creature) or servData.costText or service.costText
+      if costText == nil then
+        local moneyText = (servData.moneyCost and get_money_name(servData.moneyCost+round(servData.moneyCost*(costMod/100))) or nil)
+        local favorText = (servData.favorCost and servData.favorCost.. " Favor" or nil)
+        if moneyText then
+          costText = moneyText .. (favorText and ", " .. favorText)
+        else
+          costText = favorText
+        end
+      end
+      service_data.name = service.name
+      service_data.description = (costText and " (Cost: " .. costText .. ")" or "") .. "\n" .. service.description
+      
+      local canDo,canDoText = nil,nil
+      if servData.membersOnly and not creature:is_faction_member(self.id) then
+        canDoText = "This service is only provided to members."
+        canDo = false
+      elseif servData.reputation_requirement and (creature.reputation[self.id] or 0) < servData.reputation_requirement then
+        canDoText = "Requires at least " .. servData.reputation_requirement .. " reputation for this service to be performed."
+        canDo = false
+      elseif servData.favorCost and (creature.favor[self.id] or 0) < servData.favorCost then
+        canDoText = "You don't have enough favor."
+        canDo = false
+      elseif servData.moneyCost and creature.money < servData.moneyCost+round(servData.moneyCost*(costMod/100)) then
+        canDoText = "You don't have enough money."
+        canDo = false
+      elseif not service.requires then
+        canDo=true
+      else
+        canDo,canDoText = service:requires(creature)
+        if canDo == false then
+          canDoText = "You're not eligible for this service" .. (canDoText and ": " .. canDoText or ".")
+        end
+      end
+      service_data.disabled = (canDo == false)
+      service_data.explainText = canDoText
+      if not (service_data.disabled and service.hide_when_disabled) then
+        services[#services+1] = service_data
+      end
+    end
+  end
+  return services
+end
+
 ---Gets the list of missions the faction can teach a given creature
 --@param creature Creature. Optional, defaults to player
 --@return Table. A list of possible missions
 function Faction:get_available_missions(creature)
   local missions = {}
-  local missionCount = 0
   
   if self.offers_missions then
     for i, mData in ipairs(self.offers_missions) do
@@ -1215,10 +1270,10 @@ function Faction:get_available_missions(creature)
           if mission.can_finish then
             canFinish,canFinishText = mission:can_finish(player)
           end
-          if not canFinish then
+          if canFinish == false then
             canFinishText = "You are currently on this mission" .. (canFinishText and ". " .. canFinishText or ".")
           end
-          mData.disabled = not canFinish
+          mData.disabled = (canFinish == false)
           mData.explainText = canFinishText
         else --Not active mission
           local canDo,canDoText = nil,nil
@@ -1233,10 +1288,10 @@ function Faction:get_available_missions(creature)
           else
             canDo,canDoText = mission:requires(creature)
           end
-          if not canDo then
+          if canDo == false then
             canDoText = "You're not eligible for this mission" .. (canDoText and ": " .. canDoText or ".")
           end
-          mData.disabled = not canDo
+          mData.disabled = (canDo == false)
           mData.explainText = canDoText
         end --end active mission or not if
         if not (mData.disabled and mission.hide_when_disabled) then

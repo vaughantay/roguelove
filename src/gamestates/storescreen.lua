@@ -9,7 +9,7 @@ function storescreen:enter(previous,whichStore,stash)
     self.cursorY = 1
     self.cursorX = 1
     self.store = whichStore
-    self.screen="Buy"
+    self.screen=nil
     self.outText = nil
     self.lineCountdown = 0.5
     self.totalCost = 0
@@ -105,7 +105,7 @@ function storescreen:draw()
     if reqText then reasonText = reqText end
   end
   
-  if canEnter and (not self.store.noBuy or count(self.store.offers_services) > 0 or count((self.store:get_teachable_spells())) > 0 or count((self.store:get_teachable_skills())) > 0) then
+  if canEnter and (not (self.store.noBuy and self.store.noSell) or count(self.store.offers_services) > 0 or count((self.store:get_teachable_spells())) > 0 or count((self.store:get_teachable_skills())) > 0) then
     printY=printY+fontSize
     local padX = 8
     local buybuttonW = fonts.buttonFont:getWidth("Buy")+padding
@@ -115,7 +115,7 @@ function storescreen:draw()
     local missionbuttonW = fonts.buttonFont:getWidth("Missions")+padding
     local biggestButton = math.max(buybuttonW,sellbuttonW,servicebuttonW,spellbuttonW)
     buybuttonW,sellbuttonW,servicebuttonW,spellbuttonW= biggestButton,biggestButton,biggestButton,biggestButton
-    local totalButtons = (self.store.noBuy and 1 or 2)
+    local totalButtons = 2-(self.store.noBuy and 1 or 0)-(self.store.noSell and 1 or 0)
     self.navButtons = {}
     if self.store.offers_services and count(self.store.offers_services) > 0 then
       totalButtons = totalButtons+1
@@ -127,13 +127,17 @@ function storescreen:draw()
       totalButtons = totalButtons+1
     end
     local buttonX = windowX+math.floor(windowWidth/2-padding-(totalButtons/2)*biggestButton)+padding
-    if self.screen == "Buy" then setColor(150,150,150,255) end
-    self.buyButton = output:button(buttonX-padX,printY,buybuttonW+padX,false,((self.cursorX == 1 and self.cursorY == 1) and "hover" or nil),"Buy",true)
-    self.navButtons[#self.navButtons+1] = self.buyButton
-    self.buyButton.cursorX = #self.navButtons
-    buttonX=buttonX+buybuttonW+padX
-    if self.screen == "Buy" then setColor(255,255,255,255) end
+    if not self.store.noSell then
+      if not self.screen then self.screen = "Buy" end
+      if self.screen == "Buy" then setColor(150,150,150,255) end
+      self.buyButton = output:button(buttonX-padX,printY,buybuttonW+padX,false,((self.cursorX == 1 and self.cursorY == 1) and "hover" or nil),"Buy",true)
+      self.navButtons[#self.navButtons+1] = self.buyButton
+      self.buyButton.cursorX = #self.navButtons
+      buttonX=buttonX+buybuttonW+padX
+      if self.screen == "Buy" then setColor(255,255,255,255) end
+    end
     if not self.store.noBuy then
+      if not self.screen then self.screen = "Sell" end
       if self.screen == "Sell" then setColor(150,150,150,255) end
       self.sellButton = output:button(buttonX,printY,sellbuttonW,false,((self.cursorX == 2 and self.cursorY == 1) and "hover" or nil),"Sell",true)
       self.navButtons[#self.navButtons+1] = self.sellButton
@@ -142,6 +146,7 @@ function storescreen:draw()
       if self.screen == "Sell" then setColor(255,255,255,255) end
     end
     if count(self.store.offers_services) > 0 then
+      if not self.screen then self.screen = "Services" end
       if self.screen == "Services" then setColor(150,150,150,255) end
       self.serviceButton = output:button(buttonX,printY,servicebuttonW,false,((self.cursorX == #self.navButtons+1 and self.cursorY == 1) and "hover" or nil),"Services",true)
       self.navButtons[#self.navButtons+1] = self.serviceButton
@@ -150,6 +155,7 @@ function storescreen:draw()
       if self.screen == "Services" then setColor(255,255,255,255) end
     end
     if count(self.store:get_teachable_spells(player)) > 0 or count(self.store:get_teachable_skills(player)) > 0 then
+      if not self.screen then self.screen = "Spells" end
       if self.screen == "Spells" then setColor(150,150,150,255) end
       self.spellsButton = output:button(buttonX,printY,spellbuttonW,false,((self.cursorX == #self.navButtons+1 and self.cursorY == 1) and "hover" or nil),"Skills/Abilities",true)
       self.navButtons[#self.navButtons+1] = self.spellsButton
@@ -158,6 +164,7 @@ function storescreen:draw()
       if self.screen == "Spells" then setColor(255,255,255,255) end
     end
     if count(self.store:get_available_missions()) > 0 then
+      if not self.screen then self.screen = "Missions" end
       if self.screen == "Missions" then setColor(150,150,150,255) end
       self.missionButton = output:button(buttonX,printY,missionbuttonW,false,((self.cursorX == #self.navButtons+1 and self.cursorY == 1) and "hover" or nil),"Missions",true)
       self.navButtons[#self.navButtons+1] = self.missionButton
@@ -167,9 +174,9 @@ function storescreen:draw()
     end
     printY = printY+padding
   end
-  printY=printY+8
-  love.graphics.line(printX,printY,printX+windowWidth-padding,printY)
-  printY=printY+8
+    printY=printY+8
+    love.graphics.line(printX,printY,printX+windowWidth-padding,printY)
+    printY=printY+8
   
   --Draw the screens:
   local mouseX,mouseY = love.mouse.getPosition()
@@ -430,7 +437,7 @@ function storescreen:draw()
   elseif self.screen == "Services" then
     self.serviceButtons = {}
     local serviceCount = 0
-    local services = self.store.offers_services or {}
+    local services = self.store:get_available_services(player)
     local lastY = 0
     local listStartY = printY
     
@@ -444,53 +451,37 @@ function storescreen:draw()
     love.graphics.setStencilTest("greater",0)
     love.graphics.translate(0,-self.scrollY)
     for i,servData in ipairs(services) do
-      serviceCount = serviceCount+1
       local servID = servData.service
-      local service = possibleServices[servID]
-      local costText = service:get_cost_text(player) or servData.costText or service.costText or (servData.cost and self:get_cost_text(servData.cost+round(servData.cost*(self.costMod/100))) or nil)
+      serviceCount = serviceCount+1
       love.graphics.setFont(fonts.headerFont)
-      local serviceHeader = service.name
+      local serviceHeader = servData.name
       local __, wrappedtext = fonts.textFont:getWrap(serviceHeader, windowWidth)
       love.graphics.printf(serviceHeader,printX,printY,windowWidth,"center")
       printY=math.ceil(printY+(#wrappedtext*fonts.headerFont:getHeight()))
       love.graphics.setFont(fonts.textFont)
-      local serviceText = (costText and " (Cost: " .. costText .. ")" or "") .. "\n" .. service.description
+      local serviceText = servData.description
       local __, wrappedtext = fonts.textFont:getWrap(serviceText, windowWidth)
       love.graphics.printf(serviceText,windowX,printY,windowWidth,"center")
       printY=printY+(#wrappedtext+1)*fontSize
       
-      local canDo,canDoText = true,nil
-      if servData.cost then
-        local playerItem = (self.currency_item and player:has_item(self.store.currency_item) or nil)
-        if self.currency_item and (not playerItem or playerItem.amount < servData.cost+round(servData.cost*(self.costMod/100))) then
-          canDoText = "You don't have enough " .. (self.currency_item.pluralName or self.currency_item.name) .. "."
-          canDo = false
-        elseif player.money < servData.cost+round(servData.cost*(self.costMod/100)) then
-          canDoText = "You don't have enough money."
-          canDo = false
-        end
-      end
-      if canDo ~= false and service.requires then
-        canDo,canDoText = service:requires(player)
-      end
+      local canDo,canDoText = not servData.disabled,servData.explainText
       if canDo == false then
         setColor(150,150,150,255)
       end
-      local serviceW = fonts.buttonFont:getWidth("Select " .. service.name)+padding
-      local buttonX = math.floor(midX-serviceW/2)
+      local serviceW = fonts.buttonFont:getWidth("Select " .. servData.name)+padding
+      local buttonX = math.floor(midX-serviceW/2+padding/2)
       local buttonHi = false
       if mouseX > buttonX and mouseX < buttonX+serviceW and mouseY > printY-self.scrollY and mouseY < printY+32-self.scrollY then
         buttonHi = true
       end
-      local button = output:button(buttonX,printY,serviceW,false,((buttonHi or self.cursorY == 1+i) and "hover" or false),"Select " .. service.name,true)
+      local button = output:button(buttonX,printY,serviceW,false,((buttonHi or self.cursorY == 1+i) and "hover" or false),"Select " .. servData.name,true)
       self.serviceButtons[#self.serviceButtons+1] = button
       setColor(255,255,255,255)
       printY=printY+32
-      if canDo == false then
-        canDoText = "You're not eligible for this service" .. (canDoText and ": " .. canDoText or ".")
+      if canDo == false and canDoText then
         local __, wrappedtext = fonts.textFont:getWrap(canDoText, windowWidth)
         love.graphics.printf(canDoText,windowX,printY,windowWidth,"center")
-        printY=printY+(#wrappedtext)*fontSize
+        printY=printY+(#wrappedtext+1)*fontSize
         button.disabled = true
       end
       printY=printY+fontSize

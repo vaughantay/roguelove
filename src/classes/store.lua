@@ -792,12 +792,52 @@ function Store:get_teachable_skills(creature)
   return skill_list
 end
 
+--@param creature Creature. Optional, defaults to player
+--@return Table. A list of possible services
+function Store:get_available_services(creature)
+  local services = {}
+  
+  if self.offers_services then
+    local costMod = (self.faction and currWorld.factions[self.faction]:get_cost_modifier(player) or 0)
+    for i,servData in ipairs(self.offers_services) do
+      local service_data = {service=servData.service}
+      local servID = servData.service
+      local service = possibleServices[servID]
+      local costText = service:get_cost_text(creature) or servData.costText or service.costText
+      if costText == nil then
+        local moneyText = (servData.cost and get_money_name(servData.cost+round(servData.cost*(costMod/100))) or nil)
+        costText = moneyText
+      end
+      service_data.name = service.name
+      service_data.description = (costText and " (Cost: " .. costText .. ")" or "") .. "\n" .. service.description
+      
+      local canDo,canDoText = nil,nil
+      if servData.cost and creature.money < servData.cost+round(servData.cost*(costMod/100)) then
+        canDoText = "You don't have enough money."
+        canDo = false
+      elseif not service.requires then
+        canDo=true
+      else
+        canDo,canDoText = service:requires(creature)
+        if canDo == false then
+          canDoText = "You're not eligible for this service" .. (canDoText and ": " .. canDoText or ".")
+        end
+      end
+      service_data.disabled = (canDo == false)
+      service_data.explainText = canDoText
+      if not (service_data.disabled and service.hide_when_disabled) then
+        services[#services+1] = service_data
+      end
+    end
+  end
+  return services
+end
+
 ---Gets the list of missions the store can teach a given creature
 --@param creature Creature. Optional, defaults to player
 --@return Table. A list of possible missions
 function Store:get_available_missions(creature)
   local missions = {}
-  local missionCount = 0
   
   if self.offers_missions then
     for i, mData in ipairs(self.offers_missions) do
