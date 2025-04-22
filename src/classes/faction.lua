@@ -26,6 +26,7 @@ function Faction:init(fid)
   self.teaches_spells = self.teaches_spells or {}
   self.teaches_skills = self.teaches_skills or {}
   self:generate_items()
+  self:select_missions()
   if data.generateName then
     self.name = data.generateName(self)
   elseif self.nameType then
@@ -319,6 +320,37 @@ function Faction:generate_items()
   end --end random items if
 end
 
+---Select missions to offer, if there's a limit
+function Faction:select_missions()
+  local all_missions = self:get_available_missions(nil,true)
+  local availableIDs = {}
+  local actives = 0
+  for _,mission in ipairs(all_missions) do
+    if mission.active then
+      actives = actives + 1
+    else
+      availableIDs[#availableIDs+1] = mission.missionID
+    end
+  end
+  
+  
+  if self.mission_limit then
+    local limit = self.mission_limit-actives
+    if limit > 0 then
+      availableIDs = shuffle(availableIDs)
+      local actual_availables = {}
+      for i=1,limit,1 do
+        actual_availables[i] = availableIDs[i]
+      end
+      self.current_missions = actual_availables
+    else
+      self.current_missions = {}
+    end
+  else
+    self.current_missions = availableIDs
+  end
+end
+
 ---Restocks the faction's inventory. Default behavior: Restock all defined items up to their original amount, unless restock_amount or restock_to is set.
 function Faction:restock()
   --Delete items marked to delete on restock:
@@ -388,6 +420,8 @@ function Faction:restock()
       end --end possibles count if
     end
   end --end if random_item_amount
+  
+  self:select_missions()
 end
 
 ---Adds an item to the faction store. If the store already has this item, increase the amount
@@ -1250,8 +1284,9 @@ end
 
 ---Gets the list of missions the faction can teach a given creature
 --@param creature Creature. Optional, defaults to player
+--@param ignoreCurrent. Optional, if true ignore the current_missions table
 --@return Table. A list of possible missions
-function Faction:get_available_missions(creature)
+function Faction:get_available_missions(creature,ignoreCurrent)
   local missions = {}
   
   if self.offers_missions then
@@ -1259,7 +1294,7 @@ function Faction:get_available_missions(creature)
       local missionID = mData.mission
       local active = get_mission_status(missionID)
       local mission = possibleMissions[missionID]
-      if possibleMissions[missionID] and (not currGame.finishedMissions[missionID] or (mission.repeatable and (not mission.repeat_limit or currGame.finishedMissions[missionID].repetitions < mission.repeat_limit))) then
+      if possibleMissions[missionID] and (not currGame.finishedMissions[missionID] or (mission.repeatable and (not mission.repeat_limit or currGame.finishedMissions[missionID].repetitions < mission.repeat_limit))) and (active or ignoreCurrent or not self.current_missions or in_table(missionID,self.current_missions)) then
         local mData = {missionID=missionID}
         mData.name = mission.name
         mData.description = (get_mission_data(missionID,'description') or mission.description)
@@ -1294,7 +1329,7 @@ function Faction:get_available_missions(creature)
           mData.disabled = (canDo == false)
           mData.explainText = canDoText
         end --end active mission or not if
-        if not (mData.disabled and mission.hide_when_disabled) then
+        if active or not (mData.disabled and mission.hide_when_disabled) then
           missions[#missions+1] = mData
         end
       end
