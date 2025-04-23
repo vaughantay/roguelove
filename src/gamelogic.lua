@@ -925,6 +925,9 @@ function start_mission(missionID,startVal,source,values,skipFunc)
       output:out(text)
     end
   end
+  if source and source.current_missions then
+    remove_from_array(source.current_missions,missionID)
+  end
   return ret,text
 end
 
