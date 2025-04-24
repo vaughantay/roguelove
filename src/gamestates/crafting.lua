@@ -30,7 +30,7 @@ function crafting:refresh_craft_list()
   local craft_list = player:get_all_possible_recipes(self.hideUncraftable,self.recipe_type,self.stash)
   local crafts = {}
   for _,craftID in ipairs(craft_list) do
-    local craftData = {id=craftID,craftable=true,secondary_ingredients={}}
+    local craftData = {id=craftID,craftable=true,secondary_ingredients={},amount=1}
     local recipe = possibleRecipes[craftID]
     --First look at igredients:
     if recipe.ingredients then
@@ -341,13 +341,6 @@ function crafting:draw()
   self.scrollY = math.min(self.scrollY,self.scrollMax)
   
   --Print info on selected craft:
-  local amountBoxW = fonts.textFont:getWidth("100")+8
-  local minusButtonX = sidebarX+padX
-  local amountBoxX = minusButtonX+48
-  local plusButtonX = amountBoxX+amountBoxW+16
-  local iconX = plusButtonX+48
-  local ingredientX = iconX+tileSize
-  local ingredientW = window2w-(ingredientX-(sidebarX+padX))
   self.buttons = {}
   
   if (self.crafts[self.selected or self.cursorY] ~= nil) then
@@ -383,11 +376,11 @@ function crafting:draw()
     local buttonY = 0
     
     --Craft Buttons:
-    if not craftInfo.craftable then
+    if not craftInfo.craftable or craftInfo.not_enough_due_to_amount then
       setColor(150,150,150,255)
     elseif craftInfo.ingredient_properties then
       for _,prop in pairs(craftInfo.ingredient_properties) do
-        if prop.selected < prop.required then
+        if prop.selected < prop.required*craftInfo.amount then
           setColor(150,150,150,255)
           break
         end
@@ -396,29 +389,80 @@ function crafting:draw()
     local craftSelected = (self.selected and self.sideCursorY == 0 or false)
     local buttonW = fonts.buttonFont:getWidth("Create")+25
     local craftButton = output:button(sidebarX+padX,descY,buttonW,nil,(craftSelected and 'hover' or nil),"Create")
+    craftButton.buttonX = 1
     craftButton.buttonY = buttonY
     craftButton.buttonType = "craft"
     self.buttons[1] = craftButton
     setColor(255,255,255,255)
+    local amountW = fonts.textFont:getWidth("Amount: ")
+    love.graphics.print("Amount: ",sidebarX+padX+buttonW,descY)
+    local amountBoxW = fonts.textFont:getWidth("100")+8
+    local minusButtonX = sidebarX+padX+buttonW+amountW
+    local amountBoxX = minusButtonX+48
+    local plusButtonX = amountBoxX+amountBoxW+16
+    
+    --Minus Button:
+    local minusButton = output:tinybutton(minusButtonX,descY-6,nil,(minusMouse or (self.sideCursorY == buttonY and self.cursorX == 2) and "hover" or false),"-")
+    minusButton.craftInfo = craftInfo
+    minusButton.buttonX = 2
+    minusButton.buttonY = buttonY
+    minusButton.buttonType = "minusmain"
+    self.buttons[#self.buttons+1] = minusButton
+    
+    --Amount Box:
+    local numberEntry = {minX=amountBoxX,minY=descY,maxX=amountBoxX+amountBoxW,maxY=descY-2+fontSize+4,buttonX=3,buttonY=buttonY,buttonType="boxmain"}
+    numberEntry.craftInfo = craftInfo
+    self.buttons[#self.buttons+1] = numberEntry
+    local amountMouse = (mouseX > numberEntry.minX and mouseX < numberEntry.maxX and mouseY > numberEntry.minY-self.scrollY and mouseY < numberEntry.maxY-self.scrollY)
+    if (self.cursorX == 3 and self.sideCursorY == buttonY) or amountMouse then
+      setColor(75,75,75,255)
+      love.graphics.rectangle('fill',numberEntry.minX,numberEntry.minY,amountBoxW,fontSize+4)
+      setColor(255,255,255,255)
+      if self.lineOn and self.cursorX == 2 and self.sideCursorY == buttonY then
+        local w = fonts.textFont:getWidth(tostring(craftInfo.amount))
+        local lineX = amountBoxX+math.ceil(amountBoxW/2+w/2)
+        love.graphics.line(lineX,descY,lineX,descY+fontSize)
+      end
+    end
+    love.graphics.rectangle('line',numberEntry.minX,numberEntry.minY,amountBoxW,fontSize+4)
+    love.graphics.printf(craftInfo.amount,amountBoxX,descY,amountBoxW,"center")
+
+    --Plus Button:
+    local plusButton = output:tinybutton(plusButtonX,descY-6,nil,(plusMouse or (self.sideCursorY == buttonY and self.cursorX == 4) and "hover" or false),"+")
+    plusButton.craftInfo = craftInfo
+    plusButton.buttonType = "plusmain"
+    plusButton.buttonX = 4
+    plusButton.buttonY = buttonY
+    self.buttons[#self.buttons+1] = plusButton
     
     descY = descY+tileSize
     --Specific Ingredients:
     love.graphics.printf("Ingredients:",sidebarX+padX,descY,window2w,"left")
     descY=descY+prefs['fontSize']+8
+    local amountBoxW = fonts.textFont:getWidth("100")+8
+    local minusButtonX = sidebarX+padX
+    local amountBoxX = minusButtonX+48
+    local plusButtonX = amountBoxX+amountBoxW+16
+    local iconX = plusButtonX+48
+    local ingredientX = iconX+tileSize
+    local ingredientW = window2w-(ingredientX-(sidebarX+padX))
     if craftInfo.ingredients then
       for iid,ingInfo in pairs(craftInfo.ingredients) do
         local item = possibleItems[iid]
         item.baseType = "item"
         if item.id == nil then item.id = iid end
         local player_amount = ingInfo.player_amount or 0
-        local amount = ingInfo.amount
+        local amount = ingInfo.amount*(craftInfo.amount)
         local ingText = (amount > 1 and item.pluralName and amount .. " " .. ucfirst(item.pluralName) or ucfirst(item.name) .. (amount > 1 and " x " .. amount or "")) .. " (have " .. player_amount .. ")" .. (ingInfo.stash and " (From " .. ingInfo.stash.name .. ")" or "")
-        if not ingInfo.enough then
-          setColor(200,0,0,255)
-        end
         output.display_entity(item,sidebarX+padX,descY,"force")
+        if amount > player_amount then
+          craftInfo.not_enough_due_to_amount = true
+          setColor(200,0,0,255)
+        else
+          craftInfo.not_enough_due_to_amount = false
+        end
         love.graphics.printf(ingText,sidebarX+padX+tileSize,descY,window2w,"left")
-        if not ingInfo.enough then
+        if amount > player_amount then
           setColor(255,255,255,255)
         end
         local _, dlines = fonts.textFont:getWrap(ingText,window2w)
@@ -428,14 +472,14 @@ function crafting:draw()
     --Property-based ingredients:
     if craftInfo.ingredient_properties then
       for prop,propInfo in pairs(craftInfo.ingredient_properties) do
-        local propText = ucfirst(prop) .. " ingredients adding to " .. propInfo.required .. " (" .. propInfo.selected .. " selected):"
-        if propInfo.required > propInfo.amount then
+        local propText = ucfirst(prop) .. " ingredients adding to " .. propInfo.required*(craftInfo.amount) .. " (" .. propInfo.selected .. " selected):"
+        if propInfo.required*(craftInfo.amount) > propInfo.amount then
           setColor(200,0,0,255)
-        elseif propInfo.required > propInfo.selected then
+        elseif propInfo.required*(craftInfo.amount) > propInfo.selected then
           setColor(200,200,0,255)
         end
         love.graphics.printf(propText,sidebarX+padX,descY,window2w,"left")
-        if propInfo.required > propInfo.amount or propInfo.required > propInfo.selected then
+        if propInfo.required*(craftInfo.amount) > propInfo.amount or propInfo.required*(craftInfo.amount) > propInfo.selected then
           setColor(255,255,255,255)
         end
         local _, dlines = fonts.textFont:getWrap(propText,window2w)
@@ -710,7 +754,7 @@ function crafting:buttonpressed(key)
       self.sideCursorY = 0
       self.cursorX = 1
     elseif self.selected then
-      if self.cursorX < 3 and self.sideCursorY ~= 0 then
+      if (self.cursorX < 4 and self.sideCursorY == 0) or self.cursorX < 3 then
         self.cursorX = self.cursorX+1
       end
     end
@@ -743,7 +787,8 @@ function crafting:buttonpressed(key)
       end
     else
       if self.sideCursorY < self.maxButtonY then
-        self.sideCursorY = self.sideCursorY + 1 
+        self.sideCursorY = self.sideCursorY + 1
+        if self.cursorX == 4 then self.cursorX = 3 end
       end
     end
   elseif key == "nextTarget" then
@@ -766,11 +811,15 @@ function crafting:buttonpressed(key)
         end
       end
     end
-  elseif tonumber(typed) and self.cursorX == 2 then --Typing in box
+  elseif tonumber(typed) and ((self.sideCursorY > 0 and self.cursorX == 2) or (self.sideCursorY == 0 and self.cursorX==3)) then --Typing in box
     local box
     local item
     for _,button in pairs(self.buttons) do
-      if button.buttonType == "box" and button.buttonY == self.sideCursorY then
+      if button.buttonType == "boxmain" and button.buttonY == self.sideCursorY then
+        local craft = button.craftInfo
+        craft.amount = tonumber(typed)
+        return
+      elseif button.buttonType == "box" and button.buttonY == self.sideCursorY then
         box = button
         item = box.details.item
       end
@@ -801,11 +850,15 @@ function crafting:buttonpressed(key)
         end
       end
     end
-  elseif (typed == "backspace") and self.cursorX == 2 then
+  elseif (typed == "backspace") and ((self.sideCursorY > 0 and self.cursorX == 2) or (self.sideCursorY == 0 and self.cursorX==3)) then
     local box
     local item
     for _,button in pairs(self.buttons) do
-      if button.buttonType == "box" and button.buttonY == self.sideCursorY then
+      if button.buttonType == "boxmain" and button.buttonY == self.sideCursorY then
+        local craft = button.craftInfo
+        craft.amount = 1
+        return
+      elseif button.buttonType == "box" and button.buttonY == self.sideCursorY then
         box = button
         item = box.details.item
       end
@@ -929,18 +982,18 @@ end
 function crafting:doCraft(craftIndex)
   local craftInfo = self.crafts[craftIndex]
   local craftID = craftInfo.id
-  if craftInfo.craftable then
+  if craftInfo.craftable and not craftInfo.not_enough_due_to_amount then
     local propCheck = true
     if craftInfo.ingredient_properties then
       for _,propInfo in pairs(craftInfo.ingredient_properties) do
-        if propInfo.selected < propInfo.required then
+        if propInfo.selected < propInfo.required*craftInfo.amount then
           propCheck = false
           break
         end
       end
     end
     if propCheck then
-      local result,text = player:craft_recipe(craftID,craftInfo.secondary_ingredients,self.stash)
+      local result,text = player:craft_recipe(craftID,craftInfo.secondary_ingredients,self.stash,craftInfo.amount)
       if result == true and not text then
         text = possibleCrafts[craftID].result_text
       end
@@ -1017,7 +1070,13 @@ function crafting:select_button(button)
   
   local craft = button.craftInfo or self.crafts[self.selected or self.cursorY]
   
-  if button.buttonType == "minus" then
+  if button.buttonType == "minusmain" then
+    local craftInfo = button.craftInfo
+    button.craftInfo.amount = math.max(1,button.craftInfo.amount-1)
+  elseif button.buttonType == "plusmain" then
+    local craftInfo = button.craftInfo
+    button.craftInfo.amount = button.craftInfo.amount+1
+  elseif button.buttonType == "minus" then
     local item = button.details.item
     if craft.secondary_ingredients[item] > 0 then
       craft.secondary_ingredients[item] = craft.secondary_ingredients[item]-1
@@ -1029,7 +1088,8 @@ function crafting:select_button(button)
     end
   elseif button.buttonType == "plus" then
     local item = button.details.item
-    if item.amount > craft.secondary_ingredients[item] and button.property.selected < button.property.required then
+    local craftInfo = button.craftInfo
+    if item.amount > craft.secondary_ingredients[item] and button.property.selected < button.property.required*craftInfo.amount then
       craft.secondary_ingredients[item] = craft.secondary_ingredients[item]+1
       for property,amt in pairs(item.crafting_ingredient_properties) do
         if craft.ingredient_properties and craft.ingredient_properties[property] then
@@ -1038,7 +1098,7 @@ function crafting:select_button(button)
       end
     end
   elseif button.buttonType == "box" then
-    self.cursorX,self.sideCursorY = 2,button.buttonY
+    self.cursorX,self.sideCursorY = button.buttonX,button.buttonY
   elseif button.buttonType == "craft" then
     self:doCraft(self.selected)
   end

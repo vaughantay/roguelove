@@ -5209,9 +5209,11 @@ end
 --TODO: Forbidden tags on recipes
 --@param recipeID String. The ID of the recipe
 --@param stash Entity. An entity containing items to use in addition to the creature's own inventory
+--@param amount Number. The number of times to craft it
 --@return Boolean. Whether or not the recipe can be crafted
 --@return Text. A description of why you can't craft the recipe.
-function Creature:can_craft_recipe(recipeID,stash)
+function Creature:can_craft_recipe(recipeID,stash,amount)
+  amount = amount or 1
   if debugMode then return true end
   local recipe = possibleRecipes[recipeID]
   local auto_learn = (recipe.auto_learn == nil and gamesettings.auto_learn_possible_crafts or recipe.auto_learn)
@@ -5220,7 +5222,7 @@ function Creature:can_craft_recipe(recipeID,stash)
     return false
   end
   if recipe.requires then
-    if not recipe:requires(self) then return false end
+    if not recipe:requires(self,amount) then return false end
   end
   if recipe.requires_class then
     if self.class ~= recipe.requires_class then return false end
@@ -5241,7 +5243,7 @@ function Creature:can_craft_recipe(recipeID,stash)
   if recipe.ingredients then
     for item,amt in pairs(recipe.ingredients) do
       local i = self:has_item(item) or (stash and stash:has_item(item))
-      if not i or (i.amount or 1) < amt then return false end
+      if not i or (i.amount or 1) < amt*amount then return false end
     end
   end
   if recipe.ingredient_properties then
@@ -5264,11 +5266,11 @@ function Creature:can_craft_recipe(recipeID,stash)
           end
           if typeMatch then
             found = found + item.crafting_ingredient_properties[property]*item.amount
-            if found >= amt then break end
+            if found >= amt*amount then break end
           end
         end
       end
-      if found < amt and stash then 
+      if found < amt*amount and stash then 
         for _,item in pairs(stash:get_inventory()) do
           if item.crafting_ingredient_properties and item.crafting_ingredient_properties[property] and not recipe.results[item.id] then
             local typeMatch = false
@@ -5286,12 +5288,12 @@ function Creature:can_craft_recipe(recipeID,stash)
             end
             if typeMatch then
               found = found + item.crafting_ingredient_properties[property]*item.amount
-              if found >= amt then break end
+              if found >= amt*amount then break end
             end
           end
         end
       end
-      if found < amt then return false end
+      if found < amt*amount then return false end
     end --end property for
   end --end if ingredient_properties
   if recipe.tool_properties then
@@ -5336,9 +5338,11 @@ end
 --@param recipeID Text. The ID of the recipe to craft
 --@param secondary_ingredients Table. Secondary ingredients provided for the recipe based on the ingredient_properties
 --@param stash Entity. An entity containing items to use in addition to the creature's own inventory
+--@param amount Number. The number of times to craft it
 --@return Boolean. If the recipe was successfully created
 --@return Text. The result text of the recipe
-function Creature:craft_recipe(recipeID,secondary_ingredients,stash)
+function Creature:craft_recipe(recipeID,secondary_ingredients,stash,amount)
+  amount = amount or 1
   local recipe = possibleRecipes[recipeID]
   local results = recipe.results
   local text = recipe.result_text
@@ -5359,14 +5363,14 @@ function Creature:craft_recipe(recipeID,secondary_ingredients,stash)
   local givenTags = {}
   local givenTypes = {}
   local enchantments = {}
-  if recipe.ingredients then
+  if recipe.ingredients then --TODO: delete items mixed between main and stash
     for item,amt in pairs(recipe.ingredients) do
       local i = self:has_item(item)
       if not i and stash then
         i = stash:has_item(item)
-        stash:delete_item(i,amt)
+        stash:delete_item(i,amt*amount)
       else
-        self:delete_item(i,amt)
+        self:delete_item(i,amt*amount)
       end
       if i.crafting_passed_tags then
         for _,tag in pairs(i.crafting_passed_tags) do
@@ -5419,7 +5423,7 @@ function Creature:craft_recipe(recipeID,secondary_ingredients,stash)
   for item,amt in pairs(results) do
     resultCount = resultCount + 1
     local newItem = Item(item,passedTags)
-    newItem.amount = amt
+    newItem.amount = amt*amount
     for _,tag in ipairs(givenTags) do
       if not newItem:has_tag(tag) then
         newItem.tags[#newItem.tags+1] = tag
