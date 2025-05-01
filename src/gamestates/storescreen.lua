@@ -633,6 +633,43 @@ function storescreen:draw()
       love.graphics.printf(missionText,windowX,printY,windowWidth,"center")
       printY=math.ceil(printY+(#wrappedtext+1)*fontSize)
       
+      local rewards = mData.rewards
+      if rewards then
+        love.graphics.printf("Reward:",printX,printY,windowWidth,"center")
+        printY=printY+fontSize
+        if rewards.money then
+          local mText = get_money_name(rewards.money)
+          love.graphics.printf(mText,printX,printY,windowWidth,"center")
+          local __, wrappedtext = fonts.textFont:getWrap(mText, windowWidth)
+          printY=math.ceil(printY+(#wrappedtext)*fontSize)
+        end
+        if rewards.reputation and self.faction then
+          local rText = (rewards.reputation < 0 and "" or "+") .. rewards.reputation .. " Reputation with " .. self.faction:get_name()
+          love.graphics.printf(rText,printX,printY,windowWidth,"center")
+          local __, wrappedtext = fonts.textFont:getWrap(rText, windowWidth)
+          printY=math.ceil(printY+(#wrappedtext)*fontSize)
+        end
+        if rewards.favor and self.faction then
+          local fText = (rewards.favor < 0 and "" or "+") .. rewards.favor .. " Favor with " .. self.faction:get_name()
+          love.graphics.printf(fText,printX,printY,windowWidth,"center")
+          local __, wrappedtext = fonts.textFont:getWrap(fText, windowWidth)
+          printY=math.ceil(printY+(#wrappedtext)*fontSize)
+        end
+        if rewards.items then
+          for _,itemInfo in ipairs(rewards.items) do
+            local iText = (itemInfo.amount and itemInfo.amount > 1 and itemInfo.amount .. " " or "") .. ucfirst(itemInfo.displayName or (itemInfo.amount > 1 and possibleItems[itemInfo.item].pluralName or "x " .. possibleItems[itemInfo.item].name))
+            love.graphics.printf(iText,printX,printY,windowWidth,"center")
+            local __, wrappedtext = fonts.textFont:getWrap(iText, windowWidth)
+            printY=math.ceil(printY+(#wrappedtext)*fontSize)
+          end
+        end
+        for _,text in ipairs(rewards) do
+          love.graphics.printf(text,printX,printY,windowWidth,"center")
+          local __, wrappedtext = fonts.textFont:getWrap(text, windowWidth)
+          printY=math.ceil(printY+(#wrappedtext)*fontSize)
+        end
+      end
+      
       if mData.active then
         local canFinish,canFinishText = not mData.disabled,mData.explainText
         if not canFinish then
@@ -656,7 +693,6 @@ function storescreen:draw()
           button.disabled=true
         end
         printY = printY+fontSize
-        lastY = printY
       else --Not active mission
         local canDo,canDoText = not mData.disabled,mData.explainText
         if canDo == false then
@@ -679,9 +715,9 @@ function storescreen:draw()
           printY=printY+(#wrappedtext+1)*fontSize
           button.disabled = true
         end
-        printY=printY+fontSize
         lastY = printY
       end --end active mission or not if
+      lastY = printY
     end
     if missionCount == 0 then
       love.graphics.printf("There are currently no missions available.",windowX,printY,windowWidth,"center")

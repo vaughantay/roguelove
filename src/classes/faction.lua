@@ -1298,6 +1298,7 @@ function Faction:get_available_missions(creature,ignoreCurrent)
         local mData = {missionID=missionID}
         mData.name = mission.name
         mData.description = (get_mission_data(missionID,'description') or mission.description)
+        mData.rewards = mission.rewards
         
         if active then
           mData.active = true

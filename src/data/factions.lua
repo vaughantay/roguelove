@@ -44,7 +44,7 @@ possibleFactions['lightchurch'] = {
   spell_favor_cost=100,
   grants_skills={divinity=1},
   offers_services = {{service="healing_church",reputation_requirement=10},{service="blessing",favorCost=10,moneyCost=10,membersOnly=true},{service="exorcism"}}, --services that this faction offers to friendly players
-  offers_missions = {{mission='killdemons'},{mission='findtreasure',membersOnly=true}}, --missions that this faction offers to friendly players
+  offers_missions = {{mission='killdemons'},{mission='killundead'},{mission='findtreasure',membersOnly=true}}, --missions that this faction offers to friendly players
   possible_inventory = {{item="scroll",chance=100}}, --items that all members of this faction might have in their inventory
   grants_recipe_tags={"holy"},
   teaches_skill_tags={'holy'},

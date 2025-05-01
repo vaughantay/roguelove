@@ -45,7 +45,8 @@ local killdemons = {
   description = "Prove you have what it takes to be a demonslayer. Kill 5 demons.",
   finished_description = "You have proven your worth as a demonslayer, but many unholy beasts still infest this world.",
   finish_text = "You have done a holy service to the world.",
-  start_text = "You pledge to kill 5 demons."
+  start_text = "You pledge to kill 5 demons.",
+  hide_when_disabled=true
 }
 function killdemons:kills(killer,victim)
   if killer == player and victim:is_type('demon') then
@@ -73,9 +74,47 @@ function killdemons:can_finish()
   return false,"You still need to kill " .. 5-demons .. " demons."
 end
 function killdemons:finish()
-  player.reputation.lightchurch = player.reputation.lightchurch + 100
+  player.reputation.lightchurch = (player.reputation.lightchurch or 0) + 100
 end
 possibleMissions['killdemons'] = killdemons
+
+local killundead = {
+  name = "Kill Undead",
+  description = "Prove you have what it takes to be an undead slayer. Kill 5 undead.",
+  finished_description = "You have proven your worth as an undead slayer, but many unholy beasts still infest this world.",
+  finish_text = "You have done a holy service to the world.",
+  start_text = "You pledge to kill 5 undead.",
+  hide_when_disabled=true
+}
+function killundead:kills(killer,victim)
+  if killer == player and victim:is_type('undead') then
+    local demons = update_mission_status('killundead',1)
+    if demons < 5 then
+      output:out("You've killed " .. demons .. " undead. " .. 5-demons .. " to go.")
+    elseif demons == 5 then
+      output:out("You've killed 5 undead. Return to " .. currWorld.factions.lightchurch.name .. ".")
+    end
+  end
+end
+function killundead:get_status(status)
+  if not status then status = get_mission_status('killundead') end
+  if status < 5 then
+    return "You still need to kill " .. 5-status .. " undead."
+  else
+    return "You have slain 5 unholy undead. Return to " .. currWorld.factions.lightchurch.name .. "."
+  end
+end
+function killundead:can_finish()
+  local demons = get_mission_status('killundead')
+  if demons >= 5 then
+    return true
+  end
+  return false,"You still need to kill " .. 5-demons .. " undead."
+end
+function killundead:finish()
+  player.reputation.lightchurch = (player.reputation.lightchurch or 0) + 100
+end
+possibleMissions['killundead'] = killundead
 
 local ascend = {
   name = "Ascend as a Hero",
@@ -88,7 +127,8 @@ local findtreasure = {
   name = "Treasure Hunting",
   description = "Seek out a hidden treasure.",
   repeatable = true,
-  repeat_limit=2
+  repeat_limit=2,
+  rewards={money=100,reputation=100,favor=100,items={{item="scroll", passed_info={'holy'}, displayName = "Random Holy Scrolls",amount=3},{item="dagger",amount=2}},"The favor of the goddess","Bonus goodies"},
 }
 function findtreasure:start()
   local treasure = Item('treasure')
@@ -125,12 +165,12 @@ end
 function findtreasure:finish()
   local treasure = get_mission_data('findtreasure','item')
   treasure:delete()
-  local reputation = nil
-  local source = get_mission_data('findtreasure','source')
-  if source and source.baseType == "faction" then
-    reputation = 100
-    player.reputation[source.id] = player.reputation[source.id]+reputation
-  end
-  return true,"You turn in " .. treasure:get_name() .. (reputation and " for " .. reputation .. " reputation." or ".")
+  --local reputation = nil
+  --local source = get_mission_data('findtreasure','source')
+  --if source and source.baseType == "faction" then
+    --reputation = 100
+    --player.reputation[source.id] = (player.reputation[source.id] or 0)+reputation
+  --end
+  return true,"You turn in " .. treasure:get_name() .. "."
 end
 possibleMissions['findtreasure'] = findtreasure

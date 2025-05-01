@@ -990,6 +990,8 @@ function finish_mission(missionID,endVal,skipFunc)
   local mission = possibleMissions[missionID]
   local ret = true
   local text = nil
+  local rewardtext = ""
+  local source = get_mission_data(missionID,'source')
   if not skipFunc and mission and mission.finish then
     ret,text = mission:finish(endVal)
   end
@@ -1001,8 +1003,49 @@ function finish_mission(missionID,endVal,skipFunc)
   end
   if mission then
     if not text then text = mission.finish_text end
+    local rewards = mission.rewards
+    local faction = (source and (source.baseType == "faction" and source or (source.baseType == "store" and source.faction and currWorld.factions[source.faction])))
+    if rewards then
+      rewardtext = rewardtext .. "\nReward:"
+      if rewards.money then
+        local mText = get_money_name(rewards.money)
+        rewardtext = rewardtext .. "\n" .. mText
+        player:update_money(rewards.money)
+      end
+      if rewards.reputation and faction then
+        local rText = (rewards.reputation < 0 and "" or "+") .. rewards.reputation .. " Reputation with " .. faction:get_name()
+        rewardtext = rewardtext .. "\n" .. rText
+        player:update_reputation(faction.id,rewards.reputation)
+      end
+      if rewards.favor and faction then
+        local fText = (rewards.favor < 0 and "" or "+") .. rewards.favor .. " Favor with " .. faction:get_name()
+        rewardtext = rewardtext .. "\n" .. fText
+        player:update_favor(faction.id,rewards.favor)
+      end
+      if rewards.items then
+        for _,itemInfo in ipairs(rewards.items) do
+          local amount = itemInfo.amount or 1
+          local iText = (amount > 1 and amount .. " " or "") .. ucfirst(itemInfo.displayName or (itemInfo.amount > 1 and possibleItems[itemInfo.item].pluralName or "x " .. possibleItems[itemInfo.item].name))
+          rewardtext = rewardtext .. "\n" .. iText
+          for i=1,amount,1 do
+            local it = Item(itemInfo.item,itemInfo.passedTags,itemInfo.passed_info)
+            if it.requires_identification and not itemInfo.unidentified then
+              it.identified=true
+            end
+            if itemInfo.enchantment then
+              it:apply_enchantment(itemInfo.enchantment,itemInfo.enchantment_turns or -1)
+            end
+            player:give_item(it)
+          end
+        end
+      end
+      for i,othertext in ipairs(rewards) do
+        rewardtext = rewardtext .. "\n" .. othertext
+      end
+    end
     output:out("Mission Complete: " .. mission.name .. "." .. (text and " " .. text or ""))
   end
+  text = text .. rewardtext
   return ret,text
 end
 
