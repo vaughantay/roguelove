@@ -24,7 +24,7 @@ possibleFactions['lightchurch'] = {
   banish_threshold=0, --If your reputation falls below this, you'll be kicked out of the faction
   faction_cost_modifiers={lightchurch=-10,grievers=-5}, --table of percentages by which monetary (not favor!) costs of goods and services are increased/decreased based on faction membership. Does not stack with multiple factions; the highest absolute value is used. Does stack with favor cost modifier.
   reputation_cost_modifiers={[0]=10,[50]=0,[100]=-5,[150]=-10,[200]=-15}, --table of percentages by which monetary (not favor!) costs of goods and services are increased/decreased based on reputation with this faction. Stacks with faction cost modifier. The highest absolute value is used.
-  sells_items = {{item="holywater",favorCost=5,moneyCost=50,amount=10,restock_amount=2,restock_to=5,reputation_requirement=10}, {item="dagger",favorCost=250,amount=1,membersOnly=true,artifact=true},{item="dagger",favorCost=10,amount=5,enchantments={"blessed"}},{item="scroll",favorCost=1,moneyCost=5,amount=5,restock_amount=1}}, --pre-defined items that this faction sells to friendly players
+  sells_items = {{item="holywater",favorCost=5,moneyCost=50,amount=10,restock_amount=2,restock_to=5,reputation_requirement=10}, {item="dagger",favorCost=250,amount=1,members_only=true,artifact=true},{item="dagger",favorCost=10,amount=5,enchantments={"blessed"}},{item="scroll",favorCost=1,moneyCost=5,amount=5,restock_amount=1}}, --pre-defined items that this faction sells to friendly players
   sells_tags = {"holy"}, --Tags for randomly-generated items that will be sold by the shop
   passedTags = {"holy"}, --These tags will be given priority for enchantments applied to items, and passed to items to do with what they will (ex: scrolls, to put preference on spells with these tags)
   sell_markup=100, --Randomly-selected items' values will have this % added to determine how much this shop will sell the items for
@@ -37,14 +37,15 @@ possibleFactions['lightchurch'] = {
   money_per_favor = 10, --When buying/selling non-predefined items, divide the item's value by this number to get the favor paid (rounded down for buying, up for selling), defaults to 10
   only_buys_favor = true, --When buying non-predefined items, don't pay money for them, just favor
   only_sells_favor = true, --When selling non-predefined items, don't charge money for them, just favor
-  teaches_spells = {{spell="demondamager",favorCost=100,moneyCost = 100}, {spell="summonangel",favorCost=100,membersOnly=true}}, --spells that this faction teaches to friendly players
+  teaches_spells = {{spell="demondamager",favorCost=100,moneyCost = 100}, {spell="summonangel",favorCost=100,members_only=true}}, --spells that this faction teaches to friendly players
   teaches_spell_tags = {'holy'},
   teaches_spell_types = {'holy'},
+  recruitable_creatures = {{amount=2,creatures={demonhunter=1},moneyCost=50,favorCost=25,reputationCost=105,description="Hire a faithful demon hunter to accompany you on your crusade against evil.",restock_amount=1,restock_to=2,reputation_requirement=10},{creatures={demonhunter=3,cherub=1},moneyCost=100,favorCost=50,reputationCost=25,description="Hire a group of faithful demon hunters to accompany you on your crusade against evil.",members_only=true}},
   spell_money_cost=100,
   spell_favor_cost=100,
   grants_skills={divinity=1},
-  offers_services = {{service="healing_church",reputation_requirement=10},{service="blessing",favorCost=10,moneyCost=10,membersOnly=true},{service="exorcism"}}, --services that this faction offers to friendly players
-  offers_missions = {{mission='killdemons'},{mission='killundead'},{mission='findtreasure',membersOnly=true}}, --missions that this faction offers to friendly players
+  offers_services = {{service="healing_church",reputation_requirement=10},{service="blessing",favorCost=10,moneyCost=10,members_only=true},{service="exorcism"}}, --services that this faction offers to friendly players
+  offers_missions = {{mission='killdemons'},{mission='killundead'},{mission='findtreasure',members_only=true}}, --missions that this faction offers to friendly players
   possible_inventory = {{item="scroll",chance=100}}, --items that all members of this faction might have in their inventory
   grants_recipe_tags={"holy"},
   teaches_skill_tags={'holy'},

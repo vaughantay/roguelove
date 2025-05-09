@@ -39,7 +39,7 @@ function factionscreen:refresh_store_lists()
 
   for _,ilist in pairs(self.faction:get_inventory()) do
     local item = ilist.item
-    self.selling_list[#self.selling_list+1] = {name=item:get_name(true,1),description=item:get_description(),info=item:get_info(),moneyCost=(ilist.moneyCost and ilist.moneyCost+round(ilist.moneyCost*(self.costMod/100)) or nil),favorCost=ilist.favorCost,reputationCost=ilist.reputationCost,membersOnly=ilist.membersOnly,amount=item.amount,buyAmt=0,item=item,reputation_requirement=ilist.reputation_requirement}
+    self.selling_list[#self.selling_list+1] = {name=item:get_name(true,1),description=item:get_description(),info=item:get_info(),moneyCost=(ilist.moneyCost and ilist.moneyCost+round(ilist.moneyCost*(self.costMod/100)) or nil),favorCost=ilist.favorCost,reputationCost=ilist.reputationCost,members_only=ilist.members_only,amount=item.amount,buyAmt=0,item=item,reputation_requirement=ilist.reputation_requirement}
   end
   if self.faction.buys_favor_for_money and (player.favor[self.faction.id] or 0) > 0 then
     self.buying_list[#self.buying_list+1] = {name="Favor",description="Exchange Favor owed from the " .. self.faction.name .. " for money.",amount=(player.favor[self.faction.id] or 0),moneyCost=self.faction.buys_favor_for_money,buyAmt=0,sellFavor=true}
@@ -167,8 +167,9 @@ function factionscreen:draw()
       local spellbuttonW = fonts.buttonFont:getWidth("Skills/Abilities")+padding
       local servicebuttonW = fonts.buttonFont:getWidth("Services")+padding
       local missionbuttonW = fonts.buttonFont:getWidth("Missions")+padding
-      local biggestButton = math.max(infobuttonW,shopbuttonW,servicebuttonW,spellbuttonW,missionbuttonW)
-      infobuttonW,shopbuttonW,servicebuttonW,spellbuttonW,missionbuttonW = biggestButton,biggestButton,biggestButton,biggestButton,biggestButton
+      local recruitbuttonW = fonts.buttonFont:getWidth("Recruit")+padding
+      local biggestButton = math.max(infobuttonW,shopbuttonW,servicebuttonW,spellbuttonW,missionbuttonW,recruitbuttonW)
+      infobuttonW,shopbuttonW,servicebuttonW,spellbuttonW,missionbuttonW,recruitbuttonW = biggestButton,biggestButton,biggestButton,biggestButton,biggestButton,biggestButton
       local totalWidth = windowWidth
       local startX = windowX+math.floor(windowWidth/2-padding-2.5*biggestButton)+padding
       local totalButtons = 1
@@ -183,6 +184,9 @@ function factionscreen:draw()
         totalButtons = totalButtons+1
       end
       if count(self.faction:get_available_missions(player)) > 0 then
+        totalButtons = totalButtons+1
+      end
+      if count(self.faction:get_recruitable_creatures(player)) > 0 then
         totalButtons = totalButtons+1
       end
       local buttonX = windowX+math.floor(windowWidth/2-padding-(totalButtons/2)*biggestButton)+padding
@@ -223,6 +227,14 @@ function factionscreen:draw()
         self.missionButton.cursorX = #self.navButtons
         buttonX=buttonX+missionbuttonW+padX
         if self.screen == "Missions" then setColor(255,255,255,255) end
+      end
+      if count(self.faction:get_recruitable_creatures(player)) > 0 then
+        if self.screen == "Recruit" then setColor(150,150,150,255) end
+        self.recruitButton = output:button(buttonX,printY,recruitbuttonW,false,((self.cursorX == #self.navButtons+1 and self.cursorY == 2) and "hover" or nil),"Recruit",true)
+        self.navButtons[#self.navButtons+1] = self.recruitButton
+        self.recruitButton.cursorX = #self.navButtons
+        buttonX=buttonX+recruitbuttonW+padX
+        if self.screen == "Recruit" then setColor(255,255,255,255) end
       end
       printY = printY+padX
     else
@@ -467,7 +479,7 @@ function factionscreen:draw()
         local plusMouse = false
         local minusMouse = false
         local amountMouse = false
-        local memberReq = self.playerMember or not info.membersOnly
+        local memberReq = self.playerMember or not info.members_only
         local repReq = not info.reputation_requirement or reputation >= info.reputation_requirement
         if memberReq and repReq then
           --Minus button:
@@ -995,6 +1007,83 @@ function factionscreen:draw()
     else
       self.scrollMax = 0
     end
+  elseif self.screen == "Recruit" then
+    self.recruitButtons = {}
+    local recruitCount = 0
+    local recruitments = faction:get_recruitable_creatures(player)
+    local lastY = 0
+    local maxX = windowWidth-padding
+    if self.maxScroll and self.maxScroll > 0 then
+      maxX = windowWidth-padding
+    end
+    
+    --Drawing the text:
+    love.graphics.push()
+    --Create a "stencil" that stops 
+    local function stencilFunc()
+      love.graphics.rectangle("fill",windowX,listStartY,windowWidth+padding,height-listStartY)
+    end
+    love.graphics.stencil(stencilFunc,"replace",1)
+    love.graphics.setStencilTest("greater",0)
+    love.graphics.translate(0,-self.scrollY)
+    for i,recruitData in ipairs(recruitments) do
+      recruitCount = recruitCount+1
+      local canDo,canDoText = not recruitData.disabled,recruitData.explainText
+      if canDo == false then
+        setColor(150,150,150,255)
+      end
+      local recruitW = fonts.buttonFont:getWidth("Recruit")+padding
+      local buttonX = printX
+      local buttonHi = false
+      if mouseX > buttonX and mouseX < buttonX+recruitW and mouseY > printY-self.scrollY and mouseY < printY+32-self.scrollY then
+        buttonHi = true
+      end
+      local button = output:button(buttonX,printY,recruitW,false,((buttonHi or self.cursorY == 2+#self.recruitButtons+1) and "hover" or false),"Recruit")
+      self.recruitButtons[#self.recruitButtons+1] = button
+      button.data = recruitData
+      
+      local creatW = 0
+      for creat,amt in pairs(recruitData.creatures) do
+        local c = possibleMonsters[creat]
+        c.baseType = "creature"
+        output.display_entity(c,printX+recruitW+creatW,printY,"force")
+        creatW = creatW + tileSize+2
+      end
+      
+      local header = recruitData.name .. (recruitData.amount and " (" .. recruitData.amount .. " Available)" or "")
+      local __, wrappedtext = fonts.textFont:getWrap(header, windowWidth)
+      love.graphics.printf(header,printX+recruitW+creatW,printY,windowWidth,"left")
+      printY=math.ceil(printY+math.min(tileSize+2,(#wrappedtext*fontSize)))
+      if recruitData.description then
+        local description = recruitData.description
+        local __, wrappedtext = fonts.textFont:getWrap(description, windowWidth)
+        love.graphics.printf(description,printX,printY,maxX,"left")
+        printY=math.ceil(printY+(#wrappedtext+1)*fontSize)
+      end
+      
+      setColor(255,255,255,255)
+      if canDo == false and canDoText then
+        local __, wrappedtext = fonts.textFont:getWrap(canDoText, windowWidth)
+        love.graphics.printf(canDoText,printX,printY,maxX,"left")
+        printY=printY+(#wrappedtext+1)*fontSize
+        button.disabled=true
+      end
+      printY=printY+fontSize
+      lastY = printY
+    end
+    if recruitCount == 0 then
+      love.graphics.printf("There's currently no one available to recruit.",windowX,printY,windowWidth,"center")
+    end
+    love.graphics.setStencilTest()
+    love.graphics.pop()
+    --Scrollbars
+    if lastY*uiScale > height-padding then
+      self.scrollMax = math.ceil((lastY-(listStartY+(height/uiScale-listStartY))+padding))
+      local scrollAmt = self.scrollY/self.scrollMax
+      self.scrollPositions = output:scrollbar(windowX+windowWidth,listStartY,math.floor((height-padding)/uiScale),scrollAmt,true)
+    else
+      self.scrollMax = 0
+    end
   end
 
   self.closebutton = output:closebutton(windowX+24,24,nil,true)
@@ -1015,11 +1104,25 @@ function factionscreen:buttonpressed(key,scancode,isRepeat,controllerType)
         self.playerMember=true
       end
     elseif self.cursorY == 2 then --nav buttons
-      if self.cursorX == 1 then self.screen = "Info" self.scrollY = 0
-      elseif self.cursorX == 2 then self.screen = "Items" self.scrollY = 0
-      elseif self.cursorX == 3 then self.screen = "Spells" self.scrollY = 0
-      elseif self.cursorX == 4 then self.screen = "Services" self.scrollY = 0
-      elseif self.cursorX == 5 then self.screen = "Missions" self.scrollY = 0 end
+     local whichButton = self.navButtons[self.cursorX]
+      if whichButton == self.infoButton then
+        self.screen = "Info"
+        self.scrollY = 0
+      elseif whichButton == self.shopButton then
+        self.screen = "Items"
+        self.scrollY = 0
+      elseif whichButton == self.serviceButton then
+        self.screen = "Services"
+        self.scrollY = 0
+      elseif whichButton == self.spellsButton then
+        self.screen = "Spells"
+      elseif whichButton == self.missionButton then
+        self.screen = "Missions"
+        self.scrollY = 0
+      elseif whichButton == self.recruitButton then
+        self.screen = "Recruit"
+        self.scrollY = 0
+      end
     else --activating something on the screen itself
       if self.screen == "Services" then
         if self.cursorY > 2 and self.serviceButtons[self.cursorY-2] and not self.serviceButtons[self.cursorY-2].disabled then
@@ -1081,6 +1184,11 @@ function factionscreen:buttonpressed(key,scancode,isRepeat,controllerType)
             end
           end
         end
+      elseif self.screen == "Recruit" then
+        if self.cursorY > 2 and self.recruitButtons[self.cursorY-2] and not self.recruitButtons[self.cursorY-2].disabled then
+          self.faction:recruit(self.recruitButtons[self.cursorY-2].data,player)
+          if self.recruitButtons[self.cursorY-2].data.recruitText then self.outText = self.recruitButtons[self.cursorY-2].data.recruitText end
+        end
       elseif self.screen == "Items" then
         if self.cursorY == 3 and not (self.faction.noBuy or self.faction.noSell) then --buttons
           if self.cursorX == 1 then
@@ -1133,7 +1241,7 @@ function factionscreen:buttonpressed(key,scancode,isRepeat,controllerType)
         self.cursorX = 2
       elseif self.cursorY > 4 then
         local list = (self.subScreen == "Buy" and self.selling_list or self.buying_list)
-        if list[self.cursorY-4].membersOnly and not self.playerMember then
+        if list[self.cursorY-4].members_only and not self.playerMember then
           self.cursorX = 1
         end
       end
@@ -1143,44 +1251,56 @@ function factionscreen:buttonpressed(key,scancode,isRepeat,controllerType)
       self:scrollUp()
     elseif self.cursorY < 3 then --Top bars only
       self.cursorY = math.max((self.faction:can_join(player) and 1 or 2),self.cursorY-1)
-    elseif self.screen == "Services" then
-      if self.cursorY == 3 then
-        self.cursorY = 2
-        self.cursorX = 4
+    elseif self.cursorY == 3 then
+      self.cursorY = 2
+      if self.screen == "Items" then
+        self.cursorX = self.shopButton.cursorX
+      elseif self.screen == "Info" then
+        self.cursorX = self.infoButton.cursorX
+      elseif self.screen == "Services" then
+        self.cursorX = self.serviceButton.cursorX
+      elseif self.screen == "Spells" then
+        self.cursorX = self.spellsButton.cursorX
+      elseif self.screen == "Missions" then
+        self.cursorX = self.missionButton.cursorX
+      elseif self.screen == "Recruit" then
+        self.cursorX = self.recruitButton.cursorX
       end
+    elseif self.screen == "Services" then
       for i=self.cursorY-1,3,-1 do
         if self.serviceButtons[i-2] ~= false then
           self.cursorY = i
           break
         end
         self.cursorY = 2
-        self.cursorX = 4
+        self.cursorX = self.serviceButton.cursorX
       end --end cursorY for
     elseif self.screen == "Spells" then
-      if self.cursorY == 3 then
-        self.cursorY = 2
-        self.cursorX = 3
-      end
       for i=self.cursorY-1,3,-1 do
         if self.spellButtons[i-2] ~= false then
           self.cursorY = i
           break
         end
         self.cursorY = 2
-        self.cursorX = 3
+        self.cursorX = self.spellButton.cursorX
       end --end cursorY for
     elseif self.screen == "Missions" then
-      if self.cursorY == 3 then
-        self.cursorY = 2
-        self.cursorX = 5
-      end
       for i=self.cursorY-1,3,-1 do
         if self.missionButtons[i-2] ~= false then
           self.cursorY = i
           break
         end
         self.cursorY = 2
-        self.cursorX = 5
+        self.cursorX = self.missionButton.cursorX
+      end --end cursorY for
+    elseif self.screen == "Recruit" then
+      for i=self.cursorY-1,3,-1 do
+        if self.recruitButtons[i-2] ~= false then
+          self.cursorY = i
+          break
+        end
+        self.cursorY = 2
+        self.cursorX = self.recruitButon.cursorX
       end --end cursorY for
     elseif self.screen == "Items" then
       if self.cursorY > 1 then
@@ -1195,7 +1315,7 @@ function factionscreen:buttonpressed(key,scancode,isRepeat,controllerType)
           end
         end
         if self.cursorY == 2 then
-          self.cursorX = 2
+          self.cursorX = self.shopButton.cursorX
         end
       end
     end --end cursorY check
@@ -1235,6 +1355,17 @@ function factionscreen:buttonpressed(key,scancode,isRepeat,controllerType)
       else
         for i=self.cursorY-1,#self.spellButtons,1 do
           if self.spellButtons[i] then
+            self.cursorY = i+2
+            break
+          end
+        end --end cursorY for
+      end --end if 1
+    elseif self.screen == "Recruit" then
+      if (self.cursorY == 2 and self.recruitButtons[1]) then
+        self.cursorY = 3
+      else
+        for i=self.cursorY-1,#self.recruitButtons,1 do
+          if self.recruitButtons[i] then
             self.cursorY = i+2
             break
           end
@@ -1305,7 +1436,7 @@ function factionscreen:buttonpressed(key,scancode,isRepeat,controllerType)
           end
         else
           local list = (self.subScreen == "Buy" and self.selling_list or self.buying_list)
-          if list[self.cursorY-4].membersOnly and not self.playerMember then
+          if list[self.cursorY-4].members_only and not self.playerMember then
             self:buttonpressed(key_south)
           else
             self:buttonpressed(key_east)
@@ -1394,6 +1525,13 @@ function factionscreen:mousepressed(x,y,button)
         end
       end--end button coordinate if
     end--end button for
+  elseif self.screen == "Recruit" and self.recruitButtons then
+    for i,button in ipairs(self.recruitButtons) do
+      if button and not button.disabled and x > button.minX and x < button.maxX and y > button.minY-self.scrollY and y < button.maxY-self.scrollY then
+        self.faction:recruit(button.data,player)
+        if button.data.recruitText then self.outText = button.data.recruitText end
+      end--end button coordinate if
+    end--end button for
   elseif self.screen == "Spells" then
     for i,button in ipairs(self.spellButtons) do
       if button and not button.disabled and x > button.minX and x < button.maxX and y > button.minY-self.scrollY and y < button.maxY-self.scrollY then
@@ -1460,6 +1598,9 @@ function factionscreen:mousepressed(x,y,button)
     self.scrollY = 0
   elseif self.missionButton and x > self.missionButton.minX and x < self.missionButton.maxX and y > self.missionButton.minY and y < self.missionButton.maxY then
     self.screen = "Missions"
+    self.scrollY = 0
+  elseif self.recruitButton and x > self.recruitButton.minX and x < self.recruitButton.maxX and y > self.recruitButton.minY and y < self.recruitButton.maxY then
+    self.screen = "Recruit"
     self.scrollY = 0
   end
 end --end mousepressed

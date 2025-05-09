@@ -421,6 +421,17 @@ function Faction:restock()
     end
   end --end if random_item_amount
   
+  if self.recruitable_creatures then
+    for _,data in ipairs(self.recruitable_creatures) do
+      if data.restock_amount then
+        data.amount = (data.amount or 0) + data.restock_amount
+        if data.restock_to then
+          data.amount = math.min(data.amount,data.restock_to)
+        end
+      end
+    end
+  end
+  
   self:select_missions()
 end
 
@@ -1088,9 +1099,9 @@ function Faction:get_teachable_spells(creature)
         if doTeach then
           local moneyCost = (self.spell_money_cost_per_level and self.spell_money_cost_per_level*(spell.level or 1) or self.spell_money_cost or 0)
           local favorCost = (self.spell_favor_cost_per_level and self.spell_favor_cost_per_level*(spell.level or 1) or self.spell_favor_cost or 0)
-          local membersOnly = self.spells_members_only
+          local members_only = self.spells_members_only
           local reputation_requirement = (self.spell_reputation_requirement_per_level and self.spell_reputation_requirement_per_level*(spell.level or 1) or self.spell_reputation_requirement or 0)
-          spells[#spells+1] = {spell=spellID,moneyCost=moneyCost,favorCost=favorCost,reputation_requirement=reputation_requirement,membersOnly=membersOnly}
+          spells[#spells+1] = {spell=spellID,moneyCost=moneyCost,favorCost=favorCost,reputation_requirement=reputation_requirement,members_only=members_only}
         end
       end
     end
@@ -1107,7 +1118,7 @@ function Faction:get_teachable_spells(creature)
       local canLearn = true
       local reasonText = nil
       
-      if spellDef.membersOnly and not self.playerMember then
+      if spellDef.members_only and not self.playerMember then
         reasonText = "This ability is only taught to members."
         canLearn = false
       elseif spellDef.reputation_requirement and (creature.reputation[self.id] or 0) < spellDef.reputation_requirement then
@@ -1180,7 +1191,7 @@ function Faction:get_teachable_skills(creature)
           end
         end
         if doTeach then
-          skills[#skills+1] = {skill=skillID,moneyCost=self.skill_money_cost,favorCost=self.skill_favor_cost,membersOnly=self.skills_members_only,reputation_requirement=self.skill_reputation_requirement,max=skill.max}
+          skills[#skills+1] = {skill=skillID,moneyCost=self.skill_money_cost,favorCost=self.skill_favor_cost,members_only=self.skills_members_only,reputation_requirement=self.skill_reputation_requirement,max=skill.max}
         end
       end
     end
@@ -1199,7 +1210,7 @@ function Faction:get_teachable_skills(creature)
       local canLearn = true
       local reasonText = nil
       
-      if skillDef.membersOnly and not self.playerMember then
+      if skillDef.members_only and not self.playerMember then
         reasonText = "This skill is only taught to members."
         canLearn = false
       elseif skillDef.reputation_requirement and (creature.reputation[self.id] or 0) < skillDef.reputation_requirement then
@@ -1230,6 +1241,7 @@ end
 --@param creature Creature. Optional, defaults to player
 --@return Table. A list of possible services
 function Faction:get_available_services(creature)
+  creature = creature or player
   local services = {}
   
   if self.offers_services then
@@ -1252,7 +1264,7 @@ function Faction:get_available_services(creature)
       service_data.description = (costText and " (Cost: " .. costText .. ")" or "") .. "\n" .. service.description
       
       local canDo,canDoText = nil,nil
-      if servData.membersOnly and not creature:is_faction_member(self.id) then
+      if servData.members_only and not creature:is_faction_member(self.id) then
         canDoText = "This service is only provided to members."
         canDo = false
       elseif servData.reputation_requirement and (creature.reputation[self.id] or 0) < servData.reputation_requirement then
@@ -1287,6 +1299,7 @@ end
 --@param ignoreCurrent. Optional, if true ignore the current_missions table
 --@return Table. A list of possible missions
 function Faction:get_available_missions(creature,ignoreCurrent)
+  creature = creature or player
   local missions = {}
   
   if self.offers_missions then
@@ -1313,7 +1326,7 @@ function Faction:get_available_missions(creature,ignoreCurrent)
           mData.explainText = canFinishText
         else --Not active mission
           local canDo,canDoText = nil,nil
-          if mData.membersOnly and not self.playerMember then
+          if mData.members_only and not self.playerMember then
             canDoText = "This mission is only offered to members."
             canDo = false
           elseif mData.reputation_requirement and creature.reputation[self.id] < mData.reputation_requirement then
@@ -1340,6 +1353,113 @@ function Faction:get_available_missions(creature,ignoreCurrent)
   return missions
 end
   
+---Gets the list of creatures the faction offers for recruitment
+--@param creature Creature. Optional, defaults to player
+--@return Table. A list of possible recruits
+function Faction:get_recruitable_creatures(creature)
+  creature = creature or player
+  local recruitments = {}
+  
+  if self.recruitable_creatures then
+    local costMod = self:get_cost_modifier(creature)
+    for i,recruitData in ipairs(self.recruitable_creatures) do
+      local data = copy_table(recruitData)
+      data.index = i
+      if not data.name then
+        local name
+        for cid,amt in pairs(data.creatures) do
+          local creatInfo = possibleMonsters[cid]
+          name = (name and name .. ", " or "") .. ucfirst(creatInfo.name) .. (amt > 1 and " x " .. amt or "")
+        end
+        data.name = name
+      end
+      local moneyText = (data.moneyCost and get_money_name(data.moneyCost+round(data.moneyCost*(costMod/100))) or nil)
+      local favorText = (data.favorCost and data.favorCost.. " Favor" or nil)
+      local repText = (data.reputationCost and data.reputationCost.. " Reputation" or nil)
+      local costText
+      if moneyText then
+        costText = moneyText .. (favorText and ", " .. favorText)
+      end
+      if favorText then
+        costText = (costText and costText .. ", " .. favorText)
+      end
+      if repText then
+        costText = (costText and costText .. ", " .. repText)
+      end
+      if costText then
+        data.description = (costText and " (Cost: " .. costText .. ")" or "") .. (data.description and "\n" .. data.description or "")
+      end
+      
+      local canDo,canDoText = nil,nil
+      if data.members_only and not creature:is_faction_member(self.id) then
+        canDoText = "Can only be recruited by members."
+        canDo = false
+      elseif data.reputation_requirement and (creature.reputation[self.id] or 0) < data.reputation_requirement then
+        canDoText = "Requires at least " .. data.reputation_requirement .. " reputation to recruit."
+        canDo = false
+      elseif data.favorCost and (creature.favor[self.id] or 0) < data.favorCost then
+        canDoText = "You don't have enough favor."
+        canDo = false
+      elseif data.moneyCost and creature.money < data.moneyCost+round(data.moneyCost*(costMod/100)) then
+        canDoText = "You don't have enough money."
+        canDo = false
+      elseif data.reputationCost and (creature.reputation[self.id] or 0) < data.reputationCost then
+        canDoText = "You don't have enough reputation."
+        canDo = false
+      elseif data.amount and data.amount < 1 then
+        canDoText = "Currently unavailable."
+        canDo = false
+      end
+      data.disabled = (canDo == false)
+      data.explainText = canDoText
+      if not (data.disabled and data.hide_when_disabled) then
+        recruitments[#recruitments+1] = data
+      end
+    end
+  end
+  return recruitments
+end
+
+---Recruits a creature from a faction
+--@param recruitData Table. The recruitment data
+--@param creature Creature. The creature doing the recruiting
+function Faction:recruit(recruitData,creature)
+  creature = creature or player
+  --Add creatures
+  local dist=1
+  for creatID,amt in pairs(recruitData.creatures) do
+    for i = 1,amt,1 do
+      local newCreat = Creature(creatID,recruitData.level,recruitData.passedTags,recruitData.passedInfo)
+      ::placeCreat::
+      for x=creature.x-dist,creature.x+dist,1 do
+        for y=creature.y-dist,creature.y+dist,1 do
+          if newCreat:can_move_to(x,y) then
+            currMap:add_creature(newCreat,x,y)
+            newCreat:become_thrall(creature)
+            goto creatContinue
+          end
+        end
+      end
+      dist = dist+1
+      goto placeCreat
+      ::creatContinue::
+    end
+  end
+  if recruitData.moneyCost then
+    creature:update_money(-recruitData.moneyCost)
+  end
+  if recruitData.favorCost then
+    creature:update_favor(self.id,-recruitData.favorCost)
+  end
+  if recruitData.reputationCost then
+    creature:update_reputation(self.id,-recruitData.reputationCost)
+  end
+  local baseData = self.recruitable_creatures[recruitData.index]
+  if baseData.amount then
+    baseData.amount = baseData.amount - 1
+  end
+end
+
 ---Registers an incident as having occured, to be processed by all other creatures who observe it
 --@param incidentID String. The incident type
 --@param actor Entity. The creature (or other entity) that caused the incident. Optional
