@@ -35,6 +35,11 @@ function new_game(mapSeed,playTutorial,cheats,branch)
       start_mission(mid,val)
     end
   end
+  if cheats.allFactions then
+    for _,faction in pairs(currWorld.factions) do
+      faction.contacted = true
+    end
+  end
   maps[currMap.branch] = {}
 	maps[currMap.branch][currMap.depth] = currMap
 	cancel_targeting()
@@ -148,7 +153,7 @@ end
 function calc_hit_chance(attacker,target,item)
   local base = attacker:get_melee_accuracy((item and item.melee_accuracy_stats)) - (target.get_dodging and target:get_dodging() or 0) --These are on a seperate line because you may want to have a more complicated equation here
   local mod = (item and item:get_accuracy() or 0) + attacker:get_bonus('hit_chance') - (target.get_bonus and target:get_bonus('dodge_chance') or 0) --The values on this line are applied straight to the %
-  return math.min(math.max(70 + base + mod,25),95) --capped between 25% and 95%
+  return math.min(math.max(75 + base + mod,25),100) --capped between 25% and 100%
 end
 
 ---Calculates whether an attacker hits a target, whether it was a critical, and how much damage was done. Important to note: This function just *calculates* the damage, it does not apply it!
@@ -181,6 +186,7 @@ end
 ---Sets the game to advance a turn. The turn itself will not actually advance until the next update cycle there is nothing with stopsInput set
 function advance_turn()
   game.turns_to_advance = game.turns_to_advance + 1
+  game.turnDelay=0.1
 end
 
 ---Actually advances the turn, causing NPCs to move, effects and projectiles to advance, the map's lighting to recalculate, creature conditions to do their thing, and the output buffer to clear.
@@ -200,31 +206,59 @@ function turn_logic()
   update_stat('turns_on_branch',currMap.branch)
   update_stat('turns_on_map',currMap.id)
   
-  player:advance()
+  if currGame.heist then
+    currGame.heist.turns = currGame.heist.turns+1
+  end
+  
+  local status,r = pcall(player.advance,player)
+  if status == false then
+      output:out("Error in player " .. player.name .. " advance code: " .. r)
+      print("Error in player " .. player.name .. " advance code: " .. r)
+    end
+  --player:advance()
   
 	for id, creature in pairs(currMap.creatures) do
 		if creature.hp < 1 then
 			creature:die()
 		elseif creature.isPlayer ~= true then
-      creature:advance()
+      local status,r = pcall(creature.advance,creature)
+      if status == false then
+        output:out("Error in creature " .. creature.name .. " advance code: " .. r)
+        print("Error in creature " .. creature.name .. " advance code: " .. r)
+      end
+      --creature:advance()
     end --end creature hp if
 	end
   for _, effect in pairs(currMap.effects) do
-    effect:advance()
+    local status,r = pcall(effect.advance,effect)
+    if status == false then
+      output:out("Error in effect " .. effect.name .. " advance code: " .. r)
+      print("Error in effect " .. effect.name .. " advance code: " .. r)
+    end
+    --effect:advance()
   end
   for _, projectile in pairs(currMap.projectiles) do
-    projectile:advance()
+    local status,r = pcall(projectile.advance,projectile)
+    if status == false then
+      output:out("Error in projectile " .. projectile.name .. " advance code: " .. r)
+      print("Error in projectile " .. projectile.name .. " advance code: " .. r)
+    end
+    --projectile:advance()
   end
   
   --Faction reputation and favor decay/growth and event countdown:
   for fid, faction in pairs(currWorld.factions) do
     if faction.reputation_decay_turns and currGame.stats.turns % faction.reputation_decay_turns == 0 and (faction.reputation_decay_for_non_members or player:is_faction_member(fid)) then
       local newRep = (player.reputation[fid] or 0) - (faction.reputation_decay or 1)
-      if not faction.reputation_decay_floor or newRep > faction.reputation_decay_floor then player.reputation[fid] = newRep end
+      if not faction.reputation_decay_floor or newRep >= faction.reputation_decay_floor then
+        player:modify_repuation(fid,-faction.reputation_decay)
+      end
     end
     if faction.reputation_growth_turns and currGame.stats.turns % faction.reputation_growth_turns == 0 and (faction.reputation_growth_for_non_members or player:is_faction_member(fid)) then
       local newRep = (player.reputation[fid] or 0) + (faction.reputation_growth or 1)
-      if not faction.reputation_growth_ceiling or newRep < faction.reputation_growth_ceiling then player.reputation[fid] = newRep end
+      if not faction.reputation_growth_ceiling or newRep <= faction.reputation_growth_ceiling then
+        player:update_reputation(fid,faction.reputation_growth)
+      end
     end
     if faction.favor_decay_turns and currGame.stats.turns % faction.favor_decay_turns == 0 and (faction.favor_decay_for_non_members or player:is_faction_member(fid)) then
       local favor = (player.favor[fid] or 0) - (faction.favor_decay or 1)
@@ -248,10 +282,7 @@ function turn_logic()
 		end
 	end
   
-  currMap.sightblock_cache = {}
-  currMap.creature_cache = {}
-  currMap.feature_cache = {}
-  currMap.effect_cache = {}
+  currMap:clear_caches()
   currMap:refresh_lightMap(true) -- refresh the lightmap, forcing it to refresh all lights
   if action ~= "dying" then action = "moving" end
   cancel_targeting()
@@ -292,6 +323,14 @@ function turn_logic()
     currGame.autoSave = prefs['autosaveTurns']
   end
   refresh_player_sight()
+  if currGame.next_tutorial and not game.popup then
+    show_tutorial(currGame.next_tutorial)
+    currGame.next_tutorial = nil
+  end
+  
+  --Handle trespassing:
+  check_trespassing()
+  
   --profiler.stop()
   print("Time to run turn: " .. tostring(os.clock()-pTime))
   if os.clock()-pTime > 0.04 then
@@ -299,6 +338,59 @@ function turn_logic()
     --profiler.reset()
   end
 end --end advance_turn
+
+function check_trespassing(creature)
+  creature = creature or player
+  
+  if currMap.trespassing and currMap.tile_info[creature.x][creature.y].always_trespassing then
+    creature:give_condition('trespassing',1)
+    return
+  end
+   --If the area you're in is a non-restricted area, or you'd previously been authorized from another source, trespassing never counts
+  if not currMap.trespassing or currMap.tile_info[creature.x][creature.y].non_hostile or creature:has_condition('authorized') then
+    creature:cure_condition('trespassing')
+    creature:cure_condition('disguised')
+    return
+  end
+  --If you're an enemy of the main faction of the area, you're always trespassing
+  if currMap.resident_use_faction_reputation and currWorld.factions[currMap.resident_use_faction_reputation]:is_enemy(creature) then
+    creature:give_condition('trespassing',1)
+    creature:cure_condition('disguised')
+    creature:cure_condition('authorized')
+    return
+  end
+  --If you're a friend of the main faction of the area, you're always authorized
+  if currMap.resident_use_faction_reputation and currWorld.factions[currMap.resident_use_faction_reputation]:is_friend(creature) then
+    creature:cure_condition('trespassing')
+    creature:cure_condition('disguised')
+    creature:give_condition('authorized',1)
+    return
+  end
+  --If you're wearing a trespassing impression, you're trespassing
+  if currMap.trespassing_impressions then
+    for _,imp in ipairs(currMap.trespassing_impressions) do
+      if creature:has_impression(imp) then
+        creature:give_condition('trespassing',1)
+        creature:cure_condition('disguised')
+        return
+      end
+    end
+  end
+  --If you're wearing a disguise impression, you're blending in
+  if currMap.disguise_impressions and not creature:has_condition('cover_blown') then
+    for _,imp in ipairs(currMap.disguise_impressions) do
+      if creature:has_impression(imp) then
+        creature:cure_condition('trespassing')
+        creature:give_condition('disguised',1)
+        return
+      end
+    end
+    --If you weren't wearing any impressions, make sure we remove the disguised condition
+    creature:cure_condition('disguised')
+  end
+  --If we made it this far, we're trespassing
+  creature:give_condition('trespassing',1)
+end
 
 ---This function is called when you win. It saves the win for posterity, and blacks out the screen.
 function win()
@@ -316,10 +408,10 @@ end
 function game_over()
 	player = nil
   currGame = nil
-  game.blackAmt = nil
+  game.blackAmt = 0
   Timer.cancel(game.blackOutTween)
-  Timer.cancel(game.deadTween)
 	Gamestate.switch(menu)
+  action="moving"
 end
 
 ---Move to another map
@@ -332,7 +424,7 @@ function goToMap(depth,branch,force)
   if not branch then branch = currMap.branch end
   if not depth then
     if oldBranch == branch then
-      depth = currMap.depth+1
+      depth = (currMap.depth == -1 and 1 or currMap.depth+1)
     else
       depth = 1
     end
@@ -363,7 +455,13 @@ function goToMap(depth,branch,force)
     if gamesettings.cleanup_on_map_exit or (gamesettings.cleanup_on_branch_exit and branch ~= oldBranch) then
       currMap:cleanup()
     end
+    for _,eff in pairs(currMap.effects) do
+      if eff.remove_on_map_exit then
+        eff:delete()
+      end
+    end
 		currMap=maps[branch][depth]
+    currMap:clear_caches()
     
     --Place the player:
     local playerX,playerY = nil,nil
@@ -386,28 +484,38 @@ function goToMap(depth,branch,force)
         playerX,playerY = currMap.stairsUp.x,currMap.stairsUp.y
       end
     end --end if not playerX or playerY
+    if not playerX or not playerY or playerX==0 or playerY==0 then
+      playerX,playerY=1,1
+    end
     player.x,player.y = playerX,playerY
     currMap.contents[playerX][playerY][player]=player
     currMap.creatures[player] = player
     target = nil
-    if currGame.cheats.fullMap == true then currMap:reveal() end
+    if currGame.cheats.fullMap or currGame.cheats.seeAll then currMap:reveal() end
     if not currMap.noDesc and not gamesettings.no_map_descriptions then game:show_map_description() end
     output:set_camera(player.x,player.y,true)
     --Handle music:
     output:play_playlist(currMap.playlist)
     currGame.autoSave=true
     player.sees = nil
+    if oldBranch ~= branch then
+      run_all_events_of_type('enter_branch')
+      player:callbacks('enter_branch',currWorld.branches[branch])
+    end
     run_all_events_of_type('enter_map')
     player:callbacks('enter_map',currMap)
     if firstTime then
       run_all_events_of_type('enter_map_first_time')
       player:callbacks('enter_map_first_time',currMap)
+      currMap:refresh_images()
+      currMap.entered = true
     end
     if currMap.generate_boss_on_entry then
       generate_boss(true) --TODO: don't generate it near the player maybe?
     end
     currMap:refresh_lightMap(true) -- refresh the lightmap, forcing it to refresh all lights
     refresh_player_sight()
+    path_cache = {}
 	else
 		output:out("You can't leave until you defeat " .. currMap.boss:get_name(nil,true) .. ".")
     return false
@@ -419,15 +527,60 @@ function regen_map()
   print('regening')
   currMap = mapgen:generate_map(currMap.branch,currMap.depth,currMap.mapType)
   maps[currMap.branch][currMap.depth] = currMap
-  player.x,player.y = currMap.stairsDown.x,currMap.stairsDown.y
-  currMap.contents[currMap.stairsDown.x][currMap.stairsDown.y][player]=player
-  currMap.creatures[player] = player
+  player.seeTiles=nil
+  if currMap.exits then
+    for id,exit in ipairs(currMap.exits) do
+      if exit.depth == currMap.depth-1 or id == #currMap.exits then
+        currMap:add_creature(player,exit.x,exit.y)
+        player:moveTo(exit.x,exit.y)
+        break
+      end
+    end
+  else
+    local x,y = random(1,currMap.width,1,currMap.height)
+    local tries = 0
+    while not player:can_move_to(x,y) and tries < 100 do
+      x,y = random(1,currMap.width,1,currMap.height)
+      tries = tries + 1
+    end
+    local which = (currMap.player_start and 'player_start' or 'stairsUp')
+    currMap:add_creature(player,x,y)
+    player:moveTo(x,y)
+  end
+  
   target = nil
   -- Remove creatures near stairs
-  for x=currMap.stairsDown.x-1,currMap.stairsDown.x+1,1 do
-    for y= currMap.stairsDown.y-1,currMap.stairsDown.y+1,1 do
+  for x=player.x-1,player.x+1,1 do
+    for y= player.y-1,player.y+1,1 do
       local creat = currMap:get_tile_creature(x,y)
-      if creat and creat ~= player then creat:remove() end
+      if creat and creat ~= player then
+        local room = currMap.tile_info[x][y].room
+        local moved = false
+        if room then
+          shuffle(room.floors)
+          for _,floor in ipairs(room.floors) do
+            if creat:can_move_to(floor.x,floor.y) and not player:touching(floor) then
+              creat:moveTo(floor.x,floor.y)
+              moved = true
+              break
+            end
+          end
+        else
+          local dist = 2
+          while not moved and dist < 5 do
+            local x,y = random(creat.x-dist,creat.x+dist), random(creat.y-dist,creat.y+dist)
+            if creat:can_move_to(x,y) and not player:touching({x=x,y=y}) then
+              creat:moveTo(x,y)
+              moved = true
+              break
+            end
+            dist = dist + 1
+          end
+        end
+        if not moved then
+          creat:remove()
+        end
+      end
     end
   end
   if game.blackAmt then
@@ -436,12 +589,14 @@ function regen_map()
   else
     game:show_map_description()
   end
-  if currGame.cheats.fullMap == true then currMap:reveal() end
+  if currGame.cheats.fullMap or currGame.cheats.seeAll then currMap:reveal() end
   
-   output:set_camera(player.x,player.y,true)
+  output:set_camera(player.x,player.y,true)
   --Handle music:
   output:play_playlist(currMap.playlist)
   currGame.autoSave=true
+  if currGame.cheats.fullMap or currGame.cheats.seeAll then currMap:reveal() end
+  currMap:refresh_images()
 end
 
 ---Generates the boss for the map.
@@ -545,7 +700,7 @@ end
 --@param stat_type String. The stat type to return.
 --@param id String. The sub-stat type to return (for example, kills of a specific creature type)
 function update_stat(stat_type,id)
-  if not currGame.stats then currgame.stats = {} end
+  if not currGame.stats then currGame.stats = {} end
   if stat_type and id then
     -- Update the game stat:
     if currGame.stats[stat_type] == nil then currGame.stats[stat_type] = {} end
@@ -613,6 +768,7 @@ function perform_move(direction)
         target = entity
       end
       action = "moving"
+      advance_turn()
     else
       output:out("There's nothing there to attack.")
     end
@@ -623,55 +779,98 @@ end
 --@param newX Number. The X-coordinate to move the player to.
 --@param newY Number. The Y-coordinate to move the player to.
 --@param force Boolean. Whether to ignore warnings and move the player into a potentially dangerous tile. (optional)
+--@param attack_when_zero Boolean. if true, attack a feature even if damage is zero
 --@return Boolean. Whether the move was successful or not.
-function move_player(newX,newY,force)
+function move_player(newX,newY,force,attack_when_zero)
 	output:setCursor(0,0)
   local clear = player:can_move_to(newX,newY)
   local entity = currMap:get_tile_creature(newX,newY,true)
   local actions = currMap:get_tile_actions(newX,newY,player,true)
+  local speech = entity and entity.baseType == "creature" and not entity.shitlist[player] and entity:get_dialog(player)
   
 	if (clear) then
+    local trespass_warn = (not currMap.tile_info[player.x][player.y].always_trespassing and currMap.tile_info[newX][newY].always_trespassing and (player:has_condition('authorized') or player:has_condition('disguised')))
+    local safe = (currMap:is_passable_for(newX,newY,player:get_pathType(),true) or currMap:is_passable_for(player.x,player.y,player:get_pathType(),true) == false)
     --Check whether or not there are any dangerous features or effects at the new location, and give a warning if so
-    if (force or currMap:is_passable_for(newX,newY,player.pathType,true) or currMap:is_passable_for(player.x,player.y,player.pathType,true) == false) then --the second is_passable check means that it won't pop up a warning moving FROM dangerous territory TO dangerous territory
+    if force or (not trespass_warn and safe) then --the second is_passable check means that it won't pop up a warning moving FROM dangerous territory TO dangerous territory
+      local hazards = currMap:get_tile_hazards(newX,newY,player:get_pathType(),true)
+      for _,hazard in ipairs(hazards) do
+        hazard.ignored = true
+      end
       player:moveTo(newX,newY)
+    elseif trespass_warn then
+      game:warn_player("The area you're about to enter is off-limits, even if you're otherwise authorized or blending in. You'll be considered trespassing and residents and guards may become hostile to you.\nAre you sure you want to enter?",move_player,{newX,newY,true})
+      return false --break here, so turn doesn't pass
     else
-      local text = "That tile may be dangerous. Are you sure you want to move there?"
+      local text = "That tile may be dangerous"
+      local hazards = currMap:get_tile_hazards(newX,newY,player:get_pathType(),true)
+      local actualHazards = 0
+      if count(hazards) > 0 then
+        text = text .. " because of "
+        for i,hazard in ipairs(hazards) do
+          if not hazard.ignored then
+            actualHazards = actualHazards+1
+            if i ~= 1 then
+              if #hazards ~= 2 then text = text .. ", " end
+              if i == #hazards then
+                text = text .. "and "
+              end
+            end
+            text = text .. hazard:get_name()
+          end
+        end
+      end
+      if actualHazards == 0 then
+        return move_player(newX,newY,true)
+      end
+      text = text .. ". Are you sure you want to move there?"
       game:warn_player(text,move_player,{newX,newY,true})
       return false --break here, so turn doesn't pass
     end
   elseif entity then
-    for id, entity in pairs(currMap:get_contents(newX,newY)) do
-      if (entity.baseType == "creature") then
-        if (entity.playerAlly == true) then
-          currMap:swap(player,entity)
-          output:out("You swap places with " .. entity:get_name() .. ".")
-        else
-          target = entity
-          if force or entity:is_enemy(player) then
-            player:attack(entity)
-          else
-            local text = ucfirst(entity:get_name()) .. " isn't hostile towards you. Are you sure you want to attack " .. entity:get_pronoun('o') .. "?"
-            game:warn_player(text,move_player,{newX,newY,true})
-            return false --break here, so turn doesn't pass
-          end
-        end
-        break --if there's a creature, we'll deal with them and ignore features
-      elseif entity.baseType == "feature" then
-        if entity.pushable == true and entity:push(player) then
-          player.can_move_cache[newX .. ',' .. newY] = nil
-          player:moveTo(newX,newY)
-          clear = true
-        elseif entity.attackable == true then
+    if (entity.baseType == "creature") then
+      if entity:is_friend(player) and not entity.immobile then
+        currMap:swap(player,entity)
+        output:out("You swap places with " .. entity:get_name() .. ".")
+      else
+        target = entity
+        local speech = entity:get_dialog(player)
+        if force or entity.shitlist[player] then
           player:attack(entity)
-          player.can_move_cache[newX .. ',' .. newY] = nil
-          clear = true
+        elseif speech then
+          game:perform_action('speak',entity)
         else
-          --Do nothing
-        end --end possessable if
-      end --end feature/creature if
-    end --end entity for
+          local text = ucfirst(entity:get_name()) .. " isn't hostile towards you. Are you sure you want to attack " .. entity:get_pronoun('o') .. "?"
+          game:warn_player(text,move_player,{newX,newY,true})
+          return false --break here, so turn doesn't pass
+        end
+      end
+    elseif entity.baseType == "feature" then
+      if #actions > 0 then
+        perform_tile_action(newX,newY,true)
+      elseif count(entity.inventory) > 0 and not entity.inventory_inaccessible then
+        game:perform_action('pickup',{x=newX,y=newY})
+      elseif entity.pushable == true and entity:push(player) then
+        player.can_move_cache[newX .. ',' .. newY] = nil
+        player:moveTo(newX,newY)
+        clear = true
+      elseif entity.attackable == true then
+        local attacks = player:get_melee_attacks()
+        if not attack_when_zero and
+          ((#attacks == 0 and entity:calculate_damage_received(player:get_damage(),player.damage_type) < 1) or
+          (#attacks > 0 and entity:calculate_damage_received(attacks[1]:get_damage(player),attacks[1].damage_type) < 1)) then
+          --if you'd do 0 damage on an attack, don't do anything
+          return
+        end
+        player:attack(entity)
+        player.can_move_cache[newX .. ',' .. newY] = nil
+        clear = true
+      else
+        --Do nothing
+      end --end possessable if
+    end --end feature/creature if
   elseif #actions > 0 then
-    perform_action(newX,newY,true)
+    perform_tile_action(newX,newY,true)
 	end
   if (clear or (entity and entity.baseType == "creature")) then
     advance_turn()
@@ -679,13 +878,16 @@ function move_player(newX,newY,force)
   end
 end
 
-function perform_action(x,y,noAdjacent)
+function perform_tile_action(x,y,noAdjacent)
   x = (x or player.x)
   y = (y or player.y)
   local actions = currMap:get_tile_actions(x,y,player,noAdjacent)
   if #actions == 1 then
-    if actions[1].entity:action(player,actions[1].id) ~= false then
+    local entity = actions[1].entity
+    if entity.baseType == "feature" and entity:action(player,actions[1].id) ~= false then
       advance_turn()
+    elseif entity.baseType == "creature" then
+      Gamestate.switch(conversation,entity,player,actions[1].dialogID)
     end
   elseif #actions > 1 then
     local list = {}
@@ -696,7 +898,11 @@ function perform_action(x,y,noAdjacent)
       elseif entity.y > player.y then direction = direction .. "south" end
       if entity.x < player.x then direction = direction .. "west"
       elseif entity.x > player.x then direction = direction .. "east" end
-      list[#list+1] = {text=action.text .. ((direction ~= "" and not action.noDirection) and " (" .. ucfirst(direction) .. ")" or ""),description=action.description,selectFunction=entity.action,selectArgs={entity,player,action.id},image=action.image,image_color=action.image_color,order=action.order}
+    
+      local selectFunction = (entity.baseType == "feature" and entity.action or (entity.baseType == "creature" and Gamestate.switch))
+      local selectArgs = (entity.baseType == "feature" and {entity,player,action.id} or {conversation,entity,player,action.dialogID})
+      
+       list[#list+1] = {entity=entity,text=action.text .. ((direction ~= "" and not action.noDirection) and " (" .. ucfirst(direction) .. ")" or ""),description=action.description,selectFunction=selectFunction,selectArgs=selectArgs,image=action.image,image_color=action.image_color,order=action.order,disabled=action.disabled}
     end
     Gamestate.switch(multiselect,list,"Select an Action",true,true)
   end
@@ -705,17 +911,62 @@ end
 ---Find a path from the player's location to a new location, and start the player moving along it.
 --@param x Number. The x-coordinate to move to.
 --@param y Number. The y-coordinate to move to.
+--@param pathAction. The action to perform at the end of the path. (optional)
 --@param noMsg Boolean. Whether to suppress the "moving to" notification.
-function pathTo(x,y,noMsg)
-  local path = currMap:findPath(player.x,player.y,x,y,player.pathType)
+--@param pathTarget Entity. A creature, feature, or item. The target of the action at the end of the path. (optional)
+function pathTo(x,y,pathAction,pathTarget,noMsg)
+  local path = currMap:findPath(player.x,player.y,x,y,player:get_pathType())
+  if not path then
+    local shortestPath
+    local shortestDist
+    for xn=x-1,x+1,1 do
+      for yn=y-1,y+1,1 do
+        if currMap:in_map(xn,yn) then
+          local tempPath = currMap:findPath(player.x,player.y,xn,yn,player:get_pathType())
+          if tempPath then
+            local tempSteps = #tempPath
+            local tempDist = calc_distance_squared(player.x,player.y,xn,yn)
+            if tempDist and (not shortestDist or tempDist < shortestDist) then
+              shortestPath = tempPath
+              shortestDist = tempDist
+            end
+          end
+        end
+      end
+    end
+    if shortestPath then path = shortestPath end
+  end
 	if (path ~= false) then
 		table.remove(path,1)
 		player.path = path
 		if noMsg ~= true then output:out("Moving to location, press any key to stop...") end
 		output:setCursor(0,0)
-    player.ignoring = player.sees
+    player.ignoring = {}
+    if player.sees then
+      for _,creat in pairs(player.sees) do
+        if creat.shitlist[player] then
+          player.ignoring[#player.ignoring+1] = creat
+        end
+      end
+    end
     player.pathStartHP = player.hp
+    player.pathAction = pathAction
+    player.pathTarget = pathTarget
 	end
+end
+
+---Ends player pathing
+--@param aborted Boolean. If true, did not reach the end of the path
+function endPath(aborted)
+  player.path = nil
+  player.ignoring = {}
+  player.pathStartHP = nil
+  if not aborted and player.pathAction then
+    game:perform_action(player.pathAction,player.pathTarget)
+  end
+  player.pathAction = nil
+  player.pathTarget = nil
+  action = "moving"
 end
 
 ---Set the player's target, and if targeting an action, apply that action to the target. If targeting a tile with a creature, that creature will be the player's target for UI purposes.
@@ -730,7 +981,7 @@ function setTarget(x,y)
     local targets = game.targets
     
     --Check range:
-    if actionResult.range and math.floor(calc_distance(player.x,player.y,x,y)) > actionResult.range then
+    if actionResult.range and not actionResult.allow_out_of_range_cast and math.floor(calc_distance(player.x,player.y,x,y)) > actionResult.range then
       output:out("That target is too far away.")
       return false
     elseif actionResult.min_range and math.floor(calc_distance(player.x,player.y,x,y)) < actionResult.min_range then
@@ -797,15 +1048,10 @@ function perform_target_action(target_list)
   if (actionResult ~= nil) then
     if actionResult.baseType == "spell" then --spells can take multiple targets, so pass it to the spell to decide
       result = actionResult:use(target_list,player,actionIgnoreCooldown,actionignoreCost)
-    else
+    elseif actionResult.baseType == "item" then
+      result = actionResult:use(target_list,player,actionIgnoreCooldown)
+    elseif actionResult.baseType == "ranged" then
       result = actionResult:use(target_list[1],player,actionItem) --TODO: make ranged attacks accept multiple targets?
-    end
-    if result ~= false then
-      if actionItem then
-        if actionItem.throwable then
-          player:delete_item(actionItem,1)
-        end
-      end
     end
 	end --end main if
   if result ~= false then
@@ -823,7 +1069,7 @@ function cancel_targeting()
   actionIgnoreCooldown = nil
   actionignoreCost = nil
   game.targets = {}
-  action="moving"
+  if action ~= "dying" then action="moving" end
   output:setCursor(0,0)
 end
 
@@ -892,8 +1138,10 @@ end
 --@param tutorial String. The ID of the tutorial to show.
 function show_tutorial(tutorial)
   require "data.tutorials"
-  game:show_popup(tutorials[tutorial],nil,nil,nil,true)
-  currGame.tutorialsSeen[tutorial] = true
+  if tutorials[tutorial] and not currGame.tutorialsSeen[tutorial] then
+    game:show_popup(tutorials[tutorial],nil,nil,nil,true)
+    currGame.tutorialsSeen[tutorial] = true
+  end
 end
 
 ---Starts a mission at 0 and runs its begin() code
@@ -902,15 +1150,16 @@ end
 --@param source Object. Where the mission came from (Optional)
 --@param values Table. A table of values to store in the mission table in the format {index=value,index2=value2}
 --@param skipFunc Boolean. Whether to skip the start() function (assuming the mission actually has one) (Optional)
+--@param noPopup Boolean. If true, don't show a popup
 --@return Anything. Either false if the mission didn't start, the returned value of the start() function if there was one, or true.
-function start_mission(missionID,startVal,source,values,skipFunc)
+function start_mission(missionID,startVal,source,values,skipFunc,noPopup)
   local mission = possibleMissions[missionID]
   local ret = true
   local text = nil
   if not skipFunc and mission and mission.start then
     ret,text = mission.start(startVal)
   end
-  if ret ~= false then --If the mission isn't pre-defined or doesn't have a finish() code
+  if ret ~= false then --If the mission isn't pre-defined or doesn't have a start() code
     set_mission_status(missionID,startVal or 0)
     if source then
       set_mission_data(missionID,'source',source)
@@ -923,6 +1172,7 @@ function start_mission(missionID,startVal,source,values,skipFunc)
     if not text then text = mission.start_text end
     if mission and text then
       output:out(text)
+      if not noPopup then output:show_popup(text,"Mission Started: " .. mission.name,nil,true) end
     end
   end
   if source and source.current_missions then
@@ -938,6 +1188,17 @@ function get_mission_status(missionID)
   return (currGame.missionStatus[missionID] and currGame.missionStatus[missionID].status or nil)
 end
 
+---Returns whether the given mission has been finished
+--@param missionID String. The ID of the mission. Can either be a pre-defined mission, or you can use any ad-hoc value if you want to use this to track something that's not an actual mission.
+--@param includeFailure Boolean. If true, also look at failed missions
+--@return Boolean. Whether the mission is finished or not
+function is_mission_finished(missionID,includeFailure)
+  if currGame.finishedMissions[missionID] and (includeFailure or not currGame.finishedMissions[missionID].failed) then
+    return currGame.finishedMissions[missionID].status or true
+  end
+  return false
+end
+
 ---Sets a the status value of a mission to a specific value.
 --@param missionID String. The ID of the mission. Can either be a pre-defined mission, or you can use any ad-hoc value if you want to use this to track something that's not a pre-defined mission.
 --@param value Anything. The value you'd like to store.
@@ -950,8 +1211,12 @@ end
 ---Gets the value of an index of a given mission.
 --@param missionID String. The ID of the mission. Can either be a pre-defined mission, or you can use any ad-hoc value if you want to use this to track something that's not a pre-defined mission.
 --@param index String. The string that used as the index to search
+--@param includeFinished Boolean. If true, look at mission data for finished missions too
 --@return Anything. The value stored in the index given
-function get_mission_data(missionID,index)
+function get_mission_data(missionID,index,includeFinished)
+  if includeFinished and currGame.finishedMissions[missionID] then
+    return (currGame.finishedMissions[missionID][index] or nil)
+  end
   return (currGame.missionStatus[missionID] and currGame.missionStatus[missionID][index] or nil)
 end
 
@@ -985,13 +1250,12 @@ end
 --@param missionID String. The ID of the mission. Can either be a pre-defined mission, or you can use any ad-hoc value if you want to use this to track something that's not an actual mission.
 --@param endVal Anything. A value you want to store in the finished missions table (eg to determine how the mission ended if it has multiple endings). (Optional)
 --@param skipFunc Boolean. Whether to skip the finish() function (assuming the mission actually has one) (Optional)
+--@param noPopup Boolean. if true, don't show a popup
 --@return Anything. Either false if the mission didn't end, the returned value of the finish() function if there was one, or true.
-function finish_mission(missionID,endVal,skipFunc)
+function finish_mission(missionID,endVal,skipFunc,noPopup)
   local mission = possibleMissions[missionID]
   local ret = true
   local text = nil
-  local rewardtext = ""
-  local source = get_mission_data(missionID,'source')
   if not skipFunc and mission and mission.finish then
     ret,text = mission:finish(endVal)
   end
@@ -1044,6 +1308,7 @@ function finish_mission(missionID,endVal,skipFunc)
       end
     end
     output:out("Mission Complete: " .. mission.name .. "." .. (text and " " .. text or ""))
+    if not noPopup and text then output:show_popup(text,"Mission Complete: " .. mission.name,nil,true) end
   end
   text = text .. rewardtext
   return ret,text
@@ -1053,8 +1318,9 @@ end
 --@param missionID String. The ID of the mission. Can either be a pre-defined mission, or you can use any ad-hoc value if you want to use this to track something that's not an actual mission.
 --@param endVal Anything. A value you want to store in the finished missions table (eg to determine how the mission ended if it has multiple endings). (Optional)
 --@param skipFunc Boolean. Whether to skip the fail() function (assuming the mission actually has one) (Optional)
+--@param noPopup Boolean. If true, don't show a popup
 --@return Anything. Either false if the mission didn't fail, the returned value of the fail() function if there was one, or true.
-function fail_mission(missionID,endVal,skipFunc)
+function fail_mission(missionID,endVal,skipFunc,noPopup)
   local mission = possibleMissions[missionID]
   local ret = true
   local text = nil
@@ -1065,12 +1331,14 @@ function fail_mission(missionID,endVal,skipFunc)
     if not mission.delete_on_fail then
       if not currGame.finishedMissions[missionID] then currGame.finishedMissions[missionID] = currGame.missionStatus[missionID] end
       currGame.finishedMissions[missionID].status = endVal or 'failed'
+      currGame.finishedMissions[missionID].failed = true
       currGame.finishedMissions[missionID].repetitions = (currGame.finishedMissions[missionID].repetitions or 0)+1
     end
     currGame.missionStatus[missionID] = nil
   end
   if mission then
     if not text then text = mission.fail_text end
+    if not noPopup then output:show_popup((text or ""),"Mission Failed: " .. mission.name,nil,true) end
     text = "Mission Failed: " .. mission.name .. "." .. (text and " " .. text or "")
     output:out(text)
   end

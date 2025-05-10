@@ -8,7 +8,7 @@ function multipickup:enter(previous,itemX,itemY,adjacentItems)
   self.scrollY = 0
   local width, height = love.graphics:getWidth(),love.graphics:getHeight()
   local uiScale = (prefs['uiScale'] or 1)
-  local boxW,boxH = math.min(550,width),math.min(550,height)
+  local boxW,boxH = math.min(550,width),math.min(750,height)
   local padX,padY = 0,0
   local fontSize = prefs['fontSize']
   local x,y=math.floor(width/2/uiScale-boxW/2),math.floor(height/2/uiScale-boxH/2)
@@ -68,7 +68,7 @@ function multipickup:draw()
   if player.inventory_space then
     local totalspace = player:get_stat('inventory_space')
     local usedspace = player:get_used_inventory_space()
-    love.graphics.printf("Inventory Space: " .. usedspace .. "/" .. totalspace,x+padX,printY,boxW-16,"center")
+    love.graphics.printf("Used Inventory Space: " .. usedspace .. "/" .. totalspace,x+padX,printY,boxW-16,"center")
     printY = printY+fontSize+5
   end
   
@@ -118,13 +118,14 @@ function multipickup:draw()
     local nameX = x+padX+letterW+tileSize
     local nameText = name .. (extra or "")
     local nameW = boxW-letterW-tileSize-padX-scrollMod
+    local _,nlines = fonts.textFont:getWrap(nameText,nameW)
+    local nameHeight = math.max((#nlines)*fontSize,tileSize)
+    self.itemLines[i] = {minY=printY,maxY=printY+nameHeight+2}
+    
     love.graphics.print((letter and letter .. ") " or ""),x+padX,printY+2)
     output.display_entity(item,x+padX+letterW,printY-2,true,true)
     love.graphics.printf(nameText,nameX,printY+2,nameW,"left")
     
-    local _,nlines = fonts.textFont:getWrap(nameText,nameW)
-    local nameHeight = math.max((#nlines)*fontSize,tileSize)
-    self.itemLines[i] = {minY=printY,maxY=printY+nameHeight+2}
     printY = printY+nameHeight+2
 	end
   bottom = printY
@@ -245,9 +246,9 @@ function multipickup:update(dt)
   local uiScale = (prefs['uiScale'] or 1)
   local fontSize = prefs['fontSize']
   x,y = x/uiScale, y/uiScale
-	if (x ~= output.mouseX or y ~= output.mouseY) then -- only do this if the mouse has moved
-    output.mouseX,output.mouseY = x,y
-		if (x > self.x and x < self.x+self.boxW-(not self.scrollPositions and 0 or self.padX) and y > self.y+prefs['fontSize']+self.padY and y < self.y+self.boxH) then --if inside item box
+	if (x ~= self.mouseX or y ~= self.mouseY) then -- only do this if the mouse has moved
+    self.mouseX,self.mouseY = x,y
+		if (x > self.x and x < self.x+self.boxW-(not self.scrollPositions and 0 or self.padX) and y > self.y+fontSize+self.padY and y < self.y+self.boxH) then --if inside item box
       for i,coords in ipairs(self.itemLines) do
         if y > coords.minY-self.scrollY and y < coords.maxY-self.scrollY then
           self.cursorY = i

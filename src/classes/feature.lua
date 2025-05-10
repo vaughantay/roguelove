@@ -290,6 +290,7 @@ function Feature:destroy(source,damage_type)
   if ret ~= false then
     if self.destroy_feature and not currMap:tile_has_tag(self.x,self.y,'absorbs') then
       local feat = Feature(self.destroy_feature)
+      feat.repair_feature = self.id
       if self.copy_color_to_destroy_feature then
         feat.color = copy_table(self.color)
       end
@@ -325,7 +326,7 @@ function Feature:delete(map)
     self.animator:delete(map)
   end
   if self.castsLight then map.lights[self] = nil end
-  if self.blocksSight then refresh_player_sight() end
+  if self.blocksSight and map == currMap then refresh_player_sight() end
 end
 
 ---Refresh the image name of a feature.
@@ -491,6 +492,8 @@ end
 --@return either nil or Number. The amount of the item the player has
 function Feature:has_item(itemID,sortBy,enchantments,level)
   enchantments = enchantments or {}
+  local item,index,amount = false,nil,0
+  local largestAmt = 0
 	for id, it in ipairs(self.inventory) do
 		if (itemID == it.id) and (not level or it.level == level) and (not it.sortBy or sortBy == it[it.sortBy]) then
       local matchEnch = true
@@ -507,11 +510,17 @@ function Feature:has_item(itemID,sortBy,enchantments,level)
       end
       
       if matchEnch == true then
-        return it,id,it.amount
+        amount = amount + it.amount
+        if not item or it.amount > largestAmt and (not it.max_stack or it.amount < it.max_stack) then --we want to select the largest stack of items that's not a maxed-out stack of items
+          if not it.max_stack or it.amount < it.max_stack then --don't set largest amount to a full stack
+            largestAmt = it.amount
+          end
+          item,index = it,id
+        end
       end
 		end
 	end --end inventory for
-	return false,nil,0
+	return item,index,amount
 end
 
 ---Check if a feature has a specific item
@@ -562,21 +571,21 @@ function Feature:populate_items(map,room,forceDefault)
   end
   local newItems = {}
   local item_list = {}
-  local min_level = map:get_min_level(true)
-  local max_level = map:get_max_level(true)
+  local min_level = self.min_level or map:get_min_level(true)
+  local max_level = self.max_level or map:get_max_level(true)
   local decTags = (room and room.decorator and roomDecorators[room.decorator].passedTags or {})
   local mapPassed = map:get_content_tags('passed')
   local mapTags = (not self.noMapTags and map:get_content_tags('item') or nil)
   local passedTags = merge_tables(decTags, mapPassed,(self.passedTags or {}))
-  local artifact_chance = self.artifact_chance or self.artifact_chance or map.artifact_chance or gamesettings.artifact_chance or 0
-  local enchantment_chance = self.enchantment_chance or self.enchantment_chance or map.enchantment_chance or gamesettings.enchantment_chance or 0
+  local artifact_chance = self.artifact_chance or map.artifact_chance or gamesettings.artifact_chance or 0
+  local enchantment_chance = self.enchantment_chance or map.enchantment_chance or gamesettings.enchantment_chance or 0
   
   --Create item list:
   if self.items then
     item_list = self.items or {}
   end --end if items
   if self.itemTags or self.contentTags or self.forbiddenTags then
-    local tags = self.itemTags or self.contentTags or dec.itemTags or dec.contentTags or {}
+    local tags = self.itemTags or self.contentTags or {}
     local forbidden = self.forbiddenTags
     local required = self.requiredTags
     local tagged_items = mapgen:get_content_list_from_tags('item',tags,{forbiddenTags=forbidden,requiredTags=required,mapTags=mapTags})
@@ -586,7 +595,7 @@ function Feature:populate_items(map,room,forceDefault)
   end
   
   ::gen_item::
-  local ni = mapgen:generate_item(min_level,max_level,item_list,passedTags,nil,artifact_chance,enchantment_chance)
+  local ni = mapgen:generate_item(min_level,max_level,item_list,passedTags,nil,enchantment_chance,artifact_chance)
   newItems[#newItems+1] = ni
   self:modify_generated_item(ni,map,room)
   ni.origin_branch = map.branch
@@ -619,6 +628,13 @@ function Feature:modify_generated_item(item,map,room)
       print("Error in feature " .. self.name .. " modify_generated_item code: " .. r)
     end
     return r
+  end
+  if self.apply_enchantments then
+    for _,ench in ipairs(self.apply_enchantments) do
+      if item:qualifies_for_enchantment(ench) then
+        item:apply_enchantment(ench,-1)
+      end
+    end
   end
 end
 

@@ -109,7 +109,10 @@ function factionscreen:draw()
     local favor_required = faction.reputation_per_favor_spent-favor_spent
     local money_required
     if not faction.no_buy_money or not faction.no_sell_money then
-      money_required = favor_required*(self.money_per_favor or 10)
+      money_required = favor_required*(faction.money_per_favor or 1)
+    end
+    if faction.no_buy_favor or faction.no_sell_favor then
+      favor_required = nil
     end
     local repText = "Earn or spend " .. (favor_required and favor_required .. " favor" or "") .. (money_required and (favor_required and " or " or "") .. get_money_name(money_required) or "") .. " here to gain +1 Reputation."
     love.graphics.printf(repText,printX,printY,windowWidth,"center")
@@ -720,6 +723,14 @@ function factionscreen:draw()
         end
         costText = costText .. skillDef.favorCost .. " Favor"
       end
+      if skillDef.reputationCost and skillDef.reputationCost ~= 0 then
+        if costText == nil then
+          costText = "\n(Cost: "
+        else
+          costText = costText .. ", "
+        end
+        costText = costText .. skillDef.reputationCost .. " Reputation"
+      end
       if costText then costText = costText .. ")" end
       local spellText = skill.name .. (skillDef.level > 1 and " Level " .. skillDef.level or "") .. (costText  and costText or "") .. "\n" .. skill.description
       local __, wrappedtext = fonts.textFont:getWrap(spellText, windowWidth)
@@ -755,16 +766,24 @@ function factionscreen:draw()
       local spell = possibleSpells[spellDef.spell]
       spellCount = spellCount + 1
       local costText = nil
-      if spellDef.moneyCost then
+      if spellDef.moneyCost and spellDef.moneyCost > 0 then
         costText = "\n(Cost: " .. get_money_name(spellDef.moneyCost)
       end
-      if spellDef.favorCost then
+      if spellDef.favorCost and spellDef.favorCost > 0  then
         if costText == nil then
           costText = "\n(Cost: "
         else
           costText = costText .. ", "
         end
         costText = costText .. spellDef.favorCost .. " Favor"
+      end
+      if spellDef.reputationCost and spellDef.reputationCost > 0 then
+        if costText == nil then
+          costText = "\n(Cost: "
+        else
+          costText = costText .. ", "
+        end
+        costText = costText .. spellDef.reputationCost .. " Reputation"
       end
       if costText then costText = costText .. ")" end
       local spellText = spell.name .. (costText or "") .. "\n" .. spell.description
@@ -894,6 +913,10 @@ function factionscreen:draw()
     love.graphics.stencil(stencilFunc,"replace",1)
     love.graphics.setStencilTest("greater",0)
     love.graphics.translate(0,-self.scrollY)
+    if faction.mission_limit then
+      love.graphics.printf("This faction only offers " .. faction.mission_limit .. " mission" .. (faction.mission_limit == 1 and "" or "s") .. " at a time. Missions refresh daily.",printX,printY,windowWidth,"center")
+      printY = printY + fontSize*2
+    end
     for i, mData in ipairs(missions) do
       local missionID = mData.missionID
       local mission = possibleMissions[missionID]

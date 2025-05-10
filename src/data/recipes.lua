@@ -74,7 +74,7 @@ possibleRecipes['weaponfireoil'] = {
 possibleRecipes['reallybigclub'] = {
   results={reallybigclub=1},
   ingredients={club=2},
-  requires_class="barbarian",
+  --requires_class="barbarian",
   result_text="You mash two clubs together with your incredible strength, resulting in one really big club.",
   types = {'weaponsmithing'}
 }

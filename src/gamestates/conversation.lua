@@ -315,7 +315,7 @@ function conversation:load_responses(args)
         if not text then
           text = (respData.text_random and get_random_element(respData.text_random) or respData.text)
         end
-        responses[#responses+1] = {text=text, moves_to_dialog=respData.moves_to_dialog, ends_conversation = respData.ends_conversation, disabled = disabled, data=respData}
+        responses[#responses+1] = {text=text, moves_to_dialog=respData.moves_to_dialog, ends_conversation = respData.ends_conversation, disabled = disabled, data=respData,id=respData.id}
       end --end requires or disabled
     end --end response for
     if #responses > 0 then

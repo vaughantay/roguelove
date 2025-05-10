@@ -235,23 +235,42 @@ end
 ---Generate items for a creature's inventory. Usually called when the creature first spawns
 --@param source Table. The source of potential item lists. Defaults to the creature itself, and will frequently be either a creature type or a faction, but can be any table containing a possible_inventory or possible_death_items table. (optional)
 function Creature:generate_inventory(source,tags)
+  tags = self.passedTags or tags or {}
   source = source or self
   --Add inventory items:
   if source.possible_inventory then
     for _,def in ipairs(source.possible_inventory) do
       if not def.chance or random(1,100) <= def.chance then
         local amt = def.amount or random((def.min_amt or 1),(def.max_amt or 1))
-        for i=1,amt,1 do
-          local it = Item(def.item,tags)
-          if it.requires_identification and not def.unidentified then
-            it.identified=true
+        if def.item_group then
+          local items = mapgen:generate_items_from_item_group(def.item_group,amt,{passedTags=def.passedTags or tags})
+          for _,it in ipairs(items) do
+            if it.requires_identification and not def.unidentified then
+              it.identified=true
+            end
+            if def.drop_chance then
+              it.drop_chance = def.drop_chance
+            end
+            self:give_item(it,true)
+            if it.equippable then
+              self:equip(it)
+            end
           end
-          if def.drop_chance then
-            it.drop_chance = def.drop_chance
-          end
-          self:give_item(it,true)
-          if it.equippable then
-            self:equip(it)
+        elseif def.item then
+          for i=1,amt,1 do
+            if def.item then
+              local it = Item(def.item,tags)
+              if it.requires_identification and not def.unidentified then
+                it.identified=true
+              end
+              if def.drop_chance then
+                it.drop_chance = def.drop_chance
+              end
+              self:give_item(it,true)
+              if it.equippable then
+                self:equip(it)
+              end
+            end
           end
         end
       end --end chance
@@ -263,11 +282,21 @@ function Creature:generate_inventory(source,tags)
     for _,def in ipairs(source.possible_death_items) do
       if not def.chance or random(1,100) <= def.chance then
         local amt = (def.max_amt and random((def.min_amt or 1),def.max_amt) or 1)
-        for i=1,amt,1 do
-          local item = Item(def.item,tags)
-          self.death_items[#self.death_items+1] = item
-          if def.drop_chance then
-            item.drop_chance = def.drop_chance
+        if def.item_group then
+          local items = mapgen:generate_items_from_item_group(def.item_group,amt,{passedTags=def.passedTags or tags})
+          for _,it in ipairs(items) do
+            self.death_items[#self.death_items+1] = item
+            if def.drop_chance then
+              it.drop_chance = def.drop_chance
+            end
+          end
+        elseif def.item then
+          for i=1,amt,1 do
+            local item = Item(def.item,tags)
+            self.death_items[#self.death_items+1] = item
+            if def.drop_chance then
+              item.drop_chance = def.drop_chance
+            end
           end
         end
       end --end chance
@@ -571,7 +600,7 @@ function Creature:damage(amt,attacker,damage_type,armor_piercing,noSound,item,ig
   
   amt = self:calculate_damage_received(amt,damage_type,armor_piercing)
 
-  if (amt < 0) then
+  if (amt == 0) then
     local popup = Effect('dmgpopup')
     popup.image_name = "damage_blocked"
     popup.symbol="x"
@@ -594,6 +623,9 @@ function Creature:damage(amt,attacker,damage_type,armor_piercing,noSound,item,ig
       popup2.paired = popup
       currMap:add_effect(popup2,self.x,self.y)
     end
+    return 0
+  elseif amt < 0 then
+    self:updateHP(-amt,damage_type)
     return 0
   end
   local bool,ret = self:callbacks('damaged',attacker,amt,damage_type)
@@ -702,7 +734,6 @@ function Creature:calculate_damage_received(amt,damage_type,armor_piercing,ignor
   --Apply damage weaknesses, resistances, and armor
   if damage_type then
     if self:is_healed_by_damage_type(damage_type) then
-      self:updateHP(amt)
       return -amt
     end
     if self:is_immune_to_damage_type(damage_type) then
@@ -892,7 +923,7 @@ function Creature:decrease_all_conditions(removal_type)
     local con = conditions[condition]
     if con and con.removal_type == removal_type and turns ~= -1 then
       self.conditions[condition].turns = self.conditions[condition].turns - 1
-      if self.conditions[condition].turns <= 0 then
+      if self.conditions[condition].turns <= 0 or con.cure_when_decreasing then
         self:cure_condition(condition)
       end --end if condition <= 0
     end --end condition for
@@ -1097,17 +1128,14 @@ function Creature:get_bonus(bonusType)
     return self.bonus_cache[bonusType]
   end
 	local bonus = 0
-  local bcount = 0
   if self.bonuses and self.bonuses[bonusType] then
     bonus = bonus + self.bonuses[bonusType]
-    bcount = bcount + 1
   end
 	for id, info in pairs(self.conditions) do
 		if conditions[id].bonuses or (info.bonuses and info.bonuses[bonusType]) then
 			local b = (info.bonuses and info.bonuses[bonusType] or conditions[id].bonuses[bonusType])
 			if (b ~= nil) then
         bonus = bonus + b
-        bcount = bcount+ 1
       end
 		end
 	end
@@ -1117,7 +1145,6 @@ function Creature:get_bonus(bonusType)
 			local b = spell.bonuses[bonusType]
 			if (b ~= nil) then
         bonus = bonus + b
-        bcount = bcount+ 1
       end
 		end
 	end
@@ -1126,7 +1153,6 @@ function Creature:get_bonus(bonusType)
       local b = equip.bonuses[bonusType]
       if b ~= nil then
         bonus = bonus + b
-        bcount = bcount + 1
       end
     end --end bonuses if
   end --end equipment for
@@ -1161,9 +1187,6 @@ function Creature:get_bonus(bonusType)
             end
           end
         end --end bonuses_per_x_levels
-        if skillB then
-          bcount = bcount + 1
-        end
       end --end skill if
     end --end skill for
   end --end bonus type is a skill if
@@ -1481,6 +1504,12 @@ function Creature:is_immune_to_condition_type(conditionType)
       return true
     end
   end
+  for _,item in pairs(self.equipment_list) do
+    local immunities = item:get_condition_type_immunities()
+    if in_table(conditionType,immunities) then
+      return true
+    end
+  end
   return false
 end
 
@@ -1494,8 +1523,7 @@ end
 --@param target Entity. The creature (or feature) they're attacking
 --@param forceHit Boolean. Whether to force the attack instead of rolling for it.
 --@param ignore_callbacks Boolean. Whether to ignore any of the callbacks involved with attacking
---@return String. Either "miss," "hit," or "critical"
---@return Number. How much damage (if any) was done
+--@return Number or False. How much damage (if any) was done, false if attacking is impossible
 function Creature:attack(target,forceHit,ignore_callbacks)
   if self.noMelee then return false end
   if target and target.x and target.x<self.x then
@@ -2353,7 +2381,7 @@ function Creature:delete_item(item,amt,silent)
     --Add item popup:
     if self == player and not silent then
       local popup1 = Effect('dmgpopup')
-      popup1.symbol = "-" .. (amt > 1 and amt or "")
+      popup1.symbol = (amt ~= 1 and -amt or "-")
       popup1.color = {r=255,g=0,b=0,a=150}
       local tileMod = round(fonts.mapFontWithImages:getWidth(popup1.symbol)/2)
       popup1.xMod = -tileMod
@@ -2371,7 +2399,7 @@ function Creature:delete_item(item,amt,silent)
       popup2.paired = popup1
       popup2.itemID = item.id
       popup2.sortBy = (item.sortBy and item[item.sortBy] or nil)
-      popup2.itemAmt = amt
+      popup2.itemAmt = -amt
       currMap:add_effect(popup1,self.x,self.y)
       currMap:add_effect(popup2,self.x,self.y)
     end
@@ -2895,9 +2923,28 @@ end
 --@return Boolean. Whether or not the creature is an enemy of any of your factions
 function Creature:is_faction_enemy(target)
   if not self.factions then return false end
-  for _,f in pairs(self.factions) do
-    if currWorld.factions[f] and currWorld.factions[f]:is_enemy(target) then return true end
+  local resident_faction = currMap.resident_use_faction_reputation
+  if resident_faction and self:is_faction_member('residents') then
+    if target:has_condition('trespassing') then return true end
+    if currWorld.factions[resident_faction] then return currWorld.factions[resident_faction]:is_enemy(target) end
   end
+  for _,f in pairs(self.factions) do
+    if currWorld.factions[f] and not currWorld.factions[f].ignore_hostility and currWorld.factions[f]:is_enemy(target) then
+      return true
+    end
+  end
+  if self.enemy_factions then
+    for _,fac in ipairs(self.enemy_factions) do
+      if target:is_faction_member(fac) then return true end
+    end
+  end
+  for _,ctype in ipairs(self:get_types()) do
+    if creatureTypes[ctype] and creatureTypes[ctype].enemy_factions then
+      for _,fac in ipairs(creatureTypes[ctype].enemy_factions) do
+        if target:is_faction_member(fac) then return true end
+      end --end enemy_types for
+    end --end if creatureTypes[ctype]
+  end --end self ctype for
   return false
 end --end function
 
@@ -2906,9 +2953,27 @@ end --end function
 --@return Boolean. Whether or not the creature is a friend of any of your factions
 function Creature:is_faction_friend(target)
   if not self.factions then return false end
-  for _,f in pairs(self.factions) do
-    if currWorld.factions[f] and currWorld.factions[f]:is_friend(target) then return true end
+  local resident_faction = currMap.resident_use_faction_reputation
+  if resident_faction and self:is_faction_member('residents') then
+    if currWorld.factions[resident_faction] then return currWorld.factions[resident_faction]:is_friend(target) end
   end
+  for _,f in pairs(self.factions) do
+    if currWorld.factions[f] and not currWorld.factions[f].ignore_hostility and currWorld.factions[f]:is_friend(target) then
+      return true
+    end
+  end
+  if self.friendly_factions then
+    for _,fac in ipairs(self.friendly_factions) do
+      if target:is_faction_member(fac) then return true end
+    end
+  end
+  for _,ctype in ipairs(self:get_types()) do
+    if creatureTypes[ctype] and creatureTypes[ctype].friendly_factions then
+      for _,fac in ipairs(creatureTypes[ctype].friendly_factions) do
+        if target:is_faction_member(fac) then return true end
+      end --end enemy_types for
+    end --end if creatureTypes[ctype]
+  end --end self ctype for
   return false
 end --end function
 
@@ -3070,7 +3135,7 @@ function Creature:update_reputation(factionID,amount,display,reason,noEnemies)
   end
   
   self.reputation[factionID] = (self.reputation[factionID] or 0) + amount
-  if currGame.heist then
+  if currGame.heist and self == player then
     currGame.heist.reputation_change[factionID] = (currGame.heist.reputation_change[factionID] or 0) + amount
   end
   if display and self == player and amount ~= 0 and faction.contacted and not faction.hidden then

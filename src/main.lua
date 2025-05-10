@@ -9,6 +9,7 @@ function love.errorhandler(msg)
   love.filesystem.write('error ' .. date .. ".txt",printed .. "\n\n" .. m)
   return love.errhand(msg)
 end
+io.stdout:setvbuf("no")
 
 --Custom print that saves everything printed, for logging later
 originalPrint = print
@@ -32,6 +33,7 @@ end
 if debugMode == true then
   require("lib.lovedebug")
   profiler = require("lib.profile")
+  io.stdout:setvbuf("no")
 end
 
 --pClock = require("profileclock")
@@ -57,6 +59,7 @@ function love.load(arg)
   music = {}
   pathfinders = {}
   grids = {}
+  path_cache = {}
   timers = {}
   Gamestate.switch(loading)
   totalstats = load_stats()
@@ -118,7 +121,7 @@ function love.draw()
   end
   --Gamestate.draw()
   if output.notifications and output.notifications[1] then output.notifications[1]:draw() end
-  if output.popup then output.popup:draw() end
+  if output.popups and output.popups[1] then output.popups[1]:draw() end
   if debugMode then love.graphics.print("FPS: "..tostring(love.timer.getFPS( )), 10, 10) end
   if debugMode then love.graphics.print("Gamepad: "..tostring(input:is_gamepad()), 10, 25) end
   if Gamestate.current() ~= game then
@@ -148,11 +151,11 @@ function love.update(dt)
 end
 
 function love.keypressed(key, scancode, isRepeat)
-  if output.popup then
+  if output.popups and output.popups[1] then
     key,scancode,isRepeat = input:parse_key(key,scancode,isRepeat)
-    if not output.popup.enterOnly or key == "enter" then
-      if output.popup.afterFunc then output.popup.afterFunc() end
-      output.popup = nil
+    if not output.popups[1].enterOnly or key == "enter" then
+      if output.popups[1].afterFunc then output.popups[1].afterFunc() end
+      table.remove(output.popups,1)
     end
     return
   end
@@ -206,9 +209,9 @@ if love._os == "NX" then
   end  
 else
   function love.mousepressed(x,y,button)
-    if output.popup then
-      if output.popup.afterFunc then output.popup.afterFunc() end
-      output.popup = nil
+    if output.popups and output.popups[1] then
+      if output.popups[1].afterFunc then output.popups[1].afterFunc() end
+      table.remove(output.popups,1)
       return
     end
     local status,r = pcall(Gamestate.mousepressed,x,y,button)
@@ -260,9 +263,9 @@ function love.gamepadaxis(joystick,axis,value)
 end
 
 function love.gamepadpressed(joystick,button)
-  if output.popup then
-    if output.popup.afterFunc then output.popup.afterFunc() end
-    output.popup = nil
+  if output.popup and output.popups[1] then
+    if output.popups[1].afterFunc then output.popups[1].afterFunc() end
+    table.remove(output.popups,1)
     return
   end
   Gamestate.buttonpressed(button,nil,nil,'gamepad')
@@ -363,73 +366,46 @@ function test_spells()
 end
 
 function load_data()
-  require "data.achievements"
-  require "data.ai"
-  require "data.branches"
-  require "data.creaturetypes"
-  require "data.conditions"
-  require "data.damage_types"
-  require "data.dialogs"
-  require "data.effects"
-  require "data.enchantments"
-  require "data.events"
-  require "data.factions"
-  require "data.features"
-  require "data.gamedefinition"
-  require "data.incidents"
-  require "data.items"
-  require "data.layouts"
-  require "data.mapModifiers"
-  require "data.mapTypes"
-  require "data.missions"
-  require "data.monsters"
-  require "data.playerclasses"
-  require "data.projectiles"
-  require "data.ranged_attacks"
-  require "data.recipes"
-  require "data.rooms"
-  require "data.room_decorators"
-  require "data.services"
-  require "data.skills"
-  require "data.spells"
-  require "data.stores"
-  require "data.tilesets"
-  require "gamestates.characterscreen"
-  require "gamestates.cheats"
-  require "gamestates.conversation"
-  require "gamestates.crafting"
-  require "gamestates.credits"
-  require "gamestates.examine_creature"
-  require "gamestates.examine_item"
-  require "gamestates.factionscreen"
-  require "gamestates.game"
-  require "gamestates.help"
-  require "gamestates.hotkey"
-  require "gamestates.inventory"
-  require "gamestates.gamestats"
-  require "gamestates.loading"
-  require "gamestates.loadsaves"
-  require "gamestates.messages"
-  require "gamestates.modloader"
-  require "gamestates.monsterpedia"
-  require "gamestates.multipickup"
-  require "gamestates.multiselect"
-  require "gamestates.menu"
-  require "gamestates.nameitem"
-  require "gamestates.newgame"
-  require "gamestates.pausemenu"
-  require "gamestates.pronoun_entry"
-  require "gamestates.settings"
-  require "gamestates.spellscreen"
-  require "gamestates.splitstack"
-  require "gamestates.storescreen"
+  for _,file in ipairs(love.filesystem.getDirectoryItems('data')) do
+    local info = love.filesystem.getInfo('data/' .. file)
+    if string.sub(file,-4) == ".lua" then
+      local fileName = string.sub(file,1,-5)
+      require("data." .. fileName)
+    elseif info.type == "directory" then
+      require("data." .. file)
+    end
+  end
+  for _,file in ipairs(love.filesystem.getDirectoryItems('gamestates')) do
+    local info = love.filesystem.getInfo('gamestates/' .. file)
+    if string.sub(file,-4) == ".lua" then
+      local fileName = string.sub(file,1,-5)
+      require("gamestates." .. fileName)
+    elseif info.type == "directory" then
+      require("gamestates." .. file)
+    end
+  end
 end
 
 function load_engine()
-  require "ui.achievement_notification"
-  require "ui.notification"
-  require "ui.popup"
-  require "ui.setting"
+  for _,file in ipairs(love.filesystem.getDirectoryItems('classes')) do
+    local info = love.filesystem.getInfo('classes/' .. file)
+    if string.sub(file,-4) == ".lua" then
+      local fileName = string.sub(file,1,-5)
+      require("classes." .. fileName)
+    elseif info.type == "directory" then
+      require("classes." .. file)
+    end
+  end
+  for _,file in ipairs(love.filesystem.getDirectoryItems('ui')) do
+    local info = love.filesystem.getInfo('ui/' .. file)
+    if string.sub(file,-4) == ".lua" then
+      local fileName = string.sub(file,1,-5)
+      require("ui." .. fileName)
+    elseif info.type == "directory" then
+      require("ui." .. file)
+    end
+  end
+  require "util"
   require "achievement"
   require "input"
   require "mapgen"
@@ -439,18 +415,6 @@ function load_engine()
   require "saveload"
   require "util"
   require "gamelogic"
-  require "classes.condition"
-  require "classes.creature"
-  require "classes.faction"
-  require "classes.effect"
-  require "classes.feature"
-  require "classes.item"
-  require "classes.map"
-  require "classes.projectile"
-  require "classes.ranged_attack"
-  require "classes.service"
-  require "classes.spell"
-  require "classes.store"
 end
 
 function load_libraries()

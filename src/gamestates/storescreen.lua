@@ -619,6 +619,10 @@ function storescreen:draw()
     love.graphics.stencil(stencilFunc,"replace",1)
     love.graphics.setStencilTest("greater",0)
     love.graphics.translate(0,-self.scrollY)
+    if store.mission_limit then
+      love.graphics.printf("This store only offers " .. store.mission_limit .. " mission" .. (store.mission_limit == 1 and "" or "s") .. " at a time. Missions refresh daily.",printX,printY,windowWidth,"center")
+      printY = printY + fontSize*2
+    end
     for i, mData in ipairs(missions) do
       local missionID = mData.missionID
       local mission = possibleMissions[missionID]
@@ -693,6 +697,7 @@ function storescreen:draw()
           button.disabled=true
         end
         printY = printY+fontSize
+        lastY = printY
       else --Not active mission
         local canDo,canDoText = not mData.disabled,mData.explainText
         if canDo == false then
@@ -715,12 +720,12 @@ function storescreen:draw()
           printY=printY+(#wrappedtext+1)*fontSize
           button.disabled = true
         end
+        printY=printY+fontSize
         lastY = printY
       end --end active mission or not if
-      lastY = printY
     end
     if missionCount == 0 then
-      love.graphics.printf("There are currently no missions available.",windowX,printY,windowWidth,"center")
+      love.graphics.printf("There are currently no missions available. Missions refresh every day, so there may be more tomorrow.",printX,printY,windowWidth,"center")
     end
     love.graphics.setStencilTest()
     love.graphics.pop()

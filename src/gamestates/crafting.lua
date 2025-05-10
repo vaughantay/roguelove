@@ -32,6 +32,12 @@ function crafting:refresh_craft_list()
   for _,craftID in ipairs(craft_list) do
     local craftData = {id=craftID,craftable=true,secondary_ingredients={},amount=1}
     local recipe = possibleRecipes[craftID]
+    local modifiers = {}
+    if recipe.types then
+      for _,rtype in ipairs(recipe.types) do
+        modifiers.property_requirements_percent = modifiers.property_requirements_percent or 0 + player:get_bonus(rtype .. '_recipe_property_requirements_percent')
+      end
+    end
     --First look at igredients:
     if recipe.ingredients then
       craftData.ingredients = {}
@@ -111,7 +117,8 @@ function crafting:refresh_craft_list()
     if recipe.ingredient_properties then
       craftData.ingredient_properties = {}
       for prop,amt in pairs(recipe.ingredient_properties) do
-        craftData.ingredient_properties[prop] = {required=amt,amount=0,selected=0}
+        local actualAmt = math.max(1,round(amt + amt*((modifiers.property_requirements_percent or 0)/100)))
+        craftData.ingredient_properties[prop] = {required=actualAmt,amount=0,selected=0}
         for _, item in pairs(player:get_inventory()) do
           if item.crafting_ingredient_properties and item.crafting_ingredient_properties[prop] and not recipe.results[item.id]  then
             local typeMatch = false
@@ -394,8 +401,8 @@ function crafting:draw()
     craftButton.buttonType = "craft"
     self.buttons[1] = craftButton
     setColor(255,255,255,255)
-    local amountW = fonts.textFont:getWidth("Amount: ")
-    love.graphics.print("Amount: ",sidebarX+padX+buttonW,descY)
+    local amountW = fonts.textFont:getWidth(" Amount: ")
+    love.graphics.print(" Amount: ",sidebarX+padX+buttonW,descY)
     local amountBoxW = fonts.textFont:getWidth("100")+8
     local minusButtonX = sidebarX+padX+buttonW+amountW
     local amountBoxX = minusButtonX+48

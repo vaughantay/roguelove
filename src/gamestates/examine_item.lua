@@ -332,11 +332,21 @@ function examine_item:draw()
     printY=printY+fontSize
     for bonus,amt in pairs(item.bonuses) do
       local isPercent = (string.find(bonus,"percent") or string.find(bonus,"chance"))
-      local bonusName = ucfirstall(string.gsub(bonus, "_", " ")) .. ": " .. (amt > 0 and "+" or "") .. amt .. (isPercent and "%" or "")
+      local bonusName = ucfirstall(string.gsub(bonus, "_", " ")) .. (type(amt) == "number" and ": " .. (amt > 0 and "+" or "") .. amt .. (isPercent and "%" or "") or "")
       love.graphics.printf(bonusName,self.x+padding,printY,self.width-scrollPadding,"center")
       local _,blines = fonts.textFont:getWrap(bonusName,self.width-scrollPadding)
       printY = printY + fontSize*#blines
     end
+    printY=printY+fontSize
+  end
+  if count(item:get_condition_type_immunities()) > 0 then
+    local immuneText = "Provides immunity to condition types: "
+    for i,immunity in ipairs(item:get_condition_type_immunities()) do
+      immuneText = immuneText .. (i > 1 and ", " or "") .. ucfirst(immunity)
+    end
+    love.graphics.printf(immuneText,self.x+padding,printY,self.width-scrollPadding,"center")
+    local _,blines = fonts.textFont:getWrap(immuneText,textW)
+    printY = printY + fontSize*#blines
     printY=printY+fontSize
   end
   if count(item:get_spells_granted()) > 0 then
@@ -370,9 +380,9 @@ function examine_item:draw()
     love.graphics.printf("Value: " .. val,self.x+padding,printY,self.width-scrollPadding,"center")
     printY=printY+fontSize
   end
-  local study_results = item:get_study_results()
-  if count(study_results) > 0 then
-    local itemText = "Can be studied at the desk in your tower" .. ((study_results.study_items or study_results.study_skills or study_results.study_recipes) and ", granting:" or "")
+  local study_results = item:get_study_results(player)
+  if count(study_results) > 0 or item.study_info then
+    local itemText = "Can be studied at the desk in your tower" .. ((study_results.study_items or study_results.study_skills or study_results.study_recipes) and ", granting:" or ".")
     if item.study_amount then
       itemText = "\n(Requires " .. item.study_amount .. ")"
     end
@@ -416,6 +426,9 @@ function examine_item:draw()
         end
         itemText = itemText .. "\n\tRecipe: " .. recipeName
       end
+    end
+    if item.study_info then
+      itemText = itemText .. "\n" .. item.study_info
     end
     itemText = itemText .. "\n"
     love.graphics.printf(itemText,self.x+padding,printY,self.width-scrollPadding,"center")
@@ -476,7 +489,7 @@ function examine_item:draw()
             buyText = buyText .. "and "
           end
         end
-        buyText = buyText .. buyInfo.text .. " (" .. (buyInfo.moneyCost and buyInfo.moneyCost > 0 and get_money_name(buyInfo.moneyCost) or "") .. (buyInfo.favorCost and (buyInfo.moneyCost and ", " or "") .. buyInfo.favorCost .. " favor" or "") .. ")"
+        buyText = buyText .. buyInfo.text .. " (" .. (buyInfo.moneyCost and buyInfo.moneyCost > 0 and get_money_name(buyInfo.moneyCost) or "") .. (buyInfo.favorCost and buyInfo.favorCost > 0 and (buyInfo.moneyCost and ", " or "") .. buyInfo.favorCost .. " favor" or "") .. (buyInfo.reputationCost and buyInfo.reputationCost > 0 and ((buyInfo.moneyCost or buyInfo.favorCost) and ", " or "") .. buyInfo.reputationCost .. " reputation" or "") .. ")"
       end
       local _, blines = fonts.textFont:getWrap(buyText,textW)
       local buyH = (#blines)*fontSize
@@ -542,10 +555,19 @@ function examine_item:calculate_height()
     printY=printY+fontSize
     for bonus,amt in pairs(item.bonuses) do
       local isPercent = (string.find(bonus,"percent") or string.find(bonus,"chance"))
-      local bonusName = ucfirstall(string.gsub(bonus, "_", " ")) .. ": " .. (amt > 0 and "+" or "") .. amt .. (isPercent and "%" or "")
+      local bonusName = ucfirstall(string.gsub(bonus, "_", " ")) .. ": " .. (type(amt) == "number" and (amt > 0 and "+" or "") .. amt .. (isPercent and "%" or "") or "")
       local _,blines = fonts.textFont:getWrap(bonusName,textW)
       printY = printY + fontSize*#blines
     end
+    printY=printY+fontSize
+  end
+  if count(item:get_condition_type_immunities()) > 0 then
+    local immuneText = "Provides immunity to condition types: "
+    for i,immunity in ipairs(item:get_condition_type_immunities()) do
+      immuneText = immuneText .. (i > 1 and ", " or "") .. immunity
+    end
+    local _,blines = fonts.textFont:getWrap(immuneText,textW)
+    printY = printY + fontSize*#blines
     printY=printY+fontSize
   end
   if count(item:get_spells_granted()) > 0 then
@@ -568,9 +590,9 @@ function examine_item:calculate_height()
   if gamesettings.examine_item_value and item:get_value() > 0 then
     valueH = fontSize
   end
-  local study_results = item:get_study_results()
-  if count(study_results) > 0 then
-    local itemText = "Can be studied at the desk in your tower" .. ((study_results.study_items or study_results.study_skills or study_results.study_recipes) and ", granting:" or "")
+  local study_results = item:get_study_results(player)
+  if count(study_results) > 0 or item.study_info then
+    local itemText = "Can be studied at the desk in your tower" .. ((study_results.study_items or study_results.study_skills or study_results.study_recipes) and ", granting:" or ".")
     if item.study_amount then
       itemText = "\n(Requires " .. item.study_amount .. ")"
     end
@@ -614,6 +636,9 @@ function examine_item:calculate_height()
         end
         itemText = itemText .. "\n\tRecipe: " .. recipeName
       end
+    end
+    if item.study_info then
+      itemText = itemText .. "\n" .. item.study_info
     end
     itemText = itemText .. "\n"
     local _, slines = fonts.textFont:getWrap(itemText,textW)

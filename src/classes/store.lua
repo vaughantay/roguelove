@@ -112,7 +112,7 @@ function Store:restock()
   local i = 1
   while i <= #self.inventory do
     if self.inventory[i].delete_on_restock then
-      table.remove(self.inventory,id)
+      table.remove(self.inventory,i)
     else
       i = i + 1
     end

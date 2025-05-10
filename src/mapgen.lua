@@ -43,6 +43,8 @@ function mapgen:generate_map(branchID, depth,force)
   end
 
   --Basic initialization of empty map
+  local pTime = os.clock()
+  print('generating map for branch:',branch.id,'depth:',depth,'mapType:',id)
   local build = Map(width,height)
   build.depth = depth
   build.branch = branchID
@@ -87,23 +89,32 @@ function mapgen:generate_map(branchID, depth,force)
   build.above_ground = whichMap.above_ground or branch.above_ground
   build.aware_factions = whichMap.aware_factions or branch.aware_factions
   build.resident_factions = whichMap.resident_factions or branch.resident_factions
+  build.resident_use_faction_reputation = whichMap.resident_use_faction_reputation or branch.resident_use_faction_reputation
+  build.trespassing = whichMap.trespassing or branch.trespassing
+  build.disguise_impressions = whichMap.disguise_impressions or branch.disguise_impressions
+  build.trespassing_impressions = whichMap.trespassing_impressions or branch.trespassing_impressions
+  build.bonuses = whichMap.bonuses or branch.bonuses
+  build.wall_feature = whichMap.wall_feature or branch.wall_feature
   --Generate the map itself:
   local success = true
   if whichMap.create then
+    print('running create() code')
     success = whichMap.create(build,width,height)
   elseif whichMap.layouts then
     local whichLayout = get_random_element(whichMap.layouts)
     local whichModifier = whichMap.modifiers and get_random_element(whichMap.modifiers) or false
+    print('creating via layout',whichLayout)
     success = layouts[whichLayout](build)
     if success ~= false and whichModifier then
+      print('applying modifier',whichModifier)
       local args = whichMap.modifier_arguments and whichMap.modifier_arguments[whichModifier] or {}
-      success = mapModifiers[whichModifier](build,unpack(args))
+      if mapModifiers[whichModifier](build,unpack(args)) == false then
+        print('failed to apply modifier')
+      end
     end
   end
   if success == false then
-    print('failed to do modifier, regenerating')
-    currGame.seedState = mapRandom:getState()
-    random = love.math.random
+    print('failed to create map, trying again')
     return mapgen:generate_map(branchID, depth,force)
   end
   --Add tombstones:
@@ -125,15 +136,21 @@ function mapgen:generate_map(branchID, depth,force)
 
   --Add exits:
   if not build.noExits then
+    print('adding exits')
+    local branchDirection = branch.stair_direction or gamesettings.default_stair_direction or "down"
     --Do generic up and down stairs first, although they may be replaced by other exits later:
-    if (branch.infinite_negative_depth or build.depth > (branch.min_depth or 1)) and not branch.noBacktrack then
-      local newDepth = (build.depth == 1 and -1 or build.depth-1)
-      local upStairs = Feature('exit',{branch=build.branch,depth=newDepth})
-      build:change_tile(upStairs,build.stairsUp.x,build.stairsUp.y)
+    local up_depth = (branchDirection == "down" and (build.depth == 1 and -1 or build.depth-1) or (build.depth == -1 and 1 or build.depth+1))
+    local down_depth = (branchDirection == "down" and (build.depth == -1 and 1 or build.depth+1) or (build.depth == 1 and -1 or build.depth-1))
+    local can_up = (up_depth >= (branch.min_depth or 1) and up_depth <= (branch.max_depth or 1)) or (branchDirection == "down" and build.infinite_negative_depth) or (branchDirection == "up" and build.infinite_depth)
+    local can_down = (down_depth >= (branch.min_depth or 1) and down_depth <= (branch.max_depth or 1)) or (branchDirection == "down" and build.infinite_depth) or (branchDirection == "up" and build.infinite_negative_depth)
+    
+    if can_up then
+      local upStairs = Feature('exit',{branch=build.branch,depth=up_depth})
+      build:add_feature(upStairs,build.stairsUp.x,build.stairsUp.y)
     end
-    if branch.infinite_depth or build.depth < branch.max_depth then
-      local downStairs = Feature('exit',{branch=build.branch,depth=build.depth+1})
-      build:change_tile(downStairs,build.stairsDown.x,build.stairsDown.y)
+    if can_down then
+      local downStairs = Feature('exit',{branch=build.branch,depth=down_depth})
+      build:add_feature(downStairs,build.stairsDown.x,build.stairsDown.y)
     end
     if branch.exits[build.depth] then
       for depth,exit in pairs(branch.exits[build.depth]) do
@@ -147,10 +164,9 @@ function mapgen:generate_map(branchID, depth,force)
           whichX,whichY = self:get_stair_location(build)
         end
         local branchStairs = Feature('exit',{branch=exit.branch,depth=exit.exit_depth or 1,oneway=exit.oneway,name=exit.name})
-        build:change_tile(branchStairs,whichX,whichY)
+        build:add_feature(branchStairs,whichX,whichY)
         --TODO: make sure non-oneway exits are reciprocal
       end
-      --TODO: Scramble where the exits are, for fun
     end
   end
 
@@ -170,18 +186,19 @@ function mapgen:generate_map(branchID, depth,force)
     table.remove(branch.mapTypes,mapTypeIndex)
   end
   
-  if whichMap.wall_feature then
+  if build.wall_feature then
     for x=1,build.width,1 do
       for y=1,build.height,1 do
         if build[x][y] == "#" then
-          build:change_tile(Feature(whichMap.wall_feature),x,y)
+          build:change_tile(Feature(build.wall_feature),x,y)
         end
       end
     end
   end
 
-  currGame.seedState = mapRandom:getState()
-  random = love.math.random
+  if not branch.maps then branch.maps = {} end
+  branch.maps[depth] = build
+  print('total creation time:',tostring(os.clock()-pTime))
   return build
 end
 
@@ -284,6 +301,92 @@ function mapgen:generate_item(min_level,max_level,list,tags,allowAll,enchantment
   end
   return item
 end
+
+---Generate an item from an item group
+--@param groupID String. The item group list
+--@param amount Number. The number of items to generate
+--@param passedTags Table. A table of tags to pass to the new items
+--@return Table. A table of generated items
+function mapgen:generate_items_from_item_group(groupID,amount,info)
+  info = info or {}
+	amount = amount or 1
+	local final_items = {}
+	local group = item_group_list and item_group_list[groupID] and copy_table(item_group_list[groupID])
+  if not group then return final_items end
+  
+  local enchantment_chance = info.enchantment_chance or group.enchantment_chance or gamesettings.default_enchantment_chance or 0
+  local artifact_chance = info.artifact_chance or group.artifact_chance or gamesettings.default_artifact_chance or 0
+  local enchantments = merge_tables(info.enchantments or {},group.enchantments or {})
+  local tags = merge_tables(info.tags or {}, group.tags or {})
+  local passedTags = merge_tables(info.passedTags or {},group.passedTags or {})
+  local requiredTags = info.requiredTags or group.requiredTags
+  local forbiddenTags = info.forbiddenTags or group.forbiddenTags
+
+	local already_ids = {}
+	if group.items then
+    for _,info in ipairs(group.items) do
+      already_ids[#already_ids+1] = group.item
+    end
+  else
+    group.items = group.items or {}
+  end
+  if tags then
+    local additions = mapgen:get_content_list_from_tags('item', tags, {requiredTags=requiredTags, forbiddenTags=forbiddenTags})
+    for _,iid in ipairs(additions) do
+      if not in_table(iid,already_ids) then
+        group.items[#group.items+1] = {item=iid, chance=100-(possibleItems[iid].rarity or 0), passedTags=passedTags, enchantment_chance = enchantment_chance, artifact_chance = artifact_chance, enchantments = enchantments}
+      end
+    end
+  end
+
+	if count(group.items) == 0 then return final_items end
+
+	local item_count = 0
+	while item_count < amount do
+    group.items = shuffle(group.items)
+    local created = false
+    for i,info in ipairs(group.items) do
+      if not info.chance or random(1,100) < info.chance then
+        if info.item_group then
+          local items = self:generate_items_from_item_group(info.item_group,info.amount)
+          local icount = count(items)
+          if icount > 0 then
+            for _,item in ipairs(items) do
+              final_items[#final_items+1] = item
+            end
+            if not info.repeat_allowed and not group.repeat_allowed then
+              table.remove(group.items,i)
+            end
+            item_count = item_count+1
+            created = true
+            break
+          end
+        else
+          local item = Item(info.item,info.passedTags or passedTags,info.passedInfo)
+          local artifact_chance = info.artifact_chance or artifact_chance
+          local enchantment_chance = info.enchantment_chance or enchantment_chance
+          if random(1,100) <= artifact_chance then
+            mapgen:generate_artifact(item,passedTags)
+          end
+          if random(1,100) <= enchantment_chance then
+            --TODO: apply enchantments
+          end
+      
+          final_items[#final_items+1] = item
+          if not info.repeat_allowed and not group.repeat_allowed then
+            table.remove(group.items,i)
+          end
+          item_count = item_count+1
+          created = true
+          break
+        end
+      end
+    end
+    if not created then item_count = item_count+1 end --even if we didn't make an item, increase the count to avoid an infinite loop
+	end
+	return final_items
+end
+
 
 ---Turns an item into a random artifact
 --@param item Item. The item to turn into an artifact

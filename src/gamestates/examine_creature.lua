@@ -125,7 +125,7 @@ function examine_creature:draw()
           for bonus,amt in pairs(bonuses) do
             if bonus ~= 'xMod' and bonus ~= 'yMod' and bonus ~= 'scale' and bonus ~= 'angle' then
               local isPercent = (string.find(bonus,"percent") or string.find(bonus,"chance"))
-              name = name .. "\n\t* " .. ucfirstall(string.gsub(string.gsub(bonus, "_", " "), "percent", "")) .. ": " .. (amt > 0 and "+" or "") .. amt .. (isPercent and "%" or "")
+              name = name .. "\n\t* " .. ucfirstall(string.gsub(string.gsub(bonus, "_", " "), "percent", "")) .. (type(amt) == "number" and ": " .. (amt > 0 and "+" or "") .. amt .. (isPercent and "%" or "") or "")
             end
           end
         end
@@ -263,7 +263,7 @@ function examine_creature:draw()
             local bonuses = creat:get_bonuses_from_skill(skillID)
             for bonus,amt in pairs(bonuses) do
               local isPercent = (string.find(bonus,"percent") or string.find(bonus,"chance"))
-              skillText = skillText .. "\n\t\t* " .. ucfirstall(string.gsub(string.gsub(bonus, "_", " "), "percent", "")) .. ": " .. (amt > 0 and "+" or "") .. amt .. (isPercent and "%" or "")
+              skillText = skillText .. "\n\t\t* " .. ucfirstall(string.gsub(string.gsub(bonus, "_", " "), "percent", "")) .. (type(amt) == "number" and ": " .. (amt > 0 and "+" or "") .. amt .. (isPercent and "%" or "") or "")
             end
             local _,slines = fonts.textFont:getWrap(skillText,textW-tabSize)
             love.graphics.printf(skillText,printX,printY,textW-tabSize,"left")

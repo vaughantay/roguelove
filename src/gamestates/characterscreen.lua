@@ -150,7 +150,7 @@ function characterscreen:draw()
             for bonus,amt in pairs(bonuses) do
               if bonus ~= 'xMod' and bonus ~= 'yMod' and bonus ~= 'scale' and bonus ~= 'angle' then
                 local isPercent = (string.find(bonus,"percent") or string.find(bonus,"chance"))
-                name = name .. "\n\t* " .. ucfirstall(string.gsub(string.gsub(bonus, "_", " "), "percent", "")) .. ": " .. (amt > 0 and "+" or "") .. amt .. (isPercent and "%" or "")
+                name = name .. "\n\t* " .. ucfirstall(string.gsub(string.gsub(bonus, "_", " "), "percent", "")) .. (type(amt) == "number" and ": " .. (amt > 0 and "+" or "") .. amt .. (isPercent and "%" or "") or "")
               end
             end
           end
@@ -283,7 +283,7 @@ function characterscreen:draw()
                 local item,_,amt = player:has_item(itemID)
                 if itemID and itemDef and amt > 0 then
                   output.display_entity(item,printX,printY,true,true,1)
-                  love.graphics.printf(amt .. " " .. (amt == 1 and itemDef.name or itemDef.pluralName) .. " available.",printX+tileSize,printY+padYtext,math.floor(width/uiScale)-padding,"left")
+                  love.graphics.printf(amt .. " " .. (amt == 1 and itemDef.name or itemDef.pluralName or itemDef.name) .. " available.",printX+tileSize,printY+padYtext,math.floor(width/uiScale)-padding,"left")
                   printY=printY+tileSize
                 end
               end
@@ -325,7 +325,7 @@ function characterscreen:draw()
               local bonuses = player:get_bonuses_from_skill(skillID)
               for bonus,amt in pairs(bonuses) do
                 local isPercent = (string.find(bonus,"percent") or string.find(bonus,"chance"))
-                skillText = skillText .. "\n\t\t* " .. ucfirstall(string.gsub(string.gsub(bonus, "_", " "), "percent", "")) .. ": " .. (amt > 0 and "+" or "") .. amt .. (isPercent and "%" or "")
+                skillText = skillText .. "\n\t\t* " .. ucfirstall(string.gsub(string.gsub(bonus, "_", " "), "percent", "")) .. (type(amt) == "number" and ": " .. (amt > 0 and "+" or "") .. amt .. (isPercent and "%" or "") or "")
               end
               local req, reqtext = player:can_upgrade_skill(skillID)
               love.graphics.printf(skillText .. (reqtext and " (" .. reqtext .. ")" or ""),(req and printXbuttoned or printX),printY,textW,"left")
@@ -397,7 +397,7 @@ function characterscreen:draw()
                 local bonuses = player:get_bonuses_from_skill(skillID)
                 for bonus,amt in pairs(bonuses) do
                   local isPercent = (string.find(bonus,"percent") or string.find(bonus,"chance"))
-                  skillText = skillText .. "\n\t\t* " .. ucfirstall(string.gsub(string.gsub(bonus, "_", " "), "percent", "")) .. ": " .. (amt > 0 and "+" or "") .. amt .. (isPercent and "%" or "")
+                  skillText = skillText .. "\n\t\t* " .. ucfirstall(string.gsub(string.gsub(bonus, "_", " "), "percent", "")) .. (type(amt) == "number" and ": " .. (amt > 0 and "+" or "") .. amt .. (isPercent and "%" or "") or "")
                 end
                 local buttonMouse = false
                 if self.learnButtons[buttonY] and mouseX > self.learnButtons[buttonY].minX and mouseX < self.learnButtons[buttonY].maxX and mouseY > self.learnButtons[buttonY].minY-self.scrollY and mouseY < self.learnButtons[buttonY].maxY-self.scrollY then

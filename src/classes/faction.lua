@@ -245,6 +245,9 @@ function Faction:teach_spell(spellID,creature)
   if spellInfo.favorCost and spellInfo.favorCost > 0  then
     creature:update_favor(self.id,-spellInfo.favorCost,nil,nil,true)
   end
+  if spellInfo.reputationCost and spellInfo.reputationCost > 0 then
+    creature:update_reputation(self.id,-spellInfo.reputationCost,nil,nil,true)
+  end
   --Teach it, finally:
   creature:learn_spell(spellID)
 end
@@ -273,6 +276,10 @@ function Faction:teach_skill(skillID,creature)
   
   if skillInfo.favorCost and skillInfo.favorCost > 0 then
     creature:update_favor(self.id,-skillInfo.favorCost,nil,nil,true)
+  end
+  
+  if skillInfo.reputationCost and skillInfo.reputationCost > 0 then
+    creature:update_reputation(self.id,-skillInfo.reputationCost,nil,nil,true)
   end
   
   --Teach it, finally:
@@ -357,7 +364,7 @@ function Faction:restock()
   local i = 1
   while i <= #self.inventory do
     if self.inventory[i].delete_on_restock then
-      table.remove(self.inventory,id)
+      table.remove(self.inventory,i)
     else
       i = i + 1
     end
@@ -508,6 +515,7 @@ function Faction:get_sell_cost(item)
   local info = {}
   local price = item:get_value()
   local markup = self.sell_markup or 0
+  local favorMarkup = self.sell_markup_favor or 0
   if self.item_type_sell_markups then
     local largest = 0
     local smallest = 0
@@ -519,10 +527,12 @@ function Faction:get_sell_cost(item)
     end
     markup = markup+largest+smallest
   end
-  price = price + (price * markup/100)
-  local favor_mod = (self.money_per_favor or 10)
+  price = price + math.floor(price * markup/100)
+  local favor_mod = (self.money_per_favor or 1)
   info.moneyCost =  math.max(price,1)
-  info.favorCost = math.max(math.floor(info.moneyCost/favor_mod),1)
+  local favorCost = math.floor(info.moneyCost/favor_mod)
+  favorCost = favorCost + math.floor(favorCost * favorMarkup/100)
+  info.favorCost = math.max(favorCost,1)
   return info
 end
 
@@ -551,6 +561,7 @@ function Faction:get_buy_cost(item)
       if item:is_type(itype) then
         local price = item:get_value()
         local markup = self.buy_markup or 0
+        local favorMarkup = self.buy_markup_favor or 0
         if self.item_type_buy_markups then
           local largest = 0
           local smallest = 0
@@ -562,9 +573,10 @@ function Faction:get_buy_cost(item)
           end
           markup = markup+largest+smallest
         end
-        price = price + round(price * markup/100)
+        price = price + math.floor(price * markup/100)
         local moneyCost = math.max(price,1)
-        local favorCost = math.max(math.floor(moneyCost/(self.money_per_favor or 10)),1)
+        local favorCost = math.max(math.floor(moneyCost/(self.money_per_favor or 1)),1)
+        favorCost =  favorCost + math.floor(favorCost * favorMarkup/100)
         local reputationCost = 0
         if self.item_type_buy_reputation then
           local largest = 0
@@ -611,7 +623,7 @@ function Faction:get_buy_cost(item)
         end
         price = price + round(price * markup/100)
         local moneyCost = math.ceil(math.max(price,1))
-        local favorCost = math.max(math.floor(moneyCost/(self.money_per_favor or 10)),1)
+        local favorCost = math.max(math.floor(moneyCost/(self.money_per_favor or 1)),1)
         local reputationCost = 0
         if self.item_type_buy_reputation then
           local largest = 0
@@ -674,6 +686,16 @@ function Faction:creature_sells_item(item,info)
     end
   else
     creature:update_money(totalCost)
+    if not favorCost or favorCost == 0 then
+      local favor_equivalent = math.floor(totalCost/(self.money_per_favor or 1))
+      self.favor_spent = (self.favor_spent or 0) + math.abs(favor_equivalent)
+      if self.reputation_per_favor_spent then
+        while self.favor_spent >= self.reputation_per_favor_spent do
+          creature:update_reputation(self.id,1,false)
+          self.favor_spent = self.favor_spent - self.reputation_per_favor_spent
+        end
+      end
+    end
   end
 end
 
@@ -725,6 +747,16 @@ function Faction:creature_buys_item(item,info)
       if self.currency_item then
         creatureItem.amount = creatureItem.amount-totalCost
       else
+        if not favorCost or favorCost == 0 then
+          local favor_equivalent = math.floor(totalCost/(self.money_per_favor or 1))
+          self.favor_spent = (self.favor_spent or 0) + math.abs(favor_equivalent)
+          if self.reputation_per_favor_spent then
+            while self.favor_spent >= self.reputation_per_favor_spent do
+              creature:update_reputation(self.id,1,false)
+              self.favor_spent = self.favor_spent - self.reputation_per_favor_spent
+            end
+          end
+        end
         creature:update_money(-totalCost)
       end
     elseif item.stacks then
@@ -904,7 +936,7 @@ function Faction:generate_gifts()
       item.amount = finalVal - gift_value
     end
     local value = item:get_value()*item.amount
-    if value <= (finalVal-gift_value) then
+    if value <= (finalVal-gift_value) or items_given == 0 then
       gifts[#gifts+1] = item
       gift_value = gift_value + value*item.amount
       items_given = items_given+1
@@ -918,7 +950,7 @@ end
 ---Get all possible gift items the faction can offer
 --@return Table. A list of the item IDs
 function Faction:get_possible_gift_items()
-  local possibles = self.gift_items or {}
+  local possibles = copy_table(self.gift_items or {})
   local forbidden_types = self.gift_forbidden_types or self.forbidden_sells_types
   local required_types = self.gift_required_types or self.required_sells_types
   local forbidden_tags = self.gift_forbidden_tags or self.forbidden_sells_tags
@@ -1099,9 +1131,10 @@ function Faction:get_teachable_spells(creature)
         if doTeach then
           local moneyCost = (self.spell_money_cost_per_level and self.spell_money_cost_per_level*(spell.level or 1) or self.spell_money_cost or 0)
           local favorCost = (self.spell_favor_cost_per_level and self.spell_favor_cost_per_level*(spell.level or 1) or self.spell_favor_cost or 0)
+          local reputationCost = (self.spell_reputation_cost_per_level and self.spell_reputation_cost_per_level*(spell.level or 1) or self.spell_reputation_cost or 0)
           local members_only = self.spells_members_only
           local reputation_requirement = (self.spell_reputation_requirement_per_level and self.spell_reputation_requirement_per_level*(spell.level or 1) or self.spell_reputation_requirement or 0)
-          spells[#spells+1] = {spell=spellID,moneyCost=moneyCost,favorCost=favorCost,reputation_requirement=reputation_requirement,members_only=members_only}
+          spells[#spells+1] = {spell=spellID,moneyCost=moneyCost,favorCost=favorCost,reputationCost=reputationCost,reputation_requirement=reputation_requirement,members_only=members_only}
         end
       end
     end
@@ -1115,6 +1148,7 @@ function Faction:get_teachable_spells(creature)
       local moneyCost = (spellDef.moneyCost or 0)
       moneyCost = moneyCost + round(moneyCost*(costMod/100))
       local favorCost = (spellDef.favorCost or 0)
+      local reputationCost = (spellDef.reputationCost or 0)
       local canLearn = true
       local reasonText = nil
       
@@ -1130,6 +1164,9 @@ function Faction:get_teachable_spells(creature)
       elseif spellDef.moneyCost and creature.money < moneyCost then
         reasonText = "You don't have enough money to learn this ability."
         canLearn = false
+      elseif spellDef.reputationCost and (creature.reputation[self.id] or 0) < reputationCost then
+        reasonText = "You don't have enough reputation to learn this skill."
+        canLearn = false
       else
         local ret,text = creature:can_learn_spell(spellDef.spell)
         if ret == false then
@@ -1138,7 +1175,7 @@ function Faction:get_teachable_spells(creature)
         end
       end
       
-      spell_list[#spell_list+1] = {spell=spellID,name=spell.name,description=spell.description,canLearn=canLearn,reasonText=reasonText,moneyCost=moneyCost,favorCost=favorCost}
+      spell_list[#spell_list+1] = {spell=spellID,name=spell.name,description=spell.description,canLearn=canLearn,reasonText=reasonText,moneyCost=moneyCost,favorCost=favorCost,reputationCost=reputationCost}
     end
   end
   
@@ -1191,7 +1228,7 @@ function Faction:get_teachable_skills(creature)
           end
         end
         if doTeach then
-          skills[#skills+1] = {skill=skillID,moneyCost=self.skill_money_cost,favorCost=self.skill_favor_cost,members_only=self.skills_members_only,reputation_requirement=self.skill_reputation_requirement,max=skill.max}
+          skills[#skills+1] = {skill=skillID,moneyCost=self.skill_money_cost,favorCost=self.skill_favor_cost,reputationCost=self.skill_reputation_cost,members_only=self.skills_members_only,reputation_requirement=self.skill_reputation_requirement,max=skill.max}
         end
       end
     end
@@ -1206,7 +1243,8 @@ function Faction:get_teachable_skills(creature)
     if not player_val or not skillDef.max or player_val < skillDef.max then
       local moneyCost = (skillDef.moneyCost or 0)*(player_val+1)
       moneyCost = moneyCost + round(moneyCost*(costMod/100))
-      local favorCost = (skillDef.favorCost or 0)
+      local favorCost = (skillDef.favorCost or 0)*(player_val+1)
+      local reputationCost = (skillDef.reputationCost or 0)*(player_val+1)
       local canLearn = true
       local reasonText = nil
       
@@ -1222,6 +1260,9 @@ function Faction:get_teachable_skills(creature)
       elseif skillDef.moneyCost and creature.money < moneyCost then
         reasonText = "You don't have enough money to learn this skill."
         canLearn = false
+      elseif skillDef.reputationCost and (creature.reputation[self.id] or 0) < reputationCost then
+        reasonText = "You don't have enough reputation to learn this skill."
+        canLearn = false
       elseif skill.upgrade_requires then
         local ret,text = skill:upgrade_requires(creature)
         if ret == false then
@@ -1230,7 +1271,7 @@ function Faction:get_teachable_skills(creature)
         end
       end
       
-      skill_list[#skill_list+1] = {skill=skillID,level=player_val+1,name=skill.name,description=skill.description,canLearn=canLearn,reasonText=reasonText,moneyCost=moneyCost,favorCost=favorCost}
+      skill_list[#skill_list+1] = {skill=skillID,level=player_val+1,name=skill.name,description=skill.description,canLearn=canLearn,reasonText=reasonText,moneyCost=moneyCost,favorCost=favorCost,reputationCost=reputationCost}
     end
   end
   

@@ -174,7 +174,7 @@ function Item:get_info()
         for bonus,amt in pairs(enchantment.bonuses) do
           if bonus ~= 'value' and bonus ~= 'value_percent' then
             local isPercent = (string.find(bonus,"percent") or string.find(bonus,"chance"))
-            uses = uses .. "\n\t* " .. ucfirstall(string.gsub(string.gsub(bonus, "_", " "), "percent", "")) .. ": " .. (amt > 0 and "+" or "") .. amt .. (isPercent and "%" or "")
+            uses = uses .. "\n\t* " .. ucfirstall(string.gsub(string.gsub(bonus, "_", " "), "percent", "")) .. (type(amt) == "number" and ": " .. (amt > 0 and "+" or "") .. amt .. (isPercent and "%" or "") or "")
           end
         end
       end
@@ -894,6 +894,13 @@ function Item:apply_enchantment(enchantment,turns)
   end
 end
 
+function Item:has_enchantment(enchantment)
+  if not self.enchantments then return false end
+  for enchID,turns in pairs(self.enchantments) do
+    if enchID == enchantment then return turns end
+  end
+end
+
 ---Remove an enchantment from an item
 --@param enchantment Text. The ID of the enchantment
 function Item:remove_enchantment(enchantment)
@@ -1304,7 +1311,7 @@ function Item:get_buyer_list()
     if faction.contacted and not faction.hidden then
       local cost = faction:get_buy_cost(self)
       if cost then
-        options[#options+1] = {text=faction.name,moneyCost=cost.moneyCost,favorCost=cost.favorCost}
+        options[#options+1] = {text=faction.name,moneyCost=cost.moneyCost,favorCost=cost.favorCost,reputationCost=cost.reputationCost}
       end
     end
   end --end faction for
@@ -1327,14 +1334,20 @@ function Item:get_highest_sell_cost()
   local buyers = self:get_buyer_list()
   local bestCost = 0
   local bestBuyer
+  local bestFavor = 0
+  local bestFavorBuyer
   
   for _,buyerInfo in ipairs(buyers) do
     if buyerInfo.moneyCost and buyerInfo.moneyCost >= bestCost then
       bestCost = buyerInfo.moneyCost
       bestBuyer = buyerInfo.text
     end
+    if buyerInfo.favorCost and buyerInfo.favorCost >= bestFavor then
+      bestFavor = buyerInfo.favorCost
+      bestFavorBuyer = buyerInfo.text
+    end
   end
-  return bestCost
+  return bestCost,bestBuyer,bestFavor,bestFavorBuyer
 end
 
 ---Gets a list of all types a item is
@@ -1475,7 +1488,7 @@ function Item:update_charges(amt)
 end
 
 ---Get the items and skills that you will receive from studying an item
-function Item:get_study_results()
+function Item:get_study_results(studier)
   local study_results = {}
   if self.study_items then
     study_results.study_items = copy_table(self.study_items)
@@ -1535,6 +1548,20 @@ function Item:get_study_results()
     return {}
   end
   
+  if study_results.study_items and studier then
+    local bonus_perc = studier:get_bonus('study_results_percent')
+    if self.types then
+      for _,itype in ipairs(self.types) do
+        bonus_perc = bonus_perc + studier:get_bonus(itype .. '_study_results_percent')
+      end
+    end
+    for item,amt in pairs(study_results.study_items) do
+      if amt > 1 then
+        study_results.study_items[item] = math.max(1,round(amt + amt*(bonus_perc/100)))
+      end
+    end
+  end
+  
   return study_results
 end
 
@@ -1559,4 +1586,27 @@ function Item:get_impressions()
   end
   
   return impressions
+end
+
+---Gets condition type immunities provided when equipping an item.
+--@return Table. A list of impressions
+function Item:get_condition_type_immunities()
+  local immunities = {}
+  
+  if self.condition_type_immunities then
+    for _,immunity in pairs(self.condition_type_immunities) do
+      immunities[#immunities+1] = immunity
+    end
+  end
+  
+  for enchID,turns in pairs(self.enchantments or {}) do
+    local enchantmentData = enchantments[enchID]
+    if enchantmentData.condition_type_immunities then
+      for _,immunity in pairs(enchantmentData.condition_type_immunities) do
+        immunities[#immunities+1] = immunity
+      end
+    end
+  end
+  
+  return immunities
 end
