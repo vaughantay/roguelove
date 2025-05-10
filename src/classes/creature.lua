@@ -5365,26 +5365,35 @@ function Creature:craft_recipe(recipeID,secondary_ingredients,stash,amount)
   local enchantments = {}
   if recipe.ingredients then --TODO: delete items mixed between main and stash
     for item,amt in pairs(recipe.ingredients) do
-      local i = self:has_item(item)
-      if not i and stash then
-        i = stash:has_item(item)
-        stash:delete_item(i,amt*amount)
-      else
-        self:delete_item(i,amt*amount)
-      end
-      if i.crafting_passed_tags then
-        for _,tag in pairs(i.crafting_passed_tags) do
-          passedTags[#passedTags+1] = tag
+      local amount_to_delete = amt*amount
+      local amount_deleted = 0
+      while amount_deleted < amount_to_delete do
+        local i = self:has_item(item)
+        if not i and stash then
+          i = stash:has_item(item)
+          amount_deleted = amount_deleted + math.min((item.amount or 1),amt)
+          stash:delete_item(i,amt)
+        elseif i then
+          amount_deleted = amount_deleted + math.min((item.amount or 1),amt)
+          self:delete_item(i,amt)
+        else
+          --if for some reason we run out of items, which shouldn't happen, but if it does, break out of the infinite loop
+          break
         end
-      end
-      if i.crafting_given_tags then
-        for _,tag in pairs(i.crafting_given_tags) do
-          givenTags[#givenTags+1] = tag
+        if i.crafting_passed_tags then
+          for _,tag in pairs(i.crafting_passed_tags) do
+            passedTags[#passedTags+1] = tag
+          end
         end
-      end
-      if i.crafting_given_enchantments then
-        for _,tag in pairs(i.crafting_given_enchantments) do
-          enchantments[#enchantments+1] = tag
+        if i.crafting_given_tags then
+          for _,tag in pairs(i.crafting_given_tags) do
+            givenTags[#givenTags+1] = tag
+          end
+        end
+        if i.crafting_given_enchantments then
+          for _,tag in pairs(i.crafting_given_enchantments) do
+            enchantments[#enchantments+1] = tag
+          end
         end
       end
     end
@@ -5420,30 +5429,32 @@ function Creature:craft_recipe(recipeID,secondary_ingredients,stash,amount)
   end
   local resultCount = 0
   local resultText = nil
-  for item,amt in pairs(results) do
-    resultCount = resultCount + 1
-    local newItem = Item(item,passedTags)
-    newItem.amount = amt*amount
-    for _,tag in ipairs(givenTags) do
-      if not newItem:has_tag(tag) then
-        newItem.tags[#newItem.tags+1] = tag
+  for i=1,amount,1 do
+    for item,amt in pairs(results) do
+      resultCount = resultCount + 1
+      local newItem = Item(item,passedTags)
+      newItem.amount = amt
+      for _,tag in ipairs(givenTags) do
+        if not newItem:has_tag(tag) then
+          newItem.tags[#newItem.tags+1] = tag
+        end
       end
-    end
-    for _,itype in ipairs(givenTypes) do
-      if not newItem:is_type(itype) then
-        newItem.types[#newItem.types+1] = itype
+      for _,itype in ipairs(givenTypes) do
+        if not newItem:is_type(itype) then
+          newItem.types[#newItem.types+1] = itype
+        end
       end
-    end
-    for _,enchantment in ipairs(enchantments) do
-      if item:qualifies_for_enchantment(enchantment) then
-        item:apply_enchantment(enchantment,-1)
+      for _,enchantment in ipairs(enchantments) do
+        if item:qualifies_for_enchantment(enchantment) then
+          item:apply_enchantment(enchantment,-1)
+        end
       end
-    end
-    self:give_item(newItem)
-    if resultText then
-      resultText = resultText .. (resultCount == count(recipe.results) and (resultCount ~= 2 and ", and " or " and ") or ", ") .. newItem:get_name()
-    else
-      resultText = newItem:get_name()
+      self:give_item(newItem)
+      if resultText then
+        resultText = resultText .. (resultCount == count(recipe.results) and (resultCount ~= 2 and ", and " or " and ") or ", ") .. newItem:get_name()
+      else
+        resultText = newItem:get_name()
+      end
     end
   end
   if not text and resultText then text = "You create " .. resultText .. "." end
