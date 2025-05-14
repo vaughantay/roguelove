@@ -5411,6 +5411,8 @@ function Creature:craft_recipe(recipeID,secondary_ingredients,stash,amount)
   local recipe = possibleRecipes[recipeID]
   local results = recipe.results
   local text = recipe.result_text
+  local name_prefix = ""
+  local checkedNames = {}
   
   --[[Custom craft code TODO: return to this later
   if recipe.craft then
@@ -5428,6 +5430,7 @@ function Creature:craft_recipe(recipeID,secondary_ingredients,stash,amount)
   local givenTags = {}
   local givenTypes = {}
   local enchantments = {}
+  local bonuses = {}
   if recipe.ingredients then --TODO: delete items mixed between main and stash
     for item,amt in pairs(recipe.ingredients) do
       local amount_to_delete = amt*amount
@@ -5460,36 +5463,67 @@ function Creature:craft_recipe(recipeID,secondary_ingredients,stash,amount)
             enchantments[#enchantments+1] = tag
           end
         end
+        if i.crafting_given_bonuses then
+          for bonus,bonusAmt in pairs(i.crafting_given_bonuses) do
+            bonuses[bonus] = (bonuses[bonus] or 0)+amt*bonusAmt
+          end
+        end
       end
     end
   end
   if secondary_ingredients then
+    local ingNames = {}
     for item,amt in pairs(secondary_ingredients) do
-      if item.possessor == stash then
-        stash:delete_item(item,amt)
-      else
-        self:delete_item(item,amt)
-      end
-      if item.crafting_passed_tags then
-      for _,tag in pairs(item.crafting_passed_tags) do
-        passedTags[#passedTags+1] = tag
+      if amt > 0 then
+        if not checkedNames[item.name] then
+          ingNames[#ingNames+1] = item.name
+          checkedNames[item.name] = true
+        end
+        if item.possessor == stash then
+          stash:delete_item(item,amt)
+        else
+          self:delete_item(item,amt)
+        end
+        if item.crafting_passed_tags then
+          for _,tag in pairs(item.crafting_passed_tags) do
+            passedTags[#passedTags+1] = tag
+          end
+        end
+        if item.crafting_given_tags then
+          for _,tag in pairs(item.crafting_given_tags) do
+            givenTags[#givenTags+1] = tag
+          end
+        end
+        if item.crafting_given_types then
+          for _,itype in pairs(item.crafting_given_types) do
+            givenTypes[#givenTypes+1] = itype
+          end
+        end
+        if item.crafting_given_enchantments then
+          for _,tag in pairs(item.crafting_given_enchantments) do
+            enchantments[#enchantments+1] = tag
+          end
+        end
+        if item.crafting_given_bonuses then
+          for bonus,bonAmt in pairs(item.crafting_given_bonuses) do
+            print('bonus from',item.name,amt,(amt*bonAmt))
+            bonuses[bonus] = (bonuses[bonus] or 0)+(amt*bonAmt)
+          end
+        end
       end
     end
-    if item.crafting_given_tags then
-      for _,tag in pairs(item.crafting_given_tags) do
-        givenTags[#givenTags+1] = tag
+    if recipe.add_ingredients_to_name then
+      for i,name in ipairs(ingNames) do
+        if i ~= 1 then
+          print(i,#ingNames,name)
+          if i == #ingNames then
+            name_prefix = name_prefix .. (#ingNames > 2 and "," or "") .. " and "
+          else
+            name_prefix = name_prefix .. ", "
+          end
+        end
+        name_prefix = name_prefix .. name
       end
-    end
-    if item.crafting_given_types then
-      for _,itype in pairs(item.crafting_given_types) do
-        givenTypes[#givenTypes+1] = itype
-      end
-    end
-    if item.crafting_given_enchantments then
-      for _,tag in pairs(item.crafting_given_enchantments) do
-        enchantments[#enchantments+1] = tag
-      end
-    end
     end
   end
   local resultCount = 0
@@ -5510,11 +5544,18 @@ function Creature:craft_recipe(recipeID,secondary_ingredients,stash,amount)
         end
       end
       for _,enchantment in ipairs(enchantments) do
-        if item:qualifies_for_enchantment(enchantment) then
-          item:apply_enchantment(enchantment,-1)
+        if newItem:qualifies_for_enchantment(enchantment) then
+          newItem:apply_enchantment(enchantment,-1)
         end
       end
+      for bonus,amt in pairs(bonuses) do
+        newItem.bonuses = newItem.bonuses or {}
+        newItem.bonuses[bonus] = (newItem.bonuses[bonus] or 0)+amt
+      end
       self:give_item(newItem)
+      if recipe.add_ingredients_to_name then
+        newItem.name = name_prefix .. " " .. newItem.name
+      end
       if resultText then
         resultText = resultText .. (resultCount == count(recipe.results) and (resultCount ~= 2 and ", and " or " and ") or ", ") .. newItem:get_name()
       else

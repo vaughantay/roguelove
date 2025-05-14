@@ -1343,6 +1343,43 @@ function bloodextractor:use(corpse,user)
 end
 possibleItems['bloodextractor'] = bloodextractor
 
+local stew = {
+  name = "stew",
+  description="Delicious stew.",
+  symbol="%"
+}
+possibleItems['stew'] = stew
+
+local tomato = {
+  name = "tomator",
+  description="Delicious stew.",
+  symbol="%",
+  color={r=255,g=0,b=0},
+  crafting_ingredient_properties={vegetable=1},
+  crafting_given_bonuses={hp=1}
+}
+possibleItems['tomato'] = tomato
+
+local pepper = {
+  name = "hot pepper",
+  description="A spicy chili pepper.",
+  symbol="%",
+  color={r=255,g=0,b=0},
+  crafting_ingredient_properties={vegetable=1},
+  crafting_given_bonuses={fire_armor=1}
+}
+possibleItems['pepper'] = pepper
+
+local chicken = {
+  name = "chicken",
+  description="Raw chicken.",
+  symbol="%",
+  color={r=255,g=0,b=0},
+  crafting_given_bonuses={hp=10},
+  crafting_ingredient_properties={protein=2},
+}
+possibleItems['chicken'] = chicken
+
 local heroskey = {
   name = "Hero's Key",
   pluralName = "Hero's Keys",

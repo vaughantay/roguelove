@@ -79,6 +79,14 @@ possibleRecipes['reallybigclub'] = {
   types = {'weaponsmithing'}
 }
 
+possibleRecipes['stew'] = {
+  results={stew=1},
+  ingredient_properties={protein=5,vegetable=3},
+  bonuses_from_ingredients=true,
+  add_ingredients_to_name=true,
+  single_craft_only=true
+}
+
 
 --[[recipes['blah'] =
 {
