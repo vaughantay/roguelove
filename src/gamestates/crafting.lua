@@ -1,8 +1,11 @@
 crafting = {}
 
-function crafting:enter(previous,recipe_type,stash)
+function crafting:enter(previous,info)
+  info = info or {}
   self.hideUncraftable = self.hideUncraftable or false
-  self.stash = stash
+  self.stash = info.stash
+  self.recipe_types = info.recipe_types
+  self.tool_properties = info.tool_properties
   self:refresh_craft_list()
   self.craft_coordinates = {toggle={minX=0,maxX=0,minY=0,maxY=0}}
   self.makeAmt = 1
@@ -27,13 +30,14 @@ function crafting:enter(previous,recipe_type,stash)
 end
 
 function crafting:refresh_craft_list()
-  local craft_list = player:get_all_possible_recipes(self.hideUncraftable,self.recipe_type,self.stash)
+  local craft_list = player:get_all_possible_recipes(self.hideUncraftable,self.recipe_types,self.stash)
   local crafts = {}
   for _,craftID in ipairs(craft_list) do
     local craftData = {id=craftID,craftable=true,secondary_ingredients={},amount=1}
     local recipe = possibleRecipes[craftID]
     local modifiers = {}
     craftData.bonuses_from_ingredients = recipe.bonuses_from_ingredients
+    craftData.replace_bonuses = recipe.replace_bonuses
     if recipe.types then
       for _,rtype in ipairs(recipe.types) do
         modifiers.property_requirements_percent = modifiers.property_requirements_percent or 0 + player:get_bonus(rtype .. '_recipe_property_requirements_percent')
@@ -94,19 +98,23 @@ function crafting:refresh_craft_list()
       craftData.tool_properties = {}
       for _,prop in ipairs(recipe.tool_properties) do
         craftData.tool_properties[prop] = false
-        for _,item in pairs(player:get_inventory()) do
-          if item.crafting_tool_properties and in_table(prop,item.crafting_tool_properties) then
-            craftData.tool_properties[prop] = item
-            break
-          end --end if has_tag
-        end -- end inventory for
-        if not craftData.tool_properties[prop] and self.stash then
-          for _,item in pairs(self.stash:get_inventory()) do
+        if self.tool_properties and in_table(prop,self.tool_properties) then
+          craftData.tool_properties[prop] = true
+        else
+          for _,item in pairs(player:get_inventory()) do
             if item.crafting_tool_properties and in_table(prop,item.crafting_tool_properties) then
               craftData.tool_properties[prop] = item
               break
             end --end if has_tag
           end -- end inventory for
+          if not craftData.tool_properties[prop] and self.stash then
+            for _,item in pairs(self.stash:get_inventory()) do
+              if item.crafting_tool_properties and in_table(prop,item.crafting_tool_properties) then
+                craftData.tool_properties[prop] = item
+                break
+              end --end if has_tag
+            end -- end inventory for
+          end
         end
         if not craftData.tool_properties[prop] then
           craftData.craftable=false
@@ -119,7 +127,7 @@ function crafting:refresh_craft_list()
       craftData.ingredient_properties = {}
       for prop,amt in pairs(recipe.ingredient_properties) do
         local actualAmt = math.max(1,round(amt + amt*((modifiers.property_requirements_percent or 0)/100)))
-        craftData.ingredient_properties[prop] = {required=actualAmt,amount=0,selected=0}
+        craftData.ingredient_properties[prop] = {required=actualAmt,amount=0,selected=0,optional=(recipe.optional_properties and in_table(prop,recipe.optional_properties))}
         for _, item in pairs(player:get_inventory()) do
           if item.crafting_ingredient_properties and item.crafting_ingredient_properties[prop] and not recipe.results[item.id]  then
             local typeMatch = false
@@ -134,6 +142,30 @@ function crafting:refresh_craft_list()
               end
             else --if ingredient types aren't set, don't worry about matching
               typeMatch = true
+            end
+            if typeMatch then
+              if recipe.requiredTags then
+                if item.tags then
+                  for _,tag in ipairs(recipe.requiredTags) do
+                    if not in_table(tag,item.tags) then
+                      typeMatch = false
+                      break
+                    end
+                  end
+                else
+                  typeMatch = false
+                end
+              end
+              if typeMatch and recipe.forbiddenTags then
+                if item.tags then
+                  for _,tag in ipairs(recipe.forbiddenTags) do
+                    if in_table(tag,item.tags) then
+                      typeMatch = false
+                      break
+                    end
+                  end
+                end
+              end
             end
             if typeMatch then
               craftData.ingredient_properties[prop][#craftData.ingredient_properties[prop]+1] = {item=item,amount=item.crafting_ingredient_properties[prop]}
@@ -166,7 +198,7 @@ function crafting:refresh_craft_list()
             end
           end
         end
-        if craftData.ingredient_properties[prop].amount < amt then
+        if craftData.ingredient_properties[prop].amount < amt and not craftData.ingredient_properties[prop].optional then
           craftData.craftable = false
         end
       end
@@ -368,6 +400,7 @@ function crafting:draw()
     love.graphics.printf((resultCount > 1 and "Results:" or "Result:"),sidebarX+padX,descY,window2w,"left")
     descY = descY+fontSize
     
+    local bonuses = {}
     for iid,amount in pairs(recipe.results) do
       local item = possibleItems[iid]
       if item then
@@ -378,11 +411,12 @@ function crafting:draw()
         love.graphics.printf(resultText,sidebarX+padX+tileSize,descY,window2w,"left")
         local _, dlines = fonts.textFont:getWrap(resultText,window2w)
         descY = descY+math.max(fontSize*(#dlines+1),lineSize)
+        bonuses = (not craftInfo.replace_bonuses and item.bonuses and copy_table(item.bonuses) or {})
       end
     end
     descY = descY+fontSize
-    local bonuses = {}
     local enchantments = {}
+    local cons = {}
     if craftInfo.ingredients and craftInfo.bonuses_from_ingredients then
       for iid,ingInfo in pairs(craftInfo.ingredients) do
         local itemInfo = possibleItems[iid]
@@ -411,6 +445,11 @@ function crafting:draw()
               enchantments[ench] = true
             end
           end
+          if item.crafting_given_conditions then
+            for conID,turns in pairs(item.crafting_given_conditions) do
+              cons[conID] = (cons[conID] or 0)+amt*turns
+            end
+          end
         end
       end
     end
@@ -421,7 +460,7 @@ function crafting:draw()
         if count(enchantments) > 0 then
           for enchID,_ in pairs(enchantments) do
             local enchantment = enchantments[enchID]
-            bonusText = bonusText .. "\n\tThe " .. ucfirst(enchantment.name or enchID) .. " enchantment"
+            bonusText = bonusText .. "\n\tEnchantment: " .. ucfirst(enchantment.name or enchID)
           end
         end
         if count(bonuses) > 0 then
@@ -429,6 +468,12 @@ function crafting:draw()
             local isPercent = (string.find(bonus,"percent") or string.find(bonus,"chance"))
             local bonusName = ucfirstall(string.gsub(bonus, "_", " ")) .. (type(amt) == "number" and ": " .. (amt > 0 and "+" or "") .. amt .. (isPercent and "%" or "") or "")
             bonusText = bonusText .. "\n\t" .. bonusName
+          end
+        end
+        if count(cons) > 0 then
+          for conID,turns in pairs(cons) do
+            local condition = conditions[conID]
+            bonusText = bonusText .. "\n\tCondition: " .. condition.name
           end
         end
       end
@@ -443,7 +488,7 @@ function crafting:draw()
       setColor(150,150,150,255)
     elseif craftInfo.ingredient_properties then
       for _,prop in pairs(craftInfo.ingredient_properties) do
-        if prop.selected < prop.required*craftInfo.amount then
+        if prop.selected < prop.required*craftInfo.amount and not prop.optional then
           setColor(150,150,150,255)
           break
         end
@@ -537,10 +582,10 @@ function crafting:draw()
     --Property-based ingredients:
     if craftInfo.ingredient_properties then
       for prop,propInfo in pairs(craftInfo.ingredient_properties) do
-        local propText = ucfirst(prop) .. " ingredients adding to " .. propInfo.required*(craftInfo.amount) .. " (" .. propInfo.selected .. " selected):"
-        if propInfo.required*(craftInfo.amount) > propInfo.amount then
+        local propText = (propInfo.optional and "(Optional) " or "") .. ucfirst(prop) .. " ingredients adding " .. (propInfo.optional and "up " or "") .. "to " .. propInfo.required*(craftInfo.amount) .. " (" .. propInfo.selected .. " selected):"
+        if propInfo.required*(craftInfo.amount) > propInfo.amount and not propInfo.optional then
           setColor(200,0,0,255)
-        elseif propInfo.required*(craftInfo.amount) > propInfo.selected then
+        elseif propInfo.required*(craftInfo.amount) > propInfo.selected and not propInfo.optional then
           setColor(200,200,0,255)
         end
         love.graphics.printf(propText,sidebarX+padX,descY,window2w,"left")
@@ -635,10 +680,10 @@ function crafting:draw()
     
     if craftInfo.tool_properties then
       local toolCount = count(craftInfo.tool_properties)
-      love.graphics.printf("Requires tool" .. (toolCount > 1 and "s" or "") .. " with propert" .. (toolCount > 1 and "ies:" or "y:"),sidebarX+padX,descY,window2w,"left")
+      love.graphics.printf("Requires tool" .. (toolCount > 1 and "s" or "") .. " or workspace with propert" .. (toolCount > 1 and "ies:" or "y:"),sidebarX+padX,descY,window2w,"left")
       descY = descY + prefs['fontSize']+8
       for prop,item in pairs(craftInfo.tool_properties) do
-        local toolText = "*" .. ucfirst(prop) .. (item and " (" .. ucfirst(item.name) .. ")" or "")
+        local toolText = "*" .. ucfirst(prop) .. (item and type(item) == "table" and " (" .. ucfirst(item.name) .. ")" or "")
         if not item then
           setColor(200,0,0,255)
         end
@@ -1074,7 +1119,7 @@ function crafting:doCraft(craftIndex)
     local propCheck = true
     if craftInfo.ingredient_properties then
       for _,propInfo in pairs(craftInfo.ingredient_properties) do
-        if propInfo.selected < propInfo.required*craftInfo.amount then
+        if propInfo.selected < propInfo.required*craftInfo.amount and not propInfo.optional then
           propCheck = false
           break
         end

@@ -361,12 +361,12 @@ end
 --@param args. Anything. Other arguments to pass to the action (optional)
 function Feature:action(activator,actionID,args)
   if possibleFeatures[self.id].action then
-    local status,r = pcall(possibleFeatures[self.id].action,self,activator,actionID,args)
+    local status,r,response = pcall(possibleFeatures[self.id].action,self,activator,actionID,args)
     if status == false then
       output:out("Error in feature " .. self.name .. " action code: " .. r)
       print("Error in feature " .. self.name .. " action code: " .. r)
     end
-    return r
+    return r,response
   end
   return false
 end
@@ -420,7 +420,8 @@ end
 
 ---Transfer an item to a feature's inventory
 --@param item Item. The item to give.
-function Feature:give_item(item)
+function Feature:give_item(item,silent)
+  local initial_amt = item.amount
   if item.possessor == self or self:has_specific_item(item) then return false end
   if (item.stacks == true) then
     local it,inv_id = self:has_item(item.id,(item.sortBy and item[item.sortBy]),item.enchantments,item.level)
@@ -435,6 +436,33 @@ function Feature:give_item(item)
   end
   item.x,item.y=self.x,self.y
   item.possessor = self
+  --Add item popup:
+  if currMap and self == currMap.stash and not silent then
+    local popup1 = Effect('dmgpopup')
+    popup1.symbol = "+" .. (initial_amt > 1 and initial_amt or "")
+    popup1.color = {r=0,g=255,b=0,a=150}
+    local tileMod = round(fonts.mapFontWithImages:getWidth(popup1.symbol)/2)
+    popup1.xMod = -tileMod
+    local popup2 = Effect('dmgpopup')
+    popup2.image_name = item.image_name or item.id
+    popup2.imageType = "item"
+    popup2.xMod = tileMod
+    popup2.speed = popup1.speed
+    if (item.use_color_with_tiles ~= false or gamesettings.always_use_color_with_tiles) and item.color then
+      popup2.color = {r=item.color.r,g=item.color.g,b=item.color.b,a=150}
+    else
+      popup2.color = {r=255,g=255,b=255,a=150}
+    end
+    popup1.paired = popup2
+    popup2.paired = popup1
+    popup2.itemID = item.id
+    popup2.sortBy = (item.sortBy and item[item.sortBy] or nil)
+    popup2.itemAmt = initial_amt
+    popup1.display_when_unseen=true
+    popup2.display_when_unseen=true
+    currMap:add_effect(popup1,self.x,self.y)
+    currMap:add_effect(popup2,self.x,self.y)
+  end
   return item
 end
 
@@ -465,7 +493,7 @@ end
 ---Delete an item from a feature's inventory
 --@param item Item. The item to remove
 --@param amt Number. The amount of the item to remove, if the item is stackable. Defaults to 1. 
-function Feature:delete_item(item,amt)
+function Feature:delete_item(item,amt,silent)
   amt = amt or 1
 	local id = in_table(item,self.inventory)
 	if (id) then
@@ -475,6 +503,33 @@ function Feature:delete_item(item,amt)
       item.amount = item.amount - amt
     end
 	end
+  --Add item popup:
+  if currMap and self == currMap.stash and not silent then
+    local popup1 = Effect('dmgpopup')
+    popup1.symbol = (amt ~= 1 and -amt or "-")
+    popup1.color = {r=255,g=0,b=0,a=150}
+    local tileMod = round(fonts.mapFontWithImages:getWidth(popup1.symbol)/2)
+    popup1.xMod = -tileMod
+    local popup2 = Effect('dmgpopup')
+    popup2.image_name = item.image_name or item.id
+    popup2.imageType = "item"
+    popup2.xMod = tileMod
+    popup2.speed = popup1.speed
+    if (item.use_color_with_tiles ~= false or gamesettings.always_use_color_with_tiles) and item.color then
+      popup2.color = {r=item.color.r,g=item.color.g,b=item.color.b,a=150}
+    else
+      popup2.color = {r=255,g=255,b=255,a=150}
+    end
+    popup1.paired = popup2
+    popup2.paired = popup1
+    popup2.itemID = item.id
+    popup2.sortBy = (item.sortBy and item[item.sortBy] or nil)
+    popup2.itemAmt = -amt
+    popup1.display_when_unseen=true
+    popup2.display_when_unseen=true
+    currMap:add_effect(popup1,self.x,self.y)
+    currMap:add_effect(popup2,self.x,self.y)
+  end
 end
 
 ---Get every item in a feature's inventory:

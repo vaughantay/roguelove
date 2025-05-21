@@ -628,7 +628,42 @@ function Spell:get_stat(stat,possessor,noBonus)
       end --end for statValue
     end --end statBonus for
   end --end if skillBonuses
-  return round(value)
+  
+  --Modifiers from arcana:
+  local arcanaBonuses = self.stat_bonuses_from_arcana and self.stat_bonuses_from_arcana[stat]
+  if arcanaBonuses and ((possessor and possessor.baseType == "creature") or (Gamestate.current() == newgame and newgame.player and newgame.player.arcana)) then
+    for arcana,bonuses in pairs(arcanaBonuses) do
+      local possessorArcana = ((Gamestate.current() == newgame and newgame.player and newgame.player.arcana[arcana]) or (possessor and possessor:get_arcana(arcana)))
+      for arcanaValue,bonus in pairs(bonuses) do
+        if possessorArcana >= arcanaValue then
+          value = value + bonus
+        end --end if possessorArcana > arcanaValue
+      end --end arcanavalue for
+    end --end arcanabonuses for
+  end --end arcanabonuses if
+  
+  if self.arcana and ((possessor and possessor.baseType == "creature") or (Gamestate.current() == newgame and newgame.player and newgame.player.arcana)) then
+    for _,arcID in ipairs(self.arcana) do
+      local arcInfo = arcana_list[arcID]
+      local possessor_arcana = ((Gamestate.current() == newgame and newgame.player and newgame.player.arcana[arcID]) or (possessor and possessor:get_arcana(arcID)))
+      if possessor_arcana then
+        --Per-level bonuses:
+        local per_bonuses = (arcInfo.spell_stat_bonuses_per_level and arcInfo.spell_stat_bonuses_per_level[stat])
+        if per_bonuses then
+          value = value + per_bonuses*(possessor_arcana-(self.level or 0))
+        end
+        --At-level bonuses:
+        local at_bonuses = (arcInfo.spell_stat_bonuses_at_level and arcInfo.spell_stat_bonuses_at_level[stat])
+        if at_bonuses then
+          for arcLvl=1,possessor_arcana,1 do
+            value = value + (at_bonuses[arcLvl] or 0)
+          end
+        end
+      end
+    end
+  end
+  
+  return value
 end
 
 ---Gets the possible upgrades for a spell
@@ -684,6 +719,19 @@ function Spell:can_upgrade(upgrade)
         if possLvl < req then
           local skillName = possibleSkills[skillID].name
           local text = "Requires " .. skillName .. (req > 1 and " level " .. req or ".")
+          canDo = false
+          returnText = (returnText and returnText .. "\n" .. text or text)
+        end
+      end
+    end
+    --Arcana requirements:
+    local arcReqs = details.arcana_requirements or broad_details.arcana_requirements
+    if arcReqs then
+      for arcID,req in pairs(arcReqs) do
+        local possLvl = possessor:get_arcana(arcID,true)
+        if possLvl < req then
+          local arcname = arcana_list[arcID].name
+          local text = "Requires " .. (req > 1 and "level " .. req or "") .. " knowledge of the " .. arcID .. " arcana."
           canDo = false
           returnText = (returnText and returnText .. "\n" .. text or text)
         end

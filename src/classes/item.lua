@@ -819,7 +819,7 @@ end
 
 function Item:get_open_enchantment_slots()
   if self.enchantment_slots then
-    local slots = self.enchantment_slots
+    local slots = copy_table(self.enchantment_slots)
     if self.enchantments then
       for enID,_ in pairs(self.enchantments) do
         local enc = enchantments[enID]

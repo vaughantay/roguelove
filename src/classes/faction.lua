@@ -145,7 +145,7 @@ function Faction:join(creature)
       local currVal = creature:get_skill(skillID)
       local increase = val-currVal
       if increase then
-        creature:upgrade_skill(skillID,increase,true)
+        creature:upgrade_skill(skillID,increase,true,true)
       end
     end
   end
@@ -1414,21 +1414,29 @@ function Faction:get_recruitable_creatures(creature)
         end
         data.name = name
       end
+      if not data.description then
+        local description
+        for cid,amt in pairs(data.creatures) do
+          local creatInfo = possibleMonsters[cid]
+          description = (description and description .. "\n" or "") .. (count(data.creatures) > 1 and ucfirst(creatInfo.name) .. ": " or "") .. creatInfo.description
+        end
+        data.description = description
+      end
       local moneyText = (data.moneyCost and get_money_name(data.moneyCost+round(data.moneyCost*(costMod/100))) or nil)
-      local favorText = (data.favorCost and data.favorCost.. " Favor" or nil)
+      local favorText = (data.favorCost and data.favorCost .. " Favor" or nil)
       local repText = (data.reputationCost and data.reputationCost.. " Reputation" or nil)
       local costText
       if moneyText then
-        costText = moneyText .. (favorText and ", " .. favorText)
+        costText = moneyText
       end
       if favorText then
-        costText = (costText and costText .. ", " .. favorText)
+        costText = (costText and costText .. ", " .. favorText or favorText)
       end
       if repText then
-        costText = (costText and costText .. ", " .. repText)
+        costText = (costText and costText .. ", " .. repText  or repText)
       end
       if costText then
-        data.description = (costText and " (Cost: " .. costText .. ")" or "") .. (data.description and "\n" .. data.description or "")
+        data.description = (costText and "Cost: " .. costText .. "" or "") .. (data.description and "\n" .. data.description or "")
       end
       
       local canDo,canDoText = nil,nil
@@ -1476,7 +1484,7 @@ function Faction:recruit(recruitData,creature)
         for y=creature.y-dist,creature.y+dist,1 do
           if newCreat:can_move_to(x,y) then
             currMap:add_creature(newCreat,x,y)
-            newCreat:become_thrall(creature)
+            if not recruitData.noThrall then newCreat:become_thrall(creature) end
             goto creatContinue
           end
         end

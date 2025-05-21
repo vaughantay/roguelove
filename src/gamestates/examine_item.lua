@@ -328,7 +328,7 @@ function examine_item:draw()
     printY = printY + fontSize
   end
   if item.bonuses and count(item.bonuses) > 0 then
-    love.graphics.printf("Bonuses granted when equipped:",self.x+padding,printY,self.width-scrollPadding,"center")
+    love.graphics.printf("Bonuses granted" .. (item.equippable and " when equipped:" or ":"),self.x+padding,printY,self.width-scrollPadding,"center")
     printY=printY+fontSize
     for bonus,amt in pairs(item.bonuses) do
       local isPercent = (string.find(bonus,"percent") or string.find(bonus,"chance"))

@@ -104,7 +104,7 @@ function Creature:init(creatureType,level,tags,info,noTweak,ignoreNewFunc) --TOD
       if level == false then
         self.skills[skill] = false
       else
-        self:upgrade_skill(skill,level,true)
+        self:upgrade_skill(skill,level,true,true)
       end
     end
   end
@@ -380,7 +380,7 @@ function Creature:apply_class(classID)
       if mod == false then
         self.skills[skill] = false
       else
-        self:upgrade_skill(skill,mod,true)
+        self:upgrade_skill(skill,mod,true,true)
       end
     end
   end
@@ -938,36 +938,39 @@ end
 function Creature:callbacks(callback_type,...)
   local ret = {}
   if type(possibleMonsters[self.id][callback_type]) == "function" then
-    local status,r = pcall(possibleMonsters[self.id][callback_type],self,unpack({...}))
+    local status,r,other = pcall(possibleMonsters[self.id][callback_type],self,unpack({...}))
     if status == false then
-        output:out("Error in creature " .. self.name .. " callback \"" .. callback_type .. "\": " .. r)
-        print("Error in creature " .. self.name .. " callback \"" .. callback_type .. "\": " .. r)
-      end
-		if (r == false) then return false end
+      output:out("Error in creature " .. self.name .. " callback \"" .. callback_type .. "\": " .. r)
+      print("Error in creature " .. self.name .. " callback \"" .. callback_type .. "\": " .. r)
+    end
     if r ~= nil and type(r) ~= "boolean" then table.insert(ret,r) end
+    if other ~= nil then table.insert(ret,other) end
+		if (r == false) then return false,ret end
   end
 	for condition, _ in pairs(self.conditions) do
 		if type(conditions[condition][callback_type]) == "function" then
-			local status,r = pcall(conditions[condition][callback_type],conditions[condition],self,unpack({...}))
+			local status,r,other = pcall(conditions[condition][callback_type],conditions[condition],self,unpack({...}))
       if status == false then
         output:out("Error in condition " .. conditions[condition].name .. " callback \"" .. callback_type .. "\": " .. r)
         print("Error in condition " .. conditions[condition].name .. " callback \"" .. callback_type .. "\": " .. r)
       end
-			if (r == false) then return false end
       if r ~= nil and type(r) ~= "boolean" then table.insert(ret,r) end
+      if other ~= nil then table.insert(ret,other) end
+			if (r == false) then return false,ret end
 		end
 	end
 	for id, spell in pairs(self:get_spells()) do
     local spellID = spell.id
 		if possibleSpells[spellID] then
       if type(possibleSpells[spellID][callback_type]) == "function" then
-        local status,r = pcall(possibleSpells[spellID][callback_type],spell,self,unpack({...}))
+        local status,r,other = pcall(possibleSpells[spellID][callback_type],spell,self,unpack({...}))
         if status == false then
           output:out("Error in spell " .. spell.name .. " callback \"" .. callback_type .. "\": " .. r)
           print("Error in spell " .. spell.name .. " callback \"" .. callback_type .. "\": " .. r)
         end
-        if (r == false) then return false end
         if r ~= nil and type(r) ~= "boolean" then table.insert(ret,r) end
+        if other ~= nil then table.insert(ret,other) end
+        if (r == false) then return false,ret end
       end
     else
       output:out("Error attempting to callback spell " .. spellID .. ", which does not exist.")
@@ -977,40 +980,44 @@ function Creature:callbacks(callback_type,...)
   for skillID,rank in pairs(self.skills) do
     local skill = possibleSkills[skillID]
     if skill and type(skill[callback_type]) == "function" then
-      local status,r = pcall(skill[callback_type],skill,self,unpack({...}))
+      local status,r,other = pcall(skill[callback_type],skill,self,unpack({...}))
       if status == false then
         output:out("Error in skill " .. skill.name .. " callback \"" .. callback_type .. "\": " .. r)
         print("Error in skill " .. skill.name .. " callback \"" .. callback_type .. "\": " .. r)
       end
-			if (r == false) then return false end
       if r ~= nil and type(r) ~= "boolean" then table.insert(ret,r) end
+      if other ~= nil then table.insert(ret,other) end
+			if (r == false) then return false,ret end
     end
   end
   for _,ctype in ipairs(self:get_types()) do
     if creatureTypes[ctype] and type(creatureTypes[ctype][callback_type]) == "function" then
-      local status,r = pcall(creatureTypes[ctype][callback_type],creatureTypes[ctype],self,unpack({...}))
+      local status,r,other = pcall(creatureTypes[ctype][callback_type],creatureTypes[ctype],self,unpack({...}))
       if status == false then
         output:out("Error in creature type " .. (creatureTypes[ctype].name or ctype) .. " callback \"" .. callback_type .. "\": " .. r)
         print("Error in creature type " .. (creatureTypes[ctype].name or ctype) .. " callback \"" .. callback_type .. "\": " .. r)
       end
-			if (r == false) then return false end
       if r ~= nil and type(r) ~= "boolean" then table.insert(ret,r) end
+      if other ~= nil then table.insert(ret,other) end
+			if (r == false) then return false,ret end
     end
   end
   for _, equip in pairs(self.equipment_list) do
-    local r = equip:callbacks(callback_type,self,...)
-    if r == false then return false end
+    local r,other = equip:callbacks(callback_type,self,...)
+    if other ~= nil then table.insert(ret,other) end
+    if r == false then return false,ret end
 	end
   for missionID, missionStatus in pairs(currGame.missionStatus) do
     local mission = possibleMissions[missionID]
     if mission and type(mission[callback_type]) == "function" then
-      local status,r = pcall(mission[callback_type],mission,self,unpack({...}))
+      local status,r,other = pcall(mission[callback_type],mission,self,unpack({...}))
       if status == false then
         output:out("Error in mission " .. mission.name .. " callback \"" .. callback_type .. "\": " .. r)
         print("Error in mission " .. mission.name .. " callback \"" .. callback_type .. "\": " .. r)
       end
-      if (r == false) then return false end
       if r ~= nil and type(r) ~= "boolean" then table.insert(ret,r) end
+      if other ~= nil then table.insert(ret,other) end
+      if (r == false) then return false,ret end
     end
   end
 	return true,ret
@@ -1181,8 +1188,8 @@ function Creature:get_bonus(bonusType)
         end
         if skill.bonuses_per_x_levels then
           for lvl,bonuses in pairs(skill.bonuses_per_x_levels) do
-            if bonuses[bonusType] and skillVal % lvl == 0 then
-              bonus = bonus + bonuses[bonusType]
+            if bonuses[bonusType] and skillVal >= lvl then
+              bonus = bonus + bonuses[bonusType]*math.floor(skillVal/lvl)
               skillB = true
             end
           end
@@ -3758,7 +3765,7 @@ function Creature:level_up(force,ignore_callback)
   end
   local skill_increases = self:get_skill_increases_for_level(self.level)
   for skill_id,value in pairs(skill_increases) do
-    self:upgrade_skill(skill_id,value,true)
+    self:upgrade_skill(skill_id,value,true,true)
   end
   --If an NPC, or the player has autoleveling turned on, then apply stats randomly:
   if self ~= player or prefs.autoLevel then
@@ -4262,7 +4269,8 @@ end
 --@param skillID Text. The ID of the skill
 --@param val Number. The amount to change the skill by, defaults to 1
 --@param ignore_cost Boolean. If true, don't pay the cost of the upgrade
-function Creature:upgrade_skill(skillID,val,ignore_cost)
+--@param ignore_multi Boolean. If true, ignore the increase_per_point value
+function Creature:upgrade_skill(skillID,val,ignore_cost,ignore_multi)
   val = val or 1
   local currVal = self.skills[skillID]
   if currVal == false then
@@ -4308,7 +4316,7 @@ function Creature:upgrade_skill(skillID,val,ignore_cost)
   
   self.bonus_cache = {} --in case the skill increases boosts
   
-  val = val*(skillDef.increase_per_point or 1)
+  val = val*(not ignore_multi and skillDef.increase_per_point or 1)
   local newValue = currVal + val
   if newValue < 0 then newValue = 0 end
   if currVal == newValue then return end
@@ -4544,6 +4552,25 @@ function Creature:update_extra_stat(stat,val)
   return newVal
 end
 
+---Gets an arcana level, including its bonus
+--@param stat Text. The arcana value to get
+--@param noBonus Boolean. If true, don't add the bonus to the stat
+--@return Number. The arcana value
+function Creature:get_arcana(arcana,noBonus)
+  if not self.arcana then return 0 end
+  local base = self.arcana[arcana]
+  if not base then return 0 end
+  
+  if not noBonus and type(base) == "number" then
+    local percBonus = round(base*(self:get_bonus(arcana .. '_arcana_percent')/100))
+    percBonus = percBonus + round(base*(self:get_bonus('all_arcana_percent')/100))
+    base = base + percBonus
+    base = base + self:get_bonus(arcana .. '_arcana')
+    base = base + self:get_bonus('all_arcana')
+  end
+  return base
+end
+
 ---Get all spells the creature has, including those granted by equipment
 --@param noEquip Boolean. If true, ignore spells granted by equipment.
 --@return Table. A list of the creature's spells
@@ -4704,6 +4731,39 @@ function Creature:can_learn_spell(spellID)
       if spell:is_type(stype) then
         return false,"You're unable to learn this type of ability."
       end
+    end
+  end
+  --Check arcana:
+  if spell.arcana_requirements then
+    for arcana,requirement in pairs(spell.arcana_requirements) do
+      if self:get_arcana(arcana,true) < requirement then
+        local arcName = arcana_list[arcana].name
+        return false,"You must have at least level "  .. requirement .. " knowledge of the " .. arcName .. " to learn this spell."
+      end
+    end
+  end
+  if spell.arcana then
+    local level_checked = false
+    local all_arcs = ""
+    for id,arcana in pairs(spell.arcana) do
+      local arcName = arcana_list[arcana].name
+      if id ~= 1 and id == #spell.arcana then
+         all_arcs = all_arcs .. (id == 2 and " or " or ", or ") .. arcName
+      elseif id ~= 1 then
+        all_arcs = all_arcs .. ", " .. arcName
+      elseif id == 1 then
+        all_arcs = arcName
+      end
+      local arcLevel = self:get_arcana(arcana,true)
+      if arcLevel == 0 then
+        return false,"You need knowledge of the " .. arcName .. " arcana to learn this spell."
+      elseif not spell.level or arcLevel >= spell.level then
+        level_checked = true
+        break
+      end
+    end
+    if not level_checked then
+      return false,"You need to have at least level " .. spell.level .. " knowledge of " .. (#spell.arcana > 1 and "either " or "") ..  "the " .. all_arcs .. " arcana to learn this spell."
     end
   end
   
@@ -4938,11 +4998,17 @@ function Creature:transform(newBody,info,modifiers)
     for skillID,val in pairs(self.skills) do
       local diff = val-(newBody:get_skill(skillID,true))
       if diff > 0 then
-        newBody:upgrade_skill(skillID,val,true)
+        newBody:upgrade_skill(skillID,val,true,true)
       end
     end
   end
   if modifiers.include_spells then
+    if self.arcana then
+      if not newBody.arcana then self.arcana = {} end
+      for arc,amt in pairs(self.arcana) do
+        newBody.arcana[arc] = math.max(newBody.arcana[arc] or 0,amt)
+      end
+    end    
     for _,spellInfo in pairs(self.spells_known) do
       local bodySpell = newBody:has_spell(spellInfo.id,true,true)
       if not bodySpell then
@@ -5143,7 +5209,13 @@ function Creature:evolve(newCreature,info,include_items)
     end
   end
   
-  --Spells:
+  --Arcana and spells:
+  if newCreature.arcana then
+    if not self.arcana then self.arcana = {} end
+    for arc,amt in pairs(newCreature.arcana) do
+      self.arcana[arc] = math.max(self.arcana[arc] or 0,amt)
+    end
+  end
   if self.spell_slots and newCreature.spell_slots then
     self.spell_slots = math.max(self.spell_slots,newCreature.spell_slots)
   else
@@ -5254,14 +5326,28 @@ end
 
 ---Get all possible recipes the creature can craft
 --@param hide_uncraftable Boolean. If true, only show recipes that are currently craftable. If false or nil, show all known crafts even if they can't be crafted right now (optional)
---@param recipe_type String. Filter by recipe type (optional)
+--@param recipe_types String. Filter by recipe types (optional)
+--@param stash Entity. An entity containing items to use in addition to the creature's own inventory
 --@return Table. A table with the IDs of all craftable recipes
-function Creature:get_all_possible_recipes(hide_uncraftable,recipe_type)
+function Creature:get_all_possible_recipes(hide_uncraftable,recipe_types,stash)
   local canCraft = {}
   for id,recipe in pairs(possibleRecipes) do
-    if not recipe_type or (recipe.types and in_table(recipe_type,recipe.types)) then
+    local type_match = not recipe_types
+    if not type_match and recipe.types then
+      if type(recipe_types) == "string" then
+        type_match = in_table(recipe_types,recipe.types)
+      else
+        for _,rtype in ipairs(recipe_types) do
+          if in_table(rtype,recipe.types) then
+            type_match = true
+            break
+          end
+        end
+      end
+    end
+    if type_match then
       local known = recipe.always_known or (self.known_recipes and self.known_recipes[id])
-      if self:can_craft_recipe(id) or (known and not hide_uncraftable) then
+      if self:can_craft_recipe(id,stash,nil,true) or (known and not hide_uncraftable) then
         canCraft[#canCraft+1] = id
         self:learn_recipe(id)
       end
@@ -5275,9 +5361,10 @@ end
 --@param recipeID String. The ID of the recipe
 --@param stash Entity. An entity containing items to use in addition to the creature's own inventory
 --@param amount Number. The number of times to craft it
+--@param ignore_tools Boolean. If true, ignore whether or not the creature has the right tools
 --@return Boolean. Whether or not the recipe can be crafted
 --@return Text. A description of why you can't craft the recipe.
-function Creature:can_craft_recipe(recipeID,stash,amount)
+function Creature:can_craft_recipe(recipeID,stash,amount,ignore_tools)
   amount = amount or 1
   if debugMode then return true end
   local recipe = possibleRecipes[recipeID]
@@ -5300,7 +5387,7 @@ function Creature:can_craft_recipe(recipeID,stash,amount)
       if not self:has_spell(spell) then return false end
     end
   end
-  if recipe.requires_tools then
+  if recipe.requires_tools and not ignore_tools then
     for _,tool in ipairs(recipe.requires_tools) do
       if not self:has_item(tool) and (not stash or not stash:has_item(tool)) then return false end
     end
@@ -5313,30 +5400,10 @@ function Creature:can_craft_recipe(recipeID,stash,amount)
   end
   if recipe.ingredient_properties then
     for property,amt in pairs(recipe.ingredient_properties) do
-      local found = 0
-      for _,item in pairs(self:get_inventory()) do
-        if item.crafting_ingredient_properties and item.crafting_ingredient_properties[property] and not recipe.results[item.id] then
-          local typeMatch = false
-          if recipe.ingredient_types then
-            if item.crafting_ingredient_types then
-              for _,itype in pairs(recipe.ingredient_types) do
-                if in_table(itype,item.crafting_ingredient_types) then
-                  typeMatch = true
-                  break
-                end
-              end
-            end
-          else --if ingredient types aren't set, don't worry about matching
-            typeMatch = true
-          end
-          if typeMatch then
-            found = found + item.crafting_ingredient_properties[property]*item.amount
-            if found >= amt*amount then break end
-          end
-        end
-      end
-      if found < amt*amount and stash then 
-        for _,item in pairs(stash:get_inventory()) do
+      local optional = (recipe.optional_properties and in_table(property,recipe.optional_properties))
+      if not optional then
+        local found = 0
+        for _,item in pairs(self:get_inventory()) do
           if item.crafting_ingredient_properties and item.crafting_ingredient_properties[property] and not recipe.results[item.id] then
             local typeMatch = false
             if recipe.ingredient_types then
@@ -5357,11 +5424,34 @@ function Creature:can_craft_recipe(recipeID,stash,amount)
             end
           end
         end
+        if found < amt*amount and stash then 
+          for _,item in pairs(stash:get_inventory()) do
+            if item.crafting_ingredient_properties and item.crafting_ingredient_properties[property] and not recipe.results[item.id] then
+              local typeMatch = false
+              if recipe.ingredient_types then
+                if item.crafting_ingredient_types then
+                  for _,itype in pairs(recipe.ingredient_types) do
+                    if in_table(itype,item.crafting_ingredient_types) then
+                      typeMatch = true
+                      break
+                    end
+                  end
+                end
+              else --if ingredient types aren't set, don't worry about matching
+                typeMatch = true
+              end
+              if typeMatch then
+                found = found + item.crafting_ingredient_properties[property]*item.amount
+                if found >= amt*amount then break end
+              end
+            end
+          end
+        end
+        if found < amt*amount then return false end
       end
-      if found < amt*amount then return false end
     end --end property for
   end --end if ingredient_properties
-  if recipe.tool_properties then
+  if recipe.tool_properties and not ignore_tools then
     for _,prop in ipairs(recipe.tool_properties) do
       local has = false
       for _,item in pairs(self:get_inventory()) do
@@ -5426,11 +5516,12 @@ function Creature:craft_recipe(recipeID,secondary_ingredients,stash,amount)
     end
   end--]]
   
-  local passedTags = {}
+  local passedTags = recipe.passedTags or {}
   local givenTags = {}
   local givenTypes = {}
   local enchantments = {}
   local bonuses = {}
+  local conditions = {}
   if recipe.ingredients then --TODO: delete items mixed between main and stash
     for item,amt in pairs(recipe.ingredients) do
       local amount_to_delete = amt*amount
@@ -5466,6 +5557,11 @@ function Creature:craft_recipe(recipeID,secondary_ingredients,stash,amount)
         if i.crafting_given_bonuses then
           for bonus,bonusAmt in pairs(i.crafting_given_bonuses) do
             bonuses[bonus] = (bonuses[bonus] or 0)+amt*bonusAmt
+          end
+        end
+        if i.crafting_given_conditions then
+          for conID,turns in pairs(i.crafting_given_conditions) do
+            conditions[conID] = (conditions[conID] or 0)+amt*turns
           end
         end
       end
@@ -5506,8 +5602,12 @@ function Creature:craft_recipe(recipeID,secondary_ingredients,stash,amount)
         end
         if item.crafting_given_bonuses then
           for bonus,bonAmt in pairs(item.crafting_given_bonuses) do
-            print('bonus from',item.name,amt,(amt*bonAmt))
             bonuses[bonus] = (bonuses[bonus] or 0)+(amt*bonAmt)
+          end
+        end
+        if item.crafting_given_conditions then
+          for conID,turns in pairs(item.crafting_given_conditions) do
+            conditions[conID] = (conditions[conID] or 0)+amt*turns
           end
         end
       end
@@ -5548,9 +5648,15 @@ function Creature:craft_recipe(recipeID,secondary_ingredients,stash,amount)
           newItem:apply_enchantment(enchantment,-1)
         end
       end
-      for bonus,amt in pairs(bonuses) do
-        newItem.bonuses = newItem.bonuses or {}
-        newItem.bonuses[bonus] = (newItem.bonuses[bonus] or 0)+amt
+      if recipe.bonuses_from_ingredients then
+        if recipe.replace_bonuses or not newItem.bonuses then newItem.bonuses = {} end
+        if recipe.replace_bonuses or not newItem.use_conditions then newItem.use_conditions = {} end
+        for bonus,amt in pairs(bonuses) do
+          newItem.bonuses[bonus] = (newItem.bonuses[bonus] or 0)+amt
+        end
+        for conID,turns in pairs(conditions) do
+          newItem.use_conditions[conID] = (newItem.use_conditions[conID]or 0)+turns
+        end
       end
       self:give_item(newItem)
       if recipe.add_ingredients_to_name then
