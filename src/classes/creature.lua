@@ -5502,7 +5502,7 @@ function Creature:craft_recipe(recipeID,secondary_ingredients,stash,amount)
   local results = recipe.results
   local text = recipe.result_text
   local name_prefix = ""
-  local checkedNames = {}
+  local name_suffix = ""
   
   --[[Custom craft code TODO: return to this later
   if recipe.craft then
@@ -5568,12 +5568,19 @@ function Creature:craft_recipe(recipeID,secondary_ingredients,stash,amount)
     end
   end
   if secondary_ingredients then
+    local checkedNames = {}
     local ingNames = {}
+    local ingPrefixes = {}
     for item,amt in pairs(secondary_ingredients) do
       if amt > 0 then
-        if not checkedNames[item.name] then
-          ingNames[#ingNames+1] = item.name
-          checkedNames[item.name] = true
+        local name = item.crafting_ingredient_prefix or item.crafting_ingredient_name or item.name
+        if not checkedNames[name] then
+          if item.crafting_ingredient_prefix then
+            ingPrefixes[#ingPrefixes+1] = name
+          else
+            ingNames[#ingNames+1] = name
+          end
+          checkedNames[name] = true
         end
         if item.possessor == stash then
           stash:delete_item(item,amt)
@@ -5624,6 +5631,9 @@ function Creature:craft_recipe(recipeID,secondary_ingredients,stash,amount)
         end
         name_prefix = name_prefix .. name
       end
+      for i,pre in ipairs(ingPrefixes) do
+        name_prefix = pre .. " " .. name_prefix
+      end
     end
   end
   local resultCount = 0
@@ -5660,7 +5670,7 @@ function Creature:craft_recipe(recipeID,secondary_ingredients,stash,amount)
       end
       self:give_item(newItem)
       if recipe.add_ingredients_to_name then
-        newItem.name = name_prefix .. " " .. newItem.name
+        newItem.name = (recipe.item_name_prefix and recipe.item_name_prefix .. " " or "") .. name_prefix .. (recipe.replace_item_name and "" or " " .. newItem.name) .. name_suffix .. (recipe.item_name_suffix and " " .. recipe.item_name_suffix or "")
       end
       if resultText then
         resultText = resultText .. (resultCount == count(recipe.results) and (resultCount ~= 2 and ", and " or " and ") or ", ") .. newItem:get_name()
