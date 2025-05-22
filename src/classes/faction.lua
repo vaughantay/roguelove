@@ -499,10 +499,14 @@ end
 function Faction:get_buy_list(creat)
   creat = creat or player
   local buying = {}
+  local alreadyChecked = {}
   for id,item in ipairs(creat.inventory) do
     local price = self:get_buy_cost(item)
-    if price then
-      buying[#buying+1] = {item=item,moneyCost=price.moneyCost,favorCost=price.favorCost,reputationCost=price.reputationCost}
+    local acID = item.id .. "," .. item.name .. "," .. (item.sortBy and item[item.sortBy] or "") .. "," .. item:get_enchantment_string() .. "," .. (item.level or "")
+    if price and not alreadyChecked[acID]  then
+      local _,_,amt = creat:has_item(item.id,(item.sortBy and item[item.sortBy]),item.enchantments,item.level)
+      buying[#buying+1] = {item=item,moneyCost=price.moneyCost,favorCost=price.favorCost,reputationCost=price.reputationCost,amount=amt}
+      alreadyChecked[acID] = true
     end
   end
   return buying
@@ -659,7 +663,7 @@ function Faction:creature_sells_item(item,info)
   local favorCost = info.favorCost or 0
   local reputationCost = info.reputationCost or 0
   local amt = info.buyAmt or 1
-  local totalAmt = item.amount or 1
+  local _,_,totalAmt = stash:has_item(item.id,item.sortBy,item.enchantments,item.level)
   if amt > totalAmt then amt = totalAmt end
   local totalCost = moneyCost*amt
   local totalFavor = favorCost*amt

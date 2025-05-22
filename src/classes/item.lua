@@ -935,6 +935,21 @@ function Item:get_enchantments()
   return self.enchantments or {}
 end
 
+---Return a list of all enchantments and their values in a string, for item ID purposes
+--@return String
+function Item:get_enchantment_string()
+  local enchString = ""
+  local enchTable = {}
+  for enchID,amt in pairs(self:get_enchantments()) do
+    enchTable[#enchTable+1] = {id=enchID,amt=amt}
+  end
+  sort_table(enchTable,'id')
+  for i,info in ipairs(enchTable) do
+    enchString = enchString .. info.id .. "=" .. info.amt .. (i ~= #enchTable and ";" or "")
+  end
+  return enchString
+end
+
 ---Returns the total value of the bonuses of a given type provided by enchantments.
 --@param bonusType Text. The bonus type to look at
 --@param permanentOnly Boolean. If true, only look at permanent enchantments

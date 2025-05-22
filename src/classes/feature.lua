@@ -493,12 +493,20 @@ end
 ---Delete an item from a feature's inventory
 --@param item Item. The item to remove
 --@param amt Number. The amount of the item to remove, if the item is stackable. Defaults to 1. 
-function Feature:delete_item(item,amt,silent)
+function Feature:delete_item(item,amt,silent,noRecurs)
   amt = amt or 1
+  local amount_to_delete = amt
 	local id = in_table(item,self.inventory)
 	if (id) then
     if amt == -1 or amt >= (item.amount or 0) then
+      amount_to_delete = amount_to_delete - item.amount
       table.remove(self.inventory,id)
+      local new_item = self:has_item(item.id,(item.sortBy and item[item.sortBy]),item.enchantments,item.level)
+      while not noRecurs and (amt == -1 or amount_to_delete > 0) and new_item do
+        self:delete_item(new_item,amount_to_delete,true,true)
+        amount_to_delete = amount_to_delete - new_item.amount
+        new_item = self:has_item(item.id,(item.sortBy and item[item.sortBy]),item.enchantments,item.level)
+      end
     else
       item.amount = item.amount - amt
     end

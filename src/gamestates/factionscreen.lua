@@ -46,12 +46,12 @@ function factionscreen:refresh_store_lists()
   end
   for _,ilist in pairs(self.faction:get_buy_list()) do
     local item = ilist.item
-    self.buying_list[#self.buying_list+1] = {name=item:get_name(true,1),description=item:get_description(),info=item:get_info(),moneyCost=(ilist.moneyCost and ilist.moneyCost-round(ilist.moneyCost*(self.costMod/100)) or nil),favorCost=ilist.favorCost,reputationCost=ilist.reputationCost,amount=item.amount,buyAmt=0,item=item}
+    self.buying_list[#self.buying_list+1] = {name=item:get_name(true,1),description=item:get_description(),info=item:get_info(),moneyCost=(ilist.moneyCost and ilist.moneyCost-round(ilist.moneyCost*(self.costMod/100)) or nil),favorCost=ilist.favorCost,reputationCost=ilist.reputationCost,amount=(ilist.amount or item.amount or 1),buyAmt=0,item=item}
   end
   if self.stash then
     for _,ilist in pairs(self.faction:get_buy_list(self.stash)) do
       local item = ilist.item
-      self.buying_list[#self.buying_list+1] = {name=item:get_name(true,1),description=item:get_description(),info=item:get_info(),moneyCost=(ilist.moneyCost and ilist.moneyCost-round(ilist.moneyCost*(self.costMod/100)) or nil),favorCost=ilist.favorCost,reputationCost=ilist.reputationCost,amount=item.amount,buyAmt=0,item=item,stash=self.stash}
+      self.buying_list[#self.buying_list+1] = {name=item:get_name(true,1),description=item:get_description(),info=item:get_info(),moneyCost=(ilist.moneyCost and ilist.moneyCost-round(ilist.moneyCost*(self.costMod/100)) or nil),favorCost=ilist.favorCost,reputationCost=ilist.reputationCost,amount=(ilist.amount or item.amount or 1),buyAmt=0,item=item,stash=self.stash}
     end
   end
 end
