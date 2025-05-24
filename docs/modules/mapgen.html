@@ -71,6 +71,7 @@
   <li><a href="../classes/Map.html">Map</a></li>
   <li><a href="../classes/Projectile.html">Projectile</a></li>
   <li><a href="../classes/RangedAttack.html">RangedAttack</a></li>
+  <li><a href="../classes/Room.html">Room</a></li>
   <li><a href="../classes/Service.html">Service</a></li>
   <li><a href="../classes/Spell.html">Spell</a></li>
   <li><a href="../classes/Store.html">Store</a></li>
@@ -98,6 +99,10 @@
 	<tr>
 	<td class="name" nowrap><a href="#generate_item">generate_item (min_level, max_level, list, tags, allowAll, enchantment_chance, artifact_chance)</a></td>
 	<td class="summary">Initializes and creates a new item at the given level.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#generate_items_from_item_group">generate_items_from_item_group (groupID, amount, passedTags)</a></td>
+	<td class="summary">Generate an item from an item group</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#make_artifact">make_artifact (item, tags)</a></td>
@@ -144,36 +149,24 @@
 	<td class="summary">Make a procedurally-generated blob on the map</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#is_safe_to_block">is_safe_to_block (map, startX, startY, safeType)</a></td>
-	<td class="summary">Determines if a tile is safe to block.</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#get_all_safe_to_block">get_all_safe_to_block (map, room, openType)</a></td>
-	<td class="summary">Gets all the "safe to block" tiles in a given room.</td>
-	</tr>
-	<tr>
 	<td class="name" nowrap><a href="#contourBomb">contourBomb (map, tiles, iterations)</a></td>
 	<td class="summary">"Contour-bombs" open tiles, basically drawing open circles around tiles to make a more organic-looking space.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#decorate_room">decorate_room (room, map, decID)</a></td>
-	<td class="summary">Decorate a room</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#populate_creatures_in_room">populate_creatures_in_room (room, map, decID)</a></td>
-	<td class="summary">Spawn creatures in a room, using a roomDecorator if desired</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#populate_items_in_room">populate_items_in_room (room, map, decID)</a></td>
-	<td class="summary">Spawn items in a room, using a roomDecorator if desired</td>
-	</tr>
-	<tr>
-	<td class="name" nowrap><a href="#generate_room">generate_room (minX, minY, maxX, maxY, map, rectChance)</a></td>
-	<td class="summary">Generate a room on a map</td>
+	<td class="name" nowrap><a href="#get_content_list_from_tags">get_content_list_from_tags (content_type, tags, args, forbiddenTags, requiredTags, mapTags, searchSet)</a></td>
+	<td class="summary">Gets a list of all types of content</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#can_place_room">can_place_room (minX, minY, maxX, maxY, map)</a></td>
 	<td class="summary">Determines whether you can place a room in a location</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#get_largest_room_from_anchor_point">get_largest_room_from_anchor_point (startX, startY, direction, map, max_width, max_height, min_width, min_height, centered)</a></td>
+	<td class="summary">Determines the largest free room area starting from a given point</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#generate_encounter">generate_encounter (threat, creature_list, min_level, max_level, tags, max_creatures)</a></td>
+	<td class="summary">Creates an encounter at a given threat level</td>
 	</tr>
 </table>
 
@@ -289,6 +282,37 @@
     <ol>
 
         Item. The new item
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "generate_items_from_item_group"></a>
+    <strong>generate_items_from_item_group (groupID, amount, passedTags)</strong>
+    </dt>
+    <dd>
+    Generate an item from an item group
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">groupID</span>
+         String. The item group list
+        </li>
+        <li><span class="parameter">amount</span>
+         Number. The number of items to generate
+        </li>
+        <li><span class="parameter">passedTags</span>
+         Table. A table of tags to pass to the new items
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A table of generated items
     </ol>
 
 
@@ -640,71 +664,6 @@
 
 </dd>
     <dt>
-    <a name = "is_safe_to_block"></a>
-    <strong>is_safe_to_block (map, startX, startY, safeType)</strong>
-    </dt>
-    <dd>
-    Determines if a tile is safe to block.  Useful in map generators for placing decorations. TODO: Maybe this should be moved to the Map class?
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">map</span>
-         Map. The map on which we're operating
-        </li>
-        <li><span class="parameter">startX</span>
-         Number. The X-coordinate we're looking at
-        </li>
-        <li><span class="parameter">startY</span>
-         Number. The Y-coordinate we're looking at
-        </li>
-        <li><span class="parameter">safeType</span>
-         Text. Determines what counts as safe to block. "wall": next to wall only, "noWalls": not next to wall, "wallsCorners": open walls and corners only, "corners": corners only
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-        Boolean. Whether the tile is safe to block or not.
-    </ol>
-
-
-
-
-</dd>
-    <dt>
-    <a name = "get_all_safe_to_block"></a>
-    <strong>get_all_safe_to_block (map, room, openType)</strong>
-    </dt>
-    <dd>
-    Gets all the "safe to block" tiles in a given room.  Takes a list of tiles and runs mapgen:is_safe_to_block on them.
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">map</span>
-         Map. The map we're operating on
-        </li>
-        <li><span class="parameter">room</span>
-         Room. A room as returned by a roomGenerator. Can also pass in a custom table with a list of tiles in a subtable called floors.
-        </li>
-        <li><span class="parameter">openType</span>
-         Text. Determines what counts as "safe." "wall": next to wall only, "noWalls": not next to wall, "wallsCorners": open walls and corners only, "corners": corners only
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-        Table. A table of tiles deemed safe to block.
-    </ol>
-
-
-
-
-</dd>
-    <dt>
     <a name = "contourBomb"></a>
     <strong>contourBomb (map, tiles, iterations)</strong>
     </dt>
@@ -731,110 +690,35 @@
 
 </dd>
     <dt>
-    <a name = "decorate_room"></a>
-    <strong>decorate_room (room, map, decID)</strong>
+    <a name = "get_content_list_from_tags"></a>
+    <strong>get_content_list_from_tags (content_type, tags, args, forbiddenTags, requiredTags, mapTags, searchSet)</strong>
     </dt>
     <dd>
-    Decorate a room
+    Gets a list of all types of content
 
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">room</span>
-         Room. A table with, at least, minX,maxX,minY, and maxY values
+        <li><span class="parameter">content_type</span>
+         String. The type of content to look for. Creature, feature, item, spell, store, faction, roomDecorator, roomShape, recipe
         </li>
-        <li><span class="parameter">map</span>
-         Map. The map on which this room exists
+        <li><span class="parameter">tags</span>
+         Table. Content that has ANY of these tags will be included.
         </li>
-        <li><span class="parameter">decID</span>
-         String or table. Either the ID of a specific room decorator, or a table of room decorator IDs. Optional
+        <li><span class="parameter">args</span>
+         Table. Other potential arguments. Can include:
         </li>
-    </ul>
-
-
-
-
-
-</dd>
-    <dt>
-    <a name = "populate_creatures_in_room"></a>
-    <strong>populate_creatures_in_room (room, map, decID)</strong>
-    </dt>
-    <dd>
-    Spawn creatures in a room, using a roomDecorator if desired
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">room</span>
-         Room. A table with, at least, minX,maxX,minY, and maxY values
+        <li><span class="parameter">forbiddenTags</span>
+         Table. Content with ANY these tags will be excluded
         </li>
-        <li><span class="parameter">map</span>
-         Map. The map on which this room exists
+        <li><span class="parameter">requiredTags</span>
+         Table. Content that doesn't have ALL of these tags will be excluded
         </li>
-        <li><span class="parameter">decID</span>
-         String. The ID of a specific room decorator
+        <li><span class="parameter">mapTags</span>
+         Table. The tags from the map. Not used to search for content, but used for the item's own requiredMapTags and forbiddenMapTags
         </li>
-    </ul>
-
-
-
-
-
-</dd>
-    <dt>
-    <a name = "populate_items_in_room"></a>
-    <strong>populate_items_in_room (room, map, decID)</strong>
-    </dt>
-    <dd>
-    Spawn items in a room, using a roomDecorator if desired
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">room</span>
-         Room. A table with, at least, minX,maxX,minY, and maxY values
-        </li>
-        <li><span class="parameter">map</span>
-         Map. The map on which this room exists
-        </li>
-        <li><span class="parameter">decID</span>
-         String. The ID of a specific room decorator
-        </li>
-    </ul>
-
-
-
-
-
-</dd>
-    <dt>
-    <a name = "generate_room"></a>
-    <strong>generate_room (minX, minY, maxX, maxY, map, rectChance)</strong>
-    </dt>
-    <dd>
-    Generate a room on a map
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">minX</span>
-         Number. The minimum X value of the room.
-        </li>
-        <li><span class="parameter">minY</span>
-         Number. The minimum Y value of the room.
-        </li>
-        <li><span class="parameter">maxX</span>
-         Number. The maximum X value of the room.
-        </li>
-        <li><span class="parameter">maxY</span>
-         Number. The maximum Y value of the room.
-        </li>
-        <li><span class="parameter">map</span>
-         Map. The map to create the room on.
-        </li>
-        <li><span class="parameter">rectChance</span>
-         Number. Chance that the room will be a rectangle rather than any other room type
+        <li><span class="parameter">searchSet</span>
+         Table. A list of IDs to search through for the given content_type. If blank, search through all of the possibilities in the game
         </li>
     </ul>
 
@@ -875,6 +759,95 @@
 
 
 </dd>
+    <dt>
+    <a name = "get_largest_room_from_anchor_point"></a>
+    <strong>get_largest_room_from_anchor_point (startX, startY, direction, map, max_width, max_height, min_width, min_height, centered)</strong>
+    </dt>
+    <dd>
+    Determines the largest free room area starting from a given point
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">startX</span>
+         Number. The X coordinate to anchor off of
+        </li>
+        <li><span class="parameter">startY</span>
+         Number. The Y coordinate to anchor off of
+        </li>
+        <li><span class="parameter">direction</span>
+         String. The direction to look in
+        </li>
+        <li><span class="parameter">map</span>
+         Map. The map to create the room on
+        </li>
+        <li><span class="parameter">max_width</span>
+         Number. The maximum width of the room
+        </li>
+        <li><span class="parameter">max_height</span>
+         Number. The maximum height of the room
+        </li>
+        <li><span class="parameter">min_width</span>
+         Number. The minimum width of the room
+        </li>
+        <li><span class="parameter">min_height</span>
+         Number. The minimum height of the room
+        </li>
+        <li><span class="parameter">centered</span>
+         Boolean. If true, the room must be centered on the anchor point
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table or false. {minX=minX,minY=minY,maxX=maxX,maxY=maxY}
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "generate_encounter"></a>
+    <strong>generate_encounter (threat, creature_list, min_level, max_level, tags, max_creatures)</strong>
+    </dt>
+    <dd>
+    Creates an encounter at a given threat level
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">threat</span>
+         Number.
+        </li>
+        <li><span class="parameter">creature_list</span>
+         Table. A list of possible creatures.
+        </li>
+        <li><span class="parameter">min_level</span>
+         The lower level limit of the desired creature
+        </li>
+        <li><span class="parameter">max_level</span>
+         The upper level limit of the desired creature
+        </li>
+        <li><span class="parameter">tags</span>
+         Table. A list of tags to pass to the creature
+        </li>
+        <li><span class="parameter">max_creatures</span>
+         Number. The maximum number of creatures
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A table of creatures to place.
+    </ol>
+
+
+
+
+</dd>
 </dl>
 
 
@@ -882,7 +855,7 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2025-04-07 10:52:23 </i>
+<i style="float:right;">Last updated 2025-05-24 09:49:55 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

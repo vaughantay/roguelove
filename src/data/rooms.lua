@@ -1,12 +1,12 @@
-roomTypes = {}
+roomShapes = {}
 
-local rectangle = function(minX,minY,maxX,maxY,map)
+local rectangle = {
+  tags={'constructed','fullspace'}
+}
+function rectangle.build(minX,minY,maxX,maxY,map,room)
+  if not room then room = Room(minX,minY,maxX,maxY,map,false) end
   local floors = {}
-  if random(1,10) == 1 then --10% chance of being square room
-    local lowest = math.min((maxX-minX),(maxY-minY))
-    maxX,maxY=minX+lowest,minY+lowest --set both sides to be the same size, whichever is the lowest side
-  end
-  local midX,midY = math.floor((maxX+minX)/2),math.floor((maxY+minY)/2)
+  local midX,midY = (room.midX or math.floor((maxX+minX)/2)),(room.midY or math.floor((maxY+minY)/2))
   for x=minX+1,maxX-1,1 do
     for y=minY+1,maxY-1,1 do
       if (x>1 and y>1 and x<map.width and y<map.height) then
@@ -17,30 +17,50 @@ local rectangle = function(minX,minY,maxX,maxY,map)
   end --end forx
   --Store the walls. Simple in this case because it's a rectangle, just go around the perimeter
   local walls = {}
+  local checked = {}
   local dirWalls = {n={},s={},e={},w={}}
   for x = minX,maxX,1 do
-    walls[#walls+1] = {x=x,y=minY}
+    if not checked[x .. ',' .. minY] then
+      walls[#walls+1] = {x=x,y=minY}
+      checked[x .. ',' .. minY] = true
+    end
+    if not checked[x .. ',' .. maxY] then
+      walls[#walls+1] = {x=x,y=maxY}
+      checked[x .. ',' .. maxY] = true
+    end
     dirWalls.n[#dirWalls.n+1] = {x=x,y=minY}
-    walls[#walls+1] = {x=x,y=maxY}
     dirWalls.s[#dirWalls.s+1] = {x=x,y=maxY}
   end
   for y = minY,maxY,1 do
-    walls[#walls+1] = {x=minX,y=y}
+    if not checked[minX .. ',' .. y] then
+      walls[#walls+1] = {x=minX,y=y}
+      checked[minX .. ',' .. y] = true
+    end
+    if not checked[maxX .. ',' .. y] then
+      walls[#walls+1] = {x=maxX,y=y}
+      checked[maxX .. ',' .. y] = true
+    end
     dirWalls.w[#dirWalls.w+1] = {x=minX,y=y}
-    walls[#walls+1] = {x=maxX,y=y}
     dirWalls.e[#dirWalls.e+1] = {x=maxX,y=y}
   end
-  return {minX=minX,maxX=maxX,minY=minY,maxY=maxY,midX=midX,midY=midY,walls=walls,dirWalls=dirWalls,floors=floors}
+  room.walls = walls
+  room.floors = floors
+  room.dirWalls = dirWalls
+  return room
 end
-roomTypes['rectangle'] = rectangle
+roomShapes['rectangle'] = rectangle
 
-local circle = function(minX,minY,maxX,maxY,map)
+local circle = {
+  tags={'constructed','fullspace'}
+}
+function circle.build(minX,minY,maxX,maxY,map,room)
+  if not room then room = Room(minX,minY,maxX,maxY,map,false) end
   local floors = {}
   local walls = {}
   local dirWalls = {n={},s={},e={},w={}}
   local alreadyDoneWalls={} --this isn't sent anywhere, it just stores the walls we've already checked, so that if two floors are next to the same wall it won't be stored twice
   local midX,midY = math.floor((maxX+minX)/2),math.floor((maxY+minY)/2)
-  local radius = math.min(midX-minX,midY-minY) -- radius is the smaller of the two in case it's a rectangular space
+  local radius = math.max(midX-minX,midY-minY)
   for x=minX+1,maxX-1,1 do
     for y=minY+1,maxY-1,1 do
       if (x>1 and y>1 and x<map.width and y<map.height) and calc_distance(midX,midY,x,y) < radius then
@@ -53,7 +73,7 @@ local circle = function(minX,minY,maxX,maxY,map)
   for _,floor in pairs(floors) do
     for x=floor.x-1,floor.x+1,1 do
       for y=floor.y-1,floor.y+1,1 do
-        if map[x][y] == "#" and not alreadyDoneWalls[x .. ',' .. y] then
+        if calc_distance(midX,midY,x,y) >= radius and not alreadyDoneWalls[x .. ',' .. y] then
           walls[#walls+1] = {x=x,y=y}
           alreadyDoneWalls[x .. ',' .. y] = true --store this so checking a different square next to this wall won't do anything
           if x < midX then dirWalls.w[#dirWalls.w+1] = {x=x,y=y} end
@@ -64,11 +84,18 @@ local circle = function(minX,minY,maxX,maxY,map)
       end --end fory
     end --end forx
   end --end floor for
-  return {minX=minX,maxX=maxX,minY=minY,maxY=maxY,midX=midX,midY=midY,walls=walls,dirWalls=dirWalls,floors=floors}
+  room.walls = walls
+  room.floors = floors
+  room.dirWalls = dirWalls
+  return room
 end
-roomTypes['circle'] = circle
+roomShapes['circle'] = circle
 
-local plus = function(minX,minY,maxX,maxY,map)
+local plus = {
+  tags={'constructed','fullspace'}
+}
+function plus.build(minX,minY,maxX,maxY,map,room)
+  if not room then room = Room(minX,minY,maxX,maxY,map,false) end
   local floors = {}
   local walls = {}
   local dirWalls = {n={},s={},e={},w={}}
@@ -85,39 +112,70 @@ local plus = function(minX,minY,maxX,maxY,map)
     end --end fory
   end --end forx
   --Find the walls:
+  local checked = {}
   for x=minX,maxX,1 do
     if math.abs(x-midX) < width then
-      walls[#walls+1] = {x=x,y=minY}
+      if not checked[x .. "," .. minY] then
+        walls[#walls+1] = {x=x,y=minY}
+        checked[x .. "," .. minY] = true
+      end
+      if not checked[x .. "," .. maxY] then
+        walls[#walls+1] = {x=x,y=maxY}
+        checked[x .. "," .. maxY] = true
+      end
       dirWalls.n[#dirWalls.n+1] = {x=x,y=minY}
-      walls[#walls+1] = {x=x,y=maxY}
       dirWalls.s[#dirWalls.s+1] = {x=x,y=maxY}
     else
-      walls[#walls+1] = {x=x,y=midY+height}
+      if not checked[x .. "," .. midY+height] then
+        walls[#walls+1] = {x=x,y=midY+height}
+        checked[x .. "," .. midY+height] = true
+      end
+      if not checked[x .. "," .. midY-height] then
+        walls[#walls+1] = {x=x,y=midY-height}
+        checked[x .. "," .. midY-height] = true
+      end
       dirWalls.n[#dirWalls.n+1] = {x=x,y=midY+height}
-      walls[#walls+1] = {x=x,y=midY-height}
       dirWalls.s[#dirWalls.s+1] = {x=x,y=midY-height}
     end
   end
   for y=minY,maxY,1 do
     if math.abs(y-midY) < height then
-      walls[#walls+1] = {x=minX,y=y}
+      if not checked[minX .. "," .. y] then
+        walls[#walls+1] = {x=minX,y=y}
+        checked[minX .. "," .. y] = true
+      end
+      if not checked[maxX .. "," .. y] then
+        walls[#walls+1] = {x=maxX,y=y}
+        checked[maxX .. "," .. y] = true
+      end
       dirWalls.w[#dirWalls.w+1] = {x=minX,y=y}
-      walls[#walls+1] = {x=maxX,y=y}
       dirWalls.e[#dirWalls.e+1] = {x=maxX,y=y}
     else
-      walls[#walls+1] = {x=midX-width,y=y}
+      if not checked[midX-width .. "," .. y] then
+        walls[#walls+1] = {x=midX-width,y=y}
+        checked[midX-width .. "," .. y] = true
+      end
+      if not checked[midX+width .. "," .. y] then
+        walls[#walls+1] = {x=midX+width,y=y}
+        checked[midX+width .. "," .. y] = true
+      end
       dirWalls.w[#dirWalls.w+1] = {x=midX-width,y=y}
-      walls[#walls+1] = {x=midX+width,y=y}
       dirWalls.e[#dirWalls.e+1] = {x=midX+width,y=y}
     end
   end
-    
-  return {minX=minX,maxX=maxX,minY=minY,maxY=maxY,midX=midX,midY=midY,walls=walls,dirWalls=dirWalls,floors=floors}
+  room.walls = walls
+  room.floors = floors
+  room.dirWalls = dirWalls
+  return room
 end
-roomTypes['plus'] = plus
+roomShapes['plus'] = plus
 
 --"Blob" room type. Starts in the middle of the room, then randomly spreads in all directions
-local blob = function(minX,minY,maxX,maxY,map)
+local blob = {
+  tags = {'natural'}
+}
+function blob.build(minX,minY,maxX,maxY,map,room)
+  if not room then room = Room(minX,minY,maxX,maxY,map,false) end
   local floors = {}
   local walls = {}
   local dirWalls = {n={},s={},e={},w={}}
@@ -158,12 +216,19 @@ local blob = function(minX,minY,maxX,maxY,map)
     end --end forx
   end --end floor for
   
-  return {minX=minX,maxX=maxX,minY=minY,maxY=maxY,midX=midX,midY=midY,walls=walls,dirWalls=dirWalls,floors=floors}
+  room.walls = walls
+  room.floors = floors
+  room.dirWalls = dirWalls
+  return room
 end
-roomTypes['blob'] = blob
+roomShapes['blob'] = blob
 
 --"Drunk Walker" room type. Starts in the middle, then "walks" to a random adjacent tile
-local drunkwalker = function(minX,minY,maxX,maxY,map)
+local drunkwalker = {
+  tags = {'natural'}
+}
+function drunkwalker.build(minX,minY,maxX,maxY,map,room)
+  if not room then room = Room(minX,minY,maxX,maxY,map,false) end
   local floors = {}
   local walls = {}
   local dirWalls = {n={},s={},e={},w={}}
@@ -211,9 +276,12 @@ local drunkwalker = function(minX,minY,maxX,maxY,map)
     end --end forx
   end --end floor for
   
-  return {minX=minX,maxX=maxX,minY=minY,maxY=maxY,midX=midX,midY=midY,walls=walls,dirWalls=dirWalls,floors=floors}
+  room.walls = walls
+  room.floors = floors
+  room.dirWalls = dirWalls
+  return room
 end
-roomTypes['drunkwalker'] = drunkwalker
+roomShapes['drunkwalker'] = drunkwalker
 
 --[[Not working very well:
 local cave = function(minX,minY,maxX,maxY,map)
@@ -280,4 +348,4 @@ local cave = function(minX,minY,maxX,maxY,map)
   
   return {minX=minX,maxX=maxX,minY=minY,maxY=maxY,midX=midX,midY=midY,walls=walls,dirWalls=dirWalls,floors=floors}
 end
-roomTypes['cave'] = cave --]]
+roomShapes['cave'] = cave --]]

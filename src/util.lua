@@ -272,7 +272,7 @@ function print_table(t,key)
     return
   end
   for i,v in pairs(t) do
-    if type(v) == "table" then
+    if type(v) == "table" and key then
       print(i,v[key])
     else
       print(i,v)

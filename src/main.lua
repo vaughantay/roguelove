@@ -153,7 +153,7 @@ end
 function love.keypressed(key, scancode, isRepeat)
   if output.popups and output.popups[1] then
     key,scancode,isRepeat = input:parse_key(key,scancode,isRepeat)
-    if not output.popups[1].enterOnly or key == "enter" then
+    if not output.popups[1].enterOnly or key == "enter" or key == "escape" then
       if output.popups[1].afterFunc then output.popups[1].afterFunc() end
       table.remove(output.popups,1)
     end

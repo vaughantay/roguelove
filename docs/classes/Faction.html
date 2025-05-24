@@ -48,6 +48,7 @@
   <li><a href="../classes/Map.html">Map</a></li>
   <li><a href="../classes/Projectile.html">Projectile</a></li>
   <li><a href="../classes/RangedAttack.html">RangedAttack</a></li>
+  <li><a href="../classes/Room.html">Room</a></li>
   <li><a href="../classes/Service.html">Service</a></li>
   <li><a href="../classes/Spell.html">Spell</a></li>
   <li><a href="../classes/Store.html">Store</a></li>
@@ -132,6 +133,10 @@
 	<td class="summary">Generates the faction's inventory</td>
 	</tr>
 	<tr>
+	<td class="name" nowrap><a href="#faction:select_missions">faction:select_missions ()</a></td>
+	<td class="summary">Select missions to offer, if there's a limit</td>
+	</tr>
+	<tr>
 	<td class="name" nowrap><a href="#faction:restock">faction:restock ()</a></td>
 	<td class="summary">Restocks the faction's inventory.</td>
 	</tr>
@@ -157,7 +162,7 @@
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#faction:get_buy_cost">faction:get_buy_cost (item)</a></td>
-	<td class="summary">Determines if a store will buy an item, and returns the price if so</td>
+	<td class="summary">Determines if a faction will buy an item, and returns the price if so</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#faction:creature_sells_item">faction:creature_sells_item (item, info, moneyCost, favorCost, reputationCost, amt, creat)</a></td>
@@ -197,7 +202,23 @@
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#faction:get_teachable_skills">faction:get_teachable_skills (creature)</a></td>
-	<td class="summary">Gets the list of skills the store can teach a given creature</td>
+	<td class="summary">Gets the list of skills the faction can teach a given creature</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#faction:get_available_services">faction:get_available_services (creature)</a></td>
+	<td class="summary">Gets the list of services the faction can offer a given creature</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#faction:get_available_missions">faction:get_available_missions (creature, ignoreCurrent.)</a></td>
+	<td class="summary">Gets the list of missions the faction can teach a given creature</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#faction:get_recruitable_creatures">faction:get_recruitable_creatures (creature)</a></td>
+	<td class="summary">Gets the list of creatures the faction offers for recruitment</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#faction:recruit">faction:recruit (recruitData, creature)</a></td>
+	<td class="summary">Recruits a creature from a faction</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#faction:process_incident">faction:process_incident (incidentID, actor, target, args)</a></td>
@@ -463,6 +484,20 @@
 
 </dd>
     <dt>
+    <a name = "faction:select_missions"></a>
+    <strong>faction:select_missions ()</strong>
+    </dt>
+    <dd>
+    Select missions to offer, if there's a limit
+
+
+
+
+
+
+
+</dd>
+    <dt>
     <a name = "faction:restock"></a>
     <strong>faction:restock ()</strong>
     </dt>
@@ -598,7 +633,7 @@
     <strong>faction:get_buy_cost (item)</strong>
     </dt>
     <dd>
-    Determines if a store will buy an item, and returns the price if so
+    Determines if a faction will buy an item, and returns the price if so
 
 
     <h3>Parameters:</h3>
@@ -611,7 +646,7 @@
     <h3>Returns:</h3>
     <ol>
 
-        False or Number. False if the store won't buy it, the price if it will
+        False or Number. False if the faction won't buy it, the price if it will
     </ol>
 
 
@@ -861,7 +896,7 @@
     <strong>faction:get_teachable_skills (creature)</strong>
     </dt>
     <dd>
-    Gets the list of skills the store can teach a given creature
+    Gets the list of skills the faction can teach a given creature
 
 
     <h3>Parameters:</h3>
@@ -876,6 +911,107 @@
 
         Table. A list of possible skills
     </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "faction:get_available_services"></a>
+    <strong>faction:get_available_services (creature)</strong>
+    </dt>
+    <dd>
+    Gets the list of services the faction can offer a given creature
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">creature</span>
+         Creature. Optional, defaults to player
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A list of possible services
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "faction:get_available_missions"></a>
+    <strong>faction:get_available_missions (creature, ignoreCurrent.)</strong>
+    </dt>
+    <dd>
+    Gets the list of missions the faction can teach a given creature
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">creature</span>
+         Creature. Optional, defaults to player
+        </li>
+        <li><span class="parameter">ignoreCurrent.</span>
+         Optional, if true ignore the current_missions table
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A list of possible missions
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "faction:get_recruitable_creatures"></a>
+    <strong>faction:get_recruitable_creatures (creature)</strong>
+    </dt>
+    <dd>
+    Gets the list of creatures the faction offers for recruitment
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">creature</span>
+         Creature. Optional, defaults to player
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A list of possible recruits
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "faction:recruit"></a>
+    <strong>faction:recruit (recruitData, creature)</strong>
+    </dt>
+    <dd>
+    Recruits a creature from a faction
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">recruitData</span>
+         Table. The recruitment data
+        </li>
+        <li><span class="parameter">creature</span>
+         Creature. The creature doing the recruiting
+        </li>
+    </ul>
+
 
 
 
@@ -917,7 +1053,7 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2025-04-07 10:52:23 </i>
+<i style="float:right;">Last updated 2025-05-24 09:49:55 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

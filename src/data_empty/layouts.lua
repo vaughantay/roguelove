@@ -682,7 +682,7 @@ local bspTree = function (map,width,height,doorChance,wideChance,rectChance,poli
     local minX,maxX = math.ceil(random(branch.x,branch.x+(branch.maxX-branch.x)/5)),math.floor(random(branch.x+(branch.maxX-branch.x)/5*4,branch.maxX))
     local minY,maxY = math.ceil(random(branch.y,branch.y+(branch.maxY-branch.y)/5)),math.floor(random(branch.y+(branch.maxY-branch.y)/5*4,branch.maxY))
     if (maxX-minX >= 4 and maxY-minY >= 4) then -- Only make a room if it's big enough
-      rooms[#rooms+1] = mapgen:generate_room(minX,minY,maxX,maxY,map,rectChance)
+      rooms[#rooms+1] = Room(minX,minY,maxX,maxY,map,(random(1,100) <= rectChance and 'rectangle'))
     end --end size check if
   end --end branch for
 
@@ -945,7 +945,7 @@ local broguelike = function(map,width,height,arguments)
   
   local minX,minY = random(2,map.width-10),random(2,map.height-10)
   local maxX,maxY = math.min(random(minX,minX+10),map.width-1),math.min(random(minY,minY+10),map.height-1)
-  rooms[#rooms+1] = mapgen:generate_room(minX,minY,maxX,maxY,map,rectChance)
+  rooms[#rooms+1] = Room(minX,minY,maxX,maxY,map,(random(1,100) <= rectChance and 'rectangle'))
   
   for _,tile in pairs(rooms[1].floors) do
     roomMap[tile.x][tile.y] = 1
@@ -974,7 +974,7 @@ local broguelike = function(map,width,height,arguments)
       local make = false
       while (tileCount < 5 and make == false) do --try 10 times per tile
         local sizeX, sizeY = random(3,maxRoomSize),random(3,maxRoomSize) --room dimensions can't be smaller than 3
-        local room = mapgen:generate_room(1,1,sizeX,sizeY,roomGrid,rectChance)
+        local room = Room(1,1,sizeX,sizeY,roomGrid,(random(1,100) <= rectChance and 'rectangle'))
         local startX,startY = 2,2
         if dir == "n" then
           startY = wallTile.y-sizeY

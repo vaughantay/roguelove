@@ -48,6 +48,7 @@
   <li><strong>Map</strong></li>
   <li><a href="../classes/Projectile.html">Projectile</a></li>
   <li><a href="../classes/RangedAttack.html">RangedAttack</a></li>
+  <li><a href="../classes/Room.html">Room</a></li>
   <li><a href="../classes/Service.html">Service</a></li>
   <li><a href="../classes/Spell.html">Spell</a></li>
   <li><a href="../classes/Store.html">Store</a></li>
@@ -272,6 +273,10 @@
 	<td class="summary">Get a list of possible factions to spawn on the given map</td>
 	</tr>
 	<tr>
+	<td class="name" nowrap><a href="#map:get_room_list">map:get_room_list (self, force)</a></td>
+	<td class="summary">Get a list of possible room decorators to spawn on the given map</td>
+	</tr>
+	<tr>
 	<td class="name" nowrap><a href="#map:populate_creatures">map:populate_creatures (creatTotal, forceGeneric)</a></td>
 	<td class="summary">Randomly add creatures to the map</td>
 	</tr>
@@ -286,6 +291,22 @@
 	<tr>
 	<td class="name" nowrap><a href="#map:populate_factions">map:populate_factions (forceGeneric)</a></td>
 	<td class="summary">Randomly add an appropriate faction to the map.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#map:populate_rooms">map:populate_rooms (forceGeneric)</a></td>
+	<td class="summary">Decorate rooms on the map</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#map:connect_rooms">map:connect_rooms (info)</a></td>
+	<td class="summary">Connect rooms together TODO: support custom connection code</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#map:get_connected_rooms">map:get_connected_rooms ()</a></td>
+	<td class="summary">Returns a list of connected rooms</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#map:get_disconnected_rooms">map:get_disconnected_rooms ()</a></td>
+	<td class="summary">Returns a list of unconnected rooms</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#map:cleanup">map:cleanup ()</a></td>
@@ -316,6 +337,14 @@
 	<td class="summary">Checks if a map has a descriptive tag.</td>
 	</tr>
 	<tr>
+	<td class="name" nowrap><a href="#map:has_room">map:has_room (decorator)</a></td>
+	<td class="summary">Checks if a map has a room with the given decorator.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#map:is_safe_to_block">map:is_safe_to_block (startX, startY, safeType)</a></td>
+	<td class="summary">Determines if a tile is safe to block.</td>
+	</tr>
+	<tr>
 	<td class="name" nowrap><a href="#map:damage_all">map:damage_all (x, y, amt, attacker, damage_type, args, armor_piercing, noSound, item, ignoreWeakness, attackerSafe, tweak, conditions, source_name, creatureSafe)</a></td>
 	<td class="summary">Applies damage to all creates and features in a tile
 Damage a creature</td>
@@ -323,6 +352,10 @@ Damage a creature</td>
 	<tr>
 	<td class="name" nowrap><a href="#map:register_incident">map:register_incident (incidentID, actor, target, args)</a></td>
 	<td class="summary">Registers an incident as having occured, to be processed by all other creatures who observe it</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#map:get_bonus">map:get_bonus (bonusType, x, y)</a></td>
+	<td class="summary">Get a stat bonus provided by the map</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#map:clear_caches">map:clear_caches ()</a></td>
@@ -1734,6 +1767,34 @@ Damage a creature</td>
 
 </dd>
     <dt>
+    <a name = "map:get_room_list"></a>
+    <strong>map:get_room_list (self, force)</strong>
+    </dt>
+    <dd>
+    Get a list of possible room decorators to spawn on the given map
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">self</span>
+         Map. The map to check
+        </li>
+        <li><span class="parameter">force</span>
+         Boolean. Whether or not to forcibly re-calculate it, rather than returning the pre-calculated value
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table or nil. Either a table of room decorator IDs, or nil if there are no possible rooms
+    </ol>
+
+
+
+
+</dd>
+    <dt>
     <a name = "map:populate_creatures"></a>
     <strong>map:populate_creatures (creatTotal, forceGeneric)</strong>
     </dt>
@@ -1814,6 +1875,84 @@ Damage a creature</td>
         </li>
     </ul>
 
+
+
+
+
+</dd>
+    <dt>
+    <a name = "map:populate_rooms"></a>
+    <strong>map:populate_rooms (forceGeneric)</strong>
+    </dt>
+    <dd>
+    Decorate rooms on the map
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">forceGeneric</span>
+
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "map:connect_rooms"></a>
+    <strong>map:connect_rooms (info)</strong>
+    </dt>
+    <dd>
+    Connect rooms together TODO: support custom connection code
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">info</span>
+         Table. Information to pass to the connector
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "map:get_connected_rooms"></a>
+    <strong>map:get_connected_rooms ()</strong>
+    </dt>
+    <dd>
+    Returns a list of connected rooms
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A list of rooms connected to the 1st room in the room list
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "map:get_disconnected_rooms"></a>
+    <strong>map:get_disconnected_rooms ()</strong>
+    </dt>
+    <dd>
+    Returns a list of unconnected rooms
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A list of rooms not connected to the 1st room in the room list
+    </ol>
 
 
 
@@ -1958,6 +2097,62 @@ Damage a creature</td>
 
 </dd>
     <dt>
+    <a name = "map:has_room"></a>
+    <strong>map:has_room (decorator)</strong>
+    </dt>
+    <dd>
+    Checks if a map has a room with the given decorator.  Only returns the first one, not multiples if there are any
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">decorator</span>
+         String. The decorator ID to look for
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Room. The first room found that matches the decorator ID
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "map:is_safe_to_block"></a>
+    <strong>map:is_safe_to_block (startX, startY, safeType)</strong>
+    </dt>
+    <dd>
+    Determines if a tile is safe to block.  Useful in map generators for placing decorations
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">startX</span>
+         Number. The X-coordinate we're looking at
+        </li>
+        <li><span class="parameter">startY</span>
+         Number. The Y-coordinate we're looking at
+        </li>
+        <li><span class="parameter">safeType</span>
+         Text. Determines what counts as safe to block. "wall": next to wall only, "noWalls": not next to wall, "wallsCorners": open walls and corners only, "corners": corners only
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether the tile is safe to block or not.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
     <a name = "map:damage_all"></a>
     <strong>map:damage_all (x, y, amt, attacker, damage_type, args, armor_piercing, noSound, item, ignoreWeakness, attackerSafe, tweak, conditions, source_name, creatureSafe)</strong>
     </dt>
@@ -2055,6 +2250,32 @@ Damage a creature
 
 </dd>
     <dt>
+    <a name = "map:get_bonus"></a>
+    <strong>map:get_bonus (bonusType, x, y)</strong>
+    </dt>
+    <dd>
+    Get a stat bonus provided by the map
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">bonusType</span>
+         String. The type of bonus
+        </li>
+        <li><span class="parameter">x</span>
+         Number. The x-coordinate of the asker. Used to look at the room they're in's bonus
+        </li>
+        <li><span class="parameter">y</span>
+         Number. The y-coordinate of the asker. Used to look at the room they're in's bonus
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
     <a name = "map:clear_caches"></a>
     <strong>map:clear_caches ()</strong>
     </dt>
@@ -2075,7 +2296,7 @@ Damage a creature
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2025-04-07 10:52:23 </i>
+<i style="float:right;">Last updated 2025-05-24 09:49:55 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

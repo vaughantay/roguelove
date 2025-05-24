@@ -28,7 +28,7 @@ ai['basic'] = function(self,args)
   args = args or {}
   
   --If you're not close to the player, just move randomly:
-  if args.forceWander or (not self.guard_point and not self.patrol_points and not self.target and not self:has_ai_flag('playerstalker')) then
+  if args.forceWander or (not self.guard_point and not self.patrol_points and not self.target and not self:has_ai_flag('playerstalker') and calc_distance(self.x,self.y,player.x,player.y) > player.perception*2) then
     return ai.wander(self,args)
   end
   
@@ -162,6 +162,7 @@ end -- end basic ai function
 
 ---This function causes the creature to randomly wander
 ai['wander'] = function(self,args)
+  args = args or {}
   if not args.forceWander and self:has_ai_flag('stoic') then return false end
   if not self.direction or random(1,5) == 1 or currMap:is_passable_for(self.x+self.direction.x,self.y+self.direction.y,self.pathType) == false then
     local xMod,yMod = random(-1,1),random(-1,1)
@@ -178,6 +179,7 @@ end
 
 ---This function handles noticing nearby enemies (and running, if this creature has a minimum distance they like to maintain)
 ai['handlenotice'] = function(self,creats,args)
+  args = args or {}
   local enemies,defRun = 0,false
   --First, get all seen creatures. See if enemy creatures are noticed. Go on alert if enemy targets are noticed:
   for _,creat in pairs(creats) do --Loop through all seen creatures
@@ -208,6 +210,7 @@ end
 
 --This function handles setting a target among nearby hostile creatures
 ai['target'] = function(self,args)
+  args = args or {}
   --If you have a master and they have a target, take your master's target
   if self:has_ai_flag('playerhater') and self:can_sense_creature(player) and self:does_notice(player) then self.target = player
   elseif self.master and self.master.target then self.target = self.master.target end
@@ -274,6 +277,7 @@ end
 
 ---This function handles moving towards your target
 ai['moveToTarget'] = function(self,args)
+  args = args or {}
   if self.target and (self.target.baseType ~= "creature" or self:touching(self.target) == false) and (self.target.baseType ~= "creature" or self.min_distance == nil or math.floor(calc_distance(self.x,self.y,self.target.x,self.target.y)) > self.min_distance) and (self.target.baseType ~= "creature" or self.approach_chance == nil or random(0,100) <= self.approach_chance) and (self.target.baseType ~= "creature" or self:can_sense_creature(self.target) or self:has_ai_flag('stalker') or (self.target == player and self:has_ai_flag('playerstalker'))) then
     if not args.forceStupid and self:is_type('intelligent') == true and calc_distance(self.x,self.y,self.target.x,self.target.y) <= self:get_perception() then
       --Intelligent creatures: first, see if you can draw a straight line to your target
@@ -295,6 +299,7 @@ end
 
 ---This function handles determining if you use a ranged attack
 ai['rangedAttack'] = function(self,args)
+  args = args or {}
   --Try regular ranged attack first:
   if (self.target and self.target.baseType == "creature") and self:touching(self.target) == false and (self.ranged_attack ~= nil and (rangedAttacks[self.ranged_attack].projectile == false or self:can_shoot_tile(self.target.x,self.target.y)) and rangedAttacks[self.ranged_attack]:use(self.target,self)) then return true end
   -- Then cast a spell, if possible
@@ -306,7 +311,7 @@ ai['rangedAttack'] = function(self,args)
       if target and target.x and target.y and (not spell.range or math.floor(calc_distance(self.x,self.y,target.x,target.y)) <= spell.range) then --if there's a valid target to the spell within range
         if spell:use(target,self) then return true end --this is on a seperate line because I want the rest to be skipped if the spell fails for some reason.
       end --end friendly spell range check
-    elseif (self.target and self.target.baseType == "creature") and (spell.flags['aggressive'] == true and self.cooldowns[id] == nil and (not spell.range or math.floor(calc_distance(self.x,self.y,self.target.x,self.target.y)) <= spell.range)) then
+    elseif (self.target and self.target.baseType == "creature") and (spell.flags['aggressive'] == true and self.cooldowns[spell] == nil and (not spell.range or math.floor(calc_distance(self.x,self.y,self.target.x,self.target.y)) <= spell.range)) then
       local target = spell:decide(self.target,self,'aggressive')
       if target ~= false and (target == nil or target == true or target.x == nil or target.y == nil) then target = self.target end --if for some reason the decide function doesn't return an acceptable target
       if (target ~= false and spell:use(target,self)) then
@@ -361,6 +366,7 @@ end --and AI run
 
 ---This function pathfinds to an enemy, accounting for hazards
 ai['dijkstra'] = function(self,args)
+  args = args or {}
   local createTime = 0
   local hTime = 0
   local lMap = {}
@@ -446,6 +452,7 @@ end
 
 ---This function handles moving along your pre-set path
 ai['moveAlongPath'] = function(self,args)
+  args = args or {}
   if self.path then
     local intelligent = self:is_type('intelligent')
     local moved = false
@@ -508,6 +515,7 @@ end
 
 ---This function handles pathfinding to an enemy, not avoiding hazards
 ai['dumbpathfind'] = function(self,args)
+  args = args or {}
   --Just dumbly walk in a straight line to your target, if possible. If not, pathfind.
   local path, complete = currMap:get_line(self.x,self.y,self.target.x,self.target.y)
   
@@ -543,6 +551,7 @@ end
 
 ---This code handles creatures guarding a specific point
 ai['guard'] = function(self,args)
+  args = args or {}
   if self.guard_point and (self.x ~= self.guard_point.x or self.y ~= self.guard_point.y) and (not self.guard_wander_distance or calc_distance(self.x,self.y,self.guard_point.x,self.guard_point.y) > tweak(self.guard_wander_distance)) then
     local gmoved = false
     if not self.target then
@@ -557,6 +566,7 @@ end
 
 ---This code handles patrolling creatures moving between patrol points
 ai['patrol'] = function(self,args)
+  args = args or {}
   if self.patrol_points then
     local pmoved = false
     local atPoint = false

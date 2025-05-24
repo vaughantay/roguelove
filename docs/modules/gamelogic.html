@@ -71,6 +71,7 @@
   <li><a href="../classes/Map.html">Map</a></li>
   <li><a href="../classes/Projectile.html">Projectile</a></li>
   <li><a href="../classes/RangedAttack.html">RangedAttack</a></li>
+  <li><a href="../classes/Room.html">Room</a></li>
   <li><a href="../classes/Service.html">Service</a></li>
   <li><a href="../classes/Spell.html">Spell</a></li>
   <li><a href="../classes/Store.html">Store</a></li>
@@ -156,12 +157,16 @@
 	<td class="summary">Handle movement keys.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#move_player">move_player (newX, newY, force)</a></td>
+	<td class="name" nowrap><a href="#move_player">move_player (newX, newY, force, attack_when_zero)</a></td>
 	<td class="summary">Move the player to a new location.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#pathTo">pathTo (x, y, noMsg)</a></td>
+	<td class="name" nowrap><a href="#pathTo">pathTo (x, y, pathAction., noMsg, pathTarget)</a></td>
 	<td class="summary">Find a path from the player's location to a new location, and start the player moving along it.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#endPath">endPath (aborted)</a></td>
+	<td class="summary">Ends player pathing</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#setTarget">setTarget (x, y)</a></td>
@@ -188,7 +193,7 @@
 	<td class="summary">Show a tutorial message</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#start_mission">start_mission (missionID, startVal, source, values, skipFunc)</a></td>
+	<td class="name" nowrap><a href="#start_mission">start_mission (missionID, startVal, source, values, skipFunc, noPopup)</a></td>
 	<td class="summary">Starts a mission at 0 and runs its begin() code</td>
 	</tr>
 	<tr>
@@ -196,11 +201,15 @@
 	<td class="summary">Gets the status of a given mission.</td>
 	</tr>
 	<tr>
+	<td class="name" nowrap><a href="#is_mission_finished">is_mission_finished (missionID, includeFailure)</a></td>
+	<td class="summary">Returns whether the given mission has been finished</td>
+	</tr>
+	<tr>
 	<td class="name" nowrap><a href="#set_mission_status">set_mission_status (missionID, value)</a></td>
 	<td class="summary">Sets a the status value of a mission to a specific value.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#get_mission_data">get_mission_data (missionID, index)</a></td>
+	<td class="name" nowrap><a href="#get_mission_data">get_mission_data (missionID, index, includeFinished)</a></td>
 	<td class="summary">Gets the value of an index of a given mission.</td>
 	</tr>
 	<tr>
@@ -212,11 +221,11 @@
 	<td class="summary">Updates a mission's status value by a given number value.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#finish_mission">finish_mission (missionID, endVal, skipFunc)</a></td>
+	<td class="name" nowrap><a href="#finish_mission">finish_mission (missionID, endVal, skipFunc, noPopup)</a></td>
 	<td class="summary">Marks a mission as finished, removing it from the active mission table.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#fail_mission">fail_mission (missionID, endVal, skipFunc)</a></td>
+	<td class="name" nowrap><a href="#fail_mission">fail_mission (missionID, endVal, skipFunc, noPopup)</a></td>
 	<td class="summary">Marks a mission as failed, removing it from the active mission table.</td>
 	</tr>
 	<tr>
@@ -599,7 +608,7 @@
 </dd>
     <dt>
     <a name = "move_player"></a>
-    <strong>move_player (newX, newY, force)</strong>
+    <strong>move_player (newX, newY, force, attack_when_zero)</strong>
     </dt>
     <dd>
     Move the player to a new location.  Also handles warnings for moving into a dangerous area, and advances the turn if the player moves.
@@ -616,6 +625,9 @@
         <li><span class="parameter">force</span>
          Boolean. Whether to ignore warnings and move the player into a potentially dangerous tile. (optional)
         </li>
+        <li><span class="parameter">attack_when_zero</span>
+         Boolean. if true, attack a feature even if damage is zero
+        </li>
     </ul>
 
     <h3>Returns:</h3>
@@ -630,7 +642,7 @@
 </dd>
     <dt>
     <a name = "pathTo"></a>
-    <strong>pathTo (x, y, noMsg)</strong>
+    <strong>pathTo (x, y, pathAction., noMsg, pathTarget)</strong>
     </dt>
     <dd>
     Find a path from the player's location to a new location, and start the player moving along it.
@@ -644,8 +656,34 @@
         <li><span class="parameter">y</span>
          Number. The y-coordinate to move to.
         </li>
+        <li><span class="parameter">pathAction.</span>
+         The action to perform at the end of the path. (optional)
+        </li>
         <li><span class="parameter">noMsg</span>
          Boolean. Whether to suppress the "moving to" notification.
+        </li>
+        <li><span class="parameter">pathTarget</span>
+         Entity. A creature, feature, or item. The target of the action at the end of the path. (optional)
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "endPath"></a>
+    <strong>endPath (aborted)</strong>
+    </dt>
+    <dd>
+    Ends player pathing
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">aborted</span>
+         Boolean. If true, did not reach the end of the path
         </li>
     </ul>
 
@@ -761,7 +799,7 @@
 </dd>
     <dt>
     <a name = "start_mission"></a>
-    <strong>start_mission (missionID, startVal, source, values, skipFunc)</strong>
+    <strong>start_mission (missionID, startVal, source, values, skipFunc, noPopup)</strong>
     </dt>
     <dd>
     Starts a mission at 0 and runs its begin() code
@@ -783,6 +821,9 @@
         </li>
         <li><span class="parameter">skipFunc</span>
          Boolean. Whether to skip the start() function (assuming the mission actually has one) (Optional)
+        </li>
+        <li><span class="parameter">noPopup</span>
+         Boolean. If true, don't show a popup
         </li>
     </ul>
 
@@ -822,6 +863,34 @@
 
 </dd>
     <dt>
+    <a name = "is_mission_finished"></a>
+    <strong>is_mission_finished (missionID, includeFailure)</strong>
+    </dt>
+    <dd>
+    Returns whether the given mission has been finished
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">missionID</span>
+         String. The ID of the mission. Can either be a pre-defined mission, or you can use any ad-hoc value if you want to use this to track something that's not an actual mission.
+        </li>
+        <li><span class="parameter">includeFailure</span>
+         Boolean. If true, also look at failed missions
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether the mission is finished or not
+    </ol>
+
+
+
+
+</dd>
+    <dt>
     <a name = "set_mission_status"></a>
     <strong>set_mission_status (missionID, value)</strong>
     </dt>
@@ -846,7 +915,7 @@
 </dd>
     <dt>
     <a name = "get_mission_data"></a>
-    <strong>get_mission_data (missionID, index)</strong>
+    <strong>get_mission_data (missionID, index, includeFinished)</strong>
     </dt>
     <dd>
     Gets the value of an index of a given mission.
@@ -859,6 +928,9 @@
         </li>
         <li><span class="parameter">index</span>
          String. The string that used as the index to search
+        </li>
+        <li><span class="parameter">includeFinished</span>
+         Boolean. If true, look at mission data for finished missions too
         </li>
     </ul>
 
@@ -923,7 +995,7 @@
 </dd>
     <dt>
     <a name = "finish_mission"></a>
-    <strong>finish_mission (missionID, endVal, skipFunc)</strong>
+    <strong>finish_mission (missionID, endVal, skipFunc, noPopup)</strong>
     </dt>
     <dd>
     Marks a mission as finished, removing it from the active mission table.  Also runs the mission's finish() code if it's a pre-defined mission.
@@ -940,6 +1012,9 @@
         <li><span class="parameter">skipFunc</span>
          Boolean. Whether to skip the finish() function (assuming the mission actually has one) (Optional)
         </li>
+        <li><span class="parameter">noPopup</span>
+         Boolean. if true, don't show a popup
+        </li>
     </ul>
 
     <h3>Returns:</h3>
@@ -954,7 +1029,7 @@
 </dd>
     <dt>
     <a name = "fail_mission"></a>
-    <strong>fail_mission (missionID, endVal, skipFunc)</strong>
+    <strong>fail_mission (missionID, endVal, skipFunc, noPopup)</strong>
     </dt>
     <dd>
     Marks a mission as failed, removing it from the active mission table.  Also runs the mission's fail() code if it's a pre-defined mission.
@@ -970,6 +1045,9 @@
         </li>
         <li><span class="parameter">skipFunc</span>
          Boolean. Whether to skip the fail() function (assuming the mission actually has one) (Optional)
+        </li>
+        <li><span class="parameter">noPopup</span>
+         Boolean. If true, don't show a popup
         </li>
     </ul>
 
@@ -1083,7 +1161,7 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2025-04-07 10:52:23 </i>
+<i style="float:right;">Last updated 2025-05-24 09:49:55 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

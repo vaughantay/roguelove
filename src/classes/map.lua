@@ -15,6 +15,8 @@ function Map:init(width,height,gridOnly)
     self.boss=nil
     self.stairsUp,self.stairsDown = {x=0,y=0},{x=0,y=0}
     self.creature_spawn_points, self.item_spawn_points = {},{}
+    self.rooms,self.hallways = {},{}
+    self.bonuses = {}
   end
   self.width,self.height=width,height
 	for x = 1, width, 1 do
@@ -386,8 +388,9 @@ function Map:get_tile_actions(x,y,user,noAdjacent,noCreature)
     for id, entity in pairs(self:get_tile_features(x,y)) do
       if entity.actions then
         for id,act in pairs(entity.actions) do
-          if entity:action_requires(user,id) ~= false then
-            actions[#actions+1] = {id=id,entity=entity,text=act.text,description=act.description,order=act.order,image=act.image,image_color=act.image_color,noDirection=act.noDirection,click_defaults_to_move=act.click_defaults_to_move}
+          local req = entity:action_requires(user,id)
+          if req ~= false or act.show_when_disabled then
+            actions[#actions+1] = {id=id,entity=entity,text=act.text,description=act.description,order=act.order,image=act.image,image_color=act.image_color,noDirection=act.noDirection,click_defaults_to_move=act.click_defaults_to_move,disabled = not req}
           end --end requires if
         end --end action for
       end --end if
@@ -408,8 +411,9 @@ function Map:get_tile_actions(x,y,user,noAdjacent,noCreature)
         for id, entity in pairs(self:get_tile_features(x2,y2)) do
           if entity.actions then
             for id,act in pairs(entity.actions) do
-              if (not act.noAdjacent or (x2 == x and y2 == y)) and entity:action_requires(user,id) ~= false then
-                actions[#actions+1] = {id=id,entity=entity,text=act.text,description=act.description,order=act.order,image=act.image,image_color=act.image_color,noDirection=act.noDirection,click_defaults_to_move=act.click_defaults_to_move}
+              local req = entity:action_requires(user,id)
+              if (not act.noAdjacent or (x2 == x and y2 == y)) and (entity:action_requires(user,id) ~= false or act.show_when_disabled) then
+                actions[#actions+1] = {id=id,entity=entity,text=act.text,description=act.description,order=act.order,image=act.image,image_color=act.image_color,noDirection=act.noDirection,click_defaults_to_move=act.click_defaults_to_move,disabled = not req}
               end --end requires if
             end --end action for
           end --end if
@@ -632,7 +636,7 @@ function Map:add_item(item,x,y,ignoreFunc)
   end
   if item.castsLight then self.lights[item] = item end
   
-  if not item.origin_map then
+  if not item.origin_map and not ignoreFunc then
     item.origin_map = self.id
     item.origin_branch = self.branch
   end
@@ -688,7 +692,7 @@ function Map:change_tile(feature,x,y,dontRefreshSight)
       self:refresh_lightMap()
     end
   end
-  if not dontRefreshSight then refresh_player_sight() end
+  if not dontRefreshSight and self == currMap then refresh_player_sight() end
   return feature --return the feature so if it's created when tis function is called, you can still access it
 end
 
@@ -704,10 +708,16 @@ function Map:findPath(fromX,fromY,toX,toY,cType,terrainLimit)
   if not pathfinders[self] then pathfinders[self] = {} end
   if not grids[self] then grids[self] = {} end
   local pathLabel = (cType or 'basic') .. (terrainLimit or "")
+  local toFromLabel = pathLabel .. "," .. fromX .. "," .. fromY .. "-to-" .. toX .. "," .. toY
   if pathfinders[self][pathLabel] == nil then
     self:refresh_pathfinder(cType,terrainLimit)
   end
-	local path = pathfinders[self][pathLabel]:getPath(fromX,fromY,toX,toY,true)
+  if not path_cache[pathLabel] then path_cache[pathLabel] = {} end
+  local path = path_cache[pathLabel][toFromLabel]
+  if path ~= nil then
+    return (type(path) == 'table' and copy_table(path) or path)
+  end
+	path = pathfinders[self][pathLabel]:getPath(fromX,fromY,toX,toY,true)
 	if not path then
     if pathfinders[self][pathLabel .. "unsafe"] == nil then self:refresh_pathfinder(cType,terrainLimit,true) end
     path = pathfinders[self][pathLabel .. "unsafe"]:getPath(fromX,fromY,toX,toY,true)
@@ -719,8 +729,10 @@ function Map:findPath(fromX,fromY,toX,toY,cType,terrainLimit)
     for i,coords in ipairs(path) do
       p[i] = {x=coords.x,y=coords.y}
     end
+    path_cache[pathLabel][toFromLabel] = p
 		return p
   end
+  path_cache[pathLabel][toFromLabel] = false
 	return false
 end
 
@@ -765,6 +777,7 @@ function Map:refresh_pathfinder(cType,terrainLimit,ignoreSafety)
   if not pathfinders[self] then pathfinders[self] = {} end
   if not grids[self] then grids[self] = {} end
   local mapLabel = (cType or 'basic') .. (terrainLimit or "") .. (ignoreSafety and "unsafe" or "")
+  path_cache[mapLabel] = {}
   if (self.collisionMaps[mapLabel] == nil) then self.collisionMaps[mapLabel] = {} end
 	for y = 1, self.height, 1 do
     if (self.collisionMaps[mapLabel][y] == nil) then self.collisionMaps[mapLabel][y] = {} end
@@ -799,6 +812,7 @@ function Map:clear_all_pathfinders()
   pathfinders[self] = {}
   self.collisionMaps = {}
   grids[self] = {}
+  path_cache = {}
 end
 
 ---Checks if a tile is passable for a certain creature
@@ -1250,6 +1264,39 @@ function Map:get_faction_list(force)
   return faction_list
 end
 
+---Get a list of possible room decorators to spawn on the given map
+--@param self Map. The map to check
+--@param force Boolean. Whether or not to forcibly re-calculate it, rather than returning the pre-calculated value 
+--@return Table or nil. Either a table of room decorator IDs, or nil if there are no possible rooms
+function Map:get_room_list(force)
+  if self.room_list and not force then
+    return self.room_list
+  end
+  local whichMap = mapTypes[self.mapType]
+  local branch = currWorld.branches[self.branch]
+  local room_list = nil
+  local roomTags = self:get_content_tags('room')
+  local forbiddenTags = self:get_content_tags('forbidden')
+  local reqTags = self:get_content_tags('required')
+  
+  --Look at specific rooms first:
+  if whichMap.roomDecorators then
+    if (whichMap.noBranchRooms or whichMap.noBranchContent) or not branch.roomDecorators then
+      room_list = copy_table(whichMap.roomDecorators)
+    else
+      room_list =  merge_tables(whichMap.roomDecorators,branch.roomDecorators)
+    end
+  elseif not whichMap.noBranchRooms and not whichMap.noBranchContent and branch.roomDecorators then --if the mapTypes doesn't have rooms, fall back to the branch's rooms
+    room_list = copy_table(branch.roomDecorators) --if branch doesn't have rooms, this will set it to nil and just use regular rooms
+  end
+  
+  --Add the tagged rooms to the room list
+  local tagged_rooms = mapgen:get_content_list_from_tags('roomDecorator',roomTags,{forbiddenTags=forbiddenTags,requiredTags=reqTags})
+  room_list = merge_tables(room_list,tagged_rooms)
+  self.room_list = room_list
+  return room_list
+end
+
 ---Randomly add creatures to the map
 --@param creatTotal Number. The number of creatures to add. Optional, if blank will generate enough to meet the necessary density
 --@param forceGeneric Boolean. Whether to ignore any special populate_creatures() code in the map's mapType. Optional
@@ -1271,11 +1318,13 @@ function Map:populate_creatures(creatTotal,forceGeneric)
       if decID then
         local dec = roomDecorators[decID]
         if dec and not dec.noContent and not dec.noCreatures then
-          mapgen:populate_creatures_in_room(room,self,decID)
+          print('populating creatures in room',room.decorator)
+          room:populate_creatures()
         end --end dec nocontent if
       end --end if room.decotrator
     end --end room for
   end --end if self.rooms
+  print('rooms finished')
   
   --Do special code if the mapType has it:
   if mapType.populate_creatures and not forceGeneric then
@@ -1400,8 +1449,8 @@ function Map:populate_items(itemTotal,forceGeneric)
       local decID = room.decorator
       if decID then
         local dec = roomDecorators[decID]
-        if dec and not dec.noContent and not dec.noCreatures then
-          mapgen:populate_items_in_room(room,self,decID)
+        if dec and not dec.noContent and not dec.noItems then
+          room:populate_items()
         end --end dec nocontent if
       end --end if room.decotrator
     end --end room for
@@ -1591,6 +1640,195 @@ function Map:populate_factions(forceGeneric)
   end
 end
 
+---Decorate rooms on the map
+function Map:populate_rooms(forceGeneric)
+  local mapTypeID,branchID = self.mapType,self.branch
+  local mapType,branch = mapTypes[mapTypeID],currWorld.branches[branchID]
+  
+  --Do special code if the mapType has it:
+  if mapType.populate_rooms and not forceGeneric then
+    return mapType.populate_rooms(self)
+  end
+  if not self.rooms or self.noRooms then
+    return
+  end
+  
+  local room_count = #self.rooms
+  local decorated_rooms = 0
+  
+  --First, decorate using required rooms
+  if mapType.required_rooms or branch.required_rooms then
+    local reqRooms = merge_tables((mapType.required_rooms or {}),(not mapType.noBranchCreatures and not mapType.noBranchContent and branch.required_rooms or {}))
+    for _,decID in ipairs(reqRooms) do
+      shuffle(self.rooms)
+      for _,room in ipairs(self.rooms) do
+        if not room.decorator and room:can_decorate(decID) then
+          room:decorate(decID)
+          decorated_rooms = decorated_rooms+1
+          if not room.noSecondary then
+            --TODO: secondary decorators
+          end
+          break
+        end
+      end
+    end
+  end
+  
+  --Next, decorate once for every room in the list, to avoid repeats
+  local decorator_list = shuffle(self:get_room_list())
+  for _,decID in ipairs(decorator_list) do
+    shuffle(self.rooms)
+    for _,room in ipairs(self.rooms) do
+      if not room.decorator and room:can_decorate(decID) then
+        room:decorate(decID)
+        decorated_rooms = decorated_rooms+1
+        if not room.noSecondary then
+          --TODO: secondary decorators
+        end
+        break
+      end
+    end
+  end
+  
+  --Finally, if we still have rooms that are undecorated, decorate them randomly
+  if decorated_rooms < room_count then
+    for _, room in ipairs(self.rooms) do
+      if not room.decorator then
+        room:decorate(decorator_list)
+      end
+      if not room.noSecondary then
+        --TODO: secondary decorators
+      end
+    end
+  end
+end
+
+---Connect rooms together TODO: support custom connection code
+--@param info Table. Information to pass to the connector
+function Map:connect_rooms(info)
+  self:refresh_pathfinder('roomwalls')
+  pathfinders[self].roomwalls:setMode('ORTHOGONAL')
+  info = copy_table(info or {})
+  info.connections = info.connections or 1
+  local connections = info.connections
+  for _,room in ipairs(self.rooms) do
+    local force_hallway_connections = info.force_hallway_connections or self.force_hallway_connections
+    local force_room_connections = info.force_room_connections or self.force_room_connections
+    local force_outside_connections = info.force_outside_connections or self.force_outside_connections
+    local force_any = force_hallway_connections or force_room_connections or force_outside_connections
+    if not connections or count(room.doors) < connections or (force_any and count(room.doors) < 4) then
+      room:connect(info)
+    end
+  end
+  --Now connect rooms to nearby adjacent hallways:
+  if not info.no_build_hallways then
+    local nhInfo = copy_table(info)
+    nhInfo.no_build_hallways = true
+    for _,room in ipairs(self.rooms) do
+      room:connect(nhInfo)
+    end
+  end
+  --If there are still any disconneted rooms, run connect() on them again
+  if not info.no_build_hallways then
+    local tries = 0
+    local disconnected = self:get_disconnected_rooms()
+    while count(disconnected) > 0 and tries < 100 do
+      tries = tries+1
+      local room = get_random_key(disconnected)
+      room:connect(info)
+      disconnected = self:get_disconnected_rooms()
+    end
+    if tries == 100 then
+      print('disconnection timeout')
+    end
+  end
+  --If there are STILL any disconneted rooms, specifically connect them to connected rooms
+  if not info.no_build_hallways then
+    local tries = 0
+    local disconnected = self:get_disconnected_rooms()
+    local connected = self:get_connected_rooms()
+    local fhInfo = copy_table(info)
+    fhInfo.forceHallways = true
+    fhInfo.no_build_hallways = false
+    while count(disconnected) > 0 and tries < 100 do
+      tries = tries+1
+      local room = get_random_key(disconnected)
+      local distances = room:get_distances()
+      for _,distInfo in ipairs(distances) do
+        local partner = distInfo.room
+        if partner ~= self and not room.connections[partner] then
+          if room:connect_to_room(partner,info) then
+            print('connected',room.midX,room.midY,'to',partner.midX,partner.midY)
+            break
+          end
+        end
+      end
+      disconnected = self:get_disconnected_rooms()
+    end
+    if tries == 100 then
+      print('disconnection timeout')
+    end
+  end
+  --Finally, if there are any rooms with only one door, connect them again
+  for _,room in ipairs(self.rooms) do
+    local force_hallway_connections = info.force_hallway_connections or self.force_hallway_connections
+    local force_room_connections = info.force_room_connections or self.force_room_connections
+    local force_outside_connections = info.force_outside_connections or self.force_outside_connections
+    local force_any = force_hallway_connections or force_room_connections or force_outside_connections
+    if count(room.doors) < 2 or (force_any and count(room.doors) < 4) then
+      room:connect(info)
+    end
+  end
+  info.forceHallways = false
+  
+  self.rooms_connected = true
+end
+
+---Returns a list of connected rooms
+--@return Table. A list of rooms connected to the 1st room in the room list
+function Map:get_connected_rooms()
+  local connected = {}
+  local checked = {}
+  
+  local function check_connection(room)
+    for connection,_ in pairs(room.connections) do
+      if connection.baseType == "room" then
+        connected[connection] = true
+      end
+      if not checked[connection] then
+        checked[connection] = true
+        check_connection(connection)
+      end
+    end
+  end
+  
+  check_connection(self.rooms[1]) --start with room one, and and check all of its connections
+  return connected
+end
+
+---Returns a list of unconnected rooms
+--@return Table. A list of rooms not connected to the 1st room in the room list
+function Map:get_disconnected_rooms()
+  local disconnected = {}
+  local checked = {}
+  
+  local function check_connection(room)
+    for connection,_ in pairs(room.connections) do
+      disconnected[connection] = nil
+      if not checked[connection] then
+        checked[connection] = true
+        check_connection(connection)
+      end
+    end
+  end
+  
+  for _,room in ipairs(self.rooms) do
+    disconnected[room] = true
+  end
+  check_connection(self.rooms[1]) --start with room one, and and check all of its connections
+  return disconnected
+end
+
 ---Cleans up the map, removing effects with temporary durations, and entities with remove_on_cleanup=true
 function Map:cleanup()
   --Clean up content:
@@ -1717,6 +1955,129 @@ function Map:has_tag(tag)
   if self.tags and in_table(tag,self.tags) then
     return true
   end
+  if currGame.time and currGame.time.tags and in_table(tag,currGame.time.tags) then
+    return true
+  end
+  return false
+end
+
+
+---Checks if a map has a room with the given decorator. Only returns the first one, not multiples if there are any
+--@param decorator String. The decorator ID to look for
+--@return Room. The first room found that matches the decorator ID
+function Map:has_room(decorator)
+  for _,room in pairs(self.rooms) do
+    if room.decorator == decorator then
+      return room
+    end
+  end
+  return false
+end
+
+
+---Determines if a tile is safe to block. Useful in map generators for placing decorations
+--@param startX Number. The X-coordinate we're looking at
+--@param startY Number. The Y-coordinate we're looking at
+--@param safeType Text. Determines what counts as safe to block. "wall": next to wall only, "noWalls": not next to wall, "wallsCorners": open walls and corners only, "corners": corners only
+--@return Boolean. Whether the tile is safe to block or not.
+function Map:is_safe_to_block(startX,startY,safeType)
+  local minX,minY,maxX,maxY=startX-1,startY-1,startX+1,startY+1
+  local cardinals,corners = {},{}
+  local cardinalWalls,cornerWalls = {},{}
+  local n,s,e,w = false,false,false,false
+  local walls = false
+  if self:tile_has_feature(startX,startY,'exit') or not self:isClear(startX,startY,nil,true) or self.tile_info[startX][startY].noBlock then return false end
+
+  for x=minX,maxX,1 do
+    for y=minY,maxY,1 do
+      local door = self:tile_has_tag(x,y,'door')
+      if (self:isClear(x,y) or door) and not (x == startX and y == startY) then
+        if (x == startX or y == startY) then --cardinal direction
+          if door then return false end -- don't block the area next to a door
+          cardinals[#cardinals+1] = {x=x,y=y}
+          if x == startX-1 then w = true
+          elseif x == startX+1 then e = true
+          elseif y == startY-1 then n = true
+          elseif y == startY+1 then s = true end
+        else
+          corners[#corners+1] = {x=x,y=y}
+        end --end cardinal/corner if
+      elseif not (x==startX and y==startY) then --if not clear
+        if self[x][y] == "#" or self:isWall(x,y) then walls = true end
+        if (x == startX or y == startY) then --cardinal direction
+          cardinalWalls[#cardinalWalls+1] = {x=x,y=y}
+        else
+          cornerWalls[#cornerWalls+1] = {x=x,y=y}
+        end --end cardinal/corner if
+      end --end isClear() if
+    end --end fory
+  end --end forx
+
+  --If you have to be next to a wall and you're not, then don't go any further
+  if (safeType == "wall" or safeType == "wallsCorners") and walls == false then return false end
+  if safeType == "noWalls" then
+    if walls == true then return false
+    else return true end
+  end
+  if safeType == "corners" and #cardinals > 2 then return false end
+
+  --Prepare for ugliness
+  if safeType == "wallsCorners" then
+    if #cardinals == 2 and not (n and s) and not (e and w) then
+      local okOpen = false
+      local okWall = false
+      local card1X,card1Y = cardinals[1].x,cardinals[1].y
+      local card2X,card2Y = cardinals[2].x,cardinals[2].y
+      local cardwall1X,cardwall1Y = cardinalWalls[1].x,cardinalWalls[1].y
+      local cardwall2X,cardwall2Y = cardinalWalls[2].x,cardinalWalls[2].y
+      for _,tile in pairs(corners) do --check to make sure that the corner next to the two cardinal openings is also open
+        if self:touching(tile.x,tile.y,card1X,card1Y) and self:touching(tile.x,tile.y,card2X,card2Y) then
+          okOpen = true
+        end
+      end
+      for _,tile in pairs(cardinalWalls) do --check to make sure that the corner next to the two cardinal openings is also open
+        if self:touching(tile.x,tile.y,cardwall1X,cardwall1Y) and self:touching(tile.x,tile.y,cardwall2X,cardwall2Y) then
+          okWall = true
+        end
+      end
+      if okOpen == true and okWall == true then
+        return true
+      end --end okOpen/okWall if
+    elseif #cardinalWalls == 1 then
+      local cardX,cardY = cardinalWalls[1].x,cardinalWalls[1].y
+      for _,tile in pairs(cornerWalls) do
+        if not self:touching(tile.x,tile.y,cardX,cardY) then --if there's a corner that is not touching the only wall we're against, it's not OK
+          return false
+        end --end if not touching
+      end --end cornerwall if
+      return true
+    end --end cardinals true if
+    return false
+  end
+
+  --Do the simple checks that don't involve any calculations first:
+  if #cardinals >= 3 or (#cardinals == 2 and not (n and s) and not (e and w)) or #cardinals == 1 then
+    --Do more complicated checks here:
+    if #cardinals == 2 then
+      local card1X,card1Y = cardinals[1].x,cardinals[1].y
+      local card2X,card2Y = cardinals[2].x,cardinals[2].y
+      for _, tile in pairs(corners) do --check to make sure the corner openings all touch one of the cardinal direction openings
+        if not self:touching(card1X,card1Y,tile.x,tile.y) and not self:touching(card2X,card2Y,tile.x,tile.y) then
+          return false
+        end --end if touching
+      end --end tile for
+    elseif #cardinals == 1 then
+      local cardX,cardY = cardinals[1].x,cardinals[1].y
+      for _, tile in pairs(corners) do --check to make sure all the corner openings touch the cardinal direction opening
+        if not self:touching(cardX,cardY,tile.x,tile.y) then
+          return false
+        end --end if touching
+      end --end tile for
+    end --end if cardinals == 1
+    --OK, if we haven't returned false yet, we're good!
+    return true
+  end --end main cardinal count if
+  --If the cardinal count if is false, then it's not a safe place to block
   return false
 end
 
@@ -1797,6 +2158,22 @@ function Map:register_incident(incidentID,actor,target,args)
       faction:process_incident(incidentID,actor,target,args)
     end
   end
+end
+
+---Get a stat bonus provided by the map
+--@param bonusType String. The type of bonus
+--@param x Number. The x-coordinate of the asker. Used to look at the room they're in's bonus
+--@param y Number. The y-coordinate of the asker. Used to look at the room they're in's bonus
+function Map:get_bonus(bonusType,x,y)
+  local bonus = 0
+  if self.bonuses and self.bonuses[bonusType] then
+    bonus = bonus + self.bonuses[bonusType]
+  end
+  local room = (self.tile_info[x] and self.tile_info[x][y] and self.tile_info[x][y].room)
+  if room and not room.disabled and room.bonuses and room.bonuses[bonusType] then
+    bonus = bonus + room.bonuses[bonusType]
+  end
+  return bonus
 end
 
 ---Clear all map caches

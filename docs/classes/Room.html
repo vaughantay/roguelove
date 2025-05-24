@@ -1,0 +1,750 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Reference</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>ldoc</h1>
+
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Methods">Methods</a></li>
+</ul>
+
+
+<h2>Classes</h2>
+<ul class="nowrap">
+  <li><a href="../classes/Condition.html">Condition</a></li>
+  <li><a href="../classes/Creature.html">Creature</a></li>
+  <li><a href="../classes/Effect.html">Effect</a></li>
+  <li><a href="../classes/Faction.html">Faction</a></li>
+  <li><a href="../classes/Feature.html">Feature</a></li>
+  <li><a href="../classes/Item.html">Item</a></li>
+  <li><a href="../classes/Map.html">Map</a></li>
+  <li><a href="../classes/Projectile.html">Projectile</a></li>
+  <li><a href="../classes/RangedAttack.html">RangedAttack</a></li>
+  <li><strong>Room</strong></li>
+  <li><a href="../classes/Service.html">Service</a></li>
+  <li><a href="../classes/Spell.html">Spell</a></li>
+  <li><a href="../classes/Store.html">Store</a></li>
+</ul>
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/gamelogic.html">gamelogic</a></li>
+  <li><a href="../modules/input.html">input</a></li>
+  <li><a href="../modules/jumper.core.bheap.html">jumper.core.bheap</a></li>
+  <li><a href="../modules/jumper.core.heuristics.html">jumper.core.heuristics</a></li>
+  <li><a href="../modules/jumper.core.node.html">jumper.core.node</a></li>
+  <li><a href="../modules/jumper.core.path.html">jumper.core.path</a></li>
+  <li><a href="../modules/jumper.grid.html">jumper.grid</a></li>
+  <li><a href="../modules/jumper.pathfinder.html">jumper.pathfinder</a></li>
+  <li><a href="../modules/lib.serialize.html">lib.serialize</a></li>
+  <li><a href="../modules/mapgen.html">mapgen</a></li>
+  <li><a href="../modules/output.html">output</a></li>
+  <li><a href="../modules/util.html">util</a></li>
+</ul>
+<h2>Scripts</h2>
+<ul class="nowrap">
+  <li><a href="../scripts/jumper.search.astar.html">jumper.search.astar</a></li>
+  <li><a href="../scripts/jumper.search.bfs.html">jumper.search.bfs</a></li>
+  <li><a href="../scripts/jumper.search.dfs.html">jumper.search.dfs</a></li>
+  <li><a href="../scripts/jumper.search.dijkstra.html">jumper.search.dijkstra</a></li>
+  <li><a href="../scripts/jumper.search.jps.html">jumper.search.jps</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Class <code>Room</code></h1>
+<p></p>
+<p></p>
+
+
+<h2><a href="#Methods">Methods</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#room:init">room:init (width, height, shape, decorator)</a></td>
+	<td class="summary">Initiate a room.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#room:build">room:build (shape)</a></td>
+	<td class="summary">Creates the basic structure of the room and places it on the map</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#room:clear">room:clear (noWalls, alsoItems)</a></td>
+	<td class="summary">Clear a room's decorator and remove all features</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#room:build_walls">room:build_walls (featureID)</a></td>
+	<td class="summary">Places walls in all the tiles in the room's walls table, in case the room was built somewhere without walls
+featureID String.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#room:can_decorate">room:can_decorate (decID)</a></td>
+	<td class="summary">Determine if a given decorator can be used to decorate this room</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#room:decorate">room:decorate (decID, notPrimary, args)</a></td>
+	<td class="summary">Decorate a room</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#room:populate_creatures">room:populate_creatures (creatTotal, forceGeneric)</a></td>
+	<td class="summary">Randomly add creatures to the map</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#room:populate_items">room:populate_items (itemTotal, forceGeneric)</a></td>
+	<td class="summary">Randomly add items to the room</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#room:get_possible_doors">room:get_possible_doors (exclude_rooms, exclude_hallways)</a></td>
+	<td class="summary">Gets a list of possible walls that could be turned into doors (ie there's open space on both sides)</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#room:get_creature_list">room:get_creature_list (Table.)</a></td>
+	<td class="summary">Gets a list of creatures that can spawn in the room.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#room:get_target_threat">room:get_target_threat ()</a></td>
+	<td class="summary">Returns the threat value that should populate in the room</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#room:get_current_threat">room:get_current_threat ()</a></td>
+	<td class="summary">Returns the current threat value in the room</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#room:get_current_value">room:get_current_value (printVals)</a></td>
+	<td class="summary">Returns the current value of all items the room</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#room:get_content_tags">room:get_content_tags (tagType)</a></td>
+	<td class="summary">Get a map's content tags</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#room:has_content_tag">room:has_content_tag (tag, tagType)</a></td>
+	<td class="summary">Checks if a map has a given content tag</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#room:has_tag">room:has_tag (tag)</a></td>
+	<td class="summary">Checks if a map has a descriptive tag.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#room:get_all_safe_to_block">room:get_all_safe_to_block (openType)</a></td>
+	<td class="summary">Gets all the "safe to block" tiles in a room.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#room:get_largest_internal_rectangle">room:get_largest_internal_rectangle ()</a></td>
+	<td class="summary">Gets the largest available rectangle in the room while</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#room:get_neighbors">room:get_neighbors (force_refresh.)</a></td>
+	<td class="summary">Gets a list of all rooms that border a room</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#room:get_distances">room:get_distances (force_refresh.)</a></td>
+	<td class="summary">Gets a list of distances to all rooms</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#room:connect">room:connect (info)</a></td>
+	<td class="summary">Connect a room to other rooms.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#room:connect_to_room">room:connect_to_room (partner, info)</a></td>
+	<td class="summary">Build a hallway from one room to another room</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#room:callbacks">room:callbacks (callback_type, Anything.)</a></td>
+	<td class="summary">Checks the callbacks of the room</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Methods"></a>Methods</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "room:init"></a>
+    <strong>room:init (width, height, shape, decorator)</strong>
+    </dt>
+    <dd>
+    Initiate a room.  You shouldn't use this function, the game uses it at loadtime to instantiate the conditions.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">width</span>
+         Number. The width of the room.
+        </li>
+        <li><span class="parameter">height</span>
+         Number. The height of the room.
+        </li>
+        <li><span class="parameter">shape</span>
+         String, Table, or False. The name of the room shape, a table of possible shapes or False. Optional, if blank will just select a random one. If False, will not build the room at all yet, just create a blank room entry
+        </li>
+        <li><span class="parameter">decorator</span>
+         String or Table. The name of the room decorator, or a table of possible decorators. Optional. If provided, the room will go ahead and decorate itself using it, if blank, it will just be an empty room
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Room. The room itself.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "room:build"></a>
+    <strong>room:build (shape)</strong>
+    </dt>
+    <dd>
+    Creates the basic structure of the room and places it on the map
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">shape</span>
+
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "room:clear"></a>
+    <strong>room:clear (noWalls, alsoItems)</strong>
+    </dt>
+    <dd>
+    Clear a room's decorator and remove all features
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">noWalls</span>
+         Boolean. If true, don't call build_walls
+        </li>
+        <li><span class="parameter">alsoItems</span>
+         Boolean. If true, delete items as well, otherwise preserve them
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "room:build_walls"></a>
+    <strong>room:build_walls (featureID)</strong>
+    </dt>
+    <dd>
+    Places walls in all the tiles in the room's walls table, in case the room was built somewhere without walls
+featureID String.  The ID of the feature to use for the wall
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">featureID</span>
+
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "room:can_decorate"></a>
+    <strong>room:can_decorate (decID)</strong>
+    </dt>
+    <dd>
+    Determine if a given decorator can be used to decorate this room
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">decID</span>
+         String. The ID of the given decorator
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether or not this decorator can be used on this room
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "room:decorate"></a>
+    <strong>room:decorate (decID, notPrimary, args)</strong>
+    </dt>
+    <dd>
+    Decorate a room
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">decID</span>
+         String or table. Either the ID of a specific room decorator, or a table of room decorator IDs. Optional
+        </li>
+        <li><span class="parameter">notPrimary</span>
+         Boolean. If true, don't assign this decorator's ID to the room's decorator ID (ie this is PURELY for decoration, will not be used for creature/item generation)
+        </li>
+        <li><span class="parameter">args</span>
+         Anything. Arguments to pass to the decorator
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "room:populate_creatures"></a>
+    <strong>room:populate_creatures (creatTotal, forceGeneric)</strong>
+    </dt>
+    <dd>
+    Randomly add creatures to the map
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">creatTotal</span>
+         Number. The number of creatures to add. Optional, if blank will generate enough to meet the necessary density
+        </li>
+        <li><span class="parameter">forceGeneric</span>
+         Boolean. Whether to ignore any special populate_creatures() code in the room decorator's code. Optional
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "room:populate_items"></a>
+    <strong>room:populate_items (itemTotal, forceGeneric)</strong>
+    </dt>
+    <dd>
+    Randomly add items to the room
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">itemTotal</span>
+         Number. The number of items to add. Optional, if blank will generate enough to meet the necessary density
+        </li>
+        <li><span class="parameter">forceGeneric</span>
+         Boolean. Whether to ignore any special populate_items() code in the room decorator's code. Optional
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "room:get_possible_doors"></a>
+    <strong>room:get_possible_doors (exclude_rooms, exclude_hallways)</strong>
+    </dt>
+    <dd>
+    Gets a list of possible walls that could be turned into doors (ie there's open space on both sides)
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">exclude_rooms</span>
+
+        </li>
+        <li><span class="parameter">exclude_hallways</span>
+
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A table of possible doors, in the format {n={{x=x,y=y},{x=x,y=y}},s={},e={},w={}}
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "room:get_creature_list"></a>
+    <strong>room:get_creature_list (Table.)</strong>
+    </dt>
+    <dd>
+    Gets a list of creatures that can spawn in the room.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">Table.</span>
+         A table listing the creatures
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "room:get_target_threat"></a>
+    <strong>room:get_target_threat ()</strong>
+    </dt>
+    <dd>
+    Returns the threat value that should populate in the room
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The threat value that should be placed in the room
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "room:get_current_threat"></a>
+    <strong>room:get_current_threat ()</strong>
+    </dt>
+    <dd>
+    Returns the current threat value in the room
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The threat value of all content in the room
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "room:get_current_value"></a>
+    <strong>room:get_current_value (printVals)</strong>
+    </dt>
+    <dd>
+    Returns the current value of all items the room
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">printVals</span>
+
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The value of all items in the room
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "room:get_content_tags"></a>
+    <strong>room:get_content_tags (tagType)</strong>
+    </dt>
+    <dd>
+    Get a map's content tags
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">tagType</span>
+         String. The type of tag
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "room:has_content_tag"></a>
+    <strong>room:has_content_tag (tag, tagType)</strong>
+    </dt>
+    <dd>
+    Checks if a map has a given content tag
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">tag</span>
+         String. The tag to check for
+        </li>
+        <li><span class="parameter">tagType</span>
+         String. The type of tag
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether or not it has the tag.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "room:has_tag"></a>
+    <strong>room:has_tag (tag)</strong>
+    </dt>
+    <dd>
+    Checks if a map has a descriptive tag.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">tag</span>
+         String. The tag to check for
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether or not it has the tag.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "room:get_all_safe_to_block"></a>
+    <strong>room:get_all_safe_to_block (openType)</strong>
+    </dt>
+    <dd>
+    Gets all the "safe to block" tiles in a room.  Takes a list of tiles and runs map:is_safe_to_block on them.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">openType</span>
+         Text. Determines what counts as "safe." "wall": next to wall only, "noWalls": not next to wall, "wallsCorners": open walls and corners only, "corners": corners only
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A table of tiles deemed safe to block.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "room:get_largest_internal_rectangle"></a>
+    <strong>room:get_largest_internal_rectangle ()</strong>
+    </dt>
+    <dd>
+    Gets the largest available rectangle in the room while
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "room:get_neighbors"></a>
+    <strong>room:get_neighbors (force_refresh.)</strong>
+    </dt>
+    <dd>
+    Gets a list of all rooms that border a room
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">force_refresh.</span>
+         If true, calculate neighbors again
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A table of rooms bordering this room
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "room:get_distances"></a>
+    <strong>room:get_distances (force_refresh.)</strong>
+    </dt>
+    <dd>
+    Gets a list of distances to all rooms
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">force_refresh.</span>
+         If true, calculate neighbors again
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Table. A table of rooms bordering this room
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "room:connect"></a>
+    <strong>room:connect (info)</strong>
+    </dt>
+    <dd>
+    Connect a room to other rooms.  First, checks any neighboring rooms, and creates doors between them. If it doesn't manage that, then create hallways
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">info</span>
+         Table. A table of info
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "room:connect_to_room"></a>
+    <strong>room:connect_to_room (partner, info)</strong>
+    </dt>
+    <dd>
+    Build a hallway from one room to another room
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">partner</span>
+         Room. The room to connect it to
+        </li>
+        <li><span class="parameter">info</span>
+         Table. Table of info
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Boolean. Whether the connection was successful
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "room:callbacks"></a>
+    <strong>room:callbacks (callback_type, Anything.)</strong>
+    </dt>
+    <dd>
+    Checks the callbacks of the room
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">callback_type</span>
+         String. The callback type to check.
+        </li>
+        <li><span class="parameter">Anything.</span>
+         Any info you want to pass to the callback. Each callback type is probably looking for something specific (optional)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+        Boolean. If any of the callbacks returned true or false.</li>
+        <li>
+        Table. Any other information that the callbacks might return.</li>
+    </ol>
+
+
+
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2025-05-24 09:49:55 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

@@ -173,9 +173,9 @@ function load_mod(mod,mediaOnly)
           roomDecorators[id] = room --room decorator changes will replace by default! (because they're functions, not tables, and so can't have an replace flag
         end --end content for
       end
-      if loadedmod['roomTypes'] then
-        for id,room in pairs(loadedmod['roomTypes']) do
-          roomTypes[id] = room --room type changes will replace by default! (because they're functions, not tables, and so can't have an replace flag
+      if loadedmod['roomShapes'] then
+        for id,room in pairs(loadedmod['roomShapes']) do
+          roomShapes[id] = room --room type changes will replace by default! (because they're functions, not tables, and so can't have an replace flag
         end --end content for
       end
       if loadedmod['nameLists'] then

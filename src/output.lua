@@ -230,7 +230,7 @@ function output:setCursor(x,y,force,allow_current_creature,noScroll)
         for _, v in ipairs(shortestPath) do
           self.targetLine[#self.targetLine+1] = {x=v.x,y=v.y}
         end --end for
-        if self.targetLine[#self.targetLine].x ~= x or self.targetLine[#self.targetLine].y ~= y then
+        if self.targetLine and (self.targetLine[#self.targetLine].x ~= x or self.targetLine[#self.targetLine].y ~= y) then
           self.targetLine[#self.targetLine+1] = {x=x,y=y}
         end
       end
@@ -980,6 +980,7 @@ end
 ---Shows a popup.
 --@param achievement Text. The ID of the achievement to show.
 function output:show_popup(text,header,extraLines,blackout,enterOnly,afterFunc,sound)
-  self.popup = Popup(text,header,extraLines,blackout,enterOnly,afterFunc)
+  if not self.popups then self.popups = {} end
+  self.popups[#self.popups+1] = Popup(text,header,extraLines,blackout,enterOnly,afterFunc)
   if sound then output:sound('interface_bang') end
 end

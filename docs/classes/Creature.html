@@ -48,6 +48,7 @@
   <li><a href="../classes/Map.html">Map</a></li>
   <li><a href="../classes/Projectile.html">Projectile</a></li>
   <li><a href="../classes/RangedAttack.html">RangedAttack</a></li>
+  <li><a href="../classes/Room.html">Room</a></li>
   <li><a href="../classes/Service.html">Service</a></li>
   <li><a href="../classes/Spell.html">Spell</a></li>
   <li><a href="../classes/Store.html">Store</a></li>
@@ -568,7 +569,7 @@
 	<td class="summary">Returns whether or not the creature has enough points to upgrade the skill</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#creature:upgrade_skill">creature:upgrade_skill (skillID, val, ignore_cost)</a></td>
+	<td class="name" nowrap><a href="#creature:upgrade_skill">creature:upgrade_skill (skillID, val, ignore_cost, ignore_multi)</a></td>
 	<td class="summary">Changes the skill value</td>
 	</tr>
 	<tr>
@@ -590,6 +591,10 @@
 	<tr>
 	<td class="name" nowrap><a href="#creature:update_extra_stat">creature:update_extra_stat (stat, val)</a></td>
 	<td class="summary">Adds/subtracts a value to an extra stat</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#creature:get_arcana">creature:get_arcana (stat, noBonus)</a></td>
+	<td class="summary">Gets an arcana level, including its bonus</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#creature:get_spells">creature:get_spells (noEquip)</a></td>
@@ -660,16 +665,16 @@
 	<td class="summary">Permanently evolve into another creature.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#creature:get_all_possible_recipes">creature:get_all_possible_recipes (hide_uncraftable, recipe_type)</a></td>
+	<td class="name" nowrap><a href="#creature:get_all_possible_recipes">creature:get_all_possible_recipes (hide_uncraftable, recipe_types, stash)</a></td>
 	<td class="summary">Get all possible recipes the creature can craft</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#creature:can_craft_recipe">creature:can_craft_recipe (recipeID, stash)</a></td>
+	<td class="name" nowrap><a href="#creature:can_craft_recipe">creature:can_craft_recipe (recipeID, stash, amount, ignore_tools)</a></td>
 	<td class="summary">Check if it's possible to craft a recipe
 TODO: Forbidden tags on recipes</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#creature:craft_recipe">creature:craft_recipe (recipeID, secondary_ingredients, stash)</a></td>
+	<td class="name" nowrap><a href="#creature:craft_recipe">creature:craft_recipe (recipeID, secondary_ingredients, stash, amount)</a></td>
 	<td class="summary">Craft a recipe</td>
 	</tr>
 	<tr>
@@ -1616,10 +1621,8 @@ TODO: Forbidden tags on recipes</td>
 
     <h3>Returns:</h3>
     <ol>
-        <li>
-        String. Either "miss," "hit," or "critical"</li>
-        <li>
-        Number. How much damage (if any) was done</li>
+
+        Number or False. How much damage (if any) was done, false if attacking is impossible
     </ol>
 
 
@@ -3649,7 +3652,7 @@ TODO: Forbidden tags on recipes</td>
 </dd>
     <dt>
     <a name = "creature:upgrade_skill"></a>
-    <strong>creature:upgrade_skill (skillID, val, ignore_cost)</strong>
+    <strong>creature:upgrade_skill (skillID, val, ignore_cost, ignore_multi)</strong>
     </dt>
     <dd>
     Changes the skill value
@@ -3665,6 +3668,9 @@ TODO: Forbidden tags on recipes</td>
         </li>
         <li><span class="parameter">ignore_cost</span>
          Boolean. If true, don't pay the cost of the upgrade
+        </li>
+        <li><span class="parameter">ignore_multi</span>
+         Boolean. If true, ignore the increase_per_point value
         </li>
     </ul>
 
@@ -3797,6 +3803,34 @@ TODO: Forbidden tags on recipes</td>
     <ol>
 
         Number. The stat value
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "creature:get_arcana"></a>
+    <strong>creature:get_arcana (stat, noBonus)</strong>
+    </dt>
+    <dd>
+    Gets an arcana level, including its bonus
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">stat</span>
+         Text. The arcana value to get
+        </li>
+        <li><span class="parameter">noBonus</span>
+         Boolean. If true, don't add the bonus to the stat
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Number. The arcana value
     </ol>
 
 
@@ -4203,7 +4237,7 @@ no_inventory_transfer=true (if true, don't transfer inventory to the new body)
 </dd>
     <dt>
     <a name = "creature:get_all_possible_recipes"></a>
-    <strong>creature:get_all_possible_recipes (hide_uncraftable, recipe_type)</strong>
+    <strong>creature:get_all_possible_recipes (hide_uncraftable, recipe_types, stash)</strong>
     </dt>
     <dd>
     Get all possible recipes the creature can craft
@@ -4214,8 +4248,11 @@ no_inventory_transfer=true (if true, don't transfer inventory to the new body)
         <li><span class="parameter">hide_uncraftable</span>
          Boolean. If true, only show recipes that are currently craftable. If false or nil, show all known crafts even if they can't be crafted right now (optional)
         </li>
-        <li><span class="parameter">recipe_type</span>
-         String. Filter by recipe type (optional)
+        <li><span class="parameter">recipe_types</span>
+         String. Filter by recipe types (optional)
+        </li>
+        <li><span class="parameter">stash</span>
+         Entity. An entity containing items to use in addition to the creature's own inventory
         </li>
     </ul>
 
@@ -4231,7 +4268,7 @@ no_inventory_transfer=true (if true, don't transfer inventory to the new body)
 </dd>
     <dt>
     <a name = "creature:can_craft_recipe"></a>
-    <strong>creature:can_craft_recipe (recipeID, stash)</strong>
+    <strong>creature:can_craft_recipe (recipeID, stash, amount, ignore_tools)</strong>
     </dt>
     <dd>
     Check if it's possible to craft a recipe
@@ -4245,6 +4282,12 @@ TODO: Forbidden tags on recipes
         </li>
         <li><span class="parameter">stash</span>
          Entity. An entity containing items to use in addition to the creature's own inventory
+        </li>
+        <li><span class="parameter">amount</span>
+         Number. The number of times to craft it
+        </li>
+        <li><span class="parameter">ignore_tools</span>
+         Boolean. If true, ignore whether or not the creature has the right tools
         </li>
     </ul>
 
@@ -4262,7 +4305,7 @@ TODO: Forbidden tags on recipes
 </dd>
     <dt>
     <a name = "creature:craft_recipe"></a>
-    <strong>creature:craft_recipe (recipeID, secondary_ingredients, stash)</strong>
+    <strong>creature:craft_recipe (recipeID, secondary_ingredients, stash, amount)</strong>
     </dt>
     <dd>
     Craft a recipe
@@ -4278,6 +4321,9 @@ TODO: Forbidden tags on recipes
         </li>
         <li><span class="parameter">stash</span>
          Entity. An entity containing items to use in addition to the creature's own inventory
+        </li>
+        <li><span class="parameter">amount</span>
+         Number. The number of times to craft it
         </li>
     </ul>
 
@@ -4383,7 +4429,7 @@ TODO: Forbidden tags on recipes
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2025-04-07 10:52:23 </i>
+<i style="float:right;">Last updated 2025-05-24 09:49:55 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

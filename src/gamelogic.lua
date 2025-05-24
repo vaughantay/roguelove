@@ -1268,6 +1268,7 @@ function finish_mission(missionID,endVal,skipFunc,noPopup)
   if mission then
     if not text then text = mission.finish_text end
     local rewards = mission.rewards
+    local rewardtext
     local faction = (source and (source.baseType == "faction" and source or (source.baseType == "store" and source.faction and currWorld.factions[source.faction])))
     if rewards then
       rewardtext = rewardtext .. "\nReward:"
@@ -1308,9 +1309,9 @@ function finish_mission(missionID,endVal,skipFunc,noPopup)
       end
     end
     output:out("Mission Complete: " .. mission.name .. "." .. (text and " " .. text or ""))
+    if rewardtext then text = (text and " " .. text or "") .. rewardtext end
     if not noPopup and text then output:show_popup(text,"Mission Complete: " .. mission.name,nil,true) end
   end
-  text = text .. rewardtext
   return ret,text
 end
 

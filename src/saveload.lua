@@ -8,6 +8,7 @@ function register_classes()
   bitser.registerClass('Store',Store)
   bitser.registerClass('Faction',Faction)
   bitser.registerClass('Spell',Spell)
+  bitser.registerClass('Room',Room)
 end
 
 function save_game(screenshot,fileName)

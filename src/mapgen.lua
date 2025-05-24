@@ -104,7 +104,7 @@ function mapgen:generate_map(branchID, depth,force)
     local whichLayout = get_random_element(whichMap.layouts)
     local whichModifier = whichMap.modifiers and get_random_element(whichMap.modifiers) or false
     print('creating via layout',whichLayout)
-    success = layouts[whichLayout](build)
+    success = layouts[whichLayout](build,width,height)
     if success ~= false and whichModifier then
       print('applying modifier',whichModifier)
       local args = whichMap.modifier_arguments and whichMap.modifier_arguments[whichModifier] or {}
@@ -116,6 +116,12 @@ function mapgen:generate_map(branchID, depth,force)
   if success == false then
     print('failed to create map, trying again')
     return mapgen:generate_map(branchID, depth,force)
+  end
+  print('creation complete',tostring(os.clock()-pTime))
+  --Connect rooms:
+  print('connecting rooms')
+  if not whichMap.noConnectRooms and not build.rooms_connected and count(build.rooms) > 0 then
+    build:connect_rooms(whichMap.connector_arguments)
   end
   --Add tombstones:
   if gamesettings.player_tombstones then mapgen:addTombstones(build) end
@@ -171,10 +177,18 @@ function mapgen:generate_map(branchID, depth,force)
   end
 
   --Add content:
+  print('starting content population',tostring(os.clock()-pTime))
+  print('populating rooms',tostring(os.clock()-pTime))
+  build:populate_rooms()
+  print('populating stores',tostring(os.clock()-pTime))
   build:populate_stores()
+  print('populating factions',tostring(os.clock()-pTime))
   build:populate_factions()
-  build:populate_creatures()
+  print('populating items',tostring(os.clock()-pTime))
   build:populate_items()
+  print('populating creatures',tostring(os.clock()-pTime))
+  build:populate_creatures()
+  print('refreshing pathfinder',tostring(os.clock()-pTime))
   build:refresh_pathfinder()
 
   if whichMap.start_revealed or branch.start_revealed then
@@ -746,6 +760,49 @@ end
 --@param width Number. The width of the map
 --@param height Number. The height of the map
 function mapgen:addGenericStairs(build,width,height)
+  if build.possible_exits then
+    build.possible_exits = shuffle(build.possible_exits)
+    for _,tile in ipairs(build.possible_exits) do
+      if not build:tile_has_feature(tile.x,tile.y,'exit') and (build.stairsUp.x ~= tile.x or build.stairsUp.y ~= tile.y) and (build.stairsDown.x ~= tile.x or build.stairsDown.y ~= tile.y) then
+        if not build.stairsUp or (build.stairsUp.x == 0 and build.stairsUp.y == 0) then
+          build.stairsUp.x, build.stairsUp.y = tile.x,tile.y
+        elseif not build.stairsDown or (build.stairsDown.x == 0 and build.stairsDown.y == 0) then
+          build.stairsDown.x, build.stairsDown.y = tile.x,tile.y
+        end
+      end
+      if build.stairsUp.x ~= 0 and build.stairsUp.y ~= 0 and build.stairsDown.x ~= 0 and build.stairsDown.y ~= 0 then
+        return true
+      end
+    end
+  end
+  if count(build.rooms) >= 2 then
+    local farthest = 0
+    local farthest1 = nil
+    local farthest2 = nil
+    for _,room in ipairs(build.rooms) do
+      for _,partner in ipairs(build.rooms) do
+        local dist = calc_distance_squared(room.midX,room.midY,partner.midX,partner.midY)
+        if dist >= farthest then
+          farthest = dist
+          farthest1,farthest2 = room,partner
+        end
+      end
+    end
+    if farthest > 0 then
+      local upRoom = farthest1
+      local downRoom = farthest2
+      if build.stairsUp.x == 0 and build.stairsUp.y == 0 then
+        build.stairsUp.x,build.stairsUp.y = upRoom.midX,upRoom.midY
+        farthest1.exit = true
+      end
+      if build.stairsDown.x == 0 and build.stairsDown.y == 0 then
+        build.stairsDown.x,build.stairsDown.y = downRoom.midX,downRoom.midY
+        farthest2.exit = true
+      end
+      return
+    end
+  end
+  --No rooms? Just put them in the farthest apart rooms
   local acceptable = false
   local count = 1
   while (acceptable == false) do
@@ -763,56 +820,59 @@ function mapgen:addGenericStairs(build,width,height)
     end
 
     --Place down stairs::
-    local placeddown = false
-    local downDist = 1
-    while placeddown == false do
-      for x=downStartX-downDist,downStartX+downDist,1 do
-        for y=downStartY-downDist,downStartY+downDist,1 do
-          if x > 1 and y > 1 and x < width and y < height and build:isEmpty(x,y) and random(1,100) == 1 then
-            build.stairsDown = {x=x,y=y}
-            placeddown = true
-          end --end if
-        end --end yfor
-      end --end xfor
-      downDist = downDist + 1
-      if downDist > math.min(width,height)/2 then print('couldnt make good downstairs') return false end
-    end --end while
+    if build.stairsDown.x == 0 and build.stairsDown.y == 0 then
+      local placeddown = false
+      local downDist = 1
+      while placeddown == false do
+        for x=downStartX-downDist,downStartX+downDist,1 do
+          for y=downStartY-downDist,downStartY+downDist,1 do
+            if x > 1 and y > 1 and x < width and y < height and build:isEmpty(x,y) and random(1,100) == 1 then
+              build.stairsDown = {x=x,y=y}
+              placeddown = true
+            end --end if
+          end --end yfor
+        end --end xfor
+        downDist = downDist + 1
+        if downDist > math.min(width,height)/2 then print('couldnt make good downstairs') return false end
+      end --end while
+    end
 
     --Place up stairs:
-    local placedup = false
-    local upDist = 1
-    local tries = 0
-    while placedup == false do
-      local startX,startY = math.max(2,math.min(width-1,random(upStartX-upDist,upStartX+upDist))),math.max(2,math.min(height-1,random(upStartY-upDist,upStartY+upDist)))
-      if random(1,2) == 1 then
-        startX = random(2,width-1)--random(math.min(math.ceil(width*.66),upStartX),math.max(math.ceil(width*.66),upStartX))
-      else
-        startY = random(2,height-1)--random(math.min(math.ceil(height*.66),upStartY),math.max(math.ceil(height*.66),upStartY))
-      end
+    if build.stairsUp.x == 0 and build.stairsUp.y == 0 then
+      local placedup = false
+      local upDist = 1
+      local tries = 0
+      while placedup == false do
+        local startX,startY = math.max(2,math.min(width-1,random(upStartX-upDist,upStartX+upDist))),math.max(2,math.min(height-1,random(upStartY-upDist,upStartY+upDist)))
+        if random(1,2) == 1 then
+          startX = random(2,width-1)--random(math.min(math.ceil(width*.66),upStartX),math.max(math.ceil(width*.66),upStartX))
+        else
+          startY = random(2,height-1)--random(math.min(math.ceil(height*.66),upStartY),math.max(math.ceil(height*.66),upStartY))
+        end
 
-      local breakOut = false
-      for x=startX-upDist,startX+upDist,1 do
-        if breakOut then break end
-        for y=startY-upDist,startY+upDist,1 do
-          if x > 1 and y > 1 and x < width and y < height and build:isEmpty(x,y) then
-            build.stairsUp = {x=x,y=y}
-            placedup = true
-          end --end if
-        end --end yfor
-      end --end xfor
-      tries = tries+1
-      if not placedub and tries > math.min(width,height)/2 then
-        upDist = upDist + 1
-        tries = 0
-        if upDist > math.min(width,height)/2 then print('couldnt make good upstairs') return false end
-      end
-    end --end while
+        local breakOut = false
+        for x=startX-upDist,startX+upDist,1 do
+          if breakOut then break end
+          for y=startY-upDist,startY+upDist,1 do
+            if x > 1 and y > 1 and x < width and y < height and build:isEmpty(x,y) then
+              build.stairsUp = {x=x,y=y}
+              placedup = true
+            end --end if
+          end --end yfor
+        end --end xfor
+        tries = tries+1
+        if not placedub and tries > math.min(width,height)/2 then
+          upDist = upDist + 1
+          tries = 0
+          if upDist > math.min(width,height)/2 then print('couldnt make good upstairs') return false end
+        end
+      end --end while
+    end
 
     -- Make sure there's a clear path (shouldn't be a problem), and that they're far enough apart:
     if build.stairsDown.x ~= 0 and build.stairsDown.y ~= 0 and build.stairsUp.x ~= 0 and build.stairsUpy ~= 0 then
       local p = build:findPath(build.stairsDown.x,build.stairsDown.y,build.stairsUp.x,build.stairsUp.y)
       if p ~= false then
-        if random(1,2) == 1 then build.stairsUp,build.stairsDown = build.stairsDown,build.stairsUp end --flip them sometimes for fun
         acceptable = true
         return true
       end
@@ -828,6 +888,14 @@ end
 ---Get coordinates for a
 --@param map Map. The map to look at to build stairs
 function mapgen:get_stair_location(map)
+  if map.possible_exits then
+    map.possible_exits = shuffle(map.possible_exits)
+    for _,tile in ipairs(map.possible_exits) do
+      if map:isClear(tile.x,tile.y) and not map:tile_has_feature(tile.x,tile.y,'exit') then
+        return tile.x,tile.y
+      end
+    end
+  end
   local tries = 0
   local done = false
   local x,y = random(2,map.width),random(2,map.height)
@@ -918,128 +986,6 @@ function mapgen:make_blob(map,startX,startY,feature,decay,includeWalls)
   return finalPoints
 end
 
----Determines if a tile is safe to block. Useful in map generators for placing decorations. TODO: Maybe this should be moved to the Map class?
---@param map Map. The map on which we're operating
---@param startX Number. The X-coordinate we're looking at
---@param startY Number. The Y-coordinate we're looking at
---@param safeType Text. Determines what counts as safe to block. "wall": next to wall only, "noWalls": not next to wall, "wallsCorners": open walls and corners only, "corners": corners only
---@return Boolean. Whether the tile is safe to block or not.
-function mapgen:is_safe_to_block(map,startX,startY,safeType)
-  local minX,minY,maxX,maxY=startX-1,startY-1,startX+1,startY+1
-  local cardinals,corners = {},{}
-  local cardinalWalls,cornerWalls = {},{}
-  local n,s,e,w = false,false,false,false
-  local walls = false
-  if map:tile_has_feature(startX,startY,'exit') or not map:isClear(startX,startY) or map.tile_info[startX][startY].noBlock then return false end
-
-  for x=minX,maxX,1 do
-    for y=minY,maxY,1 do
-      local door = map:tile_has_tag(x,y,'door')
-      if (map:isClear(x,y) or door) and not (x == startX and y == startY) then
-        if (x == startX or y == startY) then --cardinal direction
-          if door then return false end -- don't block the area next to a door
-          cardinals[#cardinals+1] = {x=x,y=y}
-          if x == startX-1 then w = true
-          elseif x == startX+1 then e = true
-          elseif y == startY-1 then n = true
-          elseif y == startY+1 then s = true end
-        else
-          corners[#corners+1] = {x=x,y=y}
-        end --end cardinal/corner if
-      elseif not (x==startX and y==startY) then --if not clear
-        if map[x][y] == "#" then walls = true end
-        if (x == startX or y == startY) then --cardinal direction
-          cardinalWalls[#cardinalWalls+1] = {x=x,y=y}
-        else
-          cornerWalls[#cornerWalls+1] = {x=x,y=y}
-        end --end cardinal/corner if
-      end --end isClear() if
-    end --end fory
-  end --end forx
-
-  --If you have to be next to a wall and you're not, then don't go any further
-  if (safeType == "wall" or safeType == "wallsCorners") and walls == false then return false end
-  if safeType == "noWalls" then
-    if walls == true then return false
-    else return true end
-  end
-  if safeType == "corners" and #cardinals > 2 then return false end
-
-  --Prepare for ugliness
-  if safeType == "wallsCorners" then
-    if #cardinals == 2 and not (n and s) and not (e and w) then
-      local okOpen = false
-      local okWall = false
-      local card1X,card1Y = cardinals[1].x,cardinals[1].y
-      local card2X,card2Y = cardinals[2].x,cardinals[2].y
-      local cardwall1X,cardwall1Y = cardinalWalls[1].x,cardinalWalls[1].y
-      local cardwall2X,cardwall2Y = cardinalWalls[2].x,cardinalWalls[2].y
-      for _,tile in pairs(corners) do --check to make sure that the corner next to the two cardinal openings is also open
-        if map:touching(tile.x,tile.y,card1X,card1Y) and map:touching(tile.x,tile.y,card2X,card2Y) then
-          okOpen = true
-        end
-      end
-      for _,tile in pairs(cardinalWalls) do --check to make sure that the corner next to the two cardinal openings is also open
-        if map:touching(tile.x,tile.y,cardwall1X,cardwall1Y) and map:touching(tile.x,tile.y,cardwall2X,cardwall2Y) then
-          okWall = true
-        end
-      end
-      if okOpen == true and okWall == true then
-        return true
-      end --end okOpen/okWall if
-    elseif #cardinalWalls == 1 then
-      local cardX,cardY = cardinalWalls[1].x,cardinalWalls[1].y
-      for _,tile in pairs(cornerWalls) do
-        if not map:touching(tile.x,tile.y,cardX,cardY) then --if there's a corner that is not touching the only wall we're against, it's not OK
-          return false
-        end --end if not touching
-      end --end cornerwall if
-      return true
-    end --end cardinals true if
-    return false
-  end
-
-  --Do the simple checks that don't involve any calculations first:
-  if #cardinals >= 3 or (#cardinals == 2 and not (n and s) and not (e and w)) or #cardinals == 1 then
-    --Do more complicated checks here:
-    if #cardinals == 2 then
-      local card1X,card1Y = cardinals[1].x,cardinals[1].y
-      local card2X,card2Y = cardinals[2].x,cardinals[2].y
-      for _, tile in pairs(corners) do --check to make sure the corner openings all touch one of the cardinal direction openings
-        if not map:touching(card1X,card1Y,tile.x,tile.y) and not map:touching(card2X,card2Y,tile.x,tile.y) then
-          return false
-        end --end if touching
-      end --end tile for
-    elseif #cardinals == 1 then
-      local cardX,cardY = cardinals[1].x,cardinals[1].y
-      for _, tile in pairs(corners) do --check to make sure all the corner openings touch the cardinal direction opening
-        if not map:touching(cardX,cardY,tile.x,tile.y) then
-          return false
-        end --end if touching
-      end --end tile for
-    end --end if cardinals == 1
-    --OK, if we haven't returned false yet, we're good!
-    return true
-  end --end main cardinal count if
-  --If the cardinal count if is false, then it's not a safe place to block
-  return false
-end
-
----Gets all the "safe to block" tiles in a given room. Takes a list of tiles and runs mapgen:is_safe_to_block on them.
---@param map Map. The map we're operating on
---@param room Room. A room as returned by a roomGenerator. Can also pass in a custom table with a list of tiles in a subtable called floors.
---@param openType Text. Determines what counts as "safe." "wall": next to wall only, "noWalls": not next to wall, "wallsCorners": open walls and corners only, "corners": corners only
---@return Table. A table of tiles deemed safe to block.
-function mapgen:get_all_safe_to_block(map,room,openType)
-  local safe = {}
-  for _,floor in pairs(room.floors) do
-    if self:is_safe_to_block(map,floor.x,floor.y,openType) then
-      safe[#safe+1] = {x=floor.x,y=floor.y}
-    end --end if
-  end --end for
-  return safe
-end
-
 ---"Contour-bombs" open tiles, basically drawing open circles around tiles to make a more organic-looking space.
 --@param map Map. The map we're operating on.
 --@param tiles Table. A table of the tiles to look at. Optional, defaults to all tiles in the map
@@ -1082,396 +1028,22 @@ function mapgen:contourBomb(map,tiles,iterations)
   end --end adding circles
 end
 
----Decorate a room
---@param room Room. A table with, at least, minX,maxX,minY, and maxY values
---@param map Map. The map on which this room exists
---@param decID String or table. Either the ID of a specific room decorator, or a table of room decorator IDs. Optional
-function mapgen:decorate_room(room,map,decID)
-  decID = decID or room.decorator
-  local branch = currWorld.branches[map.branch]
-  local decorators = decID or map.roomDecorators or branch.roomDecorators or nil
-  local dec = nil
-  
-  --If passed a specific decorator
-  if roomDecorators[decID] then
-    dec = roomDecorators[decID]
-  end
-  
-  if not dec and decorators and type(decorators) == "table" then --if passed a list of decorators, or if the branch/map has set decorators
-    --First check to make sure all the decorators listed actually exist:
-    local possibles = {}
-    for _,ID in ipairs(decorators) do
-      local d = roomDecorators[ID]
-      if roomDecorators[ID] and (not d.max_per_map or not map.decorator_count or (map.decorator_count[ID] or 0) < d.max_per_map) and (not d.max_per_branch or not branch.decorator_count or (branch.decorator_count[ID] or 0) < d.max_per_branch) and (not d.requires or d.requires(room,map) ~= false) then
-        possibles[#possibles+1] = ID
-      end
-    end
-    if #possibles > 0 then
-      decID = get_random_element(possibles)
-      dec = roomDecorators[decID]
-    end
-  end --end if decorators
-  
-  if not dec then
-    local tags = map:get_content_tags()
-    if #tags == 0 then tags = map.tags or branch.tags end
-    if #tags > 0 then
-      local possibles = {}
-      for ID,d in pairs(roomDecorators) do
-        if d.tags then
-          for _,tag in ipairs(tags) do
-            if in_table(tag,d.tags) and (not d.max_per_map or not map.decorator_count or (map.decorator_count[ID] or 0) < d.max_per_map) and (not d.max_per_branch or not branch.decorator_count or (branch.decorator_count[ID] or 0) < d.max_per_branch) and (not d.requires or d.requires(room,map) ~= false) then
-              possibles[#possibles+1] = ID
-              break
-            end --end tag check if
-          end --end tag for
-        end --end if decorator has tags
-      end --end roomDecorators for
-      if #possibles > 0 then
-        decID = get_random_element(possibles)
-        dec = roomDecorators[decID]
-      end
-    end
-  end --end if dec
-  
-  if dec then
-    --Basic decorator:
-    if dec.decorate then
-      dec.decorate(room,map)
-      room.decorator = decID
-      
-      if not map.decorator_count then map.decorator_count = {} end
-      if not branch.decorator_count then branch.decorator_count = {} end
-      map.decorator_count[decID] = (map.decorator_count[decID] or 0)+1
-      branch.decorator_count[decID] = (branch.decorator_count[decID] or 0)+1
-    end
-    --Add content:
-    --[[(I've blocked this out because content is added in map:populate_items/creatures instead now. But if you want it to populate BEFORE that happens for some reason, uncomment and it shouldn't break anything)
-    if not noContent then
-      --Add creatures:
-      mapgen:populate_creatures_in_room(room,map,decID)
-      
-      --Add items:
-      mapgen:populate_items_in_room(room,map,decID)
-    end]]
-  end
-end
-
----Spawn creatures in a room, using a roomDecorator if desired
---@param room Room. A table with, at least, minX,maxX,minY, and maxY values
---@param map Map. The map on which this room exists
---@param decID String. The ID of a specific room decorator
-function mapgen:populate_creatures_in_room(room,map,decID)
-  decID = decID or room.decorator
-  local dec = roomDecorators[decID]
-  local creature_list = {}
-  
-  if dec and (dec.creature_repopulate_limit or dec.repopulate_limit) then
-    local spawns = (room.creature_populated_count or 0)
-    if spawns > (dec.creature_repopulate_limit or dec.repopulate_limit) then
-      return
-    end
-    room.creature_populated_count = (room.creature_populated_count or 0) + 1
-  end
-  
-  if not decID or not dec then
-    creature_list = map:get_creature_list()
-  else
-    --If there's a special function, use that instead
-    if dec.populate_creatures then
-      return dec.populate_creatures(room,map)
-    end
-    --Add up list of creatures
-    if dec.creatures then
-      creature_list = dec.creatures or {}
-    end --end if creatures
-    if dec.creatureTypes or dec.creatureTags or dec.contentTags then
-      local tags = dec.creatureTags or dec.contentTags
-      for cid,creat in pairs(possibleMonsters) do
-        local done = false
-        if dec.creatureTypes then
-          for _,cType in ipairs(dec.creatureTypes) do
-            if not creat.specialOnly and Creature.is_type(creat,cType) then
-              done = true
-              break
-            end --end is_type if
-          end --end cType for
-        end --end if dec.creatureTypes
-        if tags and not done then
-          for _,tag in ipairs(tags) do
-            if not creat.specialOnly and Creature.has_tag(creat,tag) then
-              done = true
-              break
-            end
-          end --end tags for
-        end --end tags if
-        --TODO: check forbidden tags
-        if done then
-          creature_list[#creature_list+1] = cid
-        end
-      end --end creature for
-    end --end if creature or tags listed in room decorator 
-  end --end if decid
-  
-  --Now that we have a list, start working:
-  if creature_list and #creature_list > 0 then
-    local clearSpace = 0
-    local current_creats = 0
-    local branch = currWorld.branches[map.branch]
-    
-    --Passed tags:
-    local passedTags = (dec and dec.passedTags or {})
-    local mapPassed = map:get_content_tags('passed')
-    passedTags = merge_tables(passedTags, mapPassed)
-    
-    for x = room.minX,room.maxX,1 do
-      for y = room.minY,room.maxY,1 do
-        if map:isClear(x,y) then
-          clearSpace = clearSpace+1
-        elseif map:get_tile_creature(x,y) then
-          current_creats = current_creats+1
-        end
-      end
-    end
-    --Calculate density
-    local density = (dec and dec.creature_density) or mapTypes[map.mapType].creature_density or branch.creature_density or gamesettings.creature_density
-    local creatMax = math.ceil(clearSpace*(density/100))-current_creats
-    
-    --Calculate spawn points, because we'll use that as the max creature number if it's more than the regular number
-    local creature_spawn_points = {}
-    if map.creature_spawn_points and #map.creature_spawn_points > 0 then
-      for i,sp in ipairs(map.creature_spawn_points) do
-        if not sp.used and not sp.boss and map.tile_info[sp.x][sp.y].room == room and not map:tile_has_feature(sp.x,sp.y,'door') and not map:tile_has_feature(sp.x,sp.y,'gate') and not map:tile_has_feature(sp.x,sp.y,'exit') and not map:get_tile_creature(sp.x,sp.y) and not map.tile_info[sp.x][sp.y].noCreatures then
-          creature_spawn_points[#creature_spawn_points+1] = sp
-        end
-      end
-    end
-    --creatMax = math.max(creatMax,#creature_spawn_points)
-    --Do the actual spawning
-    if creatMax > 0 then
-      local newCreats = {}
-      local creats_spawned = 0
-      local tries = 0
-      local min_level = map:get_min_level()
-      local max_level = map:get_max_level()
-      while creats_spawned < creatMax and tries < 100 do
-        tries = 0 --tries are calculated later on
-        local placed = false
-        local nc = mapgen:generate_creature(min_level,max_level,creature_list,passedTags)
-        if nc == false then break end
-        
-        --Spawn in designated spawn points first:
-        local sptries = 0
-        while (#creature_spawn_points > 0) and sptries < 100 do
-          sptries = sptries + 1
-          local spk = get_random_key(creature_spawn_points)
-          local sp = creature_spawn_points[spk]
-          if map:isClear(sp.x,sp.y,nc.pathType) then
-            if random(1,4) == 1 then nc:give_condition('asleep',random(10,100)) end
-            local creat = map:add_creature(nc,sp.x,sp.y)
-            newCreats[#newCreats+1] = creat
-            placed = creat
-            sp.used = true
-            table.remove(creature_spawn_points,spk)
-            break
-          end
-        end
-        
-        --If not spawned at a spawn point, find a spot to spawn:
-        if not placed then
-          local cx,cy = random(room.minX,room.maxX),random(room.minY,room.maxY)
-          while map:is_passable_for(cx,cy,nc.pathType) == false or map:tile_has_feature(cx,cy,'door') or map:tile_has_feature(cx,cy,'gate') or map:tile_has_feature(cx,cy,'exit') or not map:isClear(cx,cy,nc.pathType) or map.tile_info[cx][cy].noCreatures do
-            cx,cy = random(room.minX,room.maxX),random(room.minY,room.maxY)
-            tries = tries+1
-            if tries > 100 then break end
-          end
-          
-          --Place the actual creature:
-          if tries ~= 100 then 
-            if random(1,4) == 1 then nc:give_condition('asleep',random(10,100)) end
-            local creat = map:add_creature(nc,cx,cy)
-            creat.origin_room = room
-            placed = creat
-            newCreats[#newCreats+1] = creat
-            creats_spawned = creats_spawned+1
-          end --end tries if
-        end
-        
-        --Place group spawns:
-        if placed and (nc.group_spawn or nc.group_spawn_max) then
-          local spawn_amt = (nc.group_spawn or random((nc.group_spawn_min or 1),nc.group_spawn_max))
-          if not nc.group_spawn_no_tweak then spawn_amt = tweak(spawn_amt) end
-          if spawn_amt < 1 then spawn_amt = 1 end
-          local x,y = placed.x,placed.y
-          for i=1,spawn_amt,1 do
-            local tries2 = 1
-            local cx,cy = random(x-tries,x+tries),random(y-tries,y+tries)
-            while map:is_passable_for(cx,cy,nc.pathType) == false or map:tile_has_feature(cx,cy,'door') or map:tile_has_feature(cx,cy,'gate') or map:tile_has_feature(cx,cy,'exit') or not map:isClear(cx,cy,nc.pathType) or map.tile_info[cx][cy].noCreatures do
-              cx,cy = random(x-tries,x+tries),random(y-tries,y+tries)
-              tries2 = tries2 + 1
-              if tries2 > 10 then break end
-            end --end while
-            if tries2 <= 10 then
-              local creat = mapgen:generate_creature(min_level,max_level,{nc.id},passedTags)
-              map:add_creature(creat,cx,cy)
-              nc.origin_room = room
-              newCreats[#newCreats+1] = creat
-              creats_spawned = creats_spawned+0.5 --a group spawned creature only counts as half a creature for the purposes of creature totals, so group spawns won't eat up all the creature slots but also won't overwhelm the map
-            end
-          end
-        end --end group spawn if  
-      end
-      return newCreats
-    end
-  end --end if creature list
-  return false
-end
-
----Spawn items in a room, using a roomDecorator if desired
---@param room Room. A table with, at least, minX,maxX,minY, and maxY values
---@param map Map. The map on which this room exists
---@param decID String. The ID of a specific room decorator
-function mapgen:populate_items_in_room(room,map,decID)
-  decID = decID or room.decorator
-  local dec = roomDecorators[decID]
-  local item_list = {}
-  local newItems = {}
-  
-  if dec and (dec.item_repopulate_limit or dec.repopulate_limit) then
-    local spawns = (room.item_populated_count or 0)
-    if spawns > (dec.item_repopulate_limit or dec.repopulate_limit) then
-      return
-    end
-    room.item_populated_count = (room.item_populated_count or 0) + 1
-  end
-  
-  --Create list of items
-  if not decID or not dec then
-    item_list = map:get_item_list()
-  else
-    --Create the list
-    if dec.items then
-      item_list = dec.items or {}
-    end --end if items
-    if dec.itemTags or dec.contentTags then
-      local tags = dec.itemTags or dec.contentTags
-      local forbidden = dec.forbiddenTags
-      local tagged_items = mapgen:get_content_list_from_tags('item',tags,forbidden)
-      item_list = merge_tables(item_list,tagged_items)
-    end --end if item or tags listed in room decorator 
-  end --end if decid
-  
-  --Info for items (passed tags and levels):
-  local passedTags = (dec and dec.passedTags or {})
-  local mapPassed = map:get_content_tags('passed')
-  passedTags = merge_tables(passedTags, mapPassed)
-  local min_level = map:get_min_level()
-  local max_level = map:get_max_level()
-  
-  --Spawn in designated spawn points first:
-  local item_spawn_points = {}
-  if map.item_spawn_points and #map.item_spawn_points > 0 then
-    for i,sp in ipairs(map.item_spawn_points) do
-      if not sp.used and map.tile_info[sp.x][sp.y].room == room and not map.tile_info[sp.x][sp.y].noItems and not map:tile_has_feature(sp.x,sp.y,'exit') and ((sp.inventory and #sp:get_inventory() < (sp.inventory_space or 1)) or (map:isClear(sp.x,sp.y,nil,true) and #map:get_tile_items(sp.x,sp.y) == 0)) then
-        item_spawn_points[#item_spawn_points+1] = sp
-      end
-    end
-  end
-  
-  for spk,sp in pairs(item_spawn_points) do
-    if sp.baseType == "feature" and possibleFeatures[sp.id].populate_items then
-      possibleFeatures[sp.id].populate_items(sp,map,room)
-      goto continue
-    end
-    
-    local sp_item_list = {}
-    local sp_passedTags = merge_tables(passedTags,(sp.passedTags or {}))
-    
-    --Create item list:
-    if sp.items then
-      sp_item_list = sp.items or {}
-    end --end if items
-    if sp.itemTags or sp.contentTags or sp.forbiddenTags then
-      local tags = sp.itemTags or sp.contentTags or dec.itemTags or dec.contentTags or {}
-      local forbidden = sp.forbiddenTags
-      local tagged_items = mapgen:get_content_list_from_tags('item',tags,forbidden)
-      sp_item_list = merge_tables(sp_item_list,tagged_items)
-    elseif not sp.items then --if there's no item list or tag list set, just use the item list of the room
-      sp_item_list = item_list
-    end
-    
-    ::gen_item::
-    local ni = mapgen:generate_item(min_level,max_level,sp_item_list,sp_passedTags)
-    newItems[#newItems+1] = ni
-    ni.origin_room = room
-    
-    if sp.inventory then
-      sp:give_item(ni)
-      if #sp:get_inventory() >= (sp.inventory_space or 1) then
-        sp.used = true
-      else
-        goto gen_item
-      end
-    else
-      map:add_item(ni,sp.x,sp.y)
-      sp.used = true
-    end
-    ::continue::
-  end
-  
-  --If there's a special item population function for this room decorator, just use that
-    if dec.populate_items then
-      return dec.populate_items(room,map,item_list,passedTags)
-    end
-  
-  --Spawn items in room from list:
-  if item_list and #item_list > 0 then
-    local branch = currWorld.branches[map.branch]
-    
-    --Spawn items in empty space:
-    local clearSpace = 0
-    local current_items = 0
-    
-    for x = room.minX,room.maxX,1 do
-      for y = room.minY,room.maxY,1 do
-        if map:isClear(x,y) then
-          clearSpace = clearSpace+1
-        end
-        current_items = current_items + count(map:get_tile_items(x,y))
-      end
-    end
-    --Calculate density
-    local density = (dec and dec.item_density) or mapTypes[map.mapType].item_density or branch.item_density or gamesettings.item_density
-    local itemMax = math.ceil(clearSpace*(density/100))-current_items
-    
-    --Do the actual spawning
-    if itemMax > 0 then
-      for i=1,itemMax,1 do
-        local ni = mapgen:generate_item(min_level,max_level,item_list,passedTags)
-        if ni == false then break end
-        local ix,iy = random(room.minX,room.maxX),random(room.minY,room.maxY)
-        local tries = 0
-        while map:isClear(ix,iy) == false or map:tile_has_feature(ix,iy,"exit") or map.tile_info[ix][iy].noItems do
-          ix,iy = random(room.minX,room.maxX),random(room.minY,room.maxY)
-          tries = tries+1
-          if tries > 100 then break end
-        end
-          
-        --Place the actual item:
-        if tries ~= 100 then 
-          map:add_item(ni,ix,iy)
-          newItems[#newItems+1] = ni
-          ni.origin_room = room
-        end --end tries if
-      end
-    end
-  end --end if item list
-  return newItems
-end
-
-function mapgen:get_content_list_from_tags(content_type,tags,forbiddenTags,requiredTags)
+---Gets a list of all types of content
+--@param content_type String. The type of content to look for. Creature, feature, item, spell, store, faction, roomDecorator, roomShape, recipe
+--@param tags Table. Content that has ANY of these tags will be included.
+--@param args Table. Other potential arguments. Can include:
+--@param forbiddenTags Table. Content with ANY these tags will be excluded
+--@param requiredTags Table. Content that doesn't have ALL of these tags will be excluded
+--@param mapTags Table. The tags from the map. Not used to search for content, but used for the item's own requiredMapTags and forbiddenMapTags
+--@param searchSet Table. A list of IDs to search through for the given content_type. If blank, search through all of the possibilities in the game
+function mapgen:get_content_list_from_tags(content_type,tags,args)
   local content_list
   local contents = {}
+  args = args or {}
+  local forbiddenTags = args.forbiddenTags
+  local requiredTags = args.requiredTags
+  local searchSet = args.searchSet
+  local mapTags = args.mapTags
   if content_type == "creature" then
     content_list = possibleMonsters
   elseif content_type == "feature" then
@@ -1574,38 +1146,6 @@ function mapgen:get_content_list_from_tags(content_type,tags,forbiddenTags,requi
   return contents
 end
 
----Generate a room on a map
---@param minX Number. The minimum X value of the room.
---@param minY Number. The minimum Y value of the room.
---@param maxX Number. The maximum X value of the room.
---@param maxY Number. The maximum Y value of the room.
---@param map Map. The map to create the room on.
---@param rectChance Number. Chance that the room will be a rectangle rather than any other room type
-function mapgen:generate_room(minX,minY,maxX,maxY,map,rectChance)
-  rectChance = rectChance or 50
-  local ret
-  if love.math.random(1,100) <= rectChance and roomTypes.rectangle then
-    ret = roomTypes.rectangle(minX,minY,maxX,maxY,map)
-  else
-    local room = get_random_element(roomTypes)
-    ret = room(minX,minY,maxX,maxY,map)
-  end
-  if ret.floors then
-    for _,floor in pairs(ret.floors) do
-      map.tile_info[floor.x][floor.y].room = ret
-    end
-  end
-  if ret.walls then
-    for _,wall in pairs(ret.walls) do
-      map.tile_info[wall.x][wall.y].room = ret
-    end
-  end
-  if not ret.midX or not ret.midY then
-    ret.midX,ret.midY = ret.minX+round((ret.maxX-ret.minX)/2),ret.minY+round((ret.maxY-ret.minY)/2)
-  end
-  return ret
-end
-
 ---Determines whether you can place a room in a location
 --@param minX Number. The minimum X value of the room.
 --@param minY Number. The minimum Y value of the room.
@@ -1621,4 +1161,221 @@ function mapgen:can_place_room(minX,minY,maxX,maxY,map)
     end
   end
   return true
+end
+
+---Determines the largest free room area starting from a given point
+--@param startX Number. The X coordinate to anchor off of
+--@param startY Number. The Y coordinate to anchor off of
+--@param direction String. The direction to look in
+--@param map Map. The map to create the room on
+--@info Table. Optional arguments including:
+--@param max_width Number. The maximum width of the room
+--@param max_height Number. The maximum height of the room
+--@param min_width Number. The minimum width of the room
+--@param min_height Number. The minimum height of the room
+--@param centered Boolean. If true, the room must be centered on the anchor point
+--@return Table or false. {minX=minX,minY=minY,maxX=maxX,maxY=maxY}
+function mapgen:get_largest_room_from_anchor_point(startX,startY,direction,map,info)
+  info = info or {}
+  map = map or currMap
+  local max_width = info.max_width or map.width
+  local max_height = info.max_height or map.height
+  local min_width = info.min_width or 3
+  local min_height = info.min_height or 3
+  local area_minX,area_minY,area_maxX,area_maxY = info.minX or 1,info.minY or 1,info.maxX or map.width,info.maxY or map.height
+  local centered = info.centered
+  
+  if not direction or not (direction == "n" or direction == "s" or direction == "e" or direction == "w") then
+    return false
+  end
+  if startX < area_minX or startX > area_maxX or startY < area_minY or startY > area_maxY then
+    print('outside area',startX,startY,area_minX,area_minY,area_maxX,area_maxY)
+    return false
+  end
+  
+  local xMod,yMod = 0,0
+  if direction == "n" then
+    yMod = -1
+  elseif direction == "s" then
+    yMod = 1
+  elseif direction == "w" then
+    xMod = -1
+  elseif direction == "e" then
+    xMod = 1
+  end
+  
+  local width,height = 0,0
+  local minX,minY,maxX,maxY = startX,startY,startX,startY
+  if xMod ~= 0 then --N/S primary direction
+    local y = startY
+    local check_startX,check_endX = startX+xMod,startX+max_width*xMod
+    print('checking from X',check_startX,check_endX,xMod)
+    for x=check_startX,check_endX,xMod do
+      width = math.abs(startX-x)-1
+      if not map:in_map(x,y) or map.tile_info[x][y].room or map.tile_info[x][y].room == false or x < area_minX or x > area_maxX then
+        print('stopping at',x,y)
+        break
+      end
+    end
+    if width < min_width then
+      print('too small of width',width,min_width)
+      return false
+    end
+    minX = (xMod > 0 and startX or startX-width)
+    maxX = (xMod > 0 and startX+width or startX)
+    local x = startX+xMod
+    minY,maxY=math.max(startY-min_height,area_minY),math.min(startY+min_height,area_maxY)
+    print('checking Y',minY,maxY)
+    for y=minY,maxY,1 do
+      if not map:in_map(x,y) or map.tile_info[x][y].room or map.tile_info[x][y].room == false or y < area_minY or y > area_maxY then
+        if y > startY then maxY = maxY-1
+        elseif y < startY then minY = minY+1 end
+      end
+    end
+    if centered then
+      local smallest_diff = math.min(maxY-startY,startY-minY)
+      minY = startY-smallest_diff
+      maxY = startY+smallest_diff
+    end
+    height = maxY-minY
+  elseif yMod ~= 0 then --N/S primary direction
+    local x = startX
+    local check_startY,check_endY = startY+yMod, startY+max_height*yMod
+    print('checking from Y',check_startY,check_endY,yMod)
+    for y=check_startY,check_endY,yMod do
+      height = math.abs(startY-y)-1
+      if not map:in_map(x,y) or map.tile_info[x][y].room or map.tile_info[x][y].room == false or y < area_minY or y > area_maxY then
+        print('stopping at',x,y)
+        break
+      end
+    end
+    if height < min_height then
+      print('too small of height',height,min_height)
+      return false
+    end
+    minY = (xMod > 0 and startY or startY-height)
+    maxY = (xMod > 0 and startY+height or startY)
+    local y = startY+yMod
+    minX,maxX=math.max(startX-min_height,area_minX),math.min(startX+min_height,area_maxX)
+    print('checking X',minY,maxY)
+    for x=minX,maxX,1 do
+      if not map:in_map(x,y) or map.tile_info[x][y].room or map.tile_info[x][y].room == false or x < area_minX or x > area_maxX then
+        if x > startX then maxX = maxX-1
+        elseif x < startX then minX = minX+1 end
+      end
+    end
+    if centered then
+      local smallest_diff = math.min(maxX-startX,startX-minX)
+      minX = startX-smallest_diff
+      maxX = startX+smallest_diff
+    end
+    width = maxX-minX
+    print(maxY,minY,height)
+  end
+  
+  if width < min_width or height < min_height then
+    print('too small of width or height')
+    return false
+  end
+  
+  return {minX=minX,maxX=maxX,minY=minY,maxY=maxY}
+end
+
+---Creates an encounter at a given threat level
+--@param threat Number.
+--@param creature_list Table. A list of possible creatures.
+--@param min_level The lower level limit of the desired creature
+--@param max_level The upper level limit of the desired creature
+--@param tags Table. A list of tags to pass to the creature
+--@param max_creatures Number. The maximum number of creatures
+--@return Table. A table of creatures to place.
+function mapgen:generate_encounter(threat,creature_list,min_level,max_level,tags,max_creatures)
+  if not max_creatures then max_creatures = 100 end --todo: change this
+  local encounter_creatures = {}
+  
+  if gamesettings.encounter_threat_definitions and gamesettings.encounter_threat_definitions[threat] then
+    local threatDef = gamesettings.encounter_threat_definitions[threat]
+    if type(threatDef) == "number" then
+      threat = threatDef
+    elseif type(threatDef) == "table" then
+      local min = threatDef.min or 1
+      local max = threatDef.max
+      if not max then
+        threat = min
+      else
+        threat = random(min,max)
+      end
+    end
+  end
+  if type(threat) ~= "number" or threat < 1 or not creature_list then
+    return false
+  end
+  
+  local largest_threat = 0
+  local smallest_threat = nil
+  local largest_list = {}
+  for _,creatID in pairs(creature_list) do
+    local creat = possibleMonsters[creatID]
+    local cthreat = Creature.get_threat(creat)
+    if cthreat then
+      if cthreat == largest_threat then
+        largest_list[#largest_list+1] = creatID
+      elseif cthreat > largest_threat then
+        largest_threat = threat,largest_threat
+        largest_list = {creatID}
+      end
+      smallest_threat = (smallest_threat and math.min(smallest_threat,cthreat) or cthreat)
+    end
+  end
+  
+  local tries = 0
+  local creature_count = 0
+  local created_threat = 0
+  local threat_remaining = threat-created_threat
+  
+  --Create a larger threat first if there's a bunch of extra "threat room"
+  if threat > largest_threat*2 or threat/smallest_threat >= max_creatures then
+    local nc = mapgen:generate_creature(min_level,max_level,largest_list,tags)
+    if nc then
+      local creatThreat = nc:get_threat()
+      encounter_creatures[#encounter_creatures+1] = nc
+      created_threat = created_threat + creatThreat
+      creature_count = creature_count + 1
+    end
+  end
+  
+  --Generate other creatures:
+  while created_threat < threat and tries < 100 and (threat_remaining >= (smallest_threat or 0)) and (not max_creatures or creature_count < max_creatures) do
+    tries = tries + 1
+    threat_remaining = threat-created_threat
+    local nc = mapgen:generate_creature(min_level,max_level,creature_list,tags)
+    if nc then
+      local creatThreat = nc:get_threat()
+      if threat_remaining > 0 and creatThreat <= threat_remaining*1.1 then --The 1.1 is there to give a little bit of wiggle room
+        encounter_creatures[#encounter_creatures+1] = nc
+        created_threat = created_threat + creatThreat
+        creature_count = creature_count + 1
+        --Add extra threat based on creature count
+        if creature_count > 1 and gamesettings.encounter_threat_per_creature then
+          created_threat = created_threat + gamesettings.encounter_threat_per_creature
+        end
+        if gamesettings.encounter_threat_at_x_creatures and gamesettings.encounter_threat_at_x_creatures[creature_count] then
+          created_threat = created_threat + gamesettings.encounter_threat_at_x_creatures[creature_count]
+        end
+        if gamesettings.encounter_threat_per_x_creatures then
+          for ccount,tamount in pairs(gamesettings.encounter_threat_per_x_creatures) do
+            if creature_count % ccount == 0 then
+              created_threat = created_threat + tamount
+            end
+          end
+        end
+        if max_creatures and creature_count >= max_creatures then
+          break
+        end
+      end
+    else --if no creature was generated
+      return encounter_creatures,created_threat
+    end --end threat_remaining if
+  end --end while
+  return encounter_creatures,created_threat
 end
