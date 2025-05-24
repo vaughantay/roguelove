@@ -23,7 +23,6 @@ function crafting:enter(previous,info)
   self.buttons = {}
   self.maxButtonY = 0
   self.lineCountdown = 0.5
-  self.recipe_type = recipe_type
   
   tween(0.2,self,{yModPerc=0})
   output:sound('stoneslideshort',2)
@@ -455,7 +454,7 @@ function crafting:draw()
     end
     if craftInfo.bonuses_from_ingredients then
       local bonusText = "Selected ingredients will provide bonuses."
-      if count(bonuses) > 0 or count(enchantments) > 0 then
+      if count(bonuses) > 0 or count(enchantments) > 0 or count(conditions) > 0 then
         bonusText = "Selected ingredients will provide bonuses:"
         if count(enchantments) > 0 then
           for enchID,_ in pairs(enchantments) do

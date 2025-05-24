@@ -5376,7 +5376,7 @@ function Creature:can_craft_recipe(recipeID,stash,amount,ignore_tools)
   if debugMode then return true end
   local recipe = possibleRecipes[recipeID]
   local auto_learn = (recipe.auto_learn == nil and gamesettings.auto_learn_possible_crafts or recipe.auto_learn)
-  local known = self.known_recipes and self.known_recipes[id] or recipe.always_known
+  local known = self.known_recipes and self.known_recipes[recipeID] or recipe.always_known
   if not auto_learn and not known then
     return false
   end
@@ -5529,6 +5529,7 @@ function Creature:craft_recipe(recipeID,secondary_ingredients,stash,amount)
   local enchantments = {}
   local bonuses = {}
   local conditions = {}
+  local value = 0
   if recipe.ingredients then --TODO: delete items mixed between main and stash
     for item,amt in pairs(recipe.ingredients) do
       local amount_to_delete = amt*amount
@@ -5537,11 +5538,11 @@ function Creature:craft_recipe(recipeID,secondary_ingredients,stash,amount)
         local i = self:has_item(item)
         if not i and stash then
           i = stash:has_item(item)
-          amount_deleted = amount_deleted + math.min((item.amount or 1),amt)
-          stash:delete_item(i,amt)
+          stash:delete_item(i,amt-amount_deleted)
+          amount_deleted = amount_deleted + math.min((i.amount or 1),amt-amount_deleted)
         elseif i then
-          amount_deleted = amount_deleted + math.min((item.amount or 1),amt)
-          self:delete_item(i,amt)
+          self:delete_item(i,amt-amount_deleted)
+          amount_deleted = amount_deleted + math.min((i.amount or 1),amt-amount_deleted)
         else
           --if for some reason we run out of items, which shouldn't happen, but if it does, break out of the infinite loop
           break
@@ -5571,6 +5572,7 @@ function Creature:craft_recipe(recipeID,secondary_ingredients,stash,amount)
             conditions[conID] = (conditions[conID] or 0)+amt*turns
           end
         end
+        value = value + (i.crafting_value or i.value or 0)*amt
       end
     end
   end
@@ -5581,7 +5583,7 @@ function Creature:craft_recipe(recipeID,secondary_ingredients,stash,amount)
     for item,amt in pairs(secondary_ingredients) do
       if amt > 0 then
         local name = item.crafting_ingredient_prefix or item.crafting_ingredient_name or item.name
-        if not checkedNames[name] then
+        if not checkedNames[name] and item.crafting_ingredient_name ~= false then
           if item.crafting_ingredient_prefix then
             ingPrefixes[#ingPrefixes+1] = name
           else
@@ -5624,6 +5626,7 @@ function Creature:craft_recipe(recipeID,secondary_ingredients,stash,amount)
             conditions[conID] = (conditions[conID] or 0)+amt*turns
           end
         end
+        value = value + (item.crafting_value or item.value or 0)
       end
     end
     if recipe.add_ingredients_to_name then
@@ -5674,6 +5677,9 @@ function Creature:craft_recipe(recipeID,secondary_ingredients,stash,amount)
         for conID,turns in pairs(conditions) do
           newItem.use_conditions[conID] = (newItem.use_conditions[conID]or 0)+turns
         end
+      end
+      if recipe.value_from_ingredients then
+        newItem.value = (recipe.replace_value and 0 or newItem.value or 0) + value
       end
       self:give_item(newItem)
       if recipe.add_ingredients_to_name then
