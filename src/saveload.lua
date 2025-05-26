@@ -8,6 +8,7 @@ function register_classes()
   bitser.registerClass('Store',Store)
   bitser.registerClass('Faction',Faction)
   bitser.registerClass('Spell',Spell)
+  bitser.registerClass('RangedAttack',RangedAttack)
   bitser.registerClass('Room',Room)
 end
 

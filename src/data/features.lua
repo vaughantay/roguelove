@@ -2138,7 +2138,7 @@ local magicflash = {
   color = {r=0,g=0,b=0,a=0},
   description = "An invisible feature that turns into a flash of magic. Used for magical deaths.",
   placed = function (self)
-    currMap:add_effect(Effect('animation','magicdamage',5,self,{r=255,g=255,b=0}),self.x,self.)
+    currMap:add_effect(Effect('animation','magicdamage',5,self,{r=255,g=255,b=0}),self.x,self.y)
     self:delete()
   end
 }
