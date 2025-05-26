@@ -292,7 +292,7 @@ function demonruins.create(map,width,height)
       for x = room.minX,room.maxX,1 do
         if (midX-x)%2 == 0 and math.abs(midX-x) >= 4 then
           for y = midY-2,midY+2,1 do
-            if mapgen:is_safe_to_block(map,x,y) then
+            if map:is_safe_to_block(x,y) then
               local sitter = Feature("pew")
               map:add_feature(sitter,x,y)
               sitter.image_name = "pew" .. (sitter.x > midX and "e" or "w")
@@ -303,7 +303,7 @@ function demonruins.create(map,width,height)
       for y = room.minY,room.maxY,1 do
         if (midY-y)%2 == 0 and math.abs(midY-y) >= 4 then
           for x = midX-2,midX+2,1 do
-            if mapgen:is_safe_to_block(map,x,y) then
+            if map:is_safe_to_block(x,y) then
               local sitter = Feature("pew")
               map:add_feature(sitter,x,y)
               sitter.image_name = "pew" .. (sitter.y > midY and "s" or "n")
@@ -349,7 +349,7 @@ function demonruins.create(map,width,height)
           local bookshelves = random(0,4)
           for i=1,bookshelves,1 do
             local tile = get_random_element(wallTiles)
-            if tile and mapgen:is_safe_to_block(map,tile.x,tile.y) then
+            if tile and map:is_safe_to_block(tile.x,tile.y) then
               map:add_feature(Feature('bookshelf'),tile.x,tile.y)
             end --end tile if
           end --end bookshelves for
@@ -357,7 +357,7 @@ function demonruins.create(map,width,height)
           for i=1,cages,1 do
             local tile = get_random_element(safeTiles)
             if tile then
-              if mapgen:is_safe_to_block(map,tile.x,tile.y) then
+              if map:is_safe_to_block(tile.x,tile.y) then
                 local cage = Feature('cage')
                 local cageType = random(1,5)
                 if cageType == 3 then
@@ -379,14 +379,14 @@ function demonruins.create(map,width,height)
             tableStart = get_random_element(wallTiles)
             if not tableStart then break end
             for x = tableStart.x,tableStart.x+random(1,3),1 do
-              if mapgen:is_safe_to_block(map,x,tableStart.y,'wallsCorners') then
+              if map:is_safe_to_block(x,tableStart.y,'wallsCorners') then
                 if x~=tableStart.x then tableTiles[#tableTiles+1] = {x=x,y=tableStart.y} end
               else
                 break
               end --end safe to block
             end --end + forx
             for x = tableStart.x,tableStart.x-random(1,3),-1 do
-              if mapgen:is_safe_to_block(map,x,tableStart.y,'wallsCorners') then
+              if map:is_safe_to_block(x,tableStart.y,'wallsCorners') then
                 if x~=tableStart.x then tableTiles[#tableTiles+1] = {x=x,y=tableStart.y} end
               else
                 break
@@ -397,14 +397,14 @@ function demonruins.create(map,width,height)
               break
             end
             for y = tableStart.y,tableStart.y+random(1,3),1 do
-              if mapgen:is_safe_to_block(map,tableStart.x,y,'wallsCorners') then
+              if map:is_safe_to_block(tableStart.x,y,'wallsCorners') then
                 if y~=tableStart.y then tableTiles[#tableTiles+1] = {x=tableStart.x,y=y} end
               else
                 break
               end --end safe to block
             end --end + fory
             for y = tableStart.y,tableStart.y-random(1,3),-1 do
-              if mapgen:is_safe_to_block(map,tableStart.x,y,'wallsCorners') then
+              if map:is_safe_to_block(tableStart.x,y,'wallsCorners') then
                 if y~=tableStart.y then tableTiles[#tableTiles+1] = {x=tableStart.x,y=y} end
               else
                 break
@@ -475,7 +475,7 @@ function demonruins.create(map,width,height)
       while miscDecorations > 0 and tries < 100 do
         tries = tries + 1
         local placeX,placeY = random(room.minX+1,room.maxX-1),random(room.minY+1,room.maxY-1)
-        if mapgen:is_safe_to_block(map,placeX,placeY) then
+        if map:is_safe_to_block(placeX,placeY) then
           miscDecorations = miscDecorations - 1
           local decType = random(1,3)
           if decType == 1 then
@@ -552,14 +552,14 @@ function demonruins.create(map,width,height)
       tries = tries + 1
     end
     --[[local idolX,idolY = random(2,width-1),random(2,height-1)
-    while map[idolX][idolY] == "#" or map:tile_has_feature(idolX,idolY,"lava") or not map:isClear(idolX,idolY) or not mapgen:is_safe_to_block(map,idolX,idolY) or (idolX > bossRoom.minX and idolX < bossRoom.maxX and idolY > bossRoom.minY and idolY < bossRoom.maxY) or map[idolX][idolY+1] == "#" or map:tile_has_feature(idolX,idolY+1,"lava") or not map:isClear(idolX,idolY+1) do
+    while map[idolX][idolY] == "#" or map:tile_has_feature(idolX,idolY,"lava") or not map:isClear(idolX,idolY) or not map:is_safe_to_block(idolX,idolY) or (idolX > bossRoom.minX and idolX < bossRoom.maxX and idolY > bossRoom.minY and idolY < bossRoom.maxY) or map[idolX][idolY+1] == "#" or map:tile_has_feature(idolX,idolY+1,"lava") or not map:isClear(idolX,idolY+1) do
       idolX,idolY = random(2,width-1),random(2,height-1)
     end --end idol safety check]]
     local tile = get_random_element(room.floors)
     local idolX,idolY = tile.x,tile.y
     tries = 0
     local makeIdol = true
-    while map[idolX][idolY] == "#" or map:tile_has_feature(idolX,idolY,"lava") or not map:isClear(idolX,idolY) or not mapgen:is_safe_to_block(map,idolX,idolY) or (idolX > bossRoom.minX and idolX < bossRoom.maxX and idolY > bossRoom.minY and idolY < bossRoom.maxY) or map[idolX][idolY+1] == "#" or map:tile_has_feature(idolX,idolY+1,"lava") or not map:isClear(idolX,idolY+1) do
+    while map[idolX][idolY] == "#" or map:tile_has_feature(idolX,idolY,"lava") or not map:isClear(idolX,idolY) or not map:is_safe_to_block(idolX,idolY) or (idolX > bossRoom.minX and idolX < bossRoom.maxX and idolY > bossRoom.minY and idolY < bossRoom.maxY) or map[idolX][idolY+1] == "#" or map:tile_has_feature(idolX,idolY+1,"lava") or not map:isClear(idolX,idolY+1) do
       tile = get_random_element(room.floors)
       idolX,idolY = tile.x,tile.y
       tries = tries + 1

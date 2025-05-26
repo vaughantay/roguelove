@@ -688,6 +688,7 @@ end -- end function
 --@param toY Number. The y-coordinate to end at
 --@param data Anything. The data to pass to the bridge's new() function
 function mapgen:buildBridge(map,fromX,fromY,toX,toY,data)
+  data = data or {}
   if fromX == toX and fromY ~= toY then --vertical bridge
     local yMod = 0
     if fromY > toY then yMod = -1

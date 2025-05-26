@@ -187,11 +187,11 @@ local cave = function(build,hazard)
   for i = 1,torches,1 do
     local tx,ty = random(2,width-1),random(2,height-1)
     local tries = 0
-    while tries < 100 and not build:isClear(tx,ty) and not mapgen:is_safe_to_block(build,tx,ty) do
+    while tries < 100 and not build:isClear(tx,ty) and not build:is_safe_to_block(tx,ty) do
       tx,ty = random(2,width-1),random(2,height-1)
       tries = tries + 1
     end
-    if build:isClear(tx,ty) and mapgen:is_safe_to_block(build,tx,ty) then build:add_feature(Feature((crystal and 'crystal' or 'plantedtorch')),tx,ty) end
+    if build:isClear(tx,ty) and build:is_safe_to_block(tx,ty) then build:add_feature(Feature((crystal and 'crystal' or 'plantedtorch')),tx,ty) end
   end --end torches for
   
   --Add a campfire:
@@ -239,11 +239,11 @@ local cave = function(build,hazard)
   if random(1,3) == 1 then
     local ax,ay = random(2,width-1),random(2,height-1)
     local tries = 0
-    while tries < 100 and not build:isEmpty(ax,ay,false,true) and not mapgen:is_safe_to_block(build,ax,ay) do
+    while tries < 100 and not build:isEmpty(ax,ay,false,true) and not build:is_safe_to_block(ax,ay) do
       ax,ay = random(2,width-1),random(2,height-1)
       tries = tries+1
     end
-    if build:isEmpty(ax,ay,false,true) and mapgen:is_safe_to_block(build,ax,ay) then
+    if build:isEmpty(ax,ay,false,true) and build:is_safe_to_block(ax,ay) then
       build:add_feature(Feature('altar',{godName=true}),ax,ay)
     end
   end

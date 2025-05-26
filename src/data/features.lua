@@ -77,12 +77,13 @@ local acid = {
     end
   end
 }
-function acid:refresh_image_name()
+function acid:refresh_image_name(map)
+  map = map or currMap
   local directions = ""
-  if currMap:in_map(self.x,self.y-1) and currMap[self.x][self.y-1] ~= "#" and currMap:tile_has_feature(self.x,self.y-1,'acid') == false then directions = directions .. "n" end
-  if currMap:in_map(self.x,self.y+1) and currMap[self.x][self.y+1] ~= "#" and currMap:tile_has_feature(self.x,self.y+1,'acid') == false then directions = directions .. "s" end
-  if currMap:in_map(self.x+1,self.y) and currMap[self.x+1][self.y] ~= "#" and currMap:tile_has_feature(self.x+1,self.y,'acid') == false then directions = directions .. "e" end
-  if currMap:in_map(self.x-1,self.y) and currMap[self.x-1][self.y] ~= "#" and currMap:tile_has_feature(self.x-1,self.y,'acid') == false then directions = directions .. "w" end
+  if map:in_map(self.x,self.y-1) and currMap[self.x][self.y-1] ~= "#" and map:tile_has_feature(self.x,self.y-1,'acid') == false then directions = directions .. "n" end
+  if map:in_map(self.x,self.y+1) and currMap[self.x][self.y+1] ~= "#" and map:tile_has_feature(self.x,self.y+1,'acid') == false then directions = directions .. "s" end
+  if map:in_map(self.x+1,self.y) and currMap[self.x+1][self.y] ~= "#" and map:tile_has_feature(self.x+1,self.y,'acid') == false then directions = directions .. "e" end
+  if map:in_map(self.x-1,self.y) and currMap[self.x-1][self.y] ~= "#" and map:tile_has_feature(self.x-1,self.y,'acid') == false then directions = directions .. "w" end
   if directions == "" then self.tileDirection = "middle" else self.tileDirection = directions end
 end --end get_image
 possibleFeatures['acid'] = acid
@@ -326,12 +327,13 @@ local grass = {
     end
   end
 }
-function grass:refresh_image_name()
+function grass:refresh_image_name(map)
+  map = map or currMap
   local directions = ""
-  if currMap:tile_has_feature(self.x,self.y-1,'grass') == false then directions = directions .. "n" end
-  if currMap:tile_has_feature(self.x,self.y+1,'grass') == false then directions = directions .. "s" end
-  if currMap:tile_has_feature(self.x+1,self.y,'grass') == false then directions = directions .. "e" end
-  if currMap:tile_has_feature(self.x-1,self.y,'grass') == false then directions = directions .. "w" end
+  if map:tile_has_feature(self.x,self.y-1,'grass') == false then directions = directions .. "n" end
+  if map:tile_has_feature(self.x,self.y+1,'grass') == false then directions = directions .. "s" end
+  if map:tile_has_feature(self.x+1,self.y,'grass') == false then directions = directions .. "e" end
+  if map:tile_has_feature(self.x-1,self.y,'grass') == false then directions = directions .. "w" end
   if directions == "" then self.tileDirection = "middle" else self.tileDirection = directions end
 end --end get_image
 possibleFeatures['grass'] = grass
@@ -350,12 +352,13 @@ local deadgrass = {
     if (random(1,2) == 1) then self.symbol = "," end
   end
 }
-function deadgrass:refresh_image_name()
+function deadgrass:refresh_image_name(map)
+  map = map or currMap
   local directions = ""
-  if currMap:tile_has_feature(self.x,self.y-1,'deadgrass') == false then directions = directions .. "n" end
-  if currMap:tile_has_feature(self.x,self.y+1,'deadgrass') == false then directions = directions .. "s" end
-  if currMap:tile_has_feature(self.x+1,self.y,'deadgrass') == false then directions = directions .. "e" end
-  if currMap:tile_has_feature(self.x-1,self.y,'deadgrass') == false then directions = directions .. "w" end
+  if map:tile_has_feature(self.x,self.y-1,'deadgrass') == false then directions = directions .. "n" end
+  if map:tile_has_feature(self.x,self.y+1,'deadgrass') == false then directions = directions .. "s" end
+  if map:tile_has_feature(self.x+1,self.y,'deadgrass') == false then directions = directions .. "e" end
+  if map:tile_has_feature(self.x-1,self.y,'deadgrass') == false then directions = directions .. "w" end
   if directions == "" then self.tileDirection = "middle" else self.tileDirection = directions end
 end --end get_image
 possibleFeatures['deadgrass'] = deadgrass
@@ -393,13 +396,14 @@ local shallowwater = {
     end --end flyer if
   end --end enter function
 }
-function shallowwater:refresh_image_name()
+function shallowwater:refresh_image_name(map)
+  map = map or currMap
   local directions = ""
-  if currMap:tile_has_feature(self.x,self.y-1,'shallowwater') == false and currMap:tile_has_feature(self.x,self.y-1,'deepwater') == false then directions = directions .. "n" end
-  if currMap:tile_has_feature(self.x,self.y+1,'shallowwater') == false and currMap:tile_has_feature(self.x,self.y+1,'deepwater') == false  then directions = directions .. "s" end
-  if currMap:tile_has_feature(self.x+1,self.y,'shallowwater') == false and currMap:tile_has_feature(self.x+1,self.y,'deepwater') == false  then directions = directions .. "e" end
-  if currMap:tile_has_feature(self.x-1,self.y,'shallowwater') == false and currMap:tile_has_feature(self.x-1,self.y,'deepwater') == false  then directions = directions .. "w" end
-  if currMap:tile_has_feature(self.x,self.y,"bridge") == true then self.walkedOnImage = nil end
+  if map:tile_has_feature(self.x,self.y-1,'shallowwater') == false and map:tile_has_feature(self.x,self.y-1,'deepwater') == false then directions = directions .. "n" end
+  if map:tile_has_feature(self.x,self.y+1,'shallowwater') == false and map:tile_has_feature(self.x,self.y+1,'deepwater') == false  then directions = directions .. "s" end
+  if map:tile_has_feature(self.x+1,self.y,'shallowwater') == false and map:tile_has_feature(self.x+1,self.y,'deepwater') == false  then directions = directions .. "e" end
+  if map:tile_has_feature(self.x-1,self.y,'shallowwater') == false and map:tile_has_feature(self.x-1,self.y,'deepwater') == false  then directions = directions .. "w" end
+  if map:tile_has_feature(self.x,self.y,"bridge") == true then self.walkedOnImage = nil end
   if directions == "" then self.tileDirection = "middle" else self.tileDirection = directions end
 end --end get_image
 possibleFeatures['shallowwater'] = shallowwater
@@ -435,7 +439,8 @@ local sewage = {
     end --end flyer if
   end
 }
-function sewage:refresh_image_name()
+function sewage:refresh_image_name(map)
+  map = map or currMap
   --[[local directions = ""
   if currMap[self.x][self.y-1] ~= "#" and currMap:tile_has_feature(self.x,self.y-1,'sewage') == false then directions = directions .. "n" end
   if currMap[self.x][self.y+1] ~= "#" and currMap:tile_has_feature(self.x,self.y+1,'sewage') == false then directions = directions .. "s" end
@@ -443,12 +448,12 @@ function sewage:refresh_image_name()
   if currMap[self.x-1][self.y] ~= "#" and currMap:tile_has_feature(self.x-1,self.y,'sewage') == false then directions = directions .. "w" end
   self.image_name = ("sewage" .. directions)]]
   local directions = ""
-  if currMap:tile_has_feature(self.x,self.y-1,'sewage') == false then directions = directions .. "n" end
-  if currMap:tile_has_feature(self.x,self.y+1,'sewage') == false then directions = directions .. "s" end
-  if currMap:tile_has_feature(self.x+1,self.y,'sewage') == false then directions = directions .. "e" end
-  if currMap:tile_has_feature(self.x-1,self.y,'sewage') == false then directions = directions .. "w" end
+  if map:tile_has_feature(self.x,self.y-1,'sewage') == false then directions = directions .. "n" end
+  if map:tile_has_feature(self.x,self.y+1,'sewage') == false then directions = directions .. "s" end
+  if map:tile_has_feature(self.x+1,self.y,'sewage') == false then directions = directions .. "e" end
+  if map:tile_has_feature(self.x-1,self.y,'sewage') == false then directions = directions .. "w" end
   if directions == "" then self.tileDirection = "middle" else self.tileDirection = directions end
-  if currMap:tile_has_feature(self.x,self.y,"bridge") == false then self.walkedOnImage = "wadingsewage" .. string.gsub(directions,"n","") end
+  if map:tile_has_feature(self.x,self.y,"bridge") == false then self.walkedOnImage = "wadingsewage" .. string.gsub(directions,"n","") end
 end --end get_image
 possibleFeatures['sewage'] = sewage
 
@@ -485,13 +490,14 @@ local swampwater = {
     end --end flyer if
   end --end enter function
 }
-function swampwater:refresh_image_name()
+function swampwater:refresh_image_name(map)
+  map = map or currMap
   local directions = ""
-  if currMap:tile_has_feature(self.x,self.y-1,'swampwater') == false then directions = directions .. "n" end
-  if currMap:tile_has_feature(self.x,self.y+1,'swampwater') == false then directions = directions .. "s" end
-  if currMap:tile_has_feature(self.x+1,self.y,'swampwater') == false then directions = directions .. "e" end
-  if currMap:tile_has_feature(self.x-1,self.y,'swampwater') == false then directions = directions .. "w" end
-  if currMap:tile_has_feature(self.x,self.y,"bridge") == false then self.walkedOnImage = "wadingswampwater" .. string.gsub(directions,"n","") end
+  if map:tile_has_feature(self.x,self.y-1,'swampwater') == false then directions = directions .. "n" end
+  if map:tile_has_feature(self.x,self.y+1,'swampwater') == false then directions = directions .. "s" end
+  if map:tile_has_feature(self.x+1,self.y,'swampwater') == false then directions = directions .. "e" end
+  if map:tile_has_feature(self.x-1,self.y,'swampwater') == false then directions = directions .. "w" end
+  if map:tile_has_feature(self.x,self.y,"bridge") == false then self.walkedOnImage = "wadingswampwater" .. string.gsub(directions,"n","") end
   if directions == "" then self.tileDirection = "middle" else self.tileDirection = directions end
 end --end get_image
 possibleFeatures['swampwater'] = swampwater
@@ -536,14 +542,15 @@ local riverofthedead = {
     end --end flyer if
   end --end enter function
 }
-function riverofthedead:refresh_image_name()
+function riverofthedead:refresh_image_name(map)
+  map = map or currMap
   local directions = ""
-  if currMap:in_map(self.x,self.y-1) and currMap[self.x][self.y-1] ~= "#" and (currMap[self.x][self.y-1].id == nil or currMap[self.x][self.y-1].id ~= "riverofthedead") then directions = directions .. "n" end
-  if currMap:in_map(self.x,self.y+1) and currMap[self.x][self.y+1] ~= "#" and (currMap[self.x][self.y+1].id == nil or currMap[self.x][self.y+1].id ~= "riverofthedead") then directions = directions .. "s" end
-  if currMap:in_map(self.x+1,self.y) and currMap[self.x+1][self.y] ~= "#" and (currMap[self.x+1][self.y].id == nil or currMap[self.x+1][self.y].id ~= "riverofthedead") then directions = directions .. "e" end
-  if currMap:in_map(self.x-1,self.y) and currMap[self.x-1][self.y] ~= "#" and (currMap[self.x-1][self.y].id == nil or currMap[self.x-1][self.y].id ~= "riverofthedead") then directions = directions .. "w" end
+  if map:in_map(self.x,self.y-1) and map[self.x][self.y-1] ~= "#" and (map[self.x][self.y-1].id == nil or map[self.x][self.y-1].id ~= "riverofthedead") then directions = directions .. "n" end
+  if map:in_map(self.x,self.y+1) and map[self.x][self.y+1] ~= "#" and (map[self.x][self.y+1].id == nil or map[self.x][self.y+1].id ~= "riverofthedead") then directions = directions .. "s" end
+  if map:in_map(self.x+1,self.y) and map[self.x+1][self.y] ~= "#" and (map[self.x+1][self.y].id == nil or map[self.x+1][self.y].id ~= "riverofthedead") then directions = directions .. "e" end
+  if map:in_map(self.x-1,self.y) and map[self.x-1][self.y] ~= "#" and (map[self.x-1][self.y].id == nil or map[self.x-1][self.y].id ~= "riverofthedead") then directions = directions .. "w" end
   self.image_name = ("deadriver" .. directions)
-  if currMap:tile_has_feature(self.x,self.y,"bridge") == false then self.walkedOnImage = "wadingdeadriver" .. string.gsub(directions,"n","") end
+  if map:tile_has_feature(self.x,self.y,"bridge") == false then self.walkedOnImage = "wadingdeadriver" .. string.gsub(directions,"n","") end
 end --end get_image
 possibleFeatures['riverofthedead'] = riverofthedead
 
@@ -579,13 +586,14 @@ function deepwater:enter(entity)
     end --end wading shallowwater if
   end --end swimmmer if
 end
-function deepwater:refresh_image_name()
+function deepwater:refresh_image_name(map)
+  map = map or currMap
   local directions = ""
-  if currMap:tile_has_feature(self.x,self.y-1,'shallowwater') then directions = directions .. "n" end
-  if currMap:tile_has_feature(self.x,self.y+1,'shallowwater') then directions = directions .. "s" end
-  if currMap:tile_has_feature(self.x+1,self.y,'shallowwater') then directions = directions .. "e" end
-  if currMap:tile_has_feature(self.x-1,self.y,'shallowwater') then directions = directions .. "w" end
-  if currMap:tile_has_feature(self.x,self.y,"bridge") == true then self.walkedOnImage = nil end
+  if map:tile_has_feature(self.x,self.y-1,'shallowwater') then directions = directions .. "n" end
+  if map:tile_has_feature(self.x,self.y+1,'shallowwater') then directions = directions .. "s" end
+  if map:tile_has_feature(self.x+1,self.y,'shallowwater') then directions = directions .. "e" end
+  if map:tile_has_feature(self.x-1,self.y,'shallowwater') then directions = directions .. "w" end
+  if map:tile_has_feature(self.x,self.y,"bridge") == true then self.walkedOnImage = nil end
   if directions == "" then self.tileDirection = "middle" else self.tileDirection = directions end
 end --end get_image
 possibleFeatures['deepwater'] = deepwater
@@ -611,18 +619,19 @@ local lava = {
     end --end entity type if
   end
 }
-function lava:refresh_image_name()
+function lava:refresh_image_name(map)
+  map = map or currMap
   local directions = ""
-  if currMap:in_map(self.x,self.y-1) and currMap[self.x][self.y-1] ~= "#" and (currMap[self.x][self.y-1].id == nil or currMap[self.x][self.y-1].id ~= "lava") or currMap:tile_has_feature(self.x,self.y-1,'lava') == false then directions = directions .. "n" end
-  if currMap:in_map(self.x,self.y+1) and currMap[self.x][self.y+1] ~= "#" and (currMap[self.x][self.y+1].id == nil or currMap[self.x][self.y+1].id ~= "lava") or currMap:tile_has_feature(self.x,self.y+1,'lava') == false  then directions = directions .. "s" end
-  if currMap:in_map(self.x+1,self.y) and currMap[self.x+1][self.y] ~= "#" and (currMap[self.x+1][self.y].id == nil or currMap[self.x+1][self.y].id ~= "lava") or currMap:tile_has_feature(self.x+1,self.y,'lava') == false  then directions = directions .. "e" end
-  if currMap:in_map(self.x-1,self.y) and currMap[self.x-1][self.y] ~= "#" and (currMap[self.x-1][self.y].id == nil or currMap[self.x-1][self.y].id ~= "lava") or currMap:tile_has_feature(self.x-1,self.y,'lava') == false  then directions = directions .. "w" end
+  if map:in_map(self.x,self.y-1) and map[self.x][self.y-1] ~= "#" and (map[self.x][self.y-1].id == nil or map[self.x][self.y-1].id ~= "lava") or map:tile_has_feature(self.x,self.y-1,'lava') == false then directions = directions .. "n" end
+  if map:in_map(self.x,self.y+1) and map[self.x][self.y+1] ~= "#" and (map[self.x][self.y+1].id == nil or map[self.x][self.y+1].id ~= "lava") or map:tile_has_feature(self.x,self.y+1,'lava') == false  then directions = directions .. "s" end
+  if map:in_map(self.x+1,self.y) and map[self.x+1][self.y] ~= "#" and (map[self.x+1][self.y].id == nil or map[self.x+1][self.y].id ~= "lava") or map:tile_has_feature(self.x+1,self.y,'lava') == false  then directions = directions .. "e" end
+  if map:in_map(self.x-1,self.y) and map[self.x-1][self.y] ~= "#" and (map[self.x-1][self.y].id == nil or map[self.x-1][self.y].id ~= "lava") or map:tile_has_feature(self.x-1,self.y,'lava') == false  then directions = directions .. "w" end
   if directions == "" then
     self.tileDirection = "middle"
   else
     self.tileDirection = directions
 end
-  if currMap:tile_has_feature(self.x,self.y,"bridge") or currMap:tile_has_feature(self.x,self.y,"minetracks") then
+  if map:tile_has_feature(self.x,self.y,"bridge") or map:tile_has_feature(self.x,self.y,"minetracks") then
     self.walkedOnImage = nil
   else
     self.walkedOnImage = "lava" .. self.image_variety .. "wading"
@@ -663,12 +672,13 @@ local ember = {
       end --end fory
     end --end forx
   end,
-  refresh_image_name = function(self)
+  refresh_image_name = function(self,map)
+    map = map or currMap
     local directions = ""
-    if currMap:tile_has_feature(self.x,self.y-1,'ember') == false then directions = directions .. "n" end
-    if currMap:tile_has_feature(self.x,self.y+1,'ember') == false then directions = directions .. "s" end
-    if currMap:tile_has_feature(self.x+1,self.y,'ember') == false then directions = directions .. "e" end
-    if currMap:tile_has_feature(self.x-1,self.y,'ember') == false then directions = directions .. "w" end
+    if map:tile_has_feature(self.x,self.y-1,'ember') == false then directions = directions .. "n" end
+    if map:tile_has_feature(self.x,self.y+1,'ember') == false then directions = directions .. "s" end
+    if map:tile_has_feature(self.x+1,self.y,'ember') == false then directions = directions .. "e" end
+    if map:tile_has_feature(self.x-1,self.y,'ember') == false then directions = directions .. "w" end
     if directions == "" then self.tileDirection = "middle" else self.tileDirection = directions end
   end --end get_image
 }
@@ -685,12 +695,13 @@ local chasm = {
   absorbs = true,
   tilemap = true
 }
-function chasm:refresh_image_name()
+function chasm:refresh_image_name(map)
+  map = map or currMap
   local directions = ""
-  if currMap:in_map(self.x,self.y-1) and (currMap[self.x][self.y-1].id == nil or currMap[self.x][self.y-1].id ~= "chasm") then directions = directions .. "n" end
-  if currMap:in_map(self.x,self.y+1) and (currMap[self.x][self.y+1].id == nil or currMap[self.x][self.y+1].id ~= "chasm") then directions = directions .. "s" end
-  if currMap:in_map(self.x+1,self.y) and (currMap[self.x+1][self.y].id == nil or currMap[self.x+1][self.y].id ~= "chasm") then directions = directions .. "e" end
-  if currMap:in_map(self.x-1,self.y) and (currMap[self.x-1][self.y].id == nil or currMap[self.x-1][self.y].id ~= "chasm") then directions = directions .. "w" end
+  if map:in_map(self.x,self.y-1) and (map[self.x][self.y-1].id == nil or map[self.x][self.y-1].id ~= "chasm") then directions = directions .. "n" end
+  if map:in_map(self.x,self.y+1) and (map[self.x][self.y+1].id == nil or map[self.x][self.y+1].id ~= "chasm") then directions = directions .. "s" end
+  if map:in_map(self.x+1,self.y) and (map[self.x+1][self.y].id == nil or map[self.x+1][self.y].id ~= "chasm") then directions = directions .. "e" end
+  if map:in_map(self.x-1,self.y) and (map[self.x-1][self.y].id == nil or map[self.x-1][self.y].id ~= "chasm") then directions = directions .. "w" end
   if directions == "" then self.tileDirection = "middle" else self.tileDirection = directions end
   self.image_name = "chasm" .. random(1,2)
 end --end get_image
@@ -713,10 +724,11 @@ local brokenWall = {
   passableFor = {flyer=true},
   color={r=255,g=255,b=255,a=255}
 }
-function brokenWall:refresh_image_name()
+function brokenWall:refresh_image_name(map)
+  map = map or currMap
   local direction = ""
-  if currMap:in_map(self.x+1,self.y) and currMap[self.x+1][self.y] == "#" or (type(currMap[self.x+1][self.y]) == "table" and currMap[self.x+1][self.y].id == "brokenwall") or currMap:tile_has_feature(self.x+1,self.y,'door') then direction = direction .. "e" end
-  if currMap:in_map(self.x-1,self.y) and currMap[self.x-1][self.y] == "#" or (type(currMap[self.x-1][self.y]) == "table" and currMap[self.x-1][self.y].id == "brokenwall") or currMap:tile_has_feature(self.x-1,self.y,'door') then direction = direction .. "w" end
+  if map:in_map(self.x+1,self.y) and map[self.x+1][self.y] == "#" or (type(map[self.x+1][self.y]) == "table" and map[self.x+1][self.y].id == "brokenwall") or map:tile_has_feature(self.x+1,self.y,'door') then direction = direction .. "e" end
+  if map:in_map(self.x-1,self.y) and map[self.x-1][self.y] == "#" or (type(map[self.x-1][self.y]) == "table" and map[self.x-1][self.y].id == "brokenwall") or map:tile_has_feature(self.x-1,self.y,'door') then direction = direction .. "w" end
   --if direction == "" and (currMap[self.x][self.y+1] == "#" or (type(currMap[self.x][self.y+1]) == "table" and currMap[self.x][self.y+1].id == "brokenwall") or currMap:tile_has_feature(self.x,self.y+1,'door')) then direction = "s" .. direction end
   self.image_name = (self.image_base or "brokenwall") .. direction
 end
@@ -730,12 +742,13 @@ local brokentiles = {
   tilemap = true,
   image_varieties=2,
 }
-function brokentiles:refresh_image_name()
+function brokentiles:refresh_image_name(map)
+  map = map or currMap
   local directions = ""
-  if currMap:in_map(self.x,self.y-1) and (currMap[self.x][self.y-1].id == nil or currMap[self.x][self.y-1].id ~= "brokentiles") and currMap[self.x][self.y-1] ~= "<" and currMap[self.x][self.y-1] ~= ">" and currMap[self.x][self.y-1] ~= "#" then directions = directions .. "n" end
-  if currMap:in_map(self.x,self.y+1) and (currMap[self.x][self.y+1].id == nil or currMap[self.x][self.y+1].id ~= "brokentiles") and currMap[self.x][self.y+1] ~= "<" and currMap[self.x][self.y+1] ~= ">" and currMap[self.x][self.y+1] ~= "#" then directions = directions .. "s" end
-  if currMap:in_map(self.x+1,self.y) and  (currMap[self.x+1][self.y].id == nil or currMap[self.x+1][self.y].id ~= "brokentiles") and currMap[self.x+1][self.y] ~= "<" and currMap[self.x+1][self.y] ~= ">" and currMap[self.x+1][self.y] ~= "#" then directions = directions .. "e" end
-  if currMap:in_map(self.x-1,self.y) and (currMap[self.x-1][self.y].id == nil or currMap[self.x-1][self.y].id ~= "brokentiles") and currMap[self.x-1][self.y] ~= "<" and currMap[self.x-1][self.y] ~= ">" and currMap[self.x-1][self.y] ~= "#" then directions = directions .. "w" end
+  if map:in_map(self.x,self.y-1) and (map[self.x][self.y-1].id == nil or map[self.x][self.y-1].id ~= "brokentiles") and map[self.x][self.y-1] ~= "<" and map[self.x][self.y-1] ~= ">" and map[self.x][self.y-1] ~= "#" then directions = directions .. "n" end
+  if map:in_map(self.x,self.y+1) and (map[self.x][self.y+1].id == nil or map[self.x][self.y+1].id ~= "brokentiles") and map[self.x][self.y+1] ~= "<" and map[self.x][self.y+1] ~= ">" and map[self.x][self.y+1] ~= "#" then directions = directions .. "s" end
+  if map:in_map(self.x+1,self.y) and  (map[self.x+1][self.y].id == nil or map[self.x+1][self.y].id ~= "brokentiles") and map[self.x+1][self.y] ~= "<" and map[self.x+1][self.y] ~= ">" and map[self.x+1][self.y] ~= "#" then directions = directions .. "e" end
+  if map:in_map(self.x-1,self.y) and (map[self.x-1][self.y].id == nil or map[self.x-1][self.y].id ~= "brokentiles") and map[self.x-1][self.y] ~= "<" and map[self.x-1][self.y] ~= ">" and map[self.x-1][self.y] ~= "#" then directions = directions .. "w" end
   if directions == "" then self.tileDirection = "middle" else self.tileDirection = directions end
   if self.tileDirection == "middle" and not self.fancy then
     self.image_name = "stonetile" .. random(1,7)
@@ -880,12 +893,13 @@ local web = {
     end
   end
 }
-function web:refresh_image_name()
+function web:refresh_image_name(map)
+  map = map or currMap
   local directions = ""
-  if currMap:tile_has_feature(self.x,self.y-1,'web') == false then directions = directions .. "n" end
-  if currMap:tile_has_feature(self.x,self.y+1,'web') == false  then directions = directions .. "s" end
-  if currMap:tile_has_feature(self.x+1,self.y,'web') == false  then directions = directions .. "e" end
-  if currMap:tile_has_feature(self.x-1,self.y,'web') == false  then directions = directions .. "w" end
+  if map:tile_has_feature(self.x,self.y-1,'web') == false then directions = directions .. "n" end
+  if map:tile_has_feature(self.x,self.y+1,'web') == false  then directions = directions .. "s" end
+  if map:tile_has_feature(self.x+1,self.y,'web') == false  then directions = directions .. "e" end
+  if map:tile_has_feature(self.x-1,self.y,'web') == false  then directions = directions .. "w" end
   if directions == "" then self.tileDirection = "middle" else self.tileDirection = directions end
 end --end get_image
 possibleFeatures['web'] = web
@@ -1429,12 +1443,13 @@ local table = {
   shootThrough = true,
   fireChance = 15,
 }
-function table:refresh_image_name()
+function table:refresh_image_name(map)
+  map = map or currMap
   local directions = ""
-  if currMap:tile_has_feature(self.x,self.y-1,'table') == false then directions = directions .. "n" end
-  if currMap:tile_has_feature(self.x,self.y+1,'table') == false then directions = directions .. "s" end
-  if currMap:tile_has_feature(self.x+1,self.y,'table') == false then directions = directions .. "e" end
-  if currMap:tile_has_feature(self.x-1,self.y,'table') == false then directions = directions .. "w" end
+  if map:tile_has_feature(self.x,self.y-1,'table') == false then directions = directions .. "n" end
+  if map:tile_has_feature(self.x,self.y+1,'table') == false then directions = directions .. "s" end
+  if map:tile_has_feature(self.x+1,self.y,'table') == false then directions = directions .. "e" end
+  if map:tile_has_feature(self.x-1,self.y,'table') == false then directions = directions .. "w" end
   if directions == "" then self.tileDirection = "middle" else self.tileDirection = directions end
 end --end get_image
 possibleFeatures['table'] = table
@@ -1449,12 +1464,13 @@ local stonetable = {
   impassable = true,
   shootThrough = true,
 }
-function stonetable:refresh_image_name()
+function stonetable:refresh_image_name(map)
+  map = map or currMap
   local directions = ""
-  if currMap:tile_has_feature(self.x,self.y-1,'stonetable') == false then directions = directions .. "n" end
-  if currMap:tile_has_feature(self.x,self.y+1,'stonetable') == false then directions = directions .. "s" end
-  if currMap:tile_has_feature(self.x+1,self.y,'stonetable') == false then directions = directions .. "e" end
-  if currMap:tile_has_feature(self.x-1,self.y,'stonetable') == false then directions = directions .. "w" end
+  if map:tile_has_feature(self.x,self.y-1,'stonetable') == false then directions = directions .. "n" end
+  if map:tile_has_feature(self.x,self.y+1,'stonetable') == false then directions = directions .. "s" end
+  if map:tile_has_feature(self.x+1,self.y,'stonetable') == false then directions = directions .. "e" end
+  if map:tile_has_feature(self.x-1,self.y,'stonetable') == false then directions = directions .. "w" end
   if directions == "" then self.tileDirection = "middle" else self.tileDirection = directions end
 end --end get_image
 possibleFeatures['stonetable'] = stonetable
@@ -1636,19 +1652,20 @@ local minetracks = {
   directions = {n=true,s=true,e=true,w=true},
   color={r=63,g=56,b=24,a=255},
 }
-function minetracks:refresh_image_name()
+function minetracks:refresh_image_name(map)
+  map = map or currMap
   local directions = ""
   local dirs = {n=true,s=true,e=true,w=true}
-  if currMap:tile_has_feature(self.x,self.y-1,'minetracks') == false then
+  if map:tile_has_feature(self.x,self.y-1,'minetracks') == false then
     dirs['n'] = nil
     directions = directions .. "n" end
-  if currMap:tile_has_feature(self.x,self.y+1,'minetracks') == false then
+  if map:tile_has_feature(self.x,self.y+1,'minetracks') == false then
     dirs['s'] = nil
     directions = directions .. "s" end
-  if currMap:tile_has_feature(self.x+1,self.y,'minetracks') == false then
+  if map:tile_has_feature(self.x+1,self.y,'minetracks') == false then
     dirs['e'] = nil
     directions = directions .. "e" end
-  if currMap:tile_has_feature(self.x-1,self.y,'minetracks') == false then
+  if map:tile_has_feature(self.x-1,self.y,'minetracks') == false then
     dirs['w'] = nil
     directions = directions .. "w" end
     
@@ -1912,12 +1929,13 @@ local giantpentagram = {
   tilemap=true,
   tileDirection = "nsew",
 }
-function giantpentagram:refresh_image_name()
+function giantpentagram:refresh_image_name(map)
+  map = map or currMap
   local directions = ""
-  if currMap:tile_has_feature(self.x,self.y-1,'giantpentagram') == false then directions = directions .. "n" end
-  if currMap:tile_has_feature(self.x,self.y+1,'giantpentagram') == false  then directions = directions .. "s" end
-  if currMap:tile_has_feature(self.x+1,self.y,'giantpentagram') == false  then directions = directions .. "e" end
-  if currMap:tile_has_feature(self.x-1,self.y,'giantpentagram') == false  then directions = directions .. "w" end
+  if map:tile_has_feature(self.x,self.y-1,'giantpentagram') == false then directions = directions .. "n" end
+  if map:tile_has_feature(self.x,self.y+1,'giantpentagram') == false  then directions = directions .. "s" end
+  if map:tile_has_feature(self.x+1,self.y,'giantpentagram') == false  then directions = directions .. "e" end
+  if map:tile_has_feature(self.x-1,self.y,'giantpentagram') == false  then directions = directions .. "w" end
   if directions == "" then self.tileDirection = "middle" else self.tileDirection = directions end
 end --end get_image
 possibleFeatures['giantpentagram'] = giantpentagram
@@ -1928,8 +1946,9 @@ local brickwall = {
   symbol = "#",
   color = {r=255,g=255,b=255}
 }
-function brickwall:refresh_image_name()
-  if (currMap:in_map(self.x,self.y+1) and currMap[self.x][self.y+1] == "#") or currMap:tile_has_feature(self.x,self.y+1,'brickwall') then self.image_name = "brickwallplain" end
+function brickwall:refresh_image_name(map)
+  map = map or currMap
+  if (map:in_map(self.x,self.y+1) and map[self.x][self.y+1] == "#") or map:tile_has_feature(self.x,self.y+1,'brickwall') then self.image_name = "brickwallplain" end
 end
 possibleFeatures['brickwall'] = brickwall
 
@@ -2076,8 +2095,8 @@ local firemaker = {
   noDisp = true,
   color = {r=0,g=0,b=0,a=0},
   description = "An invisible feature that turns into fire. Used for demon deaths.",
-  new = function (self,data,x,y)
-    currMap:add_effect(Effect('fire',{x=self.x,y=self.y}),x,y)
+  placed = function (self)
+    currMap:add_effect(Effect('fire',{x=self.x,y=self.y}),self.x,self.y)
     self:delete()
   end
 }
@@ -2090,8 +2109,8 @@ local lightflash = {
   noDisp = true,
   color = {r=0,g=0,b=0,a=0},
   description = "An invisible feature that turns into a flash of light. Used for angel deaths.",
-  new = function (self,data,x,y)
-    currMap:add_effect(Effect('animation','holydamage',5,self,{r=255,g=255,b=0}),x,y)
+  placed = function (self)
+    currMap:add_effect(Effect('animation','holydamage',5,self,{r=255,g=255,b=0}),self.x,self.y)
     self:delete()
   end
 }
@@ -2104,8 +2123,8 @@ local darkflash = {
   noDisp = true,
   color = {r=0,g=0,b=0,a=0},
   description = "An invisible feature that turns into a flash of darkness. Used for spooky deaths.",
-  new = function (self,data,x,y)
-    currMap:add_effect(Effect('animation','unholydamage',5,self,{r=150,g=0,b=150}),x,y)
+  placed = function (self)
+    currMap:add_effect(Effect('animation','unholydamage',5,self,{r=150,g=0,b=150}),self.x,self.y)
     self:delete()
   end
 }
@@ -2118,8 +2137,8 @@ local magicflash = {
   noDisp = true,
   color = {r=0,g=0,b=0,a=0},
   description = "An invisible feature that turns into a flash of magic. Used for magical deaths.",
-  new = function (self,data,x,y)
-    currMap:add_effect(Effect('animation','magicdamage',5,self,{r=255,g=255,b=0}),x,y)
+  placed = function (self)
+    currMap:add_effect(Effect('animation','magicdamage',5,self,{r=255,g=255,b=0}),self.x,self.)
     self:delete()
   end
 }
@@ -2202,15 +2221,16 @@ local fence = {
   tilemap = true,
   tileDirection = "middle"
 }
-function fence:refresh_image_name()
+function fence:refresh_image_name(map)
+  map = map or currMap
   local directions = ""
-  if currMap:tile_has_feature(self.x,self.y-1,'fence') == false then
+  if map:tile_has_feature(self.x,self.y-1,'fence') == false then
     directions = directions .. "n" end
-  if currMap:tile_has_feature(self.x,self.y+1,'fence') == false then
+  if map:tile_has_feature(self.x,self.y+1,'fence') == false then
     directions = directions .. "s" end
-  if currMap:tile_has_feature(self.x+1,self.y,'fence') == false then
+  if map:tile_has_feature(self.x+1,self.y,'fence') == false then
     directions = directions .. "e" end
-  if currMap:tile_has_feature(self.x-1,self.y,'fence') == false then
+  if map:tile_has_feature(self.x-1,self.y,'fence') == false then
     directions = directions .. "w" end
     
   self.tileDirection = directions
@@ -2428,12 +2448,13 @@ local bridge = {
   image_name = "stonebridge",
   walkedOnImage = "stonebridgecrossing"
 }
-function bridge:refresh_image_name()
+function bridge:refresh_image_name(map)
+  map = map or currMap
   local dir = ""
-  if not currMap:tile_has_feature(self.x,self.y-1,"bridge") then dir = dir .. "n" self.symbol = "–" end
-  if not currMap:tile_has_feature(self.x,self.y+1,"bridge") then dir = dir .. "s" self.symbol = "–" end
-  if not currMap:tile_has_feature(self.x+1,self.y,"bridge") then dir = dir .. "e" end
-  if not currMap:tile_has_feature(self.x-1,self.y,"bridge") then dir = dir .. "w" end
+  if not map:tile_has_feature(self.x,self.y-1,"bridge") then dir = dir .. "n" self.symbol = "–" end
+  if not map:tile_has_feature(self.x,self.y+1,"bridge") then dir = dir .. "s" self.symbol = "–" end
+  if not map:tile_has_feature(self.x+1,self.y,"bridge") then dir = dir .. "e" end
+  if not map:tile_has_feature(self.x-1,self.y,"bridge") then dir = dir .. "w" end
   if dir == "nsew" then end
   if dir == "" then
     self.symbol = "+"

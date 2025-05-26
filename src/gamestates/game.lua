@@ -1895,7 +1895,7 @@ function game:blackOut(seconds,win)
         if self.deadTween then 
           --Timer.cancel(self.deadTween)
         end 
-        if currGame.cheats.regenMapOnDeath then 
+        if currGame and currGame.cheats.regenMapOnDeath then 
           regen_map() 
         end 
       end

@@ -251,7 +251,7 @@ function turn_logic()
     if faction.reputation_decay_turns and currGame.stats.turns % faction.reputation_decay_turns == 0 and (faction.reputation_decay_for_non_members or player:is_faction_member(fid)) then
       local newRep = (player.reputation[fid] or 0) - (faction.reputation_decay or 1)
       if not faction.reputation_decay_floor or newRep >= faction.reputation_decay_floor then
-        player:modify_repuation(fid,-faction.reputation_decay)
+        player:update_reputation(fid,-faction.reputation_decay)
       end
     end
     if faction.reputation_growth_turns and currGame.stats.turns % faction.reputation_growth_turns == 0 and (faction.reputation_growth_for_non_members or player:is_faction_member(fid)) then

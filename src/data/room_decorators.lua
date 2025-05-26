@@ -193,10 +193,10 @@ function bedroom.decorate(room,map)
     local chair = Feature('chair')
     map:add_feature(chair,wallTiles[chairTile].x,wallTiles[chairTile].y)
     --Try to add a table next to the chair:
-    local nTile = mapgen:is_safe_to_block(map,wallTiles[chairTile].x,wallTiles[chairTile].y-1) and map:isClear(wallTiles[chairTile].x,wallTiles[chairTile].y-1)
-    local sTile = mapgen:is_safe_to_block(map,wallTiles[chairTile].x,wallTiles[chairTile].y+1) and map:isClear(wallTiles[chairTile].x,wallTiles[chairTile].y+1)
-    local eTile = mapgen:is_safe_to_block(map,wallTiles[chairTile].x+1,wallTiles[chairTile].y) and map:isClear(wallTiles[chairTile].x+1,wallTiles[chairTile].y)
-    local wTile = mapgen:is_safe_to_block(map,wallTiles[chairTile].x-1,wallTiles[chairTile].y) and map:isClear(wallTiles[chairTile].x-1,wallTiles[chairTile].y)
+    local nTile = map:is_safe_to_block(wallTiles[chairTile].x,wallTiles[chairTile].y-1) and map:isClear(wallTiles[chairTile].x,wallTiles[chairTile].y-1)
+    local sTile = map:is_safe_to_block(wallTiles[chairTile].x,wallTiles[chairTile].y+1) and map:isClear(wallTiles[chairTile].x,wallTiles[chairTile].y+1)
+    local eTile = map:is_safe_to_block(wallTiles[chairTile].x+1,wallTiles[chairTile].y) and map:isClear(wallTiles[chairTile].x+1,wallTiles[chairTile].y)
+    local wTile = map:is_safe_to_block(wallTiles[chairTile].x-1,wallTiles[chairTile].y) and map:isClear(wallTiles[chairTile].x-1,wallTiles[chairTile].y)
     local dirs = {}
     if nTile then dirs['s'] = {x=wallTiles[chairTile].x,y=wallTiles[chairTile].y-1} end
     if sTile then dirs['n'] = {x=wallTiles[chairTile].x,y=wallTiles[chairTile].y+1} end
