@@ -1414,18 +1414,24 @@ function Faction:get_recruitable_creatures(creature)
         local name
         for cid,amt in pairs(data.creatures) do
           local creatInfo = possibleMonsters[cid]
-          name = (name and name .. ", " or "") .. ucfirst(creatInfo.name) .. (amt > 1 and " x " .. amt or "")
+          if creatInfo then
+            name = (name and name .. ", " or "") .. ucfirst(creatInfo.name) .. (amt > 1 and " x " .. amt or "")\
+          end
         end
         data.name = name
       end
+      if not data.name then data.name = "" end
       if not data.description then
         local description
         for cid,amt in pairs(data.creatures) do
           local creatInfo = possibleMonsters[cid]
-          description = (description and description .. "\n" or "") .. (count(data.creatures) > 1 and ucfirst(creatInfo.name) .. ": " or "") .. creatInfo.description
+          if creatInfo then
+            description = (description and description .. "\n" or "") .. (count(data.creatures) > 1 and ucfirst(creatInfo.name) .. ": " or "") .. creatInfo.description
+          end
         end
         data.description = description
       end
+      if not data.description then data.name = "" end
       local moneyText = (data.moneyCost and get_money_name(data.moneyCost+round(data.moneyCost*(costMod/100))) or nil)
       local favorText = (data.favorCost and data.favorCost .. " Favor" or nil)
       local repText = (data.reputationCost and data.reputationCost.. " Reputation" or nil)

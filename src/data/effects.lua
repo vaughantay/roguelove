@@ -2048,6 +2048,7 @@ local animation = {
   remove_on_cleanup=true
 }
 function animation:new(info)
+  info = info or {}
   --image_name,image_max,target,color,ascii,use_color_with_tiles,repetitions,backwards,ignoreTurns,stopsInput,time_per_tile
   self.image_name = info.image_name
   self.image_max = info.image_max

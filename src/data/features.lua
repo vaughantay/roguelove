@@ -2110,7 +2110,7 @@ local lightflash = {
   color = {r=0,g=0,b=0,a=0},
   description = "An invisible feature that turns into a flash of light. Used for angel deaths.",
   placed = function (self)
-    currMap:add_effect(Effect('animation','holydamage',5,self,{r=255,g=255,b=0}),self.x,self.y)
+    currMap:add_effect(Effect('animation',{image_name='holydamage',image_max=5,target=self,color={r=255,g=255,b=255}}),self.x,self.y)
     self:delete()
   end
 }
@@ -2124,7 +2124,7 @@ local darkflash = {
   color = {r=0,g=0,b=0,a=0},
   description = "An invisible feature that turns into a flash of darkness. Used for spooky deaths.",
   placed = function (self)
-    currMap:add_effect(Effect('animation','unholydamage',5,self,{r=150,g=0,b=150}),self.x,self.y)
+    currMap:add_effect(Effect('animation',{image_name='unholydamage',image_max=5,target=self,color={r=150,g=0,b=150}}),self.x,self.y)
     self:delete()
   end
 }
@@ -2138,7 +2138,7 @@ local magicflash = {
   color = {r=0,g=0,b=0,a=0},
   description = "An invisible feature that turns into a flash of magic. Used for magical deaths.",
   placed = function (self)
-    currMap:add_effect(Effect('animation','magicdamage',5,self,{r=255,g=255,b=0}),self.x,self.y)
+    currMap:add_effect(Effect('animation',{image_name='magicdamage',image_max=5,target=self,color={r=255,g=255,b=0}}),self.x,self.y)
     self:delete()
   end
 }
