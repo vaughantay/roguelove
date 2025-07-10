@@ -292,6 +292,9 @@ function newgame:draw()
     love.graphics.printf("Name:",nameBoxX,printY,nameBoxWidth,"center")
     printY=printY+24
     self.nameBox = {minX=nameBoxX,maxX=nameBoxX+nameBoxWidth,minY=printY,maxY=printY+24}
+    if not self.player.name then
+      self:randomize_player_name()
+    end
     if self.cursorY == 1 and self.cursorX == 1 then
       setColor(50,50,50,255)
       love.graphics.rectangle('fill',nameBoxX,printY,nameBoxWidth,24)

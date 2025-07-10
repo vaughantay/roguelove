@@ -117,7 +117,7 @@ function Creature:init(creatureType,level,tags,info,noTweak,ignoreNewFunc) --TOD
     end
     self.equipment_slots=nil
   elseif not self.noEquip then
-    for slot,count in pairs(gamesettings.default_equipment_slots) do
+    for slot,count in pairs(gamesettings.default_equipment_slots or {}) do
       self.equipment[slot] = {slots=count}
     end
   end

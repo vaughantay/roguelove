@@ -1415,7 +1415,7 @@ function Faction:get_recruitable_creatures(creature)
         for cid,amt in pairs(data.creatures) do
           local creatInfo = possibleMonsters[cid]
           if creatInfo then
-            name = (name and name .. ", " or "") .. ucfirst(creatInfo.name) .. (amt > 1 and " x " .. amt or "")\
+            name = (name and name .. ", " or "") .. ucfirst(creatInfo.name) .. (amt > 1 and " x " .. amt or "")
           end
         end
         data.name = name
